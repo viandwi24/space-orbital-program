@@ -15,7 +15,9 @@
 		{ id: 'orbits', label: 'Orbit lines', icon: 'orbit' },
 		{ id: 'links', label: 'Comms links', icon: 'signal' },
 		{ id: 'stations', label: 'Ground stations', icon: 'station' },
-		{ id: 'labels', label: 'Labels', icon: 'label' }
+		{ id: 'labels', label: 'Labels', icon: 'label' },
+		// off by default (plan 293, ADR 0266)
+		{ id: 'soi', label: 'Spheres of influence', icon: 'soi' }
 	];
 	const f = $derived(mapFilters.filters);
 	const typesOn = $derived(VESSEL_TYPES.filter((t) => f.types[t]).length);

@@ -117,6 +117,11 @@ export interface MapPathSegment {
 	body: string;
 	/** Position of the body's centre when the stretch starts, system frame, m. */
 	offset: Vec3;
+	/**
+	 * Draw the stretch at the current centre of `frame.body` plus `relative` instead of at `offset`
+	 * (plan 293, ADR 0266): the path then moves with the bodies between two predictions.
+	 */
+	frame?: { body: string; relative: Vec3 };
 	points: readonly Vec3[];
 	/** The stretch lies after a maneuver node (plan 045): drawn in its own colour. */
 	planned?: boolean;
@@ -317,6 +322,8 @@ export class SceneModel {
 	/** The map object drawn in the highlight colour: `vessel:<id>` or `body:<id>` (the keys of the web's pick). */
 	private mapHighlight: string | null = null;
 	private mapOrbits = true;
+	/** Spheres of influence in the map view: KSP shows them only on demand (plan 293). */
+	private mapSpheres = false;
 	/** Vessels the map filters hide, and the vessel whose orbit is drawn as the target's (plan 258). */
 	private mapHidden: ReadonlySet<number> = new Set();
 	private mapTarget: number | null = null;
@@ -702,14 +709,17 @@ export class SceneModel {
 	}
 	/**
 	 * Map view layers: `orbits` false hides every orbit line (vessels and bodies); `hidden` vessels
-	 * (the filters', plan 258) draw neither orbit nor icon; `target` is drawn as the target's.
+	 * (the filters', plan 258) draw neither orbit nor icon; `target` is drawn as the target's;
+	 * `spheres` shows the wireframe spheres of influence (off unless asked for, plan 293).
 	 */
 	setMapLayers(layers: {
 		orbits: boolean;
 		hidden?: ReadonlySet<number>;
 		target?: number | null;
+		spheres?: boolean;
 	}): void {
 		this.mapOrbits = layers.orbits;
+		this.mapSpheres = layers.spheres ?? false;
 		this.mapHidden = layers.hidden ?? new Set();
 		this.mapTarget = layers.target ?? null;
 	}
@@ -972,7 +982,7 @@ export class SceneModel {
 				mark.orbit.object.position.set(p.x, p.y, p.z);
 			}
 			if (mark.sphere) {
-				mark.sphere.visible = this.map && self !== undefined;
+				mark.sphere.visible = this.map && this.mapSpheres && self !== undefined;
 				if (self) {
 					const p = toRenderSpace(self, this.origin);
 					mark.sphere.position.set(p.x, p.y, p.z);
@@ -1017,14 +1027,23 @@ export class SceneModel {
 			if (!line) return;
 			const show = this.map && s.points.length >= 2 && bodyWorld.has(s.body);
 			line.object.visible = show;
-			const p = toRenderSpace(s.offset, this.origin);
+			const centre = s.frame ? bodyWorld.get(s.frame.body) : undefined;
+			const base =
+				centre && s.frame
+					? {
+							x: centre.x + s.frame.relative.x,
+							y: centre.y + s.frame.relative.y,
+							z: centre.z + s.frame.relative.z
+						}
+					: s.offset;
+			const p = toRenderSpace(base, this.origin);
 			line.object.position.set(p.x, p.y, p.z);
 			const dot = this.pathDots[i];
 			const last = s.points[s.points.length - 1];
 			if (dot && last) {
 				dot.object.visible = show && i < this.pathSegments.length - 1;
 				const at = toRenderSpace(
-					{ x: s.offset.x + last.x, y: s.offset.y + last.y, z: s.offset.z + last.z },
+					{ x: base.x + last.x, y: base.y + last.y, z: base.z + last.z },
 					this.origin
 				);
 				dot.place(at, this.markerRadius(at) * 0.7);
@@ -1032,7 +1051,7 @@ export class SceneModel {
 			// The sphere a stretch lies in, where its body will be when the vessel gets there (a moon's
 			// ghost): only for a body with a sphere of its own.
 			const mark = this.bodyMarks.get(s.body);
-			if (show && mark?.sphere && i > 0) {
+			if (show && this.mapSpheres && mark?.sphere && i > 0) {
 				const ghost = (this.pathGhosts[ghosts] ??= this.makeGhost(mark.soi));
 				ghosts++;
 				ghost.visible = true;

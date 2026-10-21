@@ -1,10 +1,10 @@
 /**
  * What the flight map shows (plan 258, ADR 0242): KSP's map filters as data. Layers (orbit lines,
- * comms links, ground stations, labels) and one switch per vessel type, remembered per player. Pure.
+ * comms links, ground stations, labels, spheres of influence) and one switch per vessel type, remembered per player. Pure.
  */
 import { VESSEL_TYPES, type VesselType } from '@orbital/core';
 
-export const LAYERS = ['orbits', 'links', 'stations', 'labels'] as const;
+export const LAYERS = ['orbits', 'links', 'stations', 'labels', 'soi'] as const;
 export type MapLayer = (typeof LAYERS)[number];
 
 export interface MapFilters {
@@ -14,6 +14,11 @@ export interface MapFilters {
 	stations: boolean;
 	/** The names and times at the apsides and nodes. */
 	labels: boolean;
+	/**
+	 * The wireframe spheres of influence around moons and planets. Off by default: KSP shows them only
+	 * on demand, and the nets confused players (plan 293, ADR 0266).
+	 */
+	soi: boolean;
 	/** A vessel of a type that is off has neither icon nor orbit. */
 	types: Record<VesselType, boolean>;
 }
@@ -25,6 +30,7 @@ export const defaultFilters = (): MapFilters => ({
 	links: true,
 	stations: true,
 	labels: true,
+	soi: false,
 	types: Object.fromEntries(VESSEL_TYPES.map((t) => [t, true])) as Record<VesselType, boolean>
 });
 

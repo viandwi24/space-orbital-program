@@ -14,6 +14,7 @@ import {
 	KeplerError,
 	orbitalAxes,
 	trajectoryFor,
+	propagate,
 	propagateUniversal,
 	soiRadius,
 	type ManeuverInput,
@@ -52,7 +53,17 @@ export interface MapPath {
 	body: string;
 	/** Where the body's centre is when the stretch starts, system frame, m. */
 	offset: Vec3;
+	/**
+	 * Where the stretch is drawn (plan 293, ADR 0266): at the current centre of `frame.body` plus
+	 * `relative`. A stretch around the vessel's own body or one of its parents hangs at that body as
+	 * it is now; one around another body (a moon's encounter) hangs where that body will be,
+	 * relative to the vessel's body now. So the path moves with the planets between predictions and
+	 * never lags behind the planet it circles.
+	 */
+	frame: { body: string; relative: Vec3 };
 	points: Vec3[];
+	/** Sim time of each point, s. */
+	times: number[];
 	/** Start and end of the stretch, s of sim time. */
 	t0: number;
 	t1: number;
@@ -75,8 +86,78 @@ export interface PathConic {
 const conics = new WeakMap<MapPath, PathConic>();
 export const conicOf = (path: MapPath): PathConic | undefined => conics.get(path);
 
-/** Samples per stretch. */
+/** Samples per stretch, about: the step is a power of two seconds (see `sampleTimes`). */
 const SAMPLES = 160;
+
+/**
+ * Times to sample a stretch at: its two ends and, between them, the multiples of one step, a power of
+ * two seconds near span / SAMPLES. The grid is fixed in sim time, so a path predicted again a
+ * moment later (from where the vessel is now) puts its points where they were, instead of sliding
+ * every chord along the curve (the twitch of plan 293).
+ */
+export function sampleTimes(t0: number, t1: number): number[] {
+	const span = t1 - t0;
+	if (!(span > 0)) return [t0];
+	const step = 2 ** Math.round(Math.log2(span / SAMPLES));
+	const out = [t0];
+	for (let t = (Math.floor(t0 / step) + 1) * step; t < t1 - step * 1e-3; t += step) out.push(t);
+	out.push(t1);
+	return out;
+}
+
+/** Centre of `id` at `t`, system frame (the root's centre), from the bodies' orbits. */
+function centreAt(bodies: readonly PatchedBody[], id: string, t: number): Vec3 {
+	const out = { x: 0, y: 0, z: 0 };
+	for (let b = bodies.find((x) => x.id === id); b?.parent && b.orbit;) {
+		const parent = bodies.find((x) => x.id === b!.parent);
+		if (!parent) break;
+		const r = propagate(b.orbit, parent.mu, t).r;
+		out.x += r.x;
+		out.y += r.y;
+		out.z += r.z;
+		b = parent;
+	}
+	return out;
+}
+
+/** `ancestor` is `id` or one of its parents. */
+function isSelfOrParent(bodies: readonly PatchedBody[], ancestor: string, id: string): boolean {
+	for (let b = bodies.find((x) => x.id === id); b; b = bodies.find((x) => x.id === b!.parent)) {
+		if (b.id === ancestor) return true;
+		if (b.parent === undefined) break;
+	}
+	return false;
+}
+
+/**
+ * Where to draw a stretch around `body` that starts at `t0` (centre then: `offset`), for a vessel
+ * now in the sphere of `anchor`: see `MapPath.frame`.
+ */
+function frameFor(
+	bodies: readonly PatchedBody[],
+	anchor: string,
+	body: string,
+	t0: number,
+	offset: Vec3
+): MapPath['frame'] {
+	if (isSelfOrParent(bodies, body, anchor)) return { body, relative: { x: 0, y: 0, z: 0 } };
+	const a = centreAt(bodies, anchor, t0);
+	return { body: anchor, relative: { x: offset.x - a.x, y: offset.y - a.y, z: offset.z - a.z } };
+}
+
+/**
+ * The system-frame point a path's points are relative to, given where the bodies are now
+ * (`centre`, e.g. the snapshot's body positions); the predicted centre when the body is unknown.
+ */
+export function pathOrigin(path: MapPath, centre: (body: string) => Vec3 | undefined): Vec3 {
+	const c = centre(path.frame.body);
+	if (!c) return path.offset;
+	return {
+		x: c.x + path.frame.relative.x,
+		y: c.y + path.frame.relative.y,
+		z: c.z + path.frame.relative.z
+	};
+}
 
 /**
  * Predicted path of `vessel` for `horizon` seconds from `snapshot`, or `[]` for a vessel fixed to the
@@ -98,24 +179,40 @@ export function predictMapPath(
 		horizon
 	);
 	if (segments.length < 2 && !keepSingle) return [];
-	return segments.map((s) => mapPathOf(s, nodes));
+	return segments.map((s) => mapPathOf(s, nodes, String(v.soi)));
 }
 
-/** One stretch sampled into a polyline relative to its body. */
-function mapPathOf(s: PatchedSegment, bodies: readonly PatchedBody[], planned = false): MapPath {
+/** One stretch sampled into a polyline relative to its body, for a vessel now around `anchor`. */
+function mapPathOf(
+	s: PatchedSegment,
+	bodies: readonly PatchedBody[],
+	anchor: string,
+	planned = false
+): MapPath {
 	const node = bodies.find((n) => n.id === s.body)!;
 	const points: Vec3[] = [];
-	const span = Math.max(s.t1 - s.t0, 0);
-	for (let k = 0; k <= SAMPLES; k++) {
-		points.push(propagateUniversal(s.entry.r, s.entry.v, node.mu, (span * k) / SAMPLES).r);
+	const times: number[] = [];
+	let t1 = s.t1;
+	for (const t of sampleTimes(s.t0, Math.max(s.t0, s.t1))) {
+		try {
+			points.push(propagateUniversal(s.entry.r, s.entry.v, node.mu, t - s.t0).r);
+			times.push(t);
+		} catch (e) {
+			// A state the solver cannot reach ends the drawn stretch at the last good sample (plan 293).
+			if (!(e instanceof KeplerError)) throw e;
+			t1 = times.at(-1) ?? s.t0;
+			break;
+		}
 	}
 	const out: MapPath = {
 		body: s.body,
 		offset: s.bodyOffset,
+		frame: frameFor(bodies, anchor, s.body, s.t0, s.bodyOffset),
 		points,
+		times,
 		t0: s.t0,
-		t1: s.t1,
-		end: s.end
+		t1,
+		end: t1 < s.t1 ? 'horizon' : s.end
 	};
 	if (planned) out.planned = true;
 	conics.set(out, {
@@ -136,6 +233,9 @@ export interface NodePlacement {
 	time: number;
 	/** Position of the node in the system frame, m (the drawn path's body offset plus the state). */
 	world: Vec3;
+	/** The node relative to its body, m, and where that is drawn (as `MapPath.frame`, plan 293). */
+	local: Vec3;
+	frame: MapPath['frame'];
 	/** Orbital frame axes at the node (unit vectors, inertial axes). */
 	axes: OrbitalAxes;
 	/** Speed at the node, m/s. */
@@ -212,7 +312,7 @@ export function predictManeuvers(
 		(past ? trajectory.predictWithManeuvers(start, maneuvers, 1).nodes : []).map((n) => [n.id, n])
 	);
 	const firstNode = Math.min(...result.nodes.map((n) => n.segment).filter((i) => i >= 0), Infinity);
-	const paths = result.segments.map((s, i) => mapPathOf(s, bodies, i > firstNode));
+	const paths = result.segments.map((s, i) => mapPathOf(s, bodies, start.body, i > firstNode));
 	const nodes: NodePlacement[] = result.nodes.flatMap((moved) => {
 		const n = where.get(moved.id) ?? moved;
 		const path = n.segment >= 0 ? paths[n.segment] : undefined;
@@ -223,6 +323,8 @@ export function predictManeuvers(
 				id: n.id,
 				time: n.time,
 				world: { x: offset.x + n.pre.r.x, y: offset.y + n.pre.r.y, z: offset.z + n.pre.r.z },
+				local: n.pre.r,
+				frame: path?.frame ?? frameFor(bodies, start.body, n.body, n.time, n.bodyOffset),
 				axes: orbitalAxes(n.pre.r, n.pre.v),
 				speed: Math.hypot(n.pre.v.x, n.pre.v.y, n.pre.v.z),
 				path: n.segment
@@ -230,6 +332,17 @@ export function predictManeuvers(
 		];
 	});
 	return { paths, nodes, unreachable: result.unreachable };
+}
+
+/** Where a node is drawn, given where the bodies are now (see `pathOrigin`). */
+export function nodeWorld(node: NodePlacement, centre: (body: string) => Vec3 | undefined): Vec3 {
+	const c = centre(node.frame.body);
+	if (!c) return node.world;
+	return {
+		x: c.x + node.frame.relative.x + node.local.x,
+		y: c.y + node.frame.relative.y + node.local.y,
+		z: c.z + node.frame.relative.z + node.local.z
+	};
 }
 
 /** A look-ahead long enough to cross a sphere: 1.5 periods of a bound orbit, a day of sim time for an escape. */

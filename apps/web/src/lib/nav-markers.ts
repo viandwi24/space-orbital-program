@@ -6,6 +6,7 @@
 import {
 	cross,
 	dot,
+	KeplerError,
 	length,
 	normalize,
 	propagateUniversal,
@@ -84,8 +85,14 @@ export function planeNodes(
 	} catch {
 		return [];
 	}
-	return found.map((n) => {
-		const position = propagateUniversal(own.r, own.v, mu, n.time - now).r;
+	return found.flatMap((n) => {
+		let position: Vec3;
+		try {
+			position = propagateUniversal(own.r, own.v, mu, n.time - now).r;
+		} catch (e) {
+			if (!(e instanceof KeplerError)) throw e;
+			return [];
+		}
 		return {
 			kind: n.kind,
 			time: n.time,
@@ -145,7 +152,13 @@ export function stretchApsides(
 		else if (kind === 'periapsis' && m0 < 0) after = -m0 / n;
 		else continue; // an open path has no apoapsis, and its periapsis is behind it once it heads out
 		if (after > span) continue;
-		const position = propagateUniversal(entry.r, entry.v, mu, after).r;
+		let position: Vec3;
+		try {
+			position = propagateUniversal(entry.r, entry.v, mu, after).r;
+		} catch (e) {
+			if (!(e instanceof KeplerError)) throw e;
+			continue;
+		}
 		out.push({ kind, after, position, radius: length(position) });
 	}
 	return out;

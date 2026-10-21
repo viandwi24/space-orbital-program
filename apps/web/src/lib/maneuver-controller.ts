@@ -14,10 +14,12 @@ import {
 	type Vec3,
 	type VesselSnapshot
 } from '@orbital/core';
+import { KeplerError } from '@orbital/kepler';
 import type { MapPathSegment, ScreenPoint } from '@orbital/renderer';
 import {
 	HANDLES,
 	KEY_STEP,
+	SAME_PLACE_PX,
 	NODE_KEYS,
 	dvFromDrag,
 	modifierScale,
@@ -34,6 +36,8 @@ import { stretchApsides } from './nav-markers';
 import {
 	bodyNodes,
 	conicOf,
+	nodeWorld,
+	pathOrigin,
 	predictManeuvers,
 	predictMapPath,
 	predictionHorizon,
@@ -221,11 +225,20 @@ export function createManeuverController(options: ManeuverControllerOptions): Ma
 		if (!body) return;
 		const horizon = predictionHorizon(v.orbit, bodyMu(body));
 		const nodes = currentNodes();
-		if (nodes.length === 0) {
-			const path = predictMapPath(snap, id, patched, horizon);
-			prediction = { paths: path, nodes: [], unreachable: [] };
-		} else {
-			prediction = predictManeuvers(snap, id, patched, nodes, horizon);
+		try {
+			if (nodes.length === 0) {
+				const path = predictMapPath(snap, id, patched, horizon);
+				prediction = { paths: path, nodes: [], unreachable: [] };
+			} else {
+				prediction = predictManeuvers(snap, id, patched, nodes, horizon);
+			}
+		} catch (e) {
+			// A path the solver cannot follow keeps the last drawn one; it never reaches the page's
+			// error screen (plan 293).
+			if (!(e instanceof KeplerError)) throw e;
+			predictedAt = now;
+			dirty = false;
+			return;
 		}
 		options.setPath(prediction.paths);
 		shown = prediction.paths.length > 0;
@@ -233,18 +246,18 @@ export function createManeuverController(options: ManeuverControllerOptions): Ma
 		dirty = false;
 	}
 
+	/** Where the bodies are now (the snapshot's), for drawing the paths in their frames (plan 293). */
+	function centreNow(body: string): Vec3 | undefined {
+		return options.snapshot()?.bodies.find((b) => b.id === body)?.position;
+	}
+
 	function samplesOf(paths: readonly MapPath[]): TimedPoint[][] {
 		return paths.map((p) => {
 			const out: TimedPoint[] = [];
-			const span = p.t1 - p.t0;
+			const o = pathOrigin(p, centreNow);
 			p.points.forEach((pt, k) => {
-				const s = options.project({
-					x: p.offset.x + pt.x,
-					y: p.offset.y + pt.y,
-					z: p.offset.z + pt.z
-				});
-				if (s && !s.hidden)
-					out.push({ x: s.x, y: s.y, t: p.t0 + (span * k) / (p.points.length - 1) });
+				const s = options.project({ x: o.x + pt.x, y: o.y + pt.y, z: o.z + pt.z });
+				if (s && !s.hidden) out.push({ x: s.x, y: s.y, t: p.times[k] ?? p.t1 });
 			});
 			return out;
 		});
@@ -256,7 +269,11 @@ export function createManeuverController(options: ManeuverControllerOptions): Ma
 		const v = vesselSnapshot();
 		const body = v && options.bodies.find((b) => b.id === v.soi);
 		if (!snap || id === null || !v || !body) return;
-		basePaths = predictMapPath(snap, id, patched, predictionHorizon(v.orbit, bodyMu(body)), true);
+		try {
+			basePaths = predictMapPath(snap, id, patched, predictionHorizon(v.orbit, bodyMu(body)), true);
+		} catch (e) {
+			if (!(e instanceof KeplerError)) throw e;
+		}
 	}
 
 	/** Nearest point of the orbit (and of the planned stretches) to a pixel: its time. */
@@ -268,9 +285,9 @@ export function createManeuverController(options: ManeuverControllerOptions): Ma
 			if (hit) hits.push(hit);
 		}
 		if (hits.length === 0) return null;
-		// Passes of an orbit lie over each other: of the hits within a pixel of the best, the earliest.
+		// Passes of an orbit lie over each other: of the hits within a few pixels of the best, the earliest.
 		const nearest = Math.min(...hits.map((h) => h.distance));
-		return Math.min(...hits.filter((h) => h.distance <= nearest + 1).map((h) => h.t));
+		return Math.min(...hits.filter((h) => h.distance <= nearest + SAME_PLACE_PX).map((h) => h.t));
 	}
 
 	function flush(now: number): void {
@@ -365,6 +382,7 @@ export function createManeuverController(options: ManeuverControllerOptions): Ma
 				}
 			}
 			if (!best) return;
+			const o = pathOrigin(p, centreNow);
 			const impact = p.end === 'impact';
 			const altitude = Math.hypot(best.x, best.y, best.z) - def.radius;
 			const name = def.id.slice(def.id.lastIndexOf('.') + 1);
@@ -372,11 +390,7 @@ export function createManeuverController(options: ManeuverControllerOptions): Ma
 				key,
 				impact,
 				text: impact ? `${name}: impact` : `${name} Pe ${formatDistance(Math.max(altitude, 0))}`,
-				point: options.project({
-					x: p.offset.x + best.x,
-					y: p.offset.y + best.y,
-					z: p.offset.z + best.z
-				})
+				point: options.project({ x: o.x + best.x, y: o.y + best.y, z: o.z + best.z })
 			});
 		});
 		return out;
@@ -434,6 +448,7 @@ export function createManeuverController(options: ManeuverControllerOptions): Ma
 			const mu = muOf(p.body);
 			if (mu === undefined) return;
 			const radius = radiusOf(p.body);
+			const o = pathOrigin(p, centreNow);
 			for (const m of stretchApsides(entry, mu, p.t1 - p.t0)) {
 				out.push({
 					key: `${i}:${m.kind}`,
@@ -441,9 +456,9 @@ export function createManeuverController(options: ManeuverControllerOptions): Ma
 					altitude: m.radius - radius,
 					time: p.t0 + m.after,
 					point: options.project({
-						x: p.offset.x + m.position.x,
-						y: p.offset.y + m.position.y,
-						z: p.offset.z + m.position.z
+						x: o.x + m.position.x,
+						y: o.y + m.position.y,
+						z: o.z + m.position.z
 					})
 				});
 			}
@@ -502,18 +517,21 @@ export function createManeuverController(options: ManeuverControllerOptions): Ma
 			const apsides = apsidesOf(prediction.paths);
 			if (prediction.nodes.length === 0 && encounters.length === 0) return null;
 			const nodes: NodeDraw[] = prediction.nodes.map((n) => {
-				const point = options.project(n.world);
+				const world = nodeWorld(n, centreNow);
+				const point = options.project(world);
 				const isSelected = n.id === selected;
 				const handles: HandleDraw[] = [];
 				if (isSelected && point) {
-					const reach = Math.hypot(n.world.x, n.world.y, n.world.z) * 0.05 + 1_000;
+					// A short arm by the node's distance from its own body: the system-frame distance
+					// (from the sun) made it hundreds of megametres long (plan 293).
+					const reach = Math.hypot(n.local.x, n.local.y, n.local.z) * 0.05 + 1_000;
 					for (const h of HANDLES) {
 						const dirWorld = n.axes[h.axis];
 						const sign = h.sign;
 						const far = options.project({
-							x: n.world.x + dirWorld.x * sign * reach,
-							y: n.world.y + dirWorld.y * sign * reach,
-							z: n.world.z + dirWorld.z * sign * reach
+							x: world.x + dirWorld.x * sign * reach,
+							y: world.y + dirWorld.y * sign * reach,
+							z: world.z + dirWorld.z * sign * reach
 						});
 						let placed: ScreenPoint | null = null;
 						if (far) {

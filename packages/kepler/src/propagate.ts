@@ -35,7 +35,12 @@ export function stumpffS(z: number): number {
 	return 1 / 6 - z / 120 + (z * z) / 5040 - (z * z * z) / 362880 + (z * z * z * z) / 39916800;
 }
 
-const UNIVERSAL_MAX_ITERATIONS = 100;
+/**
+ * Iteration cap of the χ solve. The safeguarded step below at least halves the bracket every second
+ * iteration, and a float64 bracket is exhausted after about 2 × 1100 halvings at worst (from 1e300
+ * to the smallest subnormal); in practice 10 Newton steps or 130 bisections suffice.
+ */
+const UNIVERSAL_MAX_ITERATIONS = 400;
 
 /**
  * Propagates (r0, v0) by `dt` seconds under two-body gravity with parameter μ, for any eccentricity.
@@ -80,27 +85,39 @@ export function propagateUniversal(r0: Vec3, v0: Vec3, mu: number, dt: number): 
 		for (let k = 0; k < 200 && (dt > 0 ? F(b) < 0 : F(b) > 0); k++) b *= 2;
 		return b;
 	};
-	// Elliptic first guess √μ α dt (Vallado); otherwise the near-circular scale √μ dt / r0.
-	let x = alpha * r0Mag > 1e-6 ? sqrtMu * alpha * dt : (sqrtMu * dt) / r0Mag;
-	if (dt > 0) hi = grow(Math.max(Math.abs(x), 1));
-	else lo = grow(-Math.max(Math.abs(x), 1));
-	if (x <= lo || x >= hi) x = 0.5 * (lo + hi);
+	let x = universalGuess(r0Mag, vr0 * r0Mag, alpha, mu, dt);
+	// Grow from twice the guess, so a good guess lies inside the bracket rather than on its edge.
+	if (dt > 0) hi = grow(2 * Math.max(Math.abs(x), 1));
+	else lo = grow(-2 * Math.max(Math.abs(x), 1));
+	if (!(x > lo && x < hi)) x = 0.5 * (lo + hi);
 
+	// Newton inside the bracket, with a bisection whenever Newton would leave the bracket or does not
+	// at least halve the step before (Numerical Recipes `rtsafe`). A Newton run from far above the
+	// root of a hyperbolic case crawls down by about 1/√(−α) per step; the halving rule turns that
+	// into a bisection, so the solve always ends (plan 293).
 	let converged = false;
+	let stepBefore = hi - lo;
 	for (let k = 0; k < UNIVERSAL_MAX_ITERATIONS; k++) {
 		const f = F(x);
+		if (f === 0) {
+			converged = true;
+			break;
+		}
 		if (f < 0) lo = x;
 		else hi = x;
-		let next = x - f / dF(x);
-		if (!(next > lo && next < hi)) next = 0.5 * (lo + hi);
-		if (Math.abs(next - x) <= 1e-14 * Math.max(1, Math.abs(next))) {
+		const slope = dF(x);
+		let next = x - f / slope;
+		if (!(next > lo && next < hi) || Math.abs(next - x) > 0.5 * stepBefore) next = 0.5 * (lo + hi);
+		stepBefore = Math.abs(next - x);
+		const tolerance = 1e-14 * Math.max(1, Math.abs(next));
+		if (stepBefore <= tolerance || hi - lo <= tolerance) {
 			x = next;
 			converged = true;
 			break;
 		}
 		x = next;
 	}
-	if (!converged)
+	if (!converged || !Number.isFinite(x))
 		throw new KeplerError(
 			`propagateUniversal: universal Kepler equation did not converge (dt = ${dt} s, α = ${alpha} 1/m)`
 		);
@@ -115,4 +132,22 @@ export function propagateUniversal(r0: Vec3, v0: Vec3, mu: number, dt: number): 
 	const fDot = (sqrtMu / (rMag * r0Mag)) * (z * S - 1) * x;
 	const gDot = 1 - ((x * x) / rMag) * C;
 	return { r, v: add(scale(r0, fDot), scale(v0, gDot)) };
+}
+
+/**
+ * First guess for χ (Vallado Alg. 8): √μ α Δt for an ellipse, the logarithmic estimate for a
+ * hyperbola, and the near-parabolic scale √μ Δt / r0 otherwise (or when the hyperbolic one fails).
+ * `rv` is r0 · v0.
+ */
+function universalGuess(r0: number, rv: number, alpha: number, mu: number, dt: number): number {
+	const sqrtMu = Math.sqrt(mu);
+	if (alpha * r0 > 1e-6) return sqrtMu * alpha * dt;
+	if (alpha * r0 < -1e-6) {
+		const a = 1 / alpha;
+		const sign = Math.sign(dt);
+		const arg = (-2 * mu * alpha * dt) / (rv + sign * Math.sqrt(-mu * a) * (1 - r0 * alpha));
+		const x = sign * Math.sqrt(-a) * Math.log(arg);
+		if (Number.isFinite(x) && x * dt > 0) return x;
+	}
+	return (sqrtMu * dt) / r0;
 }

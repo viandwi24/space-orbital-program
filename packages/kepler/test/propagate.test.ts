@@ -120,4 +120,57 @@ describe('propagateUniversal (state vector, any conic)', () => {
 		expect(relErr(back.r, r0)).toBeLessThan(1e-9);
 		expect(relErr(back.v, v0)).toBeLessThan(1e-9);
 	});
+
+	// Plan 293: the map's maneuver editor crashed with "did not converge (dt = 50740.92485174809 s,
+	// α = −6.236880549521935e-7 1/m)": an escape burn from low orbit around the home body. From the
+	// periapsis the old near-circular guess √μ Δt / r0 started far above the root and Newton crawled
+	// down by about 1/√(−α) per step, past the iteration cap.
+	test('the escape burn of the map crash converges and agrees with element propagation', () => {
+		const MU_HOME = 3.5316e12;
+		const alpha = -6.236880549521935e-7;
+		const dt = 50740.92485174809;
+		for (const rp of [682_700, 300_000, 100_000, 10_000]) {
+			const el: OrbitalElements = {
+				a: 1 / alpha,
+				e: 1 - rp * alpha,
+				i: 0.3,
+				raan: 1,
+				argp: 2,
+				m0: 0,
+				epoch: 0
+			};
+			const s0 = propagate(el, MU_HOME, 0);
+			expect(Math.abs(2 / length(s0.r) - dot(s0.v, s0.v) / MU_HOME - alpha)).toBeLessThan(1e-15);
+			for (const step of [dt, -dt]) {
+				const got = propagateUniversal(s0.r, s0.v, MU_HOME, step);
+				const expected = propagate(el, MU_HOME, step);
+				expect(relErr(got.r, expected.r)).toBeLessThan(1e-9);
+				expect(relErr(got.v, expected.v)).toBeLessThan(1e-9);
+			}
+		}
+	});
+
+	test('long hyperbolic and near-parabolic steps always converge (2 000 random cases)', () => {
+		const rng = createRng(293);
+		let worst = 0;
+		for (let k = 0; k < 2000; k++) {
+			const rp = uniform(rng, 1e4, 1e8);
+			const e = 1 + Math.exp(uniform(rng, Math.log(1e-6), Math.log(10)));
+			const el: OrbitalElements = {
+				a: rp / (1 - e),
+				e,
+				i: uniform(rng, 0, Math.PI),
+				raan: uniform(rng, 0, 2 * Math.PI),
+				argp: uniform(rng, 0, 2 * Math.PI),
+				m0: uniform(rng, -10, 10),
+				epoch: 0
+			};
+			const dt = (rng() < 0.5 ? -1 : 1) * Math.exp(uniform(rng, Math.log(10), Math.log(1e7)));
+			const s0 = propagate(el, MU_EARTH, 0);
+			const got = propagateUniversal(s0.r, s0.v, MU_EARTH, dt);
+			expect(Number.isFinite(got.r.x) && Number.isFinite(got.v.x)).toBe(true);
+			if (e > 1 + 1e-3) worst = Math.max(worst, relErr(got.r, propagate(el, MU_EARTH, dt).r));
+		}
+		expect(worst).toBeLessThan(1e-8);
+	});
 });

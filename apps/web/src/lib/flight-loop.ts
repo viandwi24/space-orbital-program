@@ -1344,7 +1344,8 @@ export function startFlight(options: FlightOptions): Flight {
 				s.vessels.map((v) => ({ id: Number(v.id), type: v.type })),
 				flown
 			),
-			target
+			target,
+			spheres: mapFilters.soi
 		});
 	}
 

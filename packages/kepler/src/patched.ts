@@ -151,10 +151,19 @@ export function predictPatchedConics(
 					const target = past(s, tau);
 					return target === undefined ? -1 : 1;
 				};
-				const tx = findCrossing(crossed, t, tNext);
-				t = tx;
-				state = at(tx);
-				if (!impact) hit = past(state, tx);
+				try {
+					const tx = findCrossing(crossed, t, tNext);
+					const there = at(tx);
+					t = tx;
+					state = there;
+					if (!impact) hit = past(state, tx);
+				} catch (e) {
+					// A conic the solver cannot follow ends the path here, like a horizon (plan 293).
+					if (!(e instanceof KeplerError)) throw e;
+					hit = undefined;
+					impact = false;
+					break;
+				}
 			} else {
 				t = tNext;
 				state = next;

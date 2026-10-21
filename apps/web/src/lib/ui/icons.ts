@@ -78,7 +78,9 @@ export const ICONS = {
 	parts: 'M12 3l8 4.5v9L12 21l-8-4.5v-9ZM4 7.5l8 4.5 8-4.5M12 12v9',
 	comms: 'M4 6a11 11 0 0 0 12 12ZM10 12l7-7M12 21h8M16 18v3',
 	ellipse: 'M12 9.5a2.5 2.5 0 1 0 0 5a2.5 2.5 0 0 0 0-5ZM3 12a9 4.5 0 1 0 18 0a9 4.5 0 1 0-18 0Z',
-	drop: 'M12 3c-3 5-5 7.5-5 10.5a5 5 0 0 0 10 0c0-3-2-5.5-5-10.5Z'
+	drop: 'M12 3c-3 5-5 7.5-5 10.5a5 5 0 0 0 10 0c0-3-2-5.5-5-10.5Z',
+	// the map's spheres of influence switch (plan 293): a body inside a dashed sphere
+	soi: 'M12 10a2 2 0 1 0 0 4a2 2 0 0 0 0-4ZM5.6 5.6A9 9 0 0 1 10 3.2M14 3.2a9 9 0 0 1 4.4 2.4M20.8 10a9 9 0 0 1 0 4M18.4 18.4A9 9 0 0 1 14 20.8M10 20.8a9 9 0 0 1-4.4-2.4M3.2 14a9 9 0 0 1 0-4'
 } as const;
 
 export type IconName = keyof typeof ICONS;

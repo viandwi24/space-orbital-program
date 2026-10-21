@@ -205,6 +205,17 @@
 	let hoverPart = $state<EntityId | null>(null);
 	let hoverAt = 0;
 	let downAt: { x: number; y: number } | null = null;
+	/**
+	 * A press on the canvas or a map layer (a camera drag, a node or handle drag) is under way: no text
+	 * selection may start until it ends, and one left from before is cleared (plan 293). The owner's
+	 * drags left the orbit labels and the top bar selected.
+	 */
+	let mapPress = false;
+	function onPressCapture(e: PointerEvent): void {
+		const at = e.target instanceof Element ? e.target : null;
+		mapPress = at !== null && at.closest('.stage > canvas, .stage > .layer') !== null;
+		if (mapPress) globalThis.getSelection?.()?.removeAllRanges();
+	}
 	/** The map's vessel points this frame: the others', and the target's under the key `target` (plan 270). */
 	function stackPoints(map: MapTargetFrame | null): StackPoint[] {
 		if (!map) return [];
@@ -1379,7 +1390,17 @@
 	description="Fly your rocket: throttle, stage, hold attitude with SAS, plan maneuvers on the map and reach orbit."
 />
 
-<svelte:window onresize={updateInsets} />
+<svelte:window
+	onresize={updateInsets}
+	onpointerdowncapture={onPressCapture}
+	onpointerupcapture={() => (mapPress = false)}
+	onpointercancelcapture={() => (mapPress = false)}
+/>
+<svelte:document
+	onselectstart={(e) => {
+		if (mapPress) e.preventDefault();
+	}}
+/>
 
 <div class="stage" class:bare={uiHidden} bind:this={stageEl}>
 	<canvas
@@ -1909,6 +1930,16 @@
 		width: 100%;
 		height: 100%;
 		touch-action: none;
+	}
+	/*
+	 * A drag on the map (the camera, a node handle) must not select page text: a selection that starts
+	 * on the canvas or on a map label runs over the labels and the top bar (plan 293).
+	 */
+	canvas,
+	.stage > :global(.layer) {
+		user-select: none;
+		-webkit-user-select: none;
+		-webkit-touch-callout: none;
 	}
 	.ui {
 		position: absolute;

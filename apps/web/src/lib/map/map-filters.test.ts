@@ -12,12 +12,21 @@ import {
 } from './map-filters';
 
 describe('the map filters (plan 258)', () => {
-	it('start with everything shown', () => {
+	it('start with everything shown but the spheres of influence', () => {
 		const f = defaultFilters();
 		expect(f.orbits && f.links && f.stations && f.labels).toBe(true);
 		expect(hiddenTypes(f)).toEqual([]);
 		expect(Object.keys(f.types)).toEqual([...VESSEL_TYPES]);
-		expect(shownCount(f)).toEqual({ on: 4 + VESSEL_TYPES.length, of: 4 + VESSEL_TYPES.length });
+		expect(shownCount(f)).toEqual({ on: 4 + VESSEL_TYPES.length, of: 5 + VESSEL_TYPES.length });
+	});
+	it('the spheres of influence are off by default, switch on, and are remembered (plan 293)', () => {
+		expect(defaultFilters().soi).toBe(false);
+		// a value saved before plan 293 has no `soi`: it stays off
+		expect(parseFilters('{"orbits":true,"labels":false}').soi).toBe(false);
+		const on = withLayer(defaultFilters(), 'soi', true);
+		expect(on.soi).toBe(true);
+		expect(parseFilters(serialiseFilters(on)).soi).toBe(true);
+		expect(parseFilters(serialiseFilters(withLayer(on, 'soi', false))).soi).toBe(false);
 	});
 	it('a layer or a type switches without touching the rest, and the old value is kept', () => {
 		const f = defaultFilters();

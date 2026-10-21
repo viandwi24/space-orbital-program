@@ -82,6 +82,9 @@ export interface TimedPoint {
  * and distance in pixels, or null when it is farther than `radius`. Interpolates along the nearest
  * segment so the time is finer than the sample spacing.
  */
+/** Two passes of a looping orbit closer than this on screen are the same place, px (plan 293). */
+export const SAME_PLACE_PX = 3;
+
 export function pickTime(
 	samples: readonly TimedPoint[],
 	px: number,
@@ -97,8 +100,9 @@ export function pickTime(
 		const len2 = dx * dx + dy * dy;
 		const u = len2 === 0 ? 0 : Math.min(1, Math.max(0, ((px - a.x) * dx + (py - a.y) * dy) / len2));
 		const distance = Math.hypot(a.x + u * dx - px, a.y + u * dy - py);
-		// An orbit that loops lies over itself: within a pixel the earlier pass wins.
-		if (distance <= radius && (best === null || distance < best.distance - 1)) {
+		// An orbit that loops lies over itself: within a few pixels the earlier pass wins (the chords
+		// of two passes sag differently, plan 293).
+		if (distance <= radius && (best === null || distance < best.distance - SAME_PLACE_PX)) {
 			best = { t: a.t + u * (b.t - a.t), distance };
 		}
 	}

@@ -261,3 +261,4 @@ An ADR records one decision, its context, and its consequences. ADRs are **appen
 | 0262 | [Robotics: rigid groups joined by motored Rapier joints](0262-robotics-articulated-vessels.md) | accepted | 2026-10-21 |
 | 0263 | [Blueprints are mod content, shown in one Library](0263-blueprints-are-mod-content-in-one-library.md) | accepted | 2026-10-21 |
 | 0264 | [EVA inventory and deployed science stations](0264-eva-inventory-and-deployed-science.md) | accepted | 2026-10-21 |
+| 0266 | [Map paths are drawn in the frames of the bodies now; spheres of influence on demand](0266-map-paths-drawn-in-body-frames-and-soi-on-demand.md) | accepted | 2026-10-21 |

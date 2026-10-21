@@ -237,6 +237,7 @@
 | 289 | [Size classes 1.875–7.5 m with the existing generators](plans/289-size-classes-with-existing-generators.md) | ready | — | Split from 275 for the Linux worker (Agent 3). ADR 0256. Headless; no UI. |
 | 290 | [A folded part row in the vessel panel does not open when its summary is clicked](plans/290-folded-part-rows-open-on-click.md) | done | part-row fold session | Found by plan 272's e2e. The row's `open` shared a Svelte effect with its summary text, rewritten every tick, so the native toggle was undone before its `toggle` event stored it; a summary click now flips the stored state. |
 | 291 | [Part detail kit, liveries, bronze material and honest catalogue icons](plans/291-part-detail-kit-livery-and-icons.md) | draft | — | ADRs 0255, 0257. Owner research 2026-10-21 (refs/part-visuals-and-blueprints). Waits until the owner releases the parts work (main busy with renderer and UI/UX fixes). |
+| 293 | [Flight map: no crash on escape burns, no text selection on drags, SOI on demand, steady orbit lines](plans/293-flight-map-crash-selection-soi-and-steady-lines.md) | done | map crash + jitter session | Owner screenshots 2026-10-21. ADR 0266: the χ solve converges (hyperbolic guess, safeguarded Newton) and a failed step ends a path instead of the page; drags select no text; spheres of influence are a map filter, off by default; predicted stretches hang at their body as it is now (a planned orbit 20 min ahead used to hang 11 Mm away along the planet's orbit) and are sampled on a fixed time grid. |
 
 Statuses: `draft` (needs refinement before an agent takes it) · `ready` · `in-progress` · `done` · `blocked`.
 
@@ -301,6 +302,7 @@ Existing drafts realigned on 2026-10-17: 063 (runway building), 065, 066, 067, 0
 
 ## Recent journal entries
 
+- [293 — Flight map: the escape-burn crash, text selection, spheres of influence, steady lines](journal/293-flight-map-crash-selection-soi-and-steady-lines.md)
 - [290 — Folded part rows that did not open on a click](journal/290-folded-part-rows-open-on-click.md)
 - [272 — Flight v3: one dock, the compact navball module, staging on the right](journal/272-flight-v3.md)
 - [273 — Space Center v3: Overview, Build and Focus](journal/273-space-center-v3.md)

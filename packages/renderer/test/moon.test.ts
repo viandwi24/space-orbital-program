@@ -193,6 +193,10 @@ describe('a scene with the home planet and a moon', () => {
 		);
 		expect(lines.length).toBeGreaterThanOrEqual(1);
 		expect(spheres).toHaveLength(1);
+		// the sphere of influence is shown only on demand (plan 293, ADR 0266)
+		expect(spheres[0]!.visible).toBe(false);
+		m.setMapLayers({ orbits: true, spheres: true });
+		m.sync(snapshot({ x: RADIUS + 3_505, y: 0, z: 0 }));
 		expect(spheres[0]!.visible).toBe(true);
 		m.setMapFocus(HOME);
 		m.sync(snapshot({ x: RADIUS + 3_505, y: 0, z: 0 }));
@@ -219,6 +223,35 @@ describe('a scene with the home planet and a moon', () => {
 		m.setMapPath(null);
 		m.sync(snapshot({ x: RADIUS + 3_505, y: 0, z: 0 }));
 		expect(visible()).toBe(withPath - 1);
+	});
+
+	test('a path with a frame hangs at that body as it is now plus its offset (plan 293)', () => {
+		const m = new SceneModel(config);
+		m.setMapView(true);
+		const points = [
+			{ x: 0, y: 0, z: 0 },
+			{ x: 1e6, y: 0, z: 0 }
+		];
+		// stale predicted centre far away; the frame puts it at the home planet plus 5 km
+		m.setMapPath([
+			{
+				body: HOME,
+				offset: { x: 9e9, y: 0, z: 0 },
+				frame: { body: HOME, relative: { x: 5_000, y: 0, z: 0 } },
+				points
+			}
+		]);
+		m.sync(snapshot({ x: RADIUS + 3_505, y: 0, z: 0 }));
+		const unframed = new SceneModel(config);
+		unframed.setMapView(true);
+		unframed.setMapPath([{ body: HOME, offset: { x: 5_000, y: 0, z: 0 }, points }]);
+		unframed.sync(snapshot({ x: RADIUS + 3_505, y: 0, z: 0 }));
+		const pos = (sm: SceneModel) =>
+			sm.scene.children
+				.filter((c) => c.type === 'Line2' && c.visible)
+				.map((c) => c.position.x)
+				.sort((a, b) => a - b);
+		expect(pos(m)).toEqual(pos(unframed));
 	});
 });
 

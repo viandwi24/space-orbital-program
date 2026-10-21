@@ -180,6 +180,8 @@ export interface Renderer {
 		hidden?: ReadonlySet<number>;
 		/** The vessel whose orbit is drawn as the target's. */
 		target?: number | null;
+		/** Wireframe spheres of influence (default off, plan 293). */
+		spheres?: boolean;
 	}): void;
 	/** Map view: tint these bodies by their science regions, `null` none (plan 192). */
 	setRegionOverlay(
