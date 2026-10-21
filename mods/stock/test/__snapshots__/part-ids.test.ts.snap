@@ -2489,7 +2489,7 @@ exports[`stock part ids, masses, costs and modules match the snapshot 1`] = `
             0,
           ],
           "fullDragArea": 1400,
-          "semiDragArea": 14000,
+          "semiDragArea": 35,
         },
       ],
     ],
@@ -2922,7 +2922,7 @@ exports[`stock part ids, masses, costs and modules match the snapshot 1`] = `
         "stock.engine",
         {
           "gimbal": {
-            "range": 2,
+            "range": 5,
             "rate": 10,
           },
           "ispSeaLevel": 265,
@@ -2951,7 +2951,7 @@ exports[`stock part ids, masses, costs and modules match the snapshot 1`] = `
         "stock.engine",
         {
           "gimbal": {
-            "range": 2,
+            "range": 5,
             "rate": 10,
           },
           "ispSeaLevel": 265,
@@ -2980,7 +2980,7 @@ exports[`stock part ids, masses, costs and modules match the snapshot 1`] = `
         "stock.engine",
         {
           "gimbal": {
-            "range": 2,
+            "range": 5,
             "rate": 10,
           },
           "ispSeaLevel": 265,
@@ -3175,6 +3175,10 @@ exports[`stock part ids, masses, costs and modules match the snapshot 1`] = `
       [
         "stock.engine",
         {
+          "gimbal": {
+            "range": 6,
+            "rate": 10,
+          },
           "ispSeaLevel": 242,
           "ispVacuum": 268,
           "propellants": [

@@ -254,6 +254,8 @@
 | 306 | [Robotics: kinematic hinges, servos, rotors and pistons](plans/306-robotics-kinematic-joints.md) | done | part visuals session | ADR 0269 supersedes 0262 points 1, 2, 5, 7 and 0265: joints re-pose parts inside the one body, rebuilt at most 10 Hz; 7 parts; limit 4 in series, 16 per vessel. Journal 306. |
 | 307 | [Rover: wheels in three sizes, chassis, drive mode, blueprint](plans/307-rover-wheels-and-drive-mode.md) | done | part visuals session | First slice of plan 283: `wheel-throttle` (API 0.1.99), wheel top speed, rover wheels S/M/L and a deck, Flight drive mode (Alt+G, on by itself near the ground), Trailblazer Rover driven headless off the pad. Journal 307. |
 | 308 | [Attach to sideways nodes (a hub's side ports)](plans/308-sideways-node-attach.md) | done | part visuals session | The editor turns a part onto a node at right angles (as a fallback, never a flip); the resolver accepts the tilt; Horizon Station gets an airlock and a cupola on the hub's sides. Journal 308. |
+| 309 | [Mission flight tests: shuttle, capsule, lander, docking, rover](plans/309-mission-flight-tests.md) | done | part visuals session | Five headless flights. Fixed: Wayfarer turned over (core engines now under the tank, Energia style), SRB-XL gimbal 6°, plates 5°, pod-3 semi canopy 10× too big. Journal 309. |
+| 311 | [Lights: panel, angled, navigation, OrbitX names](plans/311-lights-panel-angled-nav.md) | in-progress | part visuals session | Owner's question 2026-10-21. |
 | 310 | [Vessel menu in Flight, docking-port targets, a vessel-control API and the Auto Dock mod](plans/310-vessel-menu-port-targets-control-api-and-auto-dock.md) | in-progress | auto dock session | ADRs 0270, 0271 |
 | 312 | [Blueprint Library follow-ups: labels, checklist, thumbnail cache, career locks](plans/312-blueprint-library-follow-ups.md) | draft | — | Leftovers of 285. |
 
@@ -323,6 +325,7 @@ Existing drafts realigned on 2026-10-17: 063 (runway building), 065, 066, 067, 0
 
 ## Recent journal entries
 
+- [309 — Mission flight tests](journal/309-mission-flight-tests.md)
 - [285 — Blueprint Library](journal/285-blueprint-library.md)
 - [307 — Rover: wheels, drive mode, blueprint](journal/307-rover-wheels-and-drive-mode.md)
 - [308 — Attach to sideways nodes](journal/308-sideways-node-attach.md)
