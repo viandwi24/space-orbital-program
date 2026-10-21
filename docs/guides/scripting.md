@@ -60,6 +60,13 @@ The bracket next to the caret and its partner are highlighted. Under the editor 
 | `stage()` | fire the next stage; returns a promise of `{ ok, reason? }` (see "Command feedback") |
 | `action(part, module, action, ...args)` | call a module action; `part` is a `ship.parts[i].id`, e.g. `action(id, 'stock.landing-leg', 'deploy')` or `action(id, 'stock.reaction-wheel', 'setEnabled', false)`; returns a promise of `{ ok, reason? }` |
 | `setTarget(spec)` | choose the target (plan 035, ADR 0065): a body id (`'stock.cinder'`), a vessel id, an entry of `ship.targets`, or `null` to clear it; returns a promise of `{ ok, reason? }`, `ship.target` shows it on a later tick |
+| `setTarget({ vessel, port })` | target one docking port of another vessel (plan 310): `port` from that vessel's `ship.targets[i].ports`; `ship.target.position`/`velocity` then run from your control port (when you control from a port) to that port |
+| `translate(x, y, z)` / `translate({ x, y, z })` | RCS translation (plan 310), each -1 to 1 in the **control part's** axes: x right, y forward (out of a control port's face), z up; `0, 0, 0` stops. Needs RCS on |
+| `setRcs(on)` | RCS on or off; promise of `{ ok, reason? }` |
+| `controlFrom(part)` | control from a command part or docking port (`ship.ports[i].part`), `null` for the root: SAS, the navball, the keys and `translate` follow it (ADR 0270) |
+| `pointAt({ x, y, z })` | SAS mode `direction`: the control part's nose points along that inertial direction; call again to change it |
+| `holdAttitude({ x, y, z, w })` | SAS `hold` turned to that orientation of the control part (inertial) |
+| `engage(id, params?)` / `disengage()` | start or stop a mod autopilot on this vessel (plan 310, ADR 0271), e.g. `engage('autodock.dock')`; `ship.autopilot` shows its phase and read-outs |
 | `runExperiment(partOrId)` | start a science experiment (plan 103): a part id from `ship.science.experiments`, or an experiment id such as `'stock.temperature'` (the first one aboard that is not running); returns a promise of `{ ok, reason? }`. A run in a wrong situation leaves it `INVALID` with the reason |
 | `addNode({ time, prograde, normal, radial })` | plan a maneuver node (plan 045): `time` is simulation time, the three numbers are m/s in the orbital frame at the node (prograde = along the velocity, normal = `r x v`, radial = prograde x normal; missing ones are 0); returns a promise of `{ ok, reason? }`, the new node shows up in `ship.nodes` on a later tick |
 | `setNode(id, { time?, prograde?, normal?, radial? })` | change fields of a node, the others keep their value |
@@ -100,9 +107,13 @@ SI units. Axes are the body-centred inertial frame (+Y is north). A fresh copy e
 | `wheels[]` | `{ part, module, torque, enabled }`: maximum torque per axis (N m) of each reaction wheel |
 | `sas` | the stability assist mode the game reports (also the setter above) |
 | `nodes` | maneuver nodes in time order: `[{ id, time, prograde, normal, radial, dv, body, vector }]`; the numbers are the burn that is **left** (the plan until you burn, then what remains), `dv` its size in m/s, `vector` the burn in the inertial `ship.position` axes (`null` if the path never reaches the node). A node whose time has passed and with under 0.5 m/s left disappears |
-| `target` | the target or `null` (plan 035): `{ kind: 'body' \| 'vessel', id, name, position, velocity, distance, relativeSpeed, approach }`; `position` and `velocity` are the target's **minus yours** in the inertial axes (the same axes in every body's frame, so they mean the same in any sphere of influence), `distance` and `relativeSpeed` their lengths, `approach` is `{ time, distance, relativeSpeed }` for the closest approach of your current orbit to the target's within your next revolution (at most ten days) or `null` when the two do not orbit the same body or you are not on an orbit that clears the ground |
-| `targets` | what you can aim at: `[{ kind, id, name }]`, every body, then every other vessel (debris included, named "... (debris)") |
+| `target` | the target or `null` (plan 035): `{ kind: 'body' \| 'vessel', id, name, position, velocity, distance, relativeSpeed, approach, part }` (`part`: the targeted docking port or `null`); `position` and `velocity` are the target's **minus yours** in the inertial axes (the same axes in every body's frame, so they mean the same in any sphere of influence), `distance` and `relativeSpeed` their lengths, `approach` is `{ time, distance, relativeSpeed }` for the closest approach of your current orbit to the target's within your next revolution (at most ten days) or `null` when the two do not orbit the same body or you are not on an orbit that clears the ground |
+| `targets` | what you can aim at: `[{ kind, id, name, ports? }]`, every body, then every other vessel (debris included, named "... (debris)"); `ports` lists a vessel's free docking ports |
 | `science` | `{ situation, experiments: [{ part, experiment, state, reason, progress }] }` (plan 103): the science situation (`'stock.landed'`, `'stock.space-low'`, ...; `null` without experiments aboard) and each experiment, `state` `READY`, `RUNNING`, `PAUSED` (no electric charge) or `INVALID` (`reason` says why), `progress` 0..1 |
+| `rcs`, `controlPart` | RCS is on; the part you control from (`null`: the root) |
+| `ports` | your docking ports: `[{ part, size, free, direction }]` |
+| `dock` | your control port against the targeted port (plan 310), or `null`: `{ angle, along, lateral, lateralDistance, distance, closing, sameSize }`; `angle` in rad (0 = face to face), `along` how far you are out in front of the target face along its axis (m), `lateral` your offset from that axis, `closing` the approach speed along it (m/s) |
+| `autopilot` | the engaged mod autopilot or `null`: `{ id, title, phase, status, readouts }` |
 | `refusals` | `[{ command, reason }]`: the commands the game refused since the last tick (including `throttle`, `attitude` and `sas`, which have no return value) |
 
 `engines` and `wheels` list the parts still attached, so they change when you stage. Any module whose configuration has `thrust`, `ispVacuum` and `ispSeaLevel` counts as an engine, and any with `torque` and an `enabled` state as a wheel, whoever made the mod. Exhaust speed is `ispVacuum * 9.80665`; with the engines that can still burn, `burn time = mass * ve * (1 - exp(-dv / ve)) / thrust` (the sample does this to time its circularisation burn).
@@ -223,5 +234,7 @@ A probe obeys commands over its comms route, and the world's `stock.signal-delay
 Crewed vessels never wait: the crew aboard give the orders.
 
 ## For mod authors
+
+The same controls are the public vessel pilot of the SDK: a mod autopilot gets a `VesselPilot` with these read-outs and controls (`docs/guides/vessel-pilot-api.md`).
 
 `ship.engines`/`ship.wheels` are built from the part definitions' module configs by shape, so a mod engine with `thrust`, `ispVacuum`, `ispSeaLevel` numbers in its config and a `snapshot` with `ignited`, `throttle`, `flameout` shows up without any scripting-specific code. Design background: `docs/architecture/scripting.md`, ADR 0020 (engine), ADR 0031 (Worker) and ADR 0038 (sandbox frame).

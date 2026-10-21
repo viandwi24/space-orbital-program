@@ -8,6 +8,7 @@ import type { CommodityDefinition, RecipeDefinition } from './market.ts';
 import type { ScenarioDefinition } from './scenarios.ts';
 import type { BlueprintDefinition } from './blueprints.ts';
 import type { PanelDefinition } from './panels.ts';
+import type { AutopilotDefinition } from './autopilots.ts';
 import type { CategoryDefinition } from './categories.ts';
 import type { AchievementDefinition } from './milestones.ts';
 import type { FailureModeDefinition } from './reliability.ts';
@@ -163,6 +164,8 @@ export interface BasePluginContext {
 	readonly blueprints: Registrar<BlueprintDefinition>;
 	/** Dock panels (plan 112, ADR 0149). */
 	readonly panels: Registrar<PanelDefinition>;
+	/** Autopilots the sim runs for a vessel (plan 310, ADR 0271). */
+	readonly autopilots: Registrar<AutopilotDefinition>;
 	/** Crew traits and name syllables (plan 106, ADR 0176). */
 	readonly crewTraits: Registrar<CrewTraitDefinition>;
 	readonly crewNames: Registrar<CrewNamesDefinition>;
@@ -304,6 +307,7 @@ const RESERVED_KEYS: ReadonlySet<string> = new Set([
 	'scenarios',
 	'blueprints',
 	'panels',
+	'autopilots',
 	'crewTraits',
 	'crewNames',
 	'patches',
@@ -508,6 +512,7 @@ export function loadPlugins(plugins: readonly Plugin[], options: LoadOptions = {
 			scenarios: registrar(registries.scenarios),
 			blueprints: registrar(registries.blueprints),
 			panels: registrar(registries.panels),
+			autopilots: registrar(registries.autopilots),
 			crewTraits: registrar(registries.crewTraits),
 			crewNames: registrar(registries.crewNames),
 			patches: {

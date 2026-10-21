@@ -292,10 +292,41 @@ export async function createScriptRunnerIn(
 				candidate = { type: 'throttle', vessel, value: p.value };
 				break;
 			case 'attitude':
-				candidate = { type: 'attitude', vessel, pitch: p.pitch, yaw: p.yaw, roll: p.roll };
+				candidate = {
+					type: 'attitude',
+					vessel,
+					pitch: p.pitch,
+					yaw: p.yaw,
+					roll: p.roll,
+					...(p.translate === undefined ? {} : { translate: p.translate })
+				};
 				break;
 			case 'sas':
-				candidate = { type: 'sas', vessel, mode: p.mode };
+				candidate = {
+					type: 'sas',
+					vessel,
+					mode: p.mode,
+					...(p.direction === undefined ? {} : { direction: p.direction }),
+					...(p.attitude === undefined ? {} : { attitude: p.attitude })
+				};
+				break;
+			// the vessel-pilot controls (plan 310, ADR 0271 point 7)
+			case 'set-rcs':
+				candidate = { type: 'set-rcs', vessel, on: p.on };
+				break;
+			case 'set-control-part':
+				candidate = { type: 'set-control-part', vessel, part: p.part };
+				break;
+			case 'autopilot-engage':
+				candidate = {
+					type: 'autopilot-engage',
+					vessel,
+					autopilot: p.autopilot,
+					...(p.params === undefined ? {} : { params: p.params })
+				};
+				break;
+			case 'autopilot-disengage':
+				candidate = { type: 'autopilot-disengage', vessel };
 				break;
 			case 'stage':
 				candidate = { type: 'stage', vessel };
@@ -402,12 +433,14 @@ export async function createScriptRunnerIn(
 			if (command.value === lastThrottle) return NOT_SENT;
 			lastThrottle = command.value;
 		} else if (command.type === 'attitude') {
-			const key = `${command.pitch},${command.yaw},${command.roll}`;
+			const t = command.translate;
+			const key = `${command.pitch},${command.yaw},${command.roll}${t ? `,${t.x},${t.y},${t.z}` : ''}`;
 			if (key === lastAttitude) return NOT_SENT;
 			lastAttitude = key;
 		} else if (command.type === 'sas') {
-			if (command.mode === lastSas) return NOT_SENT;
-			lastSas = command.mode;
+			const key = JSON.stringify([command.mode, command.direction, command.attitude]);
+			if (key === lastSas) return NOT_SENT;
+			lastSas = key;
 		}
 		const seq = nextSeq++;
 		pending.push(command);

@@ -12,6 +12,7 @@ import {
 import { scenarioDefinitionSchema, type ScenarioDefinition } from './scenarios.ts';
 import { blueprintDefinitionSchema, type BlueprintDefinition } from './blueprints.ts';
 import { panelDefinitionSchema, type PanelDefinition } from './panels.ts';
+import { autopilotDefinitionSchema, type AutopilotDefinition } from './autopilots.ts';
 import { categoryDefinitionSchema, type CategoryDefinition } from './categories.ts';
 import { achievementDefinitionSchema, type AchievementDefinition } from './milestones.ts';
 import { failureModeDefinitionSchema, type FailureModeDefinition } from './reliability.ts';
@@ -301,6 +302,8 @@ export interface Registries {
 	blueprints: Registry<BlueprintDefinition>;
 	/** Dock panels (plan 112, ADR 0149). */
 	panels: Registry<PanelDefinition>;
+	/** Autopilots (plan 310, ADR 0271). */
+	autopilots: Registry<AutopilotDefinition>;
 	/** Crew traits and name syllables (plan 106, ADR 0176). */
 	crewTraits: Registry<CrewTraitDefinition>;
 	crewNames: Registry<CrewNamesDefinition>;
@@ -365,6 +368,9 @@ export function createRegistries(): Registries {
 		}),
 		missions: createRegistry<MissionDefinition>('mission', { schema: missionDefinitionSchema }),
 		panels: createRegistry<PanelDefinition>('panel', { schema: panelDefinitionSchema }),
+		autopilots: createRegistry<AutopilotDefinition>('autopilot', {
+			schema: autopilotDefinitionSchema
+		}),
 		scenarios: createRegistry<ScenarioDefinition>('scenario', { schema: scenarioDefinitionSchema }),
 		blueprints: createRegistry<BlueprintDefinition>('blueprint', {
 			schema: blueprintDefinitionSchema

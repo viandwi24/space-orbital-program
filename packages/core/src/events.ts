@@ -32,6 +32,13 @@ export interface EventMap {
 	'vessel:soi-changed': { vessel: EntityId; from: string; to: string };
 	/** A maneuver node was burned off (its time has passed and under 0.5 m/s remained; plan 045). */
 	'vessel:maneuver-complete': { vessel: EntityId; node: number };
+	/** A vessel's autopilot ended (plan 310, ADR 0271 point 5): finished, aborted with a reason, or switched off. */
+	'autopilot:ended': {
+		vessel: EntityId;
+		autopilot: string;
+		outcome: 'done' | 'aborted' | 'disengaged';
+		reason: string;
+	};
 	/** The vessel's target no longer exists (it was destroyed or removed); the target is cleared (plan 035). */
 	'vessel:target-lost': { vessel: EntityId; target: number };
 	/** A world rule changed by `set-rule` (plan 078); `time` is the sim time of the change. */

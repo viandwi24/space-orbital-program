@@ -31,6 +31,7 @@ export { resolveSiteTemplate, siteConsequences, siteDistance } from '@orbital/co
 export { achievementMatches, MILESTONE_KINDS, milestoneId } from '@orbital/core';
 export { GRADES, GRADE_FACTORS, modelReliability, trialChance } from '@orbital/core';
 export { PANEL_CONTEXTS, sortPanels } from '@orbital/core';
+export { AUTOPILOT_RATE, createVesselPilot, rotateByQuat } from '@orbital/core';
 export { scenarioPlacement } from '@orbital/core';
 export { isResearched, lockedParts, nodeOfParts, researchProblem } from '@orbital/core';
 export { bodyScience, nextValue, situationOf, subjectCap, subjectId } from '@orbital/core';
@@ -245,6 +246,16 @@ export type {
 	Grade,
 	MilestoneKind,
 	MilestoneRecord,
+	AutopilotDefinition,
+	AutopilotOutcome,
+	Command,
+	CommandResult,
+	AutopilotSnapshot,
+	AutopilotStep,
+	ControlView,
+	DockingAlignment,
+	RelativeState,
+	VesselPilot,
 	PanelCanvas,
 	PanelContext,
 	PanelDefinition,

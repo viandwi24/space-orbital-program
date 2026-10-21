@@ -8,7 +8,8 @@ import { isFailed } from './reliability.ts';
 import { PHYSICS_WARP_MAX, type EntityId, type Quat, type SasMode, type Vec3 } from '@orbital/core';
 import { cross, dot, length, normalize, scale, sub } from '@orbital/kepler';
 import { bodyOfVessel, spinAt } from './bodies.ts';
-import { isControlled, moduleDefOf, partOf, vesselOf, type SimCore } from './core.ts';
+import { isControlled, moduleDefOf, partOf, vesselIds, vesselOf, type SimCore } from './core.ts';
+import { wake, wakeBlocker } from './modes.ts';
 import type { FlightBody, FlightFrame, SasState, VesselState } from './state.ts';
 import { makeContext } from './hooks.ts';
 import { qConj, qFromBasis, qMul, qNormalize, qRotate } from './math.ts';
@@ -72,6 +73,8 @@ function aimOf(core: SimCore, vessel: VesselState): Vec3 | undefined {
 		case 'target':
 		case 'anti-target':
 			return directionToTarget(core, vessel);
+		case 'direction':
+			return vessel.sas.direction;
 		default:
 			return undefined;
 	}
@@ -132,6 +135,7 @@ export function targetDirection(
 			return scale(normalize(r), -1);
 		case 'maneuver':
 		case 'target':
+		case 'direction':
 			return burn;
 		case 'anti-target':
 			return burn && scale(burn, -1);
@@ -286,6 +290,8 @@ export function stepSas(
 		if (sas.error > QUIET_LEAVE || rate > 2 * QUIET_RATE || learned) sas.quiet = false;
 	} else if (sas.error < QUIET_ENTER && rate < QUIET_RATE && !learned) sas.quiet = true;
 	if (sas.quiet) return;
+	// the slowest turn axis of the nose, rad/s²: the HUD's "low torque" (plan 310)
+	sas.accel = Math.min(limit[0]!, limit[2]!);
 	const out = [0, 0, 0];
 	const integral = { ...sas.integral };
 	for (let i = 0; i < 3; i++) {
@@ -323,6 +329,8 @@ export function sasLevelNeeded(mode: SasMode): number {
 		case 'off':
 		case 'hold':
 		case 'level':
+		// the computer that asks for a direction does the aiming (plan 310, ADR 0271 point 2)
+		case 'direction':
 			return 0;
 		case 'prograde':
 		case 'retrograde':
@@ -357,14 +365,47 @@ export function sasLevelOf(core: SimCore, vessel: VesselState): number {
 export function stepSasOnRails(core: SimCore, vessel: VesselState, step = Infinity): void {
 	const sas = vessel.sas;
 	sas.active = false;
+	const turn = railsTurn(core, vessel);
+	if (!turn) return;
+	const angle = 2 * Math.acos(Math.min(1, Math.abs(turn.w)));
+	// no torque the last time it flew (no wheels, RCS off or dry): it cannot turn (plan 310)
+	if (sas.accel === 0) {
+		sas.error = angle;
+		return;
+	}
+	// A real turn at physics warp is left for the wake before the next step: it takes the vessel's
+	// own torque in flight (plan 310); only a small drift (prograde moving along the orbit) turns here
+	if (angle > RAILS_TURN_WAKE && turnWakes(core, vessel)) {
+		sas.error = angle;
+		return;
+	}
+	// Rails warp holds the direction analytically; at 1x to 10x a change turns the vessel at a
+	// bounded rate instead of snapping it in one step (plan 257)
+	const limit = core.warp <= PHYSICS_WARP_MAX ? SAS_RAILS_RATE * step : Infinity;
+	const part = angle > limit ? limit / angle : 1;
+	vessel.orientation = qNormalize(
+		qMul(part === 1 ? turn : scaleTurn(turn, part), vessel.orientation)
+	);
+	sas.error = part === 1 ? 0 : angle - limit;
+}
+
+/**
+ * A pointing turn on rails bigger than this, at physics warp, puts the vessel in flight (plan 310):
+ * the turn then takes its real torque, wheels and RCS, as in KSP, instead of a fixed rate. rad (2°).
+ */
+export const RAILS_TURN_WAKE = (2 * Math.PI) / 180;
+
+/** The turn a pointing mode asks of an on-rails vessel now, or undefined. */
+function railsTurn(core: SimCore, vessel: VesselState): Quat | undefined {
+	const sas = vessel.sas;
 	if (
 		!isPointing(sas.mode) ||
 		vessel.rails === null ||
 		vessel.rails.kind === 'surface' ||
 		vessel.rails.kind === 'frozen'
 	)
-		return;
-	if (!isControlled(core, vessel)) return;
+		return undefined;
+	if (!isControlled(core, vessel)) return undefined;
 	const { r, v } = motionOf(core, vessel);
 	const d = targetDirection(
 		spinAt(bodyOfVessel(core, vessel), core.t),
@@ -373,18 +414,29 @@ export function stepSasOnRails(core: SimCore, vessel: VesselState, step = Infini
 		v,
 		aimOf(core, vessel)
 	);
-	if (!d) return;
-	const nose = qRotate(vessel.orientation, controlNose(core, vessel));
-	const turn = qBetween(nose, d);
-	// Rails warp holds the direction analytically; at 1x to 10x a change turns the vessel at a
-	// bounded rate instead of snapping it in one step (plan 257)
-	const angle = 2 * Math.acos(Math.min(1, Math.abs(turn.w)));
-	const limit = core.warp <= PHYSICS_WARP_MAX ? SAS_RAILS_RATE * step : Infinity;
-	const part = angle > limit ? limit / angle : 1;
-	vessel.orientation = qNormalize(
-		qMul(part === 1 ? turn : scaleTurn(turn, part), vessel.orientation)
-	);
-	sas.error = part === 1 ? 0 : angle - limit;
+	if (!d) return undefined;
+	return qBetween(qRotate(vessel.orientation, controlNose(core, vessel)), d);
+}
+
+/** The vessel can be woken for a turn: physics warp and room for it. */
+function turnWakes(core: SimCore, vessel: VesselState): boolean {
+	if (core.warp > PHYSICS_WARP_MAX) return false;
+	return wakeBlocker(core, partOf(core, vessel.root).vessel) === undefined;
+}
+
+/**
+ * Before a step (plan 310): on-rails vessels whose SAS asks for a real turn go in flight, so the turn
+ * takes their torque. Runs before the sim chooses a flight step or a rails chunk.
+ */
+export function wakeTurningVessels(core: SimCore): void {
+	if (core.warp > PHYSICS_WARP_MAX) return;
+	for (const id of vesselIds(core)) {
+		const vessel = vesselOf(core, id);
+		if (vessel.mode !== 'on-rails' || vessel.sas.accel === 0) continue;
+		const turn = railsTurn(core, vessel);
+		if (!turn || 2 * Math.acos(Math.min(1, Math.abs(turn.w))) <= RAILS_TURN_WAKE) continue;
+		if (wakeBlocker(core, id) === undefined) wake(core, id, 'SAS turn');
+	}
 }
 
 /** How fast a vessel on rails turns at physics warp, rad/s (about what a small reaction wheel gives). */

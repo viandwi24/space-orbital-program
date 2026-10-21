@@ -31,6 +31,7 @@ import {
 import { bodyMotion, createVesselBody, partTransform, partVelocity } from './frames.ts';
 import { qConj, qMul, qRotate } from './math.ts';
 import { reachMilestone } from './milestones.ts';
+import { endAutopilot } from './autopilot.ts';
 import { wake, wakeBlocker } from './modes.ts';
 import { motionOf } from './orbit.ts';
 import type { DockRecord, FlightFrame, VesselState } from './state.ts';
@@ -347,6 +348,9 @@ function merge(core: SimCore, frame: FlightFrame, pa: Port, pb: Port): void {
 		linear,
 		angular
 	});
+	// both vessels changed shape: their autopilots are done (plan 310, ADR 0271 point 5)
+	endAutopilot(core, keep.vessel, 'done', 'docked');
+	endAutopilot(core, gone.vessel, 'done', 'docked');
 	core.world.destroyEntity(gone.vessel);
 	core.active.add(keep.vessel);
 	reachMilestone(core, 'dock', keeper.soi, keep.vessel);

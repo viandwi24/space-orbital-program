@@ -1,0 +1,26 @@
+{
+	"name": "@orbital/mod-autodock",
+	"version": "0.0.0",
+	"license": "Apache-2.0",
+	"private": true,
+	"description": "Auto Dock (plan 310): an autopilot that docks the vessel's control port with the targeted port, written with the public SDK only.",
+	"type": "module",
+	"exports": {
+		".": "./src/index.ts"
+	},
+	"types": "./src/index.ts",
+	"scripts": {
+		"typecheck": "tsc --noEmit -p tsconfig.json",
+		"test": "bun test"
+	},
+	"dependencies": {
+		"@orbital/sdk": "workspace:*"
+	},
+	"devDependencies": {
+		"@orbital/mod-stock": "workspace:*",
+		"@orbital/physics": "workspace:*",
+		"@orbital/sim": "workspace:*",
+		"typescript": "catalog:",
+		"@types/bun": "latest"
+	}
+}

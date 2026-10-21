@@ -223,9 +223,9 @@ describe('SAS target and anti-target', () => {
 			['anti-target', -1]
 		] as const) {
 			expect(sim.dispatch({ type: 'sas', vessel: a, mode }).ok).toBe(true);
-			for (let i = 0; i < 8; i++) sim.step(1); // a bounded turn rate at 1x (plan 257)
+			// the turn wakes the probe and takes its own torque at 1x (plan 310)
+			for (let i = 0; i < 60; i++) sim.step(1);
 			const v = vesselOf(sim, a);
-			expect(v.mode).toBe('on-rails');
 			const aim = normalize({
 				x: v.target!.position.x * sign,
 				y: v.target!.position.y * sign,
