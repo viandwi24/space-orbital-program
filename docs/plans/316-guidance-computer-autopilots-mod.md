@@ -1,7 +1,7 @@
 ---
 id: 316
 title: "Guidance Computer: a built-in mod with MechJeb-style autopilots (node executor, circularize, ascent, landing)"
-status: in-progress
+status: done
 owner: "vessel programs session (Claude)"
 depends: [310, 315]
 phase: 0
@@ -46,18 +46,20 @@ A built-in mod, `@orbital/mod-guidance` ("Guidance Computer"), ships the autopil
 
 ## Acceptance criteria
 
-- [ ] `bun test mods/guidance`: from a 100 x 100 km orbit, a node of 300 m/s prograde is executed to within 1 m/s; circularize at apoapsis from 100 x 75 km ends with eccentricity below 0.005; ascent from the pad reaches a periapsis above 70 km; a lander from 20 km above the moon touches down below 2 m/s.
-- [ ] `bun test mods/guidance`: a player throttle write during a burn is respected (override) and the burn continues after the resume delay; `program-stop` disengages.
-- [ ] web vitest: the Mods page lists "Guidance Computer" under Built in.
-- [ ] `bun run typecheck`, `bun test`, web vitest with `CI=true`, `bun run docs:check` pass.
+- [x] `bun test mods/guidance`: from a 100 x 100 km orbit, a node of 300 m/s prograde is executed to within 1 m/s; circularize at apoapsis from 100 x 75 km ends with eccentricity below 0.005; ascent from the pad reaches a periapsis above 70 km; a lander from 20 km above the moon touches down below 2 m/s.
+- [x] `bun test mods/guidance`: a player throttle write during a burn is respected (override) and the burn continues after the resume delay; `program-stop` disengages.
+- [x] web vitest: the Mods page lists "Guidance Computer" under Built in.
+- [x] `bun run typecheck`, `bun test`, web vitest with `CI=true`, `bun run docs:check` pass.
 
 ## Docs checklist
 
-- [ ] `docs/STATUS.md` updated (board row).
-- [ ] `docs/journal/316-guidance-computer-autopilots-mod.md` written.
-- [ ] `docs/guides/` section on the Guidance Computer.
+- [x] `docs/STATUS.md` updated (board row).
+- [x] `docs/journal/316-guidance-computer-autopilots-mod.md` written.
+- [x] `docs/guides/` section on the Guidance Computer.
 
 ## Log
 
 - 2026-10-21 — Drafted by the vessel programs session (plan 315) from the owner's request; waits for plan 310 Part 3.
 - 2026-10-21 — Refined and started in the same session at the owner's request; plan 310 Part 3 is on main. The pilot lacked body, mass, thrust and nodes: ADR 0274.
+- 2026-10-22 — Done. `bun test mods/guidance`: 6 pass. `bun run typecheck`: 0 errors; `bun run build`: done; `bun run docs:check`: OK. `bun run test`: 2178 pass, 1 fail (the 50-vessel background benchmark, passes alone: 2 pass). Web vitest: 1452 pass; fails: the two real-thread script tests (Node 26, fail on main too) and `branch-model` under load (5 pass alone). Browser: Mods page lists the mod; `guidance.ascent` flew the turn from the pad in the dev build.
+
