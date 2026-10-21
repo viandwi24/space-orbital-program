@@ -19,6 +19,7 @@
 	import { worldSession } from '../../../lib/world-session';
 	import { bootWorld } from '../../../lib/world-boot';
 	import { goto } from '$app/navigation';
+	import CrewPortrait from '../../../lib/astronauts/CrewPortrait.svelte';
 	import BackButton from '../../../lib/ui/BackButton.svelte';
 	import Button from '../../../lib/ui/Button.svelte';
 	import Chip from '../../../lib/ui/Chip.svelte';
@@ -155,6 +156,10 @@
 			{#if tab === 'applicants'}
 				{#each offers as a (a.profession)}
 					<div class="row">
+						<CrewPortrait
+							member={{ id: `applicant-${a.profession}`, profession: a.profession }}
+							size={36}
+						/>
 						<span class="text"
 							><span class="name">{cap(a.profession)}</span><span class="sub"
 								>{a.cost > 0 ? `${formatFunds(a.cost)} to recruit` : 'Free to recruit'}</span
@@ -176,6 +181,7 @@
 						data-testid="astro-member"
 						onclick={() => (selected = m.id)}
 					>
+						<CrewPortrait member={m} size={36} />
 						<span class="text"
 							><span class="name">{m.name}</span><span class="sub"
 								>{cap(m.profession)} · level {m.level}</span
@@ -191,8 +197,11 @@
 		</Panel>
 
 		<Panel title="Profile" data-testid="astro-profile">
-			{#if profile && tab !== 'applicants'}
-				<h2>{profile.name}</h2>
+			{#if profile && member && tab !== 'applicants'}
+				<div class="who">
+					<CrewPortrait {member} size={96} />
+					<h2>{profile.name}</h2>
+				</div>
 				<div class="chips">
 					{#each profile.chips as c (c)}<Chip>{c}</Chip>{/each}
 				</div>
@@ -283,6 +292,19 @@
 	}
 	.pick {
 		cursor: pointer;
+		justify-content: flex-start;
+	}
+	.row .text {
+		flex: 1;
+	}
+	.who {
+		display: flex;
+		align-items: center;
+		gap: 0.75rem;
+		margin-bottom: 0.5rem;
+	}
+	.who h2 {
+		margin: 0;
 	}
 	.pick:hover,
 	.pick[aria-pressed='true'] {
