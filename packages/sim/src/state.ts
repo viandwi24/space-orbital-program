@@ -3,6 +3,7 @@
  * components (ADR 0010); handles into the physics backend are runtime-only and live in
  * `FlightFrame`s, never in the world.
  */
+import type { AutopilotLast, AutopilotSettingValue } from '@orbital/core';
 import {
 	defineComponent,
 	type BodyHandle,
@@ -87,6 +88,10 @@ export interface AutopilotState {
 	phase: string;
 	status: string;
 	readouts: Record<string, number | string>;
+	/** Sim time of the engage (ADR 0285): log lines count from it. */
+	since?: number;
+	/** The newest log lines (ADR 0285 point 4). */
+	log?: string[];
 }
 
 export const newSas = (): SasState => ({
@@ -200,6 +205,10 @@ export interface VesselState {
 	controlPart?: EntityId;
 	/** The engaged autopilot (plan 310, ADR 0271); absent without one. Saved with the vessel. */
 	autopilot?: AutopilotState;
+	/** The last run, or a refused engage (ADR 0285 point 4). Saved. */
+	autopilotLast?: AutopilotLast;
+	/** Settings by autopilot id (ADR 0285 point 3). Saved. */
+	autopilotSettings?: Record<string, Record<string, AutopilotSettingValue>>;
 	/**
 	 * Vessels docked into this one (plan 222, ADR 0218), newest last: what an undock at the port pair
 	 * gives back to the side that came from the other vessel.

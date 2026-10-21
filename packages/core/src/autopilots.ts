@@ -19,6 +19,8 @@ export interface AutopilotStep {
 	done?: boolean;
 	/** The job cannot go on: the sim ends the autopilot with outcome `aborted` and this reason. */
 	abort?: string;
+	/** Lines for the panel's log (ADR 0285 point 4): what changed this step, if anything. */
+	log?: string | readonly string[];
 }
 
 export interface AutopilotDefinition<Memory = unknown> {
@@ -44,10 +46,29 @@ export interface AutopilotSnapshot {
 	phase: string;
 	status: string;
 	readouts: Record<string, number | string>;
+	/** The newest log lines, oldest first, each with its seconds since engage (ADR 0285 point 4). */
+	log: string[];
 }
 
-/** How an autopilot ended. */
-export type AutopilotOutcome = 'done' | 'aborted' | 'disengaged';
+/** How an autopilot ended; `refused`: `autopilot-engage` was refused (ADR 0285 point 4). */
+export type AutopilotOutcome = 'done' | 'aborted' | 'disengaged' | 'refused';
+
+/** The last run of an autopilot on a vessel, kept after it ends (ADR 0285 point 4). */
+export interface AutopilotLast {
+	id: string;
+	title: string;
+	outcome: AutopilotOutcome;
+	reason: string;
+	/** Sim time it ended, s. */
+	time: number;
+	log: string[];
+}
+
+/** Lines of an autopilot's log the sim keeps. */
+export const AUTOPILOT_LOG_LINES = 30;
+
+/** A setting value an autopilot reads (ADR 0285 point 3). */
+export type AutopilotSettingValue = boolean | number | string;
 
 const fn = z.custom<(...args: never[]) => unknown>(
 	(v) => typeof v === 'function',

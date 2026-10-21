@@ -7,6 +7,7 @@
 	import { panelCanvas } from './canvas';
 	import { commandOf, evaluatePanel, type PanelMemory } from './evaluate';
 	import PanelView from './PanelView.svelte';
+	import ModPanelFrame from './ModPanelFrame.svelte';
 
 	let {
 		panel,
@@ -21,11 +22,14 @@
 	const memory: PanelMemory = new Map();
 	let actionError = $state<string | null>(null);
 	let drawError = $state<string | null>(null);
+	let frameError = $state<string | null>(null);
 	let canvas = $state<HTMLCanvasElement>();
 	const result = $derived(input ? evaluatePanel(panel, input, memory) : null);
-	const error = $derived(result && !result.ok ? result.error : (actionError ?? drawError));
+	const error = $derived(
+		result && !result.ok ? result.error : (actionError ?? drawError ?? frameError)
+	);
 
-	function act(path: string, on?: boolean): void {
+	function act(path: string, on?: boolean | string): void {
 		if (!input) return;
 		const r = commandOf(panel, path, input, on);
 		if ('error' in r) actionError = r.error;
@@ -54,6 +58,16 @@
 		<PanelView node={result.nodes} onaction={act} />
 	{:else}
 		<p class="wait">[—]</p>
+	{/if}
+	{#if panel.custom && !error}
+		<ModPanelFrame
+			source={panel.custom.source}
+			height={panel.custom.height}
+			{input}
+			title="{panel.title} (mod UI)"
+			{oncommand}
+			onerror={(m) => (frameError = m)}
+		/>
 	{/if}
 	{#if panel.canvas && !error}
 		<canvas

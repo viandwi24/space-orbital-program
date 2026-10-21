@@ -8,6 +8,7 @@
 import { readdirSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { contentSecurityPolicy, inlineScripts, sha256Source } from '../src/lib/hosting-headers';
+import { MOD_FRAME_BOOTSTRAP } from '../src/lib/dock/mod-frame';
 
 /** Every `.html` file under `root`. */
 export function htmlFiles(root: string): string[] {
@@ -27,6 +28,8 @@ export async function siteHashes(root: string): Promise<string[]> {
 		for (const s of inlineScripts(readFileSync(file, 'utf8'))) scripts.add(s);
 	}
 	scripts.add(readFileSync(join(root, 'sandbox/script-sandbox-frame-main.js'), 'utf8'));
+	// a mod panel's own UI runs in a srcdoc frame that inherits this policy (plan 330, ADR 0285)
+	scripts.add(MOD_FRAME_BOOTSTRAP);
 	const hashes = await Promise.all([...scripts].map((s) => sha256Source(s)));
 	return [...new Set(hashes)].sort();
 }
