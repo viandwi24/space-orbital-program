@@ -75,7 +75,9 @@ const interfaceSchema = z
 		/** The vessel panel's width, px at 100 % (plan 214, ADR 0205 point 1: 300 to 440); absent: 340. */
 		panelWidth: z.number().min(300).max(440).optional().catch(undefined),
 		/** The dock panel's width, px at 100 % (plan 250: 260 to 400); absent: 280. */
-		dockWidth: z.number().min(260).max(400).optional().catch(undefined)
+		dockWidth: z.number().min(260).max(400).optional().catch(undefined),
+		/** The performance overlay (plan 294): absent = off, so format 4 holds it. */
+		perfOverlay: z.boolean().optional().catch(undefined)
 	})
 	.catch({ ...DEFAULT_INTERFACE });
 
@@ -169,6 +171,7 @@ export interface Settings {
 		centreVessel: boolean;
 		panelWidth?: number;
 		dockWidth?: number;
+		perfOverlay?: boolean;
 	};
 	dock: DockChoice;
 	/** Debug mode: the debug tools in worlds that need it turned on (plan 203). */

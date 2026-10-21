@@ -140,6 +140,17 @@ describe('settings parsing', () => {
 		expect(at(null)).toEqual({ scale: 1, highContrast: false, centreVessel: false });
 		expect(at({ scale: 1, centreVessel: true }).centreVessel).toBe(true);
 	});
+	it('keeps the performance overlay choice; absent or damaged is off (plan 294)', () => {
+		const at = (iface: unknown) =>
+			parseSettings(JSON.stringify({ ...defaultSettings(), interface: iface })).interface;
+		expect(defaultSettings().interface.perfOverlay ?? false).toBe(false);
+		expect(at({ scale: 1 }).perfOverlay ?? false).toBe(false);
+		expect(at({ scale: 1, perfOverlay: true }).perfOverlay).toBe(true);
+		expect(at({ scale: 1, perfOverlay: 'yes' }).perfOverlay ?? false).toBe(false);
+		const s = defaultSettings();
+		s.interface = { ...s.interface, perfOverlay: true };
+		expect(parseSettings(serialiseSettings(s)).interface.perfOverlay).toBe(true);
+	});
 	it('repairs bad audio, touch and bindings without losing the good fields', () => {
 		const s = parseSettings(
 			JSON.stringify({

@@ -10,7 +10,7 @@ import { defineModule, z } from '@orbital/sdk';
 export const UNDOCK_IMPULSE = 150;
 
 export const dockingPortConfigSchema = z.object({
-	/** Face diameter, m: 0.625, 1.25 or 2.5 (ADR 0212 sizes); only equal sizes dock. */
+	/** Face diameter, m: 0.625 to 3.75 (ADR 0212 sizes, ADR 0256); only equal sizes dock. */
 	size: z.number().positive(),
 	/** The attach node that is the docking face. */
 	node: z.string().min(1).default('top'),

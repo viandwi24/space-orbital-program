@@ -5,6 +5,7 @@
  */
 import { defaultFilters, hiddenVessels, type MapFilters } from './map/map-filters';
 import { FrameHistogram, type FrameSummary } from './debug/frame-histogram';
+import { PerfSource, type PerfSample } from './perf/perf-stats';
 import type { GhostTrack } from './replays/ghost-model';
 import { ABORT_SLOT, API_VERSION, customGroupId, designCost } from '@orbital/core';
 import { bookStore, finishRun, scoreText } from './challenges/challenge-model';
@@ -359,6 +360,8 @@ export interface Flight {
 	debugInfo(): DebugInfo;
 	/** Empties the frame-interval histogram of the Info tab (plan 251). */
 	resetFrameStats(): void;
+	/** The performance overlay's sample (plan 294): the frames since the last call and the renderer's counters. */
+	perfSample(): PerfSample;
 	dispose(): void;
 }
 
@@ -433,6 +436,8 @@ export function startFlight(options: FlightOptions): Flight {
 	const governorStart = performance.now();
 	/** Frame intervals of the last two minutes for the Debug panel's percentiles (plan 251). */
 	const frameStats = new FrameHistogram();
+	/** The drawn frames since the performance overlay's last sample (plan 294). */
+	const perf = new PerfSource();
 	let budgetLook = 0;
 	let autoQuality = loadAutoQuality();
 	let catalog: Catalog | null = null;
@@ -1456,6 +1461,7 @@ export function startFlight(options: FlightOptions): Flight {
 		const dt = Math.min(interval / 1000, 0.1);
 		lastFrame = now;
 		frameStats.add(now, interval);
+		perf.frames.frame(now);
 		// the planet pass's pixel budget on this screen (plan 252) shapes the governor's rungs (plan 253)
 		if (governor && renderer && ++budgetLook === 30)
 			governor.setBudgetedPlanetScale(renderer.planetScale);
@@ -1997,6 +2003,12 @@ export function startFlight(options: FlightOptions): Flight {
 				: null
 		}),
 		resetFrameStats: () => frameStats.reset(),
+		perfSample: () =>
+			perf.sample(renderer, {
+				simMs: client.stepMs,
+				scale: governor?.level.scale ?? 1,
+				auto: autoQuality
+			}),
 		runScript(source) {
 			if (vessel === null) return;
 			const target = Number(vessel);

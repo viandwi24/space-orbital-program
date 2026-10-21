@@ -26,6 +26,10 @@ const NOT_A_FLAT_JOINT: Record<string, string> = {
 	'stock.engine-cluster/bottom': 'bells: the shroud carries the joint (shrouds.test.ts)',
 	'stock.heat-shield/bottom': 'the ablative dish faces the airflow at the end of a stack',
 	'stock.heat-shield-wide/bottom': 'the ablative dish faces the airflow at the end of a stack',
+	// the size-class shields of plan 289: the same dish
+	'stock.heat-shield-1875/bottom': 'the ablative dish faces the airflow at the end of a stack',
+	'stock.heat-shield-3750/bottom': 'the ablative dish faces the airflow at the end of a stack',
+	'stock.heat-shield-5000/bottom': 'the ablative dish faces the airflow at the end of a stack',
 	'stock.engine-vacuum/bottom': 'a bell: the shroud carries the joint (shrouds.test.ts)',
 	'stock.engine-wide/bottom': 'a bell: the shroud carries the joint (shrouds.test.ts)',
 	'stock.flotation-collar/top': 'a ring around the stack, wider than its joint by design',

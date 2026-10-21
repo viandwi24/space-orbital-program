@@ -1396,5 +1396,443 @@ exports[`stock part ids, masses, costs and modules match the snapshot 1`] = `
       ],
     ],
   },
+  {
+    "cost": 38,
+    "id": "stock.tank-0625",
+    "mass": 25,
+    "modules": [
+      [
+        "stock.resource-container",
+        {
+          "contents": {
+            "stock.liquid-fuel": {
+              "capacity": 18,
+            },
+            "stock.oxidizer": {
+              "capacity": 22,
+            },
+          },
+        },
+      ],
+    ],
+  },
+  {
+    "cost": 855,
+    "id": "stock.tank-1875-short",
+    "mass": 570,
+    "modules": [
+      [
+        "stock.resource-container",
+        {
+          "contents": {
+            "stock.liquid-fuel": {
+              "capacity": 410,
+            },
+            "stock.oxidizer": {
+              "capacity": 501,
+            },
+          },
+        },
+      ],
+    ],
+  },
+  {
+    "cost": 1688,
+    "id": "stock.tank-1875",
+    "mass": 1125,
+    "modules": [
+      [
+        "stock.resource-container",
+        {
+          "contents": {
+            "stock.liquid-fuel": {
+              "capacity": 810,
+            },
+            "stock.oxidizer": {
+              "capacity": 990,
+            },
+          },
+        },
+      ],
+    ],
+  },
+  {
+    "cost": 3420,
+    "id": "stock.tank-3750-short",
+    "mass": 2280,
+    "modules": [
+      [
+        "stock.resource-container",
+        {
+          "contents": {
+            "stock.liquid-fuel": {
+              "capacity": 1642,
+            },
+            "stock.oxidizer": {
+              "capacity": 2007,
+            },
+          },
+        },
+      ],
+    ],
+  },
+  {
+    "cost": 6750,
+    "id": "stock.tank-3750",
+    "mass": 4500,
+    "modules": [
+      [
+        "stock.resource-container",
+        {
+          "contents": {
+            "stock.liquid-fuel": {
+              "capacity": 3240,
+            },
+            "stock.oxidizer": {
+              "capacity": 3960,
+            },
+          },
+        },
+      ],
+    ],
+  },
+  {
+    "cost": 13500,
+    "id": "stock.tank-3750-long",
+    "mass": 9000,
+    "modules": [
+      [
+        "stock.resource-container",
+        {
+          "contents": {
+            "stock.liquid-fuel": {
+              "capacity": 6480,
+            },
+            "stock.oxidizer": {
+              "capacity": 7920,
+            },
+          },
+        },
+      ],
+    ],
+  },
+  {
+    "cost": 8003,
+    "id": "stock.tank-5000-short",
+    "mass": 5335,
+    "modules": [
+      [
+        "stock.resource-container",
+        {
+          "contents": {
+            "stock.liquid-fuel": {
+              "capacity": 3840,
+            },
+            "stock.oxidizer": {
+              "capacity": 4693,
+            },
+          },
+        },
+      ],
+    ],
+  },
+  {
+    "cost": 15998,
+    "id": "stock.tank-5000",
+    "mass": 10665,
+    "modules": [
+      [
+        "stock.resource-container",
+        {
+          "contents": {
+            "stock.liquid-fuel": {
+              "capacity": 7680,
+            },
+            "stock.oxidizer": {
+              "capacity": 9387,
+            },
+          },
+        },
+      ],
+    ],
+  },
+  {
+    "cost": 32003,
+    "id": "stock.tank-5000-long",
+    "mass": 21335,
+    "modules": [
+      [
+        "stock.resource-container",
+        {
+          "contents": {
+            "stock.liquid-fuel": {
+              "capacity": 15360,
+            },
+            "stock.oxidizer": {
+              "capacity": 18773,
+            },
+          },
+        },
+      ],
+    ],
+  },
+  {
+    "cost": 54000,
+    "id": "stock.tank-7500",
+    "mass": 36000,
+    "modules": [
+      [
+        "stock.resource-container",
+        {
+          "contents": {
+            "stock.liquid-fuel": {
+              "capacity": 25920,
+            },
+            "stock.oxidizer": {
+              "capacity": 31680,
+            },
+          },
+        },
+      ],
+    ],
+  },
+  {
+    "cost": 108000,
+    "id": "stock.tank-7500-long",
+    "mass": 72000,
+    "modules": [
+      [
+        "stock.resource-container",
+        {
+          "contents": {
+            "stock.liquid-fuel": {
+              "capacity": 51840,
+            },
+            "stock.oxidizer": {
+              "capacity": 63360,
+            },
+          },
+        },
+      ],
+    ],
+  },
+  {
+    "cost": 220,
+    "id": "stock.decoupler-1875",
+    "mass": 110,
+    "modules": [
+      [
+        "stock.decoupler",
+        {
+          "ejectionImpulse": 2800,
+          "separates": "top",
+        },
+      ],
+    ],
+  },
+  {
+    "cost": 900,
+    "id": "stock.decoupler-3750",
+    "mass": 450,
+    "modules": [
+      [
+        "stock.decoupler",
+        {
+          "ejectionImpulse": 11300,
+          "separates": "top",
+        },
+      ],
+    ],
+  },
+  {
+    "cost": 1600,
+    "id": "stock.decoupler-5000",
+    "mass": 800,
+    "modules": [
+      [
+        "stock.decoupler",
+        {
+          "ejectionImpulse": 20000,
+          "separates": "top",
+        },
+      ],
+    ],
+  },
+  {
+    "cost": 3600,
+    "id": "stock.decoupler-7500",
+    "mass": 1800,
+    "modules": [
+      [
+        "stock.decoupler",
+        {
+          "ejectionImpulse": 45000,
+          "separates": "top",
+        },
+      ],
+    ],
+  },
+  {
+    "cost": 140,
+    "id": "stock.adapter-1250-1875",
+    "mass": 70,
+    "modules": [],
+  },
+  {
+    "cost": 200,
+    "id": "stock.adapter-1875-2500",
+    "mass": 100,
+    "modules": [],
+  },
+  {
+    "cost": 600,
+    "id": "stock.adapter-2500-3750",
+    "mass": 300,
+    "modules": [],
+  },
+  {
+    "cost": 900,
+    "id": "stock.adapter-3750-5000",
+    "mass": 450,
+    "modules": [],
+  },
+  {
+    "cost": 2400,
+    "id": "stock.adapter-5000-7500",
+    "mass": 1200,
+    "modules": [],
+  },
+  {
+    "cost": 240,
+    "id": "stock.fairing-base-1875",
+    "mass": 120,
+    "modules": [
+      [
+        "stock.fairing",
+        {
+          "baseTop": 0.1,
+          "size": 1.875,
+        },
+      ],
+    ],
+  },
+  {
+    "cost": 600,
+    "id": "stock.fairing-base-3750",
+    "mass": 300,
+    "modules": [
+      [
+        "stock.fairing",
+        {
+          "baseTop": 0.1,
+          "size": 3.75,
+        },
+      ],
+    ],
+  },
+  {
+    "cost": 900,
+    "id": "stock.fairing-base-5000",
+    "mass": 450,
+    "modules": [
+      [
+        "stock.fairing",
+        {
+          "baseTop": 0.1,
+          "size": 5,
+        },
+      ],
+    ],
+  },
+  {
+    "cost": 1600,
+    "id": "stock.fairing-base-7500",
+    "mass": 800,
+    "modules": [
+      [
+        "stock.fairing",
+        {
+          "baseTop": 0.1,
+          "size": 7.5,
+        },
+      ],
+    ],
+  },
+  {
+    "cost": 170,
+    "id": "stock.nose-cone-1875",
+    "mass": 85,
+    "modules": [],
+  },
+  {
+    "cost": 680,
+    "id": "stock.nose-cone-3750",
+    "mass": 340,
+    "modules": [],
+  },
+  {
+    "cost": 1200,
+    "id": "stock.nose-cone-5000",
+    "mass": 600,
+    "modules": [],
+  },
+  {
+    "cost": 2700,
+    "id": "stock.nose-cone-7500",
+    "mass": 1350,
+    "modules": [],
+  },
+  {
+    "cost": 720,
+    "id": "stock.heat-shield-1875",
+    "mass": 180,
+    "modules": [
+      [
+        "stock.heat-shield",
+        {
+          "ablator": 270,
+        },
+      ],
+    ],
+  },
+  {
+    "cost": 2880,
+    "id": "stock.heat-shield-3750",
+    "mass": 720,
+    "modules": [
+      [
+        "stock.heat-shield",
+        {
+          "ablator": 1080,
+        },
+      ],
+    ],
+  },
+  {
+    "cost": 5120,
+    "id": "stock.heat-shield-5000",
+    "mass": 1280,
+    "modules": [
+      [
+        "stock.heat-shield",
+        {
+          "ablator": 1920,
+        },
+      ],
+    ],
+  },
+  {
+    "cost": 700,
+    "id": "stock.docking-port-3750",
+    "mass": 350,
+    "modules": [
+      [
+        "stock.docking-port",
+        {
+          "size": 3.75,
+        },
+      ],
+    ],
+  },
 ]
 `;

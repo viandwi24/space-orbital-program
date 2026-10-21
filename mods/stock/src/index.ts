@@ -58,7 +58,8 @@ import {
 	STOCK_ADAPTER_PARTS,
 	STOCK_RCS_PARTS,
 	STOCK_DOCKING_PARTS,
-	STOCK_CONE_PARTS
+	STOCK_CONE_PARTS,
+	STOCK_SIZE_CLASS_PARTS
 } from './parts/index.ts';
 import {
 	Ablator,
@@ -238,6 +239,8 @@ export const Stock = definePlugin({
 		ctx.modules.register(ModuleBaseKit);
 		ctx.modules.register(ModuleDrill);
 		for (const part of STOCK_BASE_PARTS) ctx.parts.register(part);
+		// the size classes to 7.5 m (plan 289)
+		for (const part of STOCK_SIZE_CLASS_PARTS) ctx.parts.register(part);
 		ctx.commodities.register(CommodityIce);
 		ctx.recipes.register(RecipeIceElectrolysis);
 		for (const building of STOCK_BUILDINGS) ctx.buildings.register(building);

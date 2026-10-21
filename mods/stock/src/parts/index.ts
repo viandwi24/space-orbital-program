@@ -56,3 +56,21 @@ export const STOCK_FAIRING_PARTS = [
 	PartFairingBaseLarge,
 	PartFairingPanel
 ] as const;
+
+import { STOCK_CLASS_CONES } from './aero.ts';
+import { PartDockingPort3750 } from './docking.ts';
+import { STOCK_CLASS_HEAT_SHIELDS } from './recovery.ts';
+import { STOCK_CLASS_STRUCTURE } from './structure.ts';
+import { STOCK_CLASS_TANKS } from './tanks.ts';
+
+/**
+ * Plan 289 (ADR 0256): a structural set in the size classes 0.625, 1.875, 3.75, 5 and 7.5 m,
+ * drawn by the existing generators. Registered after every older part, so their order stays.
+ */
+export const STOCK_SIZE_CLASS_PARTS = [
+	...STOCK_CLASS_TANKS,
+	...STOCK_CLASS_STRUCTURE,
+	...STOCK_CLASS_CONES,
+	...STOCK_CLASS_HEAT_SHIELDS,
+	PartDockingPort3750
+] as const;

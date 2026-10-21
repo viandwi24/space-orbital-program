@@ -1,5 +1,11 @@
 import { describe, expect, test } from 'bun:test';
-import { nodeSize, nodeSizeClass, nodeSizesMatch, partDefinitionSchema } from '../src/index.ts';
+import {
+	NODE_SIZES,
+	nodeSize,
+	nodeSizeClass,
+	nodeSizesMatch,
+	partDefinitionSchema
+} from '../src/index.ts';
 
 const stack = (size?: number) => ({
 	top: {
@@ -46,9 +52,24 @@ describe('attach node size (plan 207)', () => {
 		expect(nodeSize(box, 'top')).toBeUndefined();
 	});
 
+	test('the seven classes of ADR 0256 (plan 289)', () => {
+		expect([...NODE_SIZES]).toEqual([0.625, 1.25, 1.875, 2.5, 3.75, 5, 7.5]);
+		for (const size of NODE_SIZES) expect(nodeSizeClass(size)).toBe(size);
+	});
+
+	test('a size-less 1.9 m cylinder infers 1.875 (it inferred 2.5 before plan 289)', () => {
+		const part = { shape: { kind: 'cylinder' as const, radius: 0.95, height: 2 }, attach: stack() };
+		expect(nodeSize(part, 'top')).toBe(1.875);
+		expect(nodeSizeClass(1.5)).toBe(1.25);
+		expect(nodeSizeClass(1.6)).toBe(1.875);
+		expect(nodeSizeClass(2.2)).toBe(2.5);
+	});
+
 	test('classes and matching', () => {
 		expect(nodeSizeClass(0.6)).toBe(0.625);
 		expect(nodeSizeClass(2.2)).toBe(2.5);
+		expect(nodeSizeClass(4)).toBe(3.75);
+		expect(nodeSizeClass(9)).toBe(7.5);
 		expect(nodeSizesMatch(1.25, 1.2505)).toBe(true);
 		expect(nodeSizesMatch(1.25, 0.625)).toBe(false);
 		expect(nodeSizesMatch(undefined, 0.625)).toBe(true);

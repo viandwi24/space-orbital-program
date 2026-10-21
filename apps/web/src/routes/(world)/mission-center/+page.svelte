@@ -37,6 +37,7 @@
 		type MapStack,
 		type StackPoint
 	} from '../../../lib/hud/map-stack';
+	import { settings } from '../../../lib/settings/settings.svelte';
 	import MissionCenterOverlay, {
 		type Layers
 	} from '../../../lib/mission-center/MissionCenterOverlay.svelte';
@@ -371,6 +372,7 @@
 <main class="page">
 	<canvas bind:this={canvas} data-testid="mc-canvas"></canvas>
 	<MissionCenterOverlay
+		perf={settings.ui.perfOverlay ? () => mc?.perfSample() ?? null : null}
 		{worldName}
 		{clock}
 		{warp}

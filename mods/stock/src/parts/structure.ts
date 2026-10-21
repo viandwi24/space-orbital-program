@@ -41,6 +41,61 @@ export const PartDecouplerWide = definePart({
 });
 
 /**
+ * A stack decoupler of class `size` m (plan 289): mass and ejection impulse grow with the face area
+ * from the wide decoupler (200 kg, 5,000 N·s at 2.5 m), as a stage's mass grows with diameter².
+ */
+function classDecoupler(id: string, title: string, size: number, height: number) {
+	const area = (size / 2.5) ** 2;
+	const massKg = Math.round((200 * area) / 10) * 10;
+	return definePart({
+		id,
+		title,
+		mass: kg(massKg),
+		cost: partCost(massKg, 'structure'),
+		impactTolerance: 8,
+		shape: cylinder(height, size / 2),
+		visual: {
+			kind: 'decoupler',
+			palette: { primary: '#3b4047', accent: '#e3a61f' }
+		},
+		attach: stackNodes(height, size),
+		crossfeed: false,
+		modules: [
+			[
+				ModuleDecoupler,
+				{ separates: 'top', ejectionImpulse: Math.round((5_000 * area) / 100) * 100 }
+			]
+		],
+		stagingIcon: 'decoupler'
+	});
+}
+
+export const PartDecoupler1875 = classDecoupler(
+	'stock.decoupler-1875',
+	'OrbitX RS-TD18 "Pisah"',
+	1.875,
+	0.22
+);
+export const PartDecoupler3750 = classDecoupler(
+	'stock.decoupler-3750',
+	'OrbitX RS-TD37 "Pisah"',
+	3.75,
+	0.3
+);
+export const PartDecoupler5000 = classDecoupler(
+	'stock.decoupler-5000',
+	'OrbitX RS-TD50 "Pisah"',
+	5,
+	0.35
+);
+export const PartDecoupler7500 = classDecoupler(
+	'stock.decoupler-7500',
+	'OrbitX RS-TD75 "Pisah"',
+	7.5,
+	0.45
+);
+
+/**
  * A plate that bolts to the side of a stack part (radial attachment, ADR 0034) and carries a
  * booster on its `outer` face. Staged, it fires the `radial` link: it leaves with the booster.
  * Boosters are staged with symmetric copies, so the pushes cancel.
@@ -154,6 +209,48 @@ export const PartAdapterLarge = adapterPart(
 
 export const STOCK_ADAPTER_PARTS = [PartAdapterSmall, PartAdapterLarge] as const;
 
+// The adapters between the size classes of plan 289 (ADR 0256), smaller face on top.
+export const PartAdapter1250To1875 = adapterPart(
+	'stock.adapter-1250-1875',
+	'OrbitX RS-AD12-18 "Corong"',
+	1.25,
+	1.875,
+	0.6,
+	70
+);
+export const PartAdapter1875To2500 = adapterPart(
+	'stock.adapter-1875-2500',
+	'OrbitX RS-AD18-25 "Corong"',
+	1.875,
+	2.5,
+	0.6,
+	100
+);
+export const PartAdapter2500To3750 = adapterPart(
+	'stock.adapter-2500-3750',
+	'OrbitX RS-AD25-37 "Corong"',
+	2.5,
+	3.75,
+	1.2,
+	300
+);
+export const PartAdapter3750To5000 = adapterPart(
+	'stock.adapter-3750-5000',
+	'OrbitX RS-AD37-50 "Corong"',
+	3.75,
+	5,
+	1.2,
+	450
+);
+export const PartAdapter5000To7500 = adapterPart(
+	'stock.adapter-5000-7500',
+	'OrbitX RS-AD50-75 "Corong"',
+	5,
+	7.5,
+	2.4,
+	1_200
+);
+
 /** A fairing base (plan 219, ADR 0224): its shell is built in the Hangar from sections. */
 function fairingBase(id: string, title: string, size: number, dry: number) {
 	const height = 0.2;
@@ -195,6 +292,32 @@ export const PartFairingBaseLarge = fairingBase(
 	175
 );
 
+// Fairing bases of the size classes of plan 289.
+export const PartFairingBase1875 = fairingBase(
+	'stock.fairing-base-1875',
+	'OrbitX PF-18 "Kubah"',
+	1.875,
+	120
+);
+export const PartFairingBase3750 = fairingBase(
+	'stock.fairing-base-3750',
+	'OrbitX PF-37 "Kubah"',
+	3.75,
+	300
+);
+export const PartFairingBase5000 = fairingBase(
+	'stock.fairing-base-5000',
+	'OrbitX PF-50 "Kubah"',
+	5,
+	450
+);
+export const PartFairingBase7500 = fairingBase(
+	'stock.fairing-base-7500',
+	'OrbitX PF-75 "Kubah"',
+	7.5,
+	800
+);
+
 /** Half a thrown-off fairing shell (plan 219): debris only, never in the catalogue. */
 export const PartFairingPanel = definePart({
 	id: 'stock.fairing-panel',
@@ -213,3 +336,20 @@ export const PartFairingPanel = definePart({
 	modules: [[ModuleFairingPanel, { size: 1.25, half: 0 }]],
 	catalog: { hidden: true }
 });
+
+/** The structural parts of the size classes of plan 289. */
+export const STOCK_CLASS_STRUCTURE = [
+	PartDecoupler1875,
+	PartDecoupler3750,
+	PartDecoupler5000,
+	PartDecoupler7500,
+	PartAdapter1250To1875,
+	PartAdapter1875To2500,
+	PartAdapter2500To3750,
+	PartAdapter3750To5000,
+	PartAdapter5000To7500,
+	PartFairingBase1875,
+	PartFairingBase3750,
+	PartFairingBase5000,
+	PartFairingBase7500
+] as const;

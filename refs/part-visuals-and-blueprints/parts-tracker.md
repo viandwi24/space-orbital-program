@@ -55,6 +55,18 @@ Kita butuh **perusahaan fiksi** milik kita sendiri, satu per bidang, dengan nama
 
 Nama roket di blueprint juga tiruan (§9). Owner sudah setuju dengan prinsip ini.
 
+**Kode OrbitX yang sudah dipakai (plan 289, ADR 0255).** Pola judulnya `OrbitX <kode>-<kelas><varian> "<nama panggilan>"`. Kelas ditulis dua digit dari diameter: 06 = 0,625 m, 12 = 1,25, 18 = 1,875, 25 = 2,5, 37 = 3,75, 50 = 5, 75 = 7,5. Varian S, M dan L berarti pendek, sedang dan panjang.
+
+| Famili | Kode | Nama panggilan | Contoh |
+|---|---|---|---|
+| Tangki | BT | "Butir" (0,625 m), "Tong" | `OrbitX BT-37L "Tong"` |
+| Decoupler stack | RS-TD | "Pisah" | `OrbitX RS-TD50 "Pisah"` |
+| Adapter | RS-AD | "Corong" | `OrbitX RS-AD50-75 "Corong"` |
+| Nose cone | AC | "Runcing" | `OrbitX AC-75 "Runcing"` |
+| Heat shield | PR-HS | "Perisai" | `OrbitX PR-HS37 "Perisai"` |
+| Docking port | DP | "Jabat" | `OrbitX DP-37 "Jabat"` |
+| Alas fairing | PF | "Kubah" | `OrbitX PF-75 "Kubah"` |
+
 ## 2. Legenda
 
 - **Status:**
@@ -125,8 +137,8 @@ Logika sim RCS sudah ada (`ModuleRcs`, plan 211). Konfigurasinya per nozzle (`no
 |---|---|---|---|---|---|---|
 | TNK-01 | Tangki 1,25 m (`tank-small/medium`) | FL-T100…T800 | barel dengan collar, las, stringer, stripe | E (**livery**: putih, hitam-putih, oranye busa, perak) | 🎨 livery | P1 |
 | TNK-02 | Tangki 2,5 m (`tank-wide*`) | X200 series | sama + kubah ujung terlihat | E | 🎨 livery | P1 |
-| TNK-03 | Tangki 0,625 m | Oscar-B | tangki kecil bulat | E | 🆕 | P2 |
-| TNK-04 | Tangki 3,75 m dan 5 m | S3 / S4 [MH] | panel besar bergaris | E | 🆕 | P1 (Kronos V) |
+| TNK-03 | Tangki 0,625 m | Oscar-B | tangki kecil bulat | E | ✅ `stock.tank-0625` (plan 289, barel; bentuk bulat di 275) | P2 |
+| TNK-04 | Tangki 3,75 m dan 5 m | S3 / S4 [MH] | panel besar bergaris | E | ✅ 1,875/3,75/5/7,5 m (plan 289: `tank-1875*`, `tank-3750*`, `tank-5000*`, `tank-7500*`; panel bergaris di 275) | P1 (Kronos V) |
 | TNK-05 | Tangki adapter (meruncing) | C7 / FL-A | kerucut berisi bahan bakar | E | 🆕 | P2 |
 | TNK-06 | Tangki radial | Dumpling / Baguette | kapsul kecil menempel di dinding | E | 🆕 | P3 |
 | TNK-07 | Tangki toroid | Doughnut / FL-R toroid | **cincin** (donat) di antara stack | E | 🆕 | P2 (Briz) |
@@ -157,14 +169,14 @@ Logika sim RCS sudah ada (`ModuleRcs`, plan 211). Konfigurasinya per nozzle (`no
 
 | ID | Part kita | Referensi KSP/KSP2 | Bentuk & detail | Interaksi | Status | Prio |
 |---|---|---|---|---|---|---|
-| CPL-01 | Decoupler stack (`decoupler*`) | TD-06…TD-50 | cakram tipis dengan **pita bahaya** kuning-hitam, baut eksplosif | S, P, E (gaya dorong, crossfeed) | 🎨 | P1 |
+| CPL-01 | Decoupler stack (`decoupler*`) | TD-06…TD-50 | cakram tipis dengan **pita bahaya** kuning-hitam, baut eksplosif | S, P, E (gaya dorong, crossfeed) | 🎨; kelas 1,875–7,5 m ✅ (plan 289) | P1 |
 | CPL-02 | Separator (hancur sendiri) | TS-06…TS-50 | sama, tanpa sisa | S | 🆕 | P2 |
 | CPL-03 | Decoupler radial (`radial-decoupler`) | TT-38K / TT-70 | balok dengan engsel | S | ✅ | — |
-| CPL-04 | Docking port (`docking-port*`) | Clamp-O-Tron Jr./std/Sr. | cincin dengan **3 kelopak pemandu**, lampu sasaran | P (undock, control from here) | 🎨 | P1 |
+| CPL-04 | Docking port (`docking-port*`) | Clamp-O-Tron Jr./std/Sr. | cincin dengan **3 kelopak pemandu**, lampu sasaran | P (undock, control from here) | 🎨; 3,75 m ✅ (plan 289) | P1 |
 | CPL-05 | Docking port bertutup | Shielded Clamp-O-Tron | port dengan penutup yang membuka | P, A | 🆕 | P2 |
 | CPL-06 | Docking probe/drogue | (Apollo, Soyuz) | probe batang + kerucut penerima | P | 🆕 | P2 |
 | CPL-07 | Penjepit (Klaw) | Advanced Grabbing Unit | lengan berjari, membuka dan menutup | P, A ⚙️ | 🆕 | P3 |
-| STR-01 | Adapter (`adapter-*`) | adapter series | kerucut berpanel | — | ✅ | — |
+| STR-01 | Adapter (`adapter-*`) | adapter series | kerucut berpanel | — | ✅; 1,25↔1,875 sampai 5↔7,5 m ✅ (plan 289) | — |
 | STR-02 | Multi-coupler 2/3/4 | TVR bi/tri/quad coupler | pelat dengan 2/3/4 muka bawah | — | 🆕 | P2 |
 | STR-03 | Interstage rangka | (Soyuz Blok I) | **rangka kisi** terbuka antara tahap | S | 🆕 | P1 (Soyuz) |
 | STR-04 | Tabung struktur | T-xx structural tube [MH] | tabung berongga membungkus mesin | — | 🆕 | P2 |
@@ -172,7 +184,7 @@ Logika sim RCS sudah ada (`ModuleRcs`, plan 211). Konfigurasinya per nozzle (`no
 | STR-06 | Strut kubik / oktagonal | Cubic Octagonal Strut | blok kecil penyambung | — | 🆕 | P3 |
 | STR-07 | Strut dan fuel line (`strut`, `fuel-line`) | EAS-4, FTX-2 | batang dengan klem | — | ✅ model / 🎨 ikon | P1 (ikon) |
 | STR-08 | Launch clamp (`launch-clamp`) | TT18-A | menara rangka | S | ✅ | — |
-| PAY-01 | Fairing (`fairing-base*`, `fairing-panel`) | AE-FF series | alas dengan cincin dan baut, cangkang ogive terbagi | S, P (buang) | 🎨 | P1 |
+| PAY-01 | Fairing (`fairing-base*`, `fairing-panel`) | AE-FF series | alas dengan cincin dan baut, cangkang ogive terbagi | S, P (buang) | 🎨; alas 1,875–7,5 m ✅ (plan 289) | P1 |
 | PAY-02 | **Service bay** (rongga berpintu) | SM-18 / SM-25 Service Bay | tabung pendek dengan 4 pintu yang membuka; part di dalamnya terlindung | P, AG, A ⚙️ | 🆕 | P1 |
 | PAY-03 | **Cargo bay** | Mk2/Mk3 Cargo Bay, cargo bay bundar [KSP2] | badan panjang dengan pintu atas atau ramp | P, AG, A ⚙️ | 🆕 | P2 |
 | PAY-04 | Adapter muatan berpanel (SLA) | (Apollo SLA) | 4 panel yang membuka seperti kelopak, menyimpan lander | S, A ⚙️ | 🆕 | P1 (Apollo) |
@@ -183,7 +195,7 @@ Logika sim RCS sudah ada (`ModuleRcs`, plan 211). Konfigurasinya per nozzle (`no
 
 | ID | Part kita | Referensi KSP/KSP2 | Bentuk & detail | Interaksi | Status | Prio |
 |---|---|---|---|---|---|---|
-| AER-01 | Nose / tail cone (`nose-cone*`, `tail-cone*`) | nose cone series | ogive; varian tajam dan tumpul | E | ✅/🎨 kecil | P2 |
+| AER-01 | Nose / tail cone (`nose-cone*`, `tail-cone*`) | nose cone series | ogive; varian tajam dan tumpul | E | ✅/🎨 kecil; nose cone 1,875–7,5 m ✅ (plan 289) | P2 |
 | AER-02 | Fin, control surface, wing | fins, elevons, wings | sudah benar | E, P | ✅ | — |
 | AER-03 | Grid fin | GRFN-125/250 [KSP2] | kisi persegi yang melipat | P, A, AG | 🆕 | P2 (gaya Falcon, LES Soyuz) |
 | AER-04 | Airbrake | Airbrake | panel yang membuka | P, AG, A | 🆕 | P3 |
@@ -193,7 +205,7 @@ Logika sim RCS sudah ada (`ModuleRcs`, plan 211). Konfigurasinya per nozzle (`no
 | REC-04 | Parasut radial (`radial-parachute`) | Mk2-R / Mk16-R [KSP2] | kotak memanjang **melengkung mengikuti dinding** dengan tutup | S, P, A | 🎨 | P1 |
 | REC-05 | Parasut tertanam di pod | (Apollo: 3 parasut di bawah tutup pod) | ruang di puncak pod 3 kursi, tutup terlontar | ikut pod | 🆕 | P2 |
 | REC-06 | Flotation collar (`flotation-collar`) | — | cincin karet menggembung | P, A | 🎨 | P3 |
-| THR-01 | Heat shield (`heat-shield*`) | heat shields 0,625–3,75 m | piring ablatif dengan tepi logam, bisa dilepas | S, P (lepas) | 🎨 kecil | P1 |
+| THR-01 | Heat shield (`heat-shield*`) | heat shields 0,625–3,75 m | piring ablatif dengan tepi logam, bisa dilepas | S, P (lepas) | 🎨 kecil; 1,875/3,75/5 m ✅ (plan 289) | P1 |
 | THR-02 | Heat shield tiup | HIAD | mengembang dari 2,5 m ke 10 m | P, A | 🆕 | P3 |
 | THR-03 | Radiator | radiator panels | panel datar atau lipat yang membuang panas | P, A ⚙️ panas | 🆕 | P3 |
 

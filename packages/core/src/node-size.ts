@@ -4,8 +4,11 @@
  */
 import type { PartDefinition } from './definitions.ts';
 
-/** The stock size classes, m: 0.625, 1.25 and 2.5. */
-export const NODE_SIZES = [0.625, 1.25, 2.5] as const;
+/**
+ * The stock size classes, m (ADR 0256): 0.625 to 7.5. With 1.875 (plan 289), a size-less cylinder
+ * about 1.53–2.17 m across infers 1.875, where it inferred 1.25 or 2.5 before.
+ */
+export const NODE_SIZES = [0.625, 1.25, 1.875, 2.5, 3.75, 5, 7.5] as const;
 
 /** Two sizes within this many metres are the same size. */
 export const NODE_SIZE_TOLERANCE = 0.001;

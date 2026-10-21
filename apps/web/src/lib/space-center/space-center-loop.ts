@@ -9,6 +9,7 @@ import { createRenderer, type Renderer, type SiteBuildingView } from '@orbital/r
 import { partShapesOf } from '../catalog';
 import { initialGraphicsPreset, rendererBackend } from '../graphics';
 import { startSimWorker } from '../sim-client';
+import { PerfSource, type PerfSample } from '../perf/perf-stats';
 
 export interface SpaceCenterOptions {
 	canvas: HTMLCanvasElement;
@@ -38,6 +39,8 @@ export interface SpaceCenter {
 	setGhost(ghost: Parameters<Renderer['setSiteGhost']>[0]): void;
 	/** The renderer, once the sim is up (screenshots and measurements). */
 	readonly renderer: Renderer | null;
+	/** The performance overlay's sample (plan 294); no governor here, so full resolution. */
+	perfSample(): PerfSample;
 	dispose(): void;
 }
 
@@ -55,6 +58,8 @@ export function startSpaceCenter(options: SpaceCenterOptions): SpaceCenter {
 	let dirty = false;
 	let disposed = false;
 	let raf = 0;
+	/** The drawn frames since the performance overlay's last sample (plan 294). */
+	const perf = new PerfSource();
 	let pending: {
 		list: readonly SiteBuildingView[];
 		roads: readonly { i: number; j: number }[];
@@ -73,7 +78,7 @@ export function startSpaceCenter(options: SpaceCenterOptions): SpaceCenter {
 		return s && !s.hidden ? { x: s.x, y: s.y } : null;
 	};
 
-	function frame(): void {
+	function frame(now: number): void {
 		if (disposed) return;
 		raf = requestAnimationFrame(frame);
 		if (!renderer) return;
@@ -82,6 +87,7 @@ export function startSpaceCenter(options: SpaceCenterOptions): SpaceCenter {
 			dirty = false;
 		}
 		renderer.render();
+		perf.frames.frame(now);
 		options.onFrame(project);
 	}
 
@@ -188,6 +194,7 @@ export function startSpaceCenter(options: SpaceCenterOptions): SpaceCenter {
 		get renderer() {
 			return renderer;
 		},
+		perfSample: () => perf.sample(renderer, { simMs: client.stepMs, scale: 1, auto: null }),
 		dispose() {
 			disposed = true;
 			cancelAnimationFrame(raf);

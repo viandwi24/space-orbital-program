@@ -1,0 +1,232 @@
+{
+	"stock.command-pod": {
+		"top": 0.625,
+		"bottom": 1.25
+	},
+	"stock.reaction-wheel": {
+		"top": 1.25,
+		"bottom": 1.25
+	},
+	"stock.tank-small": {
+		"top": 1.25,
+		"bottom": 1.25
+	},
+	"stock.tank-medium": {
+		"top": 1.25,
+		"bottom": 1.25
+	},
+	"stock.engine-lv": {
+		"top": 1.25,
+		"bottom": 1.25
+	},
+	"stock.engine-cluster": {
+		"top": 1.25,
+		"bottom": 1.25
+	},
+	"stock.decoupler": {
+		"top": 1.25,
+		"bottom": 1.25
+	},
+	"stock.landing-legs": {
+		"top": 1.25,
+		"bottom": 1.25
+	},
+	"stock.heat-shield": {
+		"top": 1.25,
+		"bottom": 1.25
+	},
+	"stock.booster": {
+		"top": 0.8
+	},
+	"stock.srb-small": {
+		"top": 0.8
+	},
+	"stock.srb-large": {
+		"top": 1.25
+	},
+	"stock.booster-liquid": {
+		"top": 0.8
+	},
+	"stock.engine-vacuum": {
+		"top": 1.25,
+		"bottom": 1.25
+	},
+	"stock.tank-wide-short": {
+		"top": 2.5,
+		"bottom": 2.5
+	},
+	"stock.tank-wide": {
+		"top": 2.5,
+		"bottom": 2.5
+	},
+	"stock.engine-wide": {
+		"top": 2.5,
+		"bottom": 2.5
+	},
+	"stock.decoupler-wide": {
+		"top": 2.5,
+		"bottom": 2.5
+	},
+	"stock.heat-shield-wide": {
+		"top": 2.5,
+		"bottom": 2.5
+	},
+	"stock.fairing-base-small": {
+		"top": 0.625,
+		"bottom": 0.625,
+		"interstage": 0.625
+	},
+	"stock.fairing-base": {
+		"top": 1.25,
+		"bottom": 1.25,
+		"interstage": 1.25
+	},
+	"stock.fairing-base-large": {
+		"top": 2.5,
+		"bottom": 2.5,
+		"interstage": 2.5
+	},
+	"stock.nose-cone": {
+		"bottom": 0.8
+	},
+	"stock.data-drive": {
+		"top": 1.25,
+		"bottom": 1.25
+	},
+	"stock.flotation-collar": {
+		"top": 1.25,
+		"bottom": 1.25
+	},
+	"stock.adapter-small": {
+		"top": 0.625,
+		"bottom": 1.25
+	},
+	"stock.adapter-large": {
+		"top": 1.25,
+		"bottom": 2.5
+	},
+	"stock.nose-cone-small": {
+		"bottom": 0.625
+	},
+	"stock.nose-cone-medium": {
+		"bottom": 1.25
+	},
+	"stock.nose-cone-large": {
+		"bottom": 2.5
+	},
+	"stock.tail-cone-small": {
+		"top": 0.625
+	},
+	"stock.tail-cone-medium": {
+		"top": 1.25
+	},
+	"stock.tail-cone-large": {
+		"top": 2.5
+	},
+	"stock.monoprop-tank": {
+		"top": 1.25,
+		"bottom": 1.25
+	},
+	"stock.docking-port-small": {
+		"top": 0.625,
+		"bottom": 0.625
+	},
+	"stock.docking-port": {
+		"top": 1.25,
+		"bottom": 1.25
+	},
+	"stock.docking-port-large": {
+		"top": 2.5,
+		"bottom": 2.5
+	},
+	"stock.thermometer": {
+		"top": 1.25,
+		"bottom": 1.25
+	},
+	"stock.barometer": {
+		"top": 1.25,
+		"bottom": 1.25
+	},
+	"stock.seismometer": {
+		"top": 1.25,
+		"bottom": 1.25
+	},
+	"stock.surface-sampler": {
+		"top": 1.25,
+		"bottom": 1.25
+	},
+	"stock.atmosphere-sampler": {
+		"top": 1.25,
+		"bottom": 1.25
+	},
+	"stock.goo-canister": {
+		"top": 1.25,
+		"bottom": 1.25
+	},
+	"stock.materials-bay": {
+		"top": 1.25,
+		"bottom": 1.25
+	},
+	"stock.probe-core": {
+		"top": 1.25,
+		"bottom": 1.25
+	},
+	"stock.whip-antenna": {
+		"top": 1.25,
+		"bottom": 1.25
+	},
+	"stock.dish-antenna": {
+		"top": 1.25,
+		"bottom": 1.25
+	},
+	"stock.solar-panel": {
+		"top": 1.25,
+		"bottom": 1.25
+	},
+	"stock.solar-panel-fixed": {
+		"top": 1.25,
+		"bottom": 1.25
+	},
+	"stock.solar-array-large": {
+		"top": 1.25,
+		"bottom": 1.25
+	},
+	"stock.rtg": {
+		"top": 1.25,
+		"bottom": 1.25
+	},
+	"stock.battery-small": {
+		"top": 0.625,
+		"bottom": 0.625
+	},
+	"stock.battery-medium": {
+		"top": 1.25,
+		"bottom": 1.25
+	},
+	"stock.battery-large": {
+		"top": 1.25,
+		"bottom": 1.25
+	},
+	"stock.life-support-pack": {
+		"top": 1.25,
+		"bottom": 1.25
+	},
+	"stock.scrubber": {
+		"top": 1.25,
+		"bottom": 1.25
+	},
+	"stock.parachute": {
+		"bottom": 0.625
+	},
+	"stock.drogue-chute": {
+		"bottom": 0.625
+	},
+	"stock.base-kit": {
+		"top": 1.25,
+		"bottom": 1.25
+	},
+	"stock.drill": {
+		"top": 1.25,
+		"bottom": 1.25
+	}
+}
