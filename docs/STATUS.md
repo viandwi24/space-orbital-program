@@ -259,6 +259,7 @@
 | 310 | [Vessel menu in Flight, docking-port targets, a vessel-control API and the Auto Dock mod](plans/310-vessel-menu-port-targets-control-api-and-auto-dock.md) | in-progress | auto dock session | ADRs 0270, 0271 |
 | 312 | [Blueprint Library follow-ups: labels, checklist, thumbnail cache, career locks](plans/312-blueprint-library-follow-ups.md) | draft | — | Leftovers of 285. |
 | 313 | [Tethers and winches between vessels, and releasable struts](plans/313-tethers-winches-and-strut-release.md) | draft | — | Owner's question 2026-10-21 (KSP struts and KAS cables). ADR 0272 proposed; research in `refs/part-visuals-and-blueprints/connectors-and-tethers.md`. |
+| 314 | [A bigger Hangar, and tall craft framed whole](plans/314-bigger-hangar.md) | done | part visuals session | Owner: Kronos V reached the roof. Room 90 × 90 × 69 m (×1.5), camera limits scaled, the view widens to 75° for tall craft; a test fits every blueprint with 1.3× room. Journal 314. |
 
 Statuses: `draft` (needs refinement before an agent takes it) · `ready` · `in-progress` · `done` · `blocked`.
 
@@ -326,6 +327,7 @@ Existing drafts realigned on 2026-10-17: 063 (runway building), 065, 066, 067, 0
 
 ## Recent journal entries
 
+- [314 — A bigger Hangar](journal/314-bigger-hangar.md)
 - [311 — Lights, the RCS jet, RCS propellant](journal/311-lights-panel-angled-nav.md)
 - [309 — Mission flight tests](journal/309-mission-flight-tests.md)
 - [285 — Blueprint Library](journal/285-blueprint-library.md)
