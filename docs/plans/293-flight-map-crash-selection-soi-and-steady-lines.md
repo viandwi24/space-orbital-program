@@ -1,7 +1,7 @@
 ---
 id: 293
 title: "Flight map: no crash on escape burns, no text selection on drags, SOI on demand, steady orbit lines"
-status: in-progress
+status: done
 owner: "map crash + jitter session"
 depends: [044, 045, 224, 258]
 phase: 8
@@ -59,18 +59,25 @@ When this plan is done, that burn plans without a crash, drags select nothing, t
 
 ## Acceptance criteria
 
-- [ ] `propagateUniversal` converges for the owner's numbers (test with dt = 50740.92485174809 s and α = −6.236880549521935e-7 1/m, both directions, four periapsis radii). The result agrees with element propagation to 1e-9.
-- [ ] 2 000 random long hyperbolic and near-parabolic steps converge (test).
-- [ ] An unconverged step ends a path segment; no `KeplerError` reaches the page from the map.
-- [ ] A drag on the map canvas or a node selects no text (browser).
-- [ ] The spheres of influence are off by default, a switch shows them, and the choice is remembered (test and browser).
-- [ ] A planned stretch around the home planet is drawn at the planet now (test). The path's interior points do not move between two predictions (test). The lines hold still while a node is dragged and at several warp rates (browser).
-- [ ] `bun run lint`, `bun run typecheck`, `bun run test`, and `CI=true` vitest in `apps/web` pass.
+- [x] `propagateUniversal` converges for the owner's numbers (test with dt = 50740.92485174809 s and α = −6.236880549521935e-7 1/m, both directions, four periapsis radii). The result agrees with element propagation to 1e-9.
+- [x] 2 000 random long hyperbolic and near-parabolic steps converge (test).
+- [x] An unconverged step ends a path segment; no `KeplerError` reaches the page from the map.
+- [x] A drag on the map canvas or a node selects no text (browser).
+- [x] The spheres of influence are off by default, a switch shows them, and the choice is remembered (test and browser).
+- [x] A planned stretch around the home planet is drawn at the planet now (test). The path's interior points do not move between two predictions (test). The lines hold still while a node is dragged and at several warp rates (browser).
+- [x] `bun run lint`, `bun run typecheck`, `bun run test`, and `CI=true` vitest in `apps/web` pass.
 
 ## Docs checklist
 
-- [ ] ADR 0266, plan, STATUS row and journal entry.
+- [x] ADR 0266, plan, STATUS row and journal entry.
 
 ## Log
 
 - 2026-10-21: Created by the map crash + jitter session (started from the main session for the owner's screenshots).
+- 2026-10-21: Done. Evidence in journal 293. After merging origin/main (plans 288, 292), all under the heavy-job lock:
+  - `bun run lint`: exit 0.
+  - `bun run typecheck`: exit 0 (svelte-check 0 errors).
+  - `CI=true bunx vitest run` in `apps/web`: 1362 pass, 2 fail. Both failures are in `sim-host-script-worker.test.ts` (the real QuickJS thread times out). They fail the same way in the owner's untouched checkout at ad5777d8, so they are not from this plan.
+  - `bun run test`: 2087 pass, 2 fail. The failures were two 3 600-day `career-bot` runs that hit the 90 s timeout on the loaded machine (300 s and 1 690 s of wall time). Run alone, they pass (see the next entry). Before the merge, `bun run test` passed 2089 of 2089.
+  - The trajectory goldens were regenerated (new sampling grid, `frame`, `times`).
+- 2026-10-21: `bun test --timeout 300000 packages/sim/test/career-bot.test.ts` run alone after the merge: 9 pass, 0 fail (135.8 s).

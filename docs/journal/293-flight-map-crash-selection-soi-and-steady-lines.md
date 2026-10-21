@@ -93,5 +93,7 @@ Commands, in the worktree under the heavy-job lock with `nice`:
 
 - `bun run typecheck`: 0 errors (svelte-check: 2073 files, 0 errors, 0 warnings). On a fresh worktree it first needs `build:sandbox`, which the dev server runs.
 - `bun run test`: 2089 pass, 0 fail, 310 files.
-- `CI=true bunx vitest run` in `apps/web`: see the plan Log.
-- `bun run lint`: see the plan Log.
+- `CI=true bunx vitest run` in `apps/web`, after the merge of origin/main: 1362 pass, 2 fail. Both failures are in `sim-host-script-worker.test.ts`: the real QuickJS thread times out. They fail the same way in the owner's untouched checkout at ad5777d8, so they come from before this plan. Before the merge, two other failures were the goldens, which were then regenerated.
+- `bun run lint`: exit 0. The first run flagged Prettier style in `map-path.ts` and its test, which are now formatted.
+- `bun run docs:check`: OK once the plan was set to done.
+- After the merge, `bun run test` had two `career-bot` 3 600-day runs past the 90 s timeout on a loaded machine (300 s and 1 690 s of wall time). Run alone they pass (plan Log).
