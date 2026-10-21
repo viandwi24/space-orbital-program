@@ -43,6 +43,8 @@ import { lifeSupportSnapshot } from './life.ts';
 import { actionsSnapshot } from './actions.ts';
 import { objectivesSnapshot } from './objectives.ts';
 import { agenciesSnapshot } from './agencies.ts';
+import { overriddenChannels } from './programs.ts';
+import type { VesselState } from './state.ts';
 import { contractsSnapshot } from './contracts.ts';
 import { strategiesSnapshot } from './strategies.ts';
 import { discoverySnapshot } from './discovery.ts';
@@ -164,7 +166,8 @@ export function vesselSnapshot(core: SimCore, id: EntityId): VesselSnapshot {
 		...(vessel.trim || vessel.trimYaw || vessel.trimRoll
 			? { trim: { pitch: vessel.trim ?? 0, yaw: vessel.trimYaw ?? 0, roll: vessel.trimRoll ?? 0 } }
 			: {}),
-		...(vessel.controlPart !== undefined ? { controlPart: vessel.controlPart } : {})
+		...(vessel.controlPart !== undefined ? { controlPart: vessel.controlPart } : {}),
+		...programView(core, vessel)
 	};
 	snapshot.sas = {
 		mode: vessel.sas.mode,
@@ -301,4 +304,17 @@ export function rulesView(core: SimCore): Readonly<Record<string, boolean | numb
 		core.rulesView = Object.freeze(view);
 	}
 	return core.rulesView;
+}
+
+/** The vessel's script and the channels the player holds against it (plan 320, ADR 0276). */
+function programView(
+	core: SimCore,
+	vessel: VesselState
+): Pick<VesselSnapshot, 'override' | 'script'> {
+	const held = overriddenChannels(core, vessel);
+	const s = vessel.script;
+	return {
+		...(held.length > 0 ? { override: held } : {}),
+		...(s ? { script: { name: s.name, resumed: s.resumed, startedAt: s.startedAt } } : {})
+	};
 }

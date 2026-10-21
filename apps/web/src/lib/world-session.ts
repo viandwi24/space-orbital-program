@@ -108,7 +108,26 @@ export function createWorldSession(
 			snapshot = s;
 		});
 		changed();
+		next.ready.then(() => resumeSaved(next), () => {});
 		return next;
+	}
+
+	/**
+	 * A world that opens restarts the script saved on its vessel, with its memory (plan 320, ADR
+	 * 0276 point 6). One script runs per world, so only the first saved one resumes.
+	 */
+	function resumeSaved(next: SimClient): void {
+		const first = next.savedScripts[0];
+		if (client !== next || !first) return;
+		const box = session.scriptSandbox();
+		if (!box) return;
+		box.open().then(
+			(port) => {
+				if (client === next) next.resumeScript(first.vessel, port);
+				else port.close();
+			},
+			() => {}
+		);
 	}
 
 	const session: WorldSession = {
@@ -168,8 +187,9 @@ export function createWorldSession(
 		end() {
 			offSnapshot?.();
 			offSnapshot = null;
-			// the script ends with its world (plan 239): its Worker goes with the sandbox's iframe
-			client?.stopScript();
+			// the script ends with its world (plan 239): its Worker goes with the sandbox's iframe;
+			// it stays saved on its vessel and resumes when the world opens again (plan 320)
+			client?.stopScript(true);
 			sandbox?.close();
 			sandbox = null; // a closed sandbox is not handed to the next world (plan 262)
 			client?.dispose();

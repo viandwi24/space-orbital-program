@@ -3,6 +3,7 @@
  * and the pure functions that check a value and resolve a world's values. Environment-neutral.
  */
 import * as z from 'zod';
+import { illustrationSchema, type Illustrated } from './illustration.ts';
 import { definitionIdSchema } from './schemas.ts';
 
 export type RuleValue = boolean | number | string;
@@ -52,7 +53,7 @@ export type RuleDefinition =
 			presets?: Record<string, number>;
 	  });
 
-export interface PresetDefinition {
+export interface PresetDefinition extends Illustrated {
 	/** `<plugin>.<name>`. */
 	id: string;
 	label: string;
@@ -154,7 +155,9 @@ export const presetDefinitionSchema = z.object({
 	id: definitionIdSchema,
 	label: z.string().min(1),
 	description: z.string().optional(),
-	values: z.record(z.string(), z.union([z.boolean(), z.number(), z.string()])).optional()
+	values: z.record(z.string(), z.union([z.boolean(), z.number(), z.string()])).optional(),
+	illustration: illustrationSchema.optional(),
+	icon: illustrationSchema.optional()
 });
 
 interface Lookup<T> {

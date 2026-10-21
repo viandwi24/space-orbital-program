@@ -14,11 +14,14 @@ import {
 	type CommandResult,
 	type ReplayFile
 } from '@orbital/core';
-import type { Sim } from './sim.ts';
+import type { DispatchOptions, Sim } from './sim.ts';
 
 export interface ReplayRecorder {
-	/** Dispatch through the recorder: an accepted command is logged with the sim time. */
-	dispatch(command: Command): CommandResult;
+	/**
+	 * Dispatch through the recorder: an accepted command is logged with the sim time and, for a
+	 * program's, its source (plan 320: a script's command must stay a script's, ADR 0276 point 2).
+	 */
+	dispatch(command: Command, options?: DispatchOptions): CommandResult;
 	/** Call after each `step`: takes a checkpoint when one is due. */
 	tick(): void;
 	/** The replay so far, with a final checkpoint now (`name` replaces the recording's). */
@@ -35,9 +38,15 @@ export function recordReplay(
 	const checkpoints: ReplayFile['checkpoints'] = [];
 	let next = sim.time + CHECKPOINT_EVERY;
 	return {
-		dispatch(command) {
-			const r = sim.dispatch(command);
-			if (r.ok) commands.push({ t: sim.time, command: structuredClone(command) });
+		dispatch(command, options) {
+			const r = sim.dispatch(command, options);
+			const source = options?.source;
+			if (r.ok)
+				commands.push({
+					t: sim.time,
+					command: structuredClone(command),
+					...(source && source !== 'player' ? { source } : {})
+				});
 			return r;
 		},
 		tick() {
@@ -95,7 +104,7 @@ export async function verifyReplay(
 			for (; done < cp.n && done < replay.commands.length; done++) {
 				const c = replay.commands[done]!;
 				advance(c.t);
-				const r = sim.dispatch(c.command);
+				const r = sim.dispatch(c.command, c.source ? { source: c.source } : undefined);
 				if (!r.ok)
 					return {
 						ok: false,

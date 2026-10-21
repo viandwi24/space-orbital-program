@@ -33,9 +33,11 @@ async function setup(
 				maxFlightFrames: 1
 			});
 			const dispatch = sim.dispatch.bind(sim);
-			sim.dispatch = (command) => {
-				dispatched.push(command as Command);
-				return dispatch(command);
+			sim.dispatch = (command, options) => {
+				// the host's own bookkeeping of the running script (plan 320) is not a script command
+				const type = (command as { type?: string }).type ?? '';
+				if (!type.startsWith('script-')) dispatched.push(command as Command);
+				return dispatch(command, options);
 			};
 			return sim;
 		},
