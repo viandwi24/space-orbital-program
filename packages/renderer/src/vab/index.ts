@@ -1,4 +1,5 @@
 export { VabView } from './view.ts';
+export { HANGAR, HANGAR_SCALE } from './hangar.ts';
 export type { VabViewConfig, VabHit, VabStats } from './view.ts';
 export type {
 	VabScene,

@@ -25,16 +25,19 @@ export interface VabCameraLimits {
 	panTop: number;
 }
 
-/** Limits of the Hangar camera; plan 220 widened them for the towers at x = ±15 m, z = −13 m. */
+/**
+ * Limits of the Hangar camera; plan 220 widened them for the towers, and the bigger building
+ * (owner, 2026-10-21) scaled them by 1.5 with it.
+ */
 export const VAB_CAMERA_LIMITS: VabCameraLimits = {
 	minDistance: 2.5,
-	maxDistance: 70,
+	maxDistance: 105,
 	maxPitch: 1.35,
 	floorClearance: 0.5,
-	// the columns stand 1.2 m off the walls at ±30 m
-	roomHalf: 27.5,
-	panExtent: 18,
-	panTop: 34
+	// the columns stand 1.8 m off the walls at ±45 m
+	roomHalf: 41.5,
+	panExtent: 27,
+	panTop: 51
 };
 
 /** Above the vessel's top the turntable may rise this far, m (plan 238). */
