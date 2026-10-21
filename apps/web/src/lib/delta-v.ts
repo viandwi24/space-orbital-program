@@ -342,7 +342,9 @@ function volumeRates(
 /** Parts an engine can draw `resource` from, in the sim's draw order. */
 function reach(w: Work, engine: number, resource: string): number[] {
 	const mode = w.model.resources.get(resource)?.flowMode ?? 'none';
-	if (mode === 'none') return [];
+	// `none`: only the part itself, as the sim's `sources` (a solid motor burns its own fuel); an
+	// empty list made every solid booster stage burn nothing in the Hangar's figures (plan 286)
+	if (mode === 'none') return w.alive.has(engine) ? [engine] : [];
 	if (mode === 'vessel') return [...w.alive].sort((a, b) => a - b);
 	const seen = new Set<number>([engine]);
 	const order: number[] = [];
