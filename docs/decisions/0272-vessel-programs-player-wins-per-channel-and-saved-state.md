@@ -34,7 +34,7 @@ The research (KSP stock SAS, kOS, MechJeb 2, kRPC, Juno, Space Engineers, Apollo
    - The script API gets a global `memory` (a plain object, JSON only, at most 64 KiB serialized) and `resumed` (boolean). The script host commits `memory` with `script-memory { vessel, memory }` at most once a second and when the script ends; the sim stores it, so it is part of every save, quicksave and autosave.
    - When a world opens, the world session starts a runner for every vessel with a `script`, with `resumed: true` and the saved `memory`. The script runs from its first line; resuming is the script's job (a `memory.phase` switch, as kOS boot files, Space Engineers `Storage` and Screeps `Memory` do). No VM snapshot: it would bind saves to the QuickJS build and make the save an attack surface.
    - The source text is saved with the vessel (scripts are small; capped at 64 KiB), so a resumed script is the script that was running, not the panel's current text.
-7. **One script per vessel, several per world.** The script host keeps a session per vessel (each its own Worker in the one sandbox frame of ADR 0232). The Flight panel edits and runs the script of the active vessel.
+7. **The script stays with its vessel.** Its record is on the vessel, switching vessels does not stop it, and the list shows it under its vessel. One script still runs per world (ADR 0232's sandbox runs one Worker); a Run on another vessel replaces it. Several scripts at once is a later plan (draft 313); mod autopilots (ADR 0271) already run on any number of vessels.
 8. **The programs list.** The snapshot already has `vessel.autopilot` (ADR 0271) and now `vessel.script` and `vessel.override`; the page derives `programs` from them. The Flight status strip shows a chip "Programs N" (hidden at 0) that opens a list: vessel, program, phase/status, manual badge, **Switch to** and **Stop**.
 9. **Vessels outside physics.** A program's step still runs while its vessel is on rails; a command that needs physics wakes it as a player command does (`ensureFlight`). If no frame is free the command is refused and the program sees the refusal. Programs are paused (not stopped) while the world clock is paused.
 
@@ -48,7 +48,7 @@ The research (KSP stock SAS, kOS, MechJeb 2, kRPC, Juno, Space Engineers, Apollo
 
 ## Consequences
 
-- Save version goes up: vessels may carry `script` and `override`; old saves load with neither.
+- No save format change: `script` and `override` are optional vessel fields; old saves load with neither. The delay queue's entries and replay commands gain an optional `source`.
 - The scripting guide documents `memory`, `resumed` and the phase pattern; the sample ascent script becomes resumable.
 - A third-party autopilot gets the same arbitration for free, because the runner tags its commands.
 - The dev autopilot in `flight-loop.ts` keeps its own boolean until it is ported to a stock autopilot (plan 311 out of scope).

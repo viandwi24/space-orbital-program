@@ -1,7 +1,7 @@
 ---
 id: 311
 title: "Vessel programs: the player wins per channel, saved scripts that resume, the programs list, built-in mods on the Mods page"
-status: in-progress
+status: done
 owner: "vessel programs session (Claude)"
 depends: [239, 042]
 phase: 0
@@ -41,21 +41,29 @@ A script or a mod autopilot is a *program* attached to one vessel. It keeps flyi
 
 ## Acceptance criteria
 
-- [ ] web vitest `src/lib/mods/builtin-list.test.ts`: every `BUILTIN_PLUGINS` entry has a row; the Mods page shows a "Built in" section (browser check).
-- [ ] `bun test packages/sim` `test/programs.test.ts`: with a script program on a vessel, a player `attitude` with pitch 1 makes later script pitch writes drop while the script's yaw still applies; 1 s of sim time after the player sends pitch 0 the script's pitch applies again; a player throttle write blocks script throttle for 1 s; `program-override` and `program-resumed` events fire once each; `program-stop` detaches the script and clears overrides; no override is kept on a vessel without a program.
-- [ ] `bun test packages/sim`: `script-attach`, `script-memory` (rejected over 64 KiB or non-JSON) and `script-detach` change `vessel.script`; a save and resume keeps `script` with its memory.
-- [ ] `bun test packages/scripting`: `memory` and `resumed` are visible to the script; the runner reports a changed memory.
-- [ ] web vitest: the sim host starts a session per vessel and restarts saved scripts with `resumed: true`; `programs` model lists autopilot and script programs with their manual channels.
-- [ ] `bun run typecheck`, `bun test`, web vitest with `CI=true`, `bun run docs:check` pass.
+- [x] web vitest `src/lib/mods/builtin-list.test.ts`: every `BUILTIN_PLUGINS` entry has a row; the Mods page shows a "Built in" section (browser check).
+- [x] `bun test packages/sim` `test/programs.test.ts`: with a script program on a vessel, a player `attitude` with pitch 1 makes later script pitch writes drop while the script's yaw still applies; 1 s of sim time after the player sends pitch 0 the script's pitch applies again; a player throttle write blocks script throttle for 1 s; `program-override` and `program-resumed` events fire once each; `program-stop` detaches the script and clears overrides; no override is kept on a vessel without a program.
+- [x] `bun test packages/sim`: `script-attach`, `script-memory` (rejected over 64 KiB or non-JSON) and `script-detach` change `vessel.script`; a save and resume keeps `script` with its memory.
+- [x] `bun test packages/scripting`: `memory` and `resumed` are visible to the script; the runner reports a changed memory.
+- [x] web vitest: the sim host starts a session per vessel and restarts saved scripts with `resumed: true`; `programs` model lists autopilot and script programs with their manual channels.
+- [x] `bun run typecheck`, `bun test`, web vitest with `CI=true`, `bun run docs:check` pass.
 
 ## Docs checklist
 
-- [ ] `docs/STATUS.md` updated (board row).
-- [ ] `docs/journal/311-vessel-programs.md` written.
-- [ ] `docs/architecture/scripting.md` and `docs/guides/scripting.md` describe programs, sources, override, `memory`/`resumed`.
-- [ ] ADR 0272 linked above and in the ADR index.
-- [ ] `docs/research/vessel-programs.md` written.
+- [x] `docs/STATUS.md` updated (board row).
+- [x] `docs/journal/311-vessel-programs.md` written.
+- [x] `docs/architecture/scripting.md` and `docs/guides/scripting.md` describe programs, sources, override, `memory`/`resumed`.
+- [x] ADR 0272 linked above and in the ADR index.
+- [x] `docs/research/vessel-programs.md` written.
 
 ## Log
 
 - 2026-10-21 — Created and started by the vessel programs session after the research; split with the auto dock session (plan 310 owns the autopilot runner, this plan builds on it). Part A done first because it does not depend on 310.
+- 2026-10-21 — Parts A to D done. One script per world kept (ADR 0272 point 7 says so; several at once is draft 313). Found and fixed: the replay recorder dropped the command source. Merged origin/main (plan 310 Part 2): held channels compared in the control part's axes. `stopAutopilot` waits for plan 310's `endAutopilot` (agreed with the auto dock session). Drafts 312 (Guidance Computer) and 313 (several scripts) written.
+- 2026-10-21 — Verification:
+  - `bun test packages/sim/test/programs.test.ts`: 8 pass; `packages/scripting/test/memory.test.ts`: 4 pass; web vitest `builtin-list`, `programs-model`, `sim-host-script`, `script-api`, `keybindings`: pass.
+  - `bun run typecheck`: 0 errors (1 old warning). `bun run build`: done. `bun run docs:check`: OK.
+  - `bun run test`: 2151 pass, 4 fail under load (two benchmarks, the 3 600-day career bot, the 1 000-staging reliability run); the two benchmarks pass alone (2 pass, 2 pass).
+  - Web vitest with `CI=true`: 1420 pass, 3 fail before the help row fix (keybindings, now passing) and the two real-thread tests of `sim-host-script-worker.test.ts`, which fail on `main` too on this machine (Node 26 has no `--experimental-transform-types`).
+  - Browser: Mods page "Built in"; a script resumed after reload (`resumed true runs 2`); Delete stopped it with a toast.
+

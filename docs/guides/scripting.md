@@ -210,6 +210,37 @@ const ve = thrust / flow;
 const burn = (dv) => (ship.mass * ve * (1 - Math.exp(-dv / ve))) / thrust;
 ```
 
+## Programs: saved state, resuming, and who flies (plan 311, ADR 0272)
+
+A running script is a *program* attached to the vessel it flies. It keeps flying that vessel when you switch to another vessel or leave Flight, and the status bar lists it ("1 program"; click it for the list and a Stop button).
+
+**Saved state.** `memory` is a plain object that is saved with the vessel in every save, quicksave and autosave. When the world opens again, the script runs again from its first line with that `memory` and `resumed === true`. Your local variables and the line it was waiting on are not saved, so write the script as phases:
+
+```js
+memory.phase ??= 'ascent';
+if (resumed) print('resumed in phase', memory.phase);
+if (memory.phase === 'ascent') {
+	ship.throttle = 1;
+	await waitUntil(() => ship.apoapsis > 80_000);
+	ship.throttle = 0;
+	memory.phase = 'coast';
+}
+if (memory.phase === 'coast') {
+	await warpTo('apoapsis');
+	memory.phase = 'circularise';
+}
+// ...
+```
+
+- Change the fields of `memory`; `memory = {...}` throws. Keep it to JSON values (numbers, strings, booleans, `null`, arrays, plain objects); it is saved at most once a second and when the script ends.
+- At most 64 KiB as JSON; a bigger `memory` is not saved and the log says so once.
+- The saved script is the source that was running, not the editor's current text. Run starts a new run with an empty `memory`.
+- One script runs per world: a Run on another vessel replaces the running one.
+
+**Who flies.** You always win, per control: pitch, yaw, roll, each RCS axis, throttle and wheel throttle are separate. While you hold a key on a channel, your script's writes to that channel are dropped (the command result says `overridden`) and its other channels still apply. One second after you let go, the script gets the channel back and the host sends its last throttle and attitude again. A "Manual override" toast and the status bar say when this happens.
+
+**Stopping.** Delete stops every program on the vessel you fly (the script and an autopilot); Abort does the same before it cuts the engines.
+
 ## Signal delay (plan 117, ADR 0188)
 
 A probe obeys commands over its comms route, and the world's `stock.signal-delay` rule decides what the light time does.
