@@ -146,6 +146,8 @@ export const MISSION_BLUEPRINTS: readonly MissionBlueprint[] = [
 			const shield = b.below('stock.heat-shield-wide', pod);
 			const sm = b.below('stock.tank-wide-short', shield);
 			b.side('stock.rcs-block-5', sm, Math.PI / 4, 0.3, 4);
+			// the quads' monopropellant (owner, 2026-10-21: RCS said "no propellant")
+			b.side('stock.monoprop-radial', sm, Math.PI / 2, 0, 2);
 			b.side('stock.antenna-dish-fold', sm, 0, -0.3);
 			b.side('stock.fuel-cell', sm, Math.PI, -0.3);
 			const smEngine = b.below('stock.engine-wide', sm);
@@ -223,6 +225,8 @@ export const MISSION_BLUEPRINTS: readonly MissionBlueprint[] = [
 			b.side('stock.solar-array-xl', hab, Math.PI / 2, 0.5, 2);
 			b.side('stock.radiator', hab, 0, -0.3, 2);
 			b.side('stock.rcs-block', hab, Math.PI / 4, 0.8, 4);
+			// the station's RCS propellant (owner, 2026-10-21: RCS said "no propellant")
+			b.side('stock.monoprop-radial', hab, (3 * Math.PI) / 4, -1, 2);
 			b.side('stock.antenna-dish-fold', hab, Math.PI, -0.6);
 			const bus = b.below('stock.service-bay-wide', hab);
 			const core = b.on('stock.satellite-bus', bus, 'bottom');

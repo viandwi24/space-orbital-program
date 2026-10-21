@@ -1322,6 +1322,77 @@ exports[`stock part ids, masses, costs and modules match the snapshot 1`] = `
     ],
   },
   {
+    "cost": 30,
+    "id": "stock.light-panel",
+    "mass": 3,
+    "modules": [
+      [
+        "stock.light",
+        {
+          "drain": 0.05,
+        },
+      ],
+    ],
+  },
+  {
+    "cost": 50,
+    "id": "stock.light-angled",
+    "mass": 5,
+    "modules": [
+      [
+        "stock.light",
+        {
+          "drain": 0.05,
+        },
+      ],
+    ],
+  },
+  {
+    "cost": 10,
+    "id": "stock.light-nav-red",
+    "mass": 1,
+    "modules": [
+      [
+        "stock.light",
+        {
+          "blink": true,
+          "colour": "red",
+          "drain": 0.01,
+        },
+      ],
+    ],
+  },
+  {
+    "cost": 10,
+    "id": "stock.light-nav-green",
+    "mass": 1,
+    "modules": [
+      [
+        "stock.light",
+        {
+          "blink": true,
+          "colour": "green",
+          "drain": 0.01,
+        },
+      ],
+    ],
+  },
+  {
+    "cost": 10,
+    "id": "stock.light-nav-white",
+    "mass": 1,
+    "modules": [
+      [
+        "stock.light",
+        {
+          "blink": true,
+          "colour": "white",
+          "drain": 0.01,
+        },
+      ],
+    ],
+  },
+  {
     "cost": 850,
     "id": "stock.eva-suit",
     "mass": 85,
@@ -2474,7 +2545,6 @@ exports[`stock part ids, masses, costs and modules match the snapshot 1`] = `
               "capacity": 200,
             },
             "stock.monopropellant": {
-              "amount": 0,
               "capacity": 30,
             },
           },
@@ -2511,7 +2581,6 @@ exports[`stock part ids, masses, costs and modules match the snapshot 1`] = `
               "capacity": 200,
             },
             "stock.monopropellant": {
-              "amount": 0,
               "capacity": 30,
             },
           },
@@ -2532,7 +2601,6 @@ exports[`stock part ids, masses, costs and modules match the snapshot 1`] = `
               "capacity": 150,
             },
             "stock.monopropellant": {
-              "amount": 0,
               "capacity": 20,
             },
           },
@@ -2557,7 +2625,6 @@ exports[`stock part ids, masses, costs and modules match the snapshot 1`] = `
               "capacity": 100,
             },
             "stock.monopropellant": {
-              "amount": 0,
               "capacity": 10,
             },
           },
@@ -2582,7 +2649,6 @@ exports[`stock part ids, masses, costs and modules match the snapshot 1`] = `
               "capacity": 100,
             },
             "stock.monopropellant": {
-              "amount": 0,
               "capacity": 10,
             },
           },
@@ -2607,7 +2673,6 @@ exports[`stock part ids, masses, costs and modules match the snapshot 1`] = `
               "capacity": 100,
             },
             "stock.monopropellant": {
-              "amount": 0,
               "capacity": 10,
             },
           },
@@ -2628,7 +2693,6 @@ exports[`stock part ids, masses, costs and modules match the snapshot 1`] = `
               "capacity": 150,
             },
             "stock.monopropellant": {
-              "amount": 0,
               "capacity": 20,
             },
           },
@@ -2649,7 +2713,6 @@ exports[`stock part ids, masses, costs and modules match the snapshot 1`] = `
               "capacity": 250,
             },
             "stock.monopropellant": {
-              "amount": 0,
               "capacity": 40,
             },
           },
@@ -2670,7 +2733,6 @@ exports[`stock part ids, masses, costs and modules match the snapshot 1`] = `
               "capacity": 150,
             },
             "stock.monopropellant": {
-              "amount": 0,
               "capacity": 20,
             },
           },
@@ -2691,7 +2753,6 @@ exports[`stock part ids, masses, costs and modules match the snapshot 1`] = `
               "capacity": 100,
             },
             "stock.monopropellant": {
-              "amount": 0,
               "capacity": 10,
             },
           },
@@ -2716,7 +2777,6 @@ exports[`stock part ids, masses, costs and modules match the snapshot 1`] = `
               "capacity": 100,
             },
             "stock.monopropellant": {
-              "amount": 0,
               "capacity": 10,
             },
           },
@@ -2741,7 +2801,6 @@ exports[`stock part ids, masses, costs and modules match the snapshot 1`] = `
               "capacity": 150,
             },
             "stock.monopropellant": {
-              "amount": 0,
               "capacity": 20,
             },
           },
@@ -2781,6 +2840,9 @@ exports[`stock part ids, masses, costs and modules match the snapshot 1`] = `
           "contents": {
             "stock.electric-charge": {
               "capacity": 400,
+            },
+            "stock.monopropellant": {
+              "capacity": 60,
             },
           },
         },

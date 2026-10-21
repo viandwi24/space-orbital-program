@@ -277,7 +277,7 @@
 						{#if card}
 							<button class="feature" onclick={() => vab.loadBlueprint(card.id)}>
 								<strong>{card.title}</strong>
-								<span>{card.inspiredBy ?? card.summary}</span>
+								<span>{card.inspiredBy ? `Inspired by ${card.inspiredBy}` : card.summary}</span>
 							</button>
 						{/if}
 					{/each}

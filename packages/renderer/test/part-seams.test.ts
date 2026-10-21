@@ -156,7 +156,11 @@ describe('part seams', () => {
 					'hinge-joint',
 					// boxes and extrusions (plan 307)
 					'rover-wheel',
-					'rover-chassis'
+					'rover-chassis',
+					// boxes and cylinders (plan 311)
+					'light-panel',
+					'light-angled',
+					'light-nav'
 				].includes(visual.kind)
 			)
 				continue;

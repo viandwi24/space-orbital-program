@@ -154,6 +154,12 @@ export const STOCK_TECH = [
 			'stock.battery-medium',
 			'stock.light-spot',
 			'stock.light-flood',
+			// plan 311
+			'stock.light-panel',
+			'stock.light-angled',
+			'stock.light-nav-red',
+			'stock.light-nav-green',
+			'stock.light-nav-white',
 			'stock.solar-flat',
 			'stock.solar-fold',
 			'stock.battery-radial'

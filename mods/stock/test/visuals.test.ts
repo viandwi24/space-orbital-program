@@ -80,7 +80,10 @@ const KINDS = [
 	'rotary-joint',
 	'piston-joint',
 	'rover-wheel',
-	'rover-chassis'
+	'rover-chassis',
+	'light-panel',
+	'light-angled',
+	'light-nav'
 ];
 
 const parts = () => loadPlugins([Stock]).registries.parts.list();

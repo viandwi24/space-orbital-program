@@ -612,7 +612,8 @@ const pod = (opts: {
 				{
 					contents: {
 						[ElectricCharge.id]: { capacity: 50 * opts.crew + 50 },
-						[Monopropellant.id]: { capacity: 10 * opts.crew, amount: 0 }
+						// full at build (plan 309): a crewed ship's RCS flies on it
+						[Monopropellant.id]: { capacity: 10 * opts.crew }
 					}
 				}
 			],
@@ -789,7 +790,16 @@ export const PartSatelliteBus = definePart({
 		[ModuleCommand, {}],
 		[ModuleProbeComputer, {}],
 		[ModuleReactionWheel, { torque: 5_000, chargeRate: 0.6 }],
-		[ModuleResourceContainer, { contents: { [ElectricCharge.id]: { capacity: 400 } } }]
+		[
+			ModuleResourceContainer,
+			{
+				contents: {
+					[ElectricCharge.id]: { capacity: 400 },
+					// a bus carries its thrusters' propellant (owner, 2026-10-21: RCS said "no propellant")
+					[Monopropellant.id]: { capacity: 60 }
+				}
+			}
+		]
 	],
 	stagingIcon: 'command'
 });

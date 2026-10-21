@@ -41,7 +41,7 @@ import {
 } from './spacecraft.ts';
 import { radialDecoupler } from './radial-decoupler.ts';
 import { ladder } from './ladder.ts';
-import { light } from './light.ts';
+import { light, lightAngled, lightNav, lightPanel } from './light.ts';
 import { rcsBlock } from './rcs-block.ts';
 import { tailCone } from './tail-cone.ts';
 import { tank } from './tank.ts';
@@ -57,6 +57,10 @@ export function registerStockGenerators(): void {
 	registerPartGenerator('capsule', capsule);
 	registerPartGenerator('ladder', ladder);
 	registerPartGenerator('light', light);
+	// plan 311: a flush strip, an angled housing, navigation lights
+	registerPartGenerator('light-panel', lightPanel);
+	registerPartGenerator('light-angled', lightAngled);
+	registerPartGenerator('light-nav', lightNav);
 	registerPartGenerator('tank', tank);
 	registerPartGenerator('engine', engine);
 	registerPartGenerator('engine-cluster', engineCluster);

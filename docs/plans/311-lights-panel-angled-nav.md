@@ -1,7 +1,7 @@
 ---
 id: 311
-title: "Lights: a flat panel light, an angled light, navigation lights, OrbitX names"
-status: in-progress
+title: "Lights (panel, angled, navigation), the RCS jet redrawn, monopropellant for the blueprints' RCS"
+status: done
 owner: "part visuals session (Claude)"
 depends: [242]
 phase: 0
@@ -9,7 +9,7 @@ created: 2026-10-21
 updated: 2026-10-21
 ---
 
-# 311 — Lights: panel, angled, navigation
+# 311 — Lights, the RCS jet, RCS propellant
 
 ## Goal
 
@@ -28,6 +28,10 @@ The light family KSP players expect: a flat strip that sits flush on the hull, a
 - English OrbitX titles for the spotlight and the floodlight;
 - tests.
 
+Added on the owner's report of 2026-10-21 (screenshot: Horizon Station's RCS reads "no propellant"; the Kronos RCS jet looks poor):
+- monopropellant for every blueprint with RCS, and a test that guards it;
+- the RCS jet redrawn as a bright core and a stream of soft puffs.
+
 **Out:** light colour by temperature (Kelvin).
 
 ## Steps
@@ -38,13 +42,16 @@ The light family KSP players expect: a flat strip that sits flush on the hull, a
 
 ## Acceptance criteria
 
-- [ ] `bun test mods/stock packages/renderer` passes with the new parts.
-- [ ] The navigation lights start red, green or white, and blink.
+- [x] `bun test mods/stock packages/renderer` passes with the new parts.
+- [x] The navigation lights start red, green or white, and blink.
+- [x] `missions.test.ts`: every blueprint with RCS carries at least 30 units of monopropellant.
+- [x] The RCS jet in `/dev/parts` (WebGPU and WebGL): a short bright core, soft puffs that grow and fade.
 
 ## Docs checklist
 
-- [ ] `docs/STATUS.md`, journal `311-lights-panel-angled-nav.md`.
+- [x] `docs/STATUS.md`, journal `311-lights-panel-angled-nav.md`.
 
 ## Log
 
 - 2026-10-21 — Started on the owner's question.
+- 2026-10-21 — Done, with the RCS fixes from the owner's report.
