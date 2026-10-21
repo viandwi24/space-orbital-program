@@ -83,6 +83,7 @@
         "@orbital/sdk": "workspace:*",
       },
       "devDependencies": {
+        "@orbital/mod-autodock": "workspace:*",
         "@orbital/mod-stock": "workspace:*",
         "@orbital/physics": "workspace:*",
         "@orbital/sim": "workspace:*",

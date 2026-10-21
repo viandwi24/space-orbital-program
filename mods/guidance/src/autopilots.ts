@@ -29,13 +29,13 @@ const NODE_DONE = 0.1;
 const STAGE_GAP = 1.5;
 
 /** The pilot's facts (ADR 0277), or a reason they are missing. */
-function facts(pilot: VesselPilot): { mu: number; radius: number; mass: number } | string {
+export function facts(pilot: VesselPilot): { mu: number; radius: number; mass: number } | string {
 	if (!pilot.body || pilot.mass === undefined) return 'the vessel has no guidance data';
 	return { mu: pilot.body.mu, radius: pilot.body.radius, mass: pilot.mass };
 }
 
 /** Exhaust velocity of the burning engines, m/s (0 when none burns). */
-function exhaustVelocity(pilot: VesselPilot): number {
+export function exhaustVelocity(pilot: VesselPilot): number {
 	let thrust = 0;
 	let flow = 0;
 	for (const e of pilot.engines) {
@@ -47,7 +47,7 @@ function exhaustVelocity(pilot: VesselPilot): number {
 }
 
 /** The control part's nose (+Y) in inertial axes. */
-const noseOf = (pilot: VesselPilot): Vec3 => pilot.toWorld({ x: 0, y: 1, z: 0 });
+export const noseOf = (pilot: VesselPilot): Vec3 => pilot.toWorld({ x: 0, y: 1, z: 0 });
 
 /** Stage when nothing burns or a burning engine ran dry; returns true when it staged. */
 function autoStage(pilot: VesselPilot, memory: { stagedAt: number }): boolean {
