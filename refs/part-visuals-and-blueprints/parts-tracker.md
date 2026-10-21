@@ -376,3 +376,38 @@ Usulan, bebas diganti. Nama tidak memakai merek dagang. Tujuannya cukup jelas me
   - (a) Setuju dengan pembagian 4 lapis dan urutannya?
   - (b) Nama perusahaan fiksi: pakai usulan di §1, atau owner punya tema sendiri (misalnya nama Nusantara semua)?
   - (c) Robotika: masuk roadmap rilis, atau ditaruh setelah rilis karena butuh perubahan fisika?
+
+## 11. Target misi dan part yang dibutuhkan (keputusan owner, 2026-10-21)
+
+Tujuan owner: pemain bisa **meniru misi terkenal**. Urutan kerja: **part roket dulu**, lalu rover, dan **robotika paling akhir**. Tabel ini menunjukkan setiap misi target, part yang dibutuhkannya (ID tracker), dan plan yang menyediakannya. Blueprint misi ada di plan 286; misi rover di plan 287.
+
+| Misi (nama tiruan) | Terinspirasi oleh | Part kunci | Plan |
+|---|---|---|---|
+| **Kronos V + Selene** | Apollo 11 | roket 3 tahap dengan pelat 5 mesin (ENG-05) di kelas 5 m (TNK-04); interstage; menara LES (SRB-04); modul komando 3 kursi (CMD-02) dengan parasut bawaan dan heat shield; modul servis dengan mesin, 4 quad RCS (RCS-02), dish, fuel cell (PWR-07); adapter kelopak SLA (PAY-04); **lander**: tahap turun berfoil dengan 4 kaki tunggal (GRD-02) dan tahap naik bersudut (CMD-07) | 289, 275, 276, 277, 278, 280, 281, **296** |
+| **Ulang-Alik** | Space Shuttle | **orbiter**: fuselage hidung/tengah/belakang, sayap delta dengan elevon dan ubin panas, ekor dengan rudder, pod OMS, 3 mesin utama; **cargo bay dengan pintu yang membuka** (PAY-03); **tangki eksternal** oranye 5 m; **2 SRB besar** bersegmen; satelit di bay | 276, 281, **295**, 298 |
+| **Stasiun Cakrawala** | ISS / Mir | modul hab dan lab, node hub 6 port, truss, sayap surya besar berputar, radiator, airlock, cupola, docking port | 278, 280, 281, **297** |
+| **Penjelajah Selene** (rover) | Lunar Roving Vehicle | roda rover bersuspensi, kabin/kursi luar, lengan pemindai; dibawa lander | 296, **283** (setelah part roket) |
+| **Pengorbit** | pengorbit planet (gaya MRO) | bus probe dengan mesin sendiri, dish besar, panel surya, instrumen | 280, **298** |
+| **Teleskop Cakrawala** | teleskop luar angkasa (gaya Hubble) | tabung teleskop dengan pintu bukaan, sayap surya, antena high-gain di lengan; eksperimen observasi | 280, **298** |
+| **Satelit Peneliti** | satelit riset | bus satelit, boom sensor, panel surya, antena, alat sains | 280, **298** |
+
+Urutan plan (gelombang di roadmap rilis):
+
+1. **291** detail kit, livery, ikon
+2. **275** ukuran bagian 2
+3. **277** RCS
+4. **278** pod, probe, parasut
+5. **276** mesin, SRB, LES
+6. **280** daya, antena, sains
+7. **281** bay dan struktur
+8. **296** lander bulan
+9. **298** satelit dan teleskop
+10. **297** stasiun
+11. **295** shuttle
+12. **279** Hangar bebas
+13. **285** Pustaka
+14. **286** blueprint misi
+15. **283** rover
+16. **287** misi rover dan roket lain
+17. **284** inventaris dan sains di planet
+18. **282** robotika: terakhir, menunggu keputusan ADR 0265 setelah spike 288 menyatakan no-go untuk ADR 0262 apa adanya

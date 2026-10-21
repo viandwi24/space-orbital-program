@@ -1,19 +1,19 @@
 ---
 id: 286
-title: "Real-rocket blueprints wave 1: Kronos V + Selene, Semyorka-S + Persatuan, Rajawali 9 + Naga, Hermes-R"
+title: "Mission blueprints: Apollo 11 (Kronos V + Selene), Space Shuttle (Ulang-Alik), a space station, an orbiter, a space telescope and a research satellite"
 status: draft
 owner: ""
-depends: [275, 276, 277, 278, 280, 281, 285]
+depends: [276, 277, 278, 280, 281, 285, 295, 296, 297, 298]
 phase: 0
 created: 2026-10-21
 updated: 2026-10-21
 ---
 
-# 286 — Real-rocket blueprints wave 1: Kronos V + Selene, Semyorka-S + Persatuan, Rajawali 9 + Naga, Hermes-R
+# 286 — Mission blueprints: Apollo 11 (Kronos V + Selene), Space Shuttle (Ulang-Alik), a space station, an orbiter, a space telescope and a research satellite
 
 ## Goal
 
-Four complete blueprints inspired by Saturn V/Apollo, Soyuz, Falcon 9/Dragon and Mercury-Redstone, each with crew, RCS, power, antenna, life support, chutes and heat shield, labelled, and flown headless to their goal.
+The owner's goal is to clone famous missions. This plan ships one complete blueprint per target mission, each with crew or probe control, RCS, power, antenna, life support where crewed, chutes and heat shield where it returns, labelled, and flown headless to its goal: Apollo 11 (Saturn-V-like Kronos V, command and service module, lunar lander; to the moon and back), Space Shuttle (orbiter, external tank, two SRBs, a satellite in the bay; to orbit, open the bay, release, glide home), a space station (assembled from two or three launches; docking), a planetary orbiter (probe to orbit the moon), a space telescope (to orbit, door open, observe) and a research satellite (to orbit, deploy panels and instruments).
 
 ## Context
 
@@ -23,8 +23,8 @@ Four complete blueprints inspired by Saturn V/Apollo, Soyuz, Falcon 9/Dragon and
 
 ## Scope
 
-**In:** The four designs, liveries, labels, checklists, headless flight tests (Kronos V to the moon and back, Semyorka-S to orbit and docking, Rajawali 9 booster landing optional, Hermes-R suborbital).
-**Out:** Wave 2 and 3 (287).
+**In:** The six designs and their launch vehicles, liveries, labels, checklists; the headless mission tests listed in the steps. The rover mission is plan 287 (after the rover parts).
+**Out:** The other real rockets (287).
 
 ## Design notes
 
@@ -32,15 +32,17 @@ Names and part lists from the tracker §9.
 
 ## Steps
 
-1. Build each design.
-2. Headless flight tests.
-3. Labels and checklist.
+1. Apollo 11: Kronos V + Selene: headless moon landing and return.
+2. Shuttle: Ulang-Alik: orbit, open the bay, release the satellite, de-orbit and glide.
+3. Station: two launches, dock, crew transfer.
+4. Orbiter: probe to lunar orbit.
+5. Space telescope: orbit, open door, observe the moon.
+6. Research satellite: orbit, deploy, run its instruments.
 
 ## Acceptance criteria
 
-- [ ] Each blueprint passes the Hangar launch checks and reaches its goal headless (`bun test`).
-- [ ] `bun test`, `bun run typecheck`, `bun run build` and `bun run docs:check` pass.
-- [ ] Screenshots of every new or remodelled part (catalogue icon and in the Hangar) in the journal, before and after.
+- [ ] Each blueprint passes the Hangar launch checks and completes its mission headless (`bun run test`).
+- [ ] `bun run lint`, `bun run typecheck`, `bun run test`, web vitest with `CI=true` and `bun run docs:check` pass.
 
 ## Docs checklist
 
@@ -53,4 +55,5 @@ Names and part lists from the tracker §9.
 
 ## Log
 
+- 2026-10-21 — Re-scoped to the owner's mission targets: famous missions first, other real rockets later.
 - 2026-10-21 — Drafted from the part-visuals research and the owner's decisions of 2026-10-21 (CTO calls delegated by the owner). Not to be started until the owner releases the parts work: on 2026-10-21 main is busy with renderer fixes and a UI/UX agent.

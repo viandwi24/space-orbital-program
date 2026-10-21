@@ -3,7 +3,7 @@ id: 283
 title: "Rovers: wheel suspension, rover wheels remodel, rover cab, external seat, scanning arms, drill remodel"
 status: draft
 owner: ""
-depends: [282]
+depends: [291]
 phase: 0
 created: 2026-10-21
 updated: 2026-10-21
@@ -54,4 +54,5 @@ Suspension is a force inside the single body (ADR 0262 point 8); arms are deploy
 
 ## Log
 
+- 2026-10-21 — No longer waits for robotics (owner: rocket parts first, rovers next, robotics last). Suspension is a force in the single body (ADR 0262 point 8); the scanning arm is a deploy animation.
 - 2026-10-21 — Drafted from the part-visuals research and the owner's decisions of 2026-10-21 (CTO calls delegated by the owner). Not to be started until the owner releases the parts work: on 2026-10-21 main is busy with renderer fixes and a UI/UX agent.

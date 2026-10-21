@@ -231,8 +231,8 @@
 | 283 | [Rovers: suspension, wheels, cab, seat, scanning arms, drill](plans/283-rover-and-arms.md) | draft | — | ADRs 0262, 0264. |
 | 284 | [EVA inventory and deployed science stations](plans/284-eva-inventory-and-deployed-science.md) | draft | — | ADR 0264. |
 | 285 | [Blueprint Library: cards, filters, labels, defineBlueprint](plans/285-blueprint-library.md) | draft | — | ADR 0263. |
-| 286 | [Real-rocket blueprints wave 1 (Kronos V, Semyorka-S, Rajawali 9, Hermes-R)](plans/286-real-rocket-blueprints-wave-1.md) | draft | — | ADRs 0263, 0255. |
-| 287 | [Real-rocket blueprints waves 2 and 3](plans/287-real-rocket-blueprints-waves-2-and-3.md) | draft | — | ADRs 0263, 0255. |
+| 286 | [Mission blueprints: Apollo 11, Shuttle, station, orbiter, telescope, research satellite](plans/286-real-rocket-blueprints-wave-1.md) | draft | — | ADRs 0263, 0255. |
+| 287 | [Rover mission and other famous rockets](plans/287-real-rocket-blueprints-waves-2-and-3.md) | draft | — | ADRs 0263, 0255. |
 | 288 | [Robotics joint spike (benchmark and research only)](plans/288-robotics-joint-spike.md) | done | Worker E | Verdict no-go for ADR 0262 as written: single joints and determinism pass, the 6-joint chain and its cost fail on both joint kinds (journal 288). ADR 0265 proposed: impulse joints, two in series, kinematic long arms. Plan 282 waits for it. |
 | 289 | [Size classes 1.875–7.5 m with the existing generators](plans/289-size-classes-with-existing-generators.md) | done | Worker E | `NODE_SIZES` has the seven classes of ADR 0256. There are 32 new stock parts (tanks, decouplers, adapters, nose cones, shields, a 3.75 m port, fairing bases) in OrbitX titles, and a new tier-5 node, Super-heavy lift. A 7.5 m tower stands on the pad and lifts off headless (journal 289). |
 | 290 | [A folded part row in the vessel panel does not open when its summary is clicked](plans/290-folded-part-rows-open-on-click.md) | done | part-row fold session | Found by plan 272's e2e. The row's `open` shared a Svelte effect with its summary text, rewritten every tick, so the native toggle was undone before its `toggle` event stored it; a summary click now flips the stored state. |
@@ -240,6 +240,10 @@
 | 292 | [Map toolbar in one row, and a compact maneuver card on staging](plans/292-map-toolbar-one-row-and-compact-maneuver-card.md) | done | map HUD compact session | Owner request 2026-10-21. ADR 0267: Regions is a chip in the map filter row; the node panel is a 260 px card on staging in the right column (summary, icon actions, editor folded behind the pencil with steppers), never over the middle of the view. |
 | 293 | [Flight map: no crash on escape burns, no text selection on drags, SOI on demand, steady orbit lines](plans/293-flight-map-crash-selection-soi-and-steady-lines.md) | done | map crash + jitter session | Owner screenshots 2026-10-21. ADR 0266: the χ solve converges (hyperbolic guess, safeguarded Newton) and a failed step ends a path instead of the page; drags select no text; spheres of influence are a map filter, off by default; predicted stretches hang at their body as it is now (a planned orbit 20 min ahead used to hang 11 Mm away along the planet's orbit) and are sampled on a fixed time grid. |
 | 294 | [A compact performance overlay (net_graph style)](plans/294-performance-overlay.md) | done | perf overlay session | Settings → Interface → Performance overlay (off by default): FPS, frame p50/max with spikes, GPU, sim step, renderer and quality, draw calls, triangles, heap, with 5 s graphs; Flight, Space Center, Mission Center. Tick under 0.2 ms; `debug.counters()` added because `debug.info()` stalls WebGL. |
+| 295 | [Shuttle parts: orbiter, cargo bay doors, wing, tail, OMS, external tank, SRBs](plans/295-shuttle-parts.md) | draft | — | Mission target "Ulang-Alik" (Space Shuttle). |
+| 296 | [Lunar lander parts: descent stage, ascent cabin, single legs](plans/296-lunar-lander-parts.md) | draft | — | Mission target Apollo 11 ("Selene"). |
+| 297 | [Space station modules](plans/297-station-modules.md) | draft | — | Mission target "Stasiun Cakrawala". |
+| 298 | [Satellites and a space telescope](plans/298-satellites-and-telescope.md) | draft | — | Mission targets: orbiter, telescope, research satellite. |
 
 Statuses: `draft` (needs refinement before an agent takes it) · `ready` · `in-progress` · `done` · `blocked`.
 

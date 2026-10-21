@@ -1,19 +1,19 @@
 ---
 id: 287
-title: "Real-rocket blueprints waves 2 and 3: Timur-1, Pengiring-1, Neutron-M, Herkules V, Jalan Jauh 2F, Dioskuri, Lumière 5, Rajawali Berat, Stasiun Cakrawala, Penjelajah Selene, Ulang-Alik"
+title: "More blueprints: a lunar rover mission, then other famous rockets (Semyorka-S + Persatuan, Rajawali 9 + Naga, Hermes-R, Timur-1, Pengiring-1, Neutron-M, Herkules V, Jalan Jauh 2F, Dioskuri, Lumière 5, Rajawali Berat)"
 status: draft
 owner: ""
-depends: [286, 283, 284]
+depends: [286, 283]
 phase: 0
 created: 2026-10-21
 updated: 2026-10-21
 ---
 
-# 287 — Real-rocket blueprints waves 2 and 3: Timur-1, Pengiring-1, Neutron-M, Herkules V, Jalan Jauh 2F, Dioskuri, Lumière 5, Rajawali Berat, Stasiun Cakrawala, Penjelajah Selene, Ulang-Alik
+# 287 — More blueprints: a lunar rover mission, then other famous rockets (Semyorka-S + Persatuan, Rajawali 9 + Naga, Hermes-R, Timur-1, Pengiring-1, Neutron-M, Herkules V, Jalan Jauh 2F, Dioskuri, Lumière 5, Rajawali Berat)
 
 ## Goal
 
-The rest of the tracker §9 blueprints, including a station and a lunar rover, flown headless to their goals.
+After the mission set of plan 286 and the rover parts: a lunar rover mission (rover carried on the lander and driven) and the other famous rockets of the tracker §9, each flown headless to its goal.
 
 ## Context
 
@@ -23,7 +23,7 @@ The rest of the tracker §9 blueprints, including a station and a lunar rover, f
 
 ## Scope
 
-**In:** Designs and tests; the shuttle-like Ulang-Alik needs orbiter wing parts: split into its own draft if they are not there.
+**In:** Designs and tests.
 **Out:** —
 
 ## Design notes
@@ -32,14 +32,12 @@ As 286.
 
 ## Steps
 
-1. Wave 2: Timur-1, Pengiring-1, Neutron-M, Herkules V, Jalan Jauh 2F, Dioskuri.
-2. Wave 3: Lumière 5, Rajawali Berat, Stasiun Cakrawala, Penjelajah Selene, Ulang-Alik.
+1. Rover mission: Penjelajah Selene.
+2. The other real rockets, in the order of tracker §9.
 
 ## Acceptance criteria
 
-- [ ] Each blueprint reaches its goal headless (`bun test`).
-- [ ] `bun test`, `bun run typecheck`, `bun run build` and `bun run docs:check` pass.
-- [ ] Screenshots of every new or remodelled part (catalogue icon and in the Hangar) in the journal, before and after.
+- [ ] Each blueprint reaches its goal headless (`bun run test`).
 
 ## Docs checklist
 
@@ -52,4 +50,5 @@ As 286.
 
 ## Log
 
+- 2026-10-21 — Re-scoped to the owner's mission targets: famous missions first, other real rockets later.
 - 2026-10-21 — Drafted from the part-visuals research and the owner's decisions of 2026-10-21 (CTO calls delegated by the owner). Not to be started until the owner releases the parts work: on 2026-10-21 main is busy with renderer fixes and a UI/UX agent.

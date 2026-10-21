@@ -13,7 +13,7 @@ updated: 2026-10-21
 
 ## Goal
 
-The pod family covers the real-rocket blueprints (3-seat Apollo-like, Soyuz-like headlight descent module, Vostok-like sphere, Mercury-like small cone, lander cans and an LM-like angular cabin, cupola, crew cabin), probes look like probes (octagon, sphere with whips, satellite bus), and parachutes follow ADR 0260: nose chute continuing the pod slope, docking chute ring with a top node, curved radial packs, built-in chutes on the 3-seat pod.
+The pod family covers the real-rocket blueprints (3-seat Apollo-like, Soyuz-like headlight descent module, Vostok-like sphere, Mercury-like small cone, lander cans, crew cabin; the LM-like cabin is plan 296 and the cupola plan 297), probes look like probes (octagon, sphere with whips; the satellite bus is plan 298), and parachutes follow ADR 0260: nose chute continuing the pod slope, docking chute ring with a top node, curved radial packs, built-in chutes on the 3-seat pod.
 
 ## Context
 
@@ -24,7 +24,7 @@ The pod family covers the real-rocket blueprints (3-seat Apollo-like, Soyuz-like
 ## Scope
 
 **In:** New and remodelled pod and probe generators with windows, hatches, ladders and built-in RCS ports; parachute generator with `taper`; docking chute ring part and multi-anchor canopies; radial chute remodel; OrbitX titles.
-**Out:** Cockpits and spaceplane parts (later).
+**Out:** Cockpits and spaceplane parts (shuttle: plan 295); the lander cabin (296), the cupola (297), the satellite bus (298).
 
 ## Design notes
 
