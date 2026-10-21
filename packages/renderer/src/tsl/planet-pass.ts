@@ -365,10 +365,9 @@ export class PlanetPassTSL {
 		for (const s of this.syncs) s();
 		// the biome map is replaced at a preset change: the shader reads it through one node
 		if (this.mapNode) this.mapNode.value = u.uMap!.value;
-		const scale = Math.min(
-			this.wantedScale,
-			budgetScale(width, height, this.settings.planetPixels)
-		);
+		const scale =
+			this.forceScale ??
+			Math.min(this.wantedScale, budgetScale(width, height, this.settings.planetPixels));
 		this.activeScale = scale;
 		const half = scale < 1;
 		const passW = Math.max(1, Math.round(width * scale));
@@ -459,6 +458,9 @@ export class PlanetPassTSL {
 		return node;
 	}
 
+	/** Warm-up frames only: draw at this scale whatever the budget says (1 the full path, below 1 the half). */
+	forceScale: number | null = null;
+
 	/** The planet pass has built its shaders once (the precompile of other presets waits for it). */
 	get built(): boolean {
 		return this.builtMap !== null && !this.needsBuild;
@@ -531,56 +533,6 @@ export class PlanetPassTSL {
 		this.variants.set(key, v);
 		this.use(v);
 		this.compose();
-	}
-
-	/**
-	 * Builds the variant of `settings` and compiles it where it is drawn, in the background, so the
-	 * governor's later move to that preset swaps shaders instead of compiling them. three's WebGPU
-	 * renderer keys a compiled pipeline on the object and the scene it is drawn in, so the variant is
-	 * swapped into the real meshes and quads just for `compileScene` to collect them (it collects
-	 * before its first await), then the active variant is put back.
-	 */
-	async precompile(
-		renderer: WebGPURenderer,
-		settings: PresetSettings,
-		compileScene: () => Promise<unknown>
-	): Promise<void> {
-		if (!this.builtMap || this.needsBuild) return;
-		const active = { settings: this.settings, v: this.variantOf(this.material) };
-		if (!active.v) return;
-		const key = PlanetPassTSL.variantKey(settings);
-		let v = this.variants.get(key);
-		if (!v) {
-			v = newVariant();
-			this.settings = settings;
-			this.variants.set(key, v);
-			this.use(v);
-			try {
-				this.compose();
-			} finally {
-				this.settings = active.settings;
-			}
-		}
-		this.use(v);
-		const shown = [this.mesh.visible, this.upMesh.visible, this.edgeMesh.visible];
-		this.mesh.visible = this.upMesh.visible = this.edgeMesh.visible = true;
-		let jobs: Promise<unknown>[];
-		try {
-			const quad = (q: QuadMesh): Promise<unknown> =>
-				renderer.compileAsync(q, (q as unknown as { camera: PerspectiveCamera }).camera);
-			jobs = [compileScene(), quad(this.halfQuad), quad(this.preQuad)];
-		} finally {
-			this.mesh.visible = shown[0]!;
-			this.upMesh.visible = shown[1]!;
-			this.edgeMesh.visible = shown[2]!;
-			this.use(active.v);
-		}
-		await Promise.all(jobs);
-	}
-
-	private variantOf(full: MeshBasicNodeMaterial): Variant | undefined {
-		for (const v of this.variants.values()) if (v.full === full) return v;
-		return undefined;
 	}
 
 	/** Writes the shaders of the current settings into the active variant's materials. */

@@ -268,7 +268,8 @@ Phases 2 to 7 all edit the planet shaders, so they run mostly in sequence. Phase
     - the shaders are kept per preset;
     - the other presets' shaders, and the active preset's other path (full size or half), are compiled in the background where they are drawn;
     - the terrain's bake passes are kept per size.
-  - **Measured on the M2 at Retina:** switching between `low` and `high` takes 67 to 283 ms; before, 1.5 to 3.6 s. The first switch to `medium` still takes 3 s, and its cause is being profiled.
+  - **Measured on the M2 at Retina:** switching between `low` and `high` takes 67 to 283 ms; before, 1.5 to 3.6 s.
+  - **Warm-up frames at load:** the first switch to `medium` and the planet's first change of path still took 3 s. three builds a shader per object and render target the first time it draws them, so a `compileAsync` into other targets did not carry over. While the compile badge is up, the renderer now draws one frame at each preset, with the planet on both its full and its half path, then returns to the player's preset. The post chain is kept per preset too.
   - **Automatic renderer:** it now asks for a WebGPU adapter. A browser with `navigator.gpu` but no adapter (headless Chromium, a blocked driver) draws with WebGL. Before, it got three's slower WebGL2 fallback, and Flight took about 20 s to start in the e2e run.
 - 2026-10-21 — Worker D (M2): **after the merge, from the owner's test.**
   - **WebGPU is the default** (ADR 0249 point 10). Settings → Graphics → Renderer offers Automatic, WebGPU and WebGL. Automatic is WebGPU where the browser has it.

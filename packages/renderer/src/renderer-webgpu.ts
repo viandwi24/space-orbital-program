@@ -14,6 +14,7 @@
  * (`webgpu-compat.ts`) and listed in Debug → Info, so the scene draws what is ported and the
  * hemisphere light stands in for the sky light until the planet pass is.
  */
+import { HALF_PLANET_SCALE } from './half-res.ts';
 import { ACESFilmicToneMapping, PCFShadowMap, type Camera, type Scene } from 'three';
 import type { RenderPipeline, WebGPURenderer } from 'three/webgpu';
 import type { RendererBackend } from './backend.ts';
@@ -97,6 +98,7 @@ export function createWebGPURenderer(
 	let modules: Modules | null = null;
 	let gpu: WebGPURenderer | null = null;
 	let pipeline: RenderPipeline | null = null;
+	const pipelines = new Map<string, RenderPipeline>();
 	let pipelineKey = '';
 	/** Why drawing stopped (a lost device past `MAX_RESTARTS`, or no adapter), or null. */
 	let stopped: string | null = null;
@@ -122,10 +124,16 @@ export function createWebGPURenderer(
 		const samples = msaaSamples(settings.msaa, baseRatio());
 		const key = settings.post ? `${samples}:${settings.bloomScale}` : 'off';
 		if (key === pipelineKey && (pipeline !== null) === settings.post) return;
-		pipeline?.dispose();
 		pipeline = null;
 		pipelineKey = key;
 		if (!settings.post || !gpu || !modules) return;
+		// one post chain per sample count and bloom scale, kept: a new one rebuilt its scene pass's
+		// shaders for every material at each preset change (plan 261)
+		const kept = pipelines.get(key);
+		if (kept) {
+			pipeline = kept;
+			return;
+		}
 		const scenePass = modules.pass(model.scene, model.camera, { samples });
 		const colour = scenePass.getTextureNode('output');
 		const glow = modules.bloom(colour, BLOOM.strength, BLOOM.radius, BLOOM.threshold);
@@ -134,6 +142,7 @@ export function createWebGPURenderer(
 		// tone mapping (ACES, the renderer's exposure) and sRGB come last, as the WebGL OutputPass
 		p.outputNode = colour.add(glow);
 		pipeline = p;
+		pipelines.set(key, p);
 	};
 
 	const applySize = (): void => {
@@ -173,8 +182,16 @@ export function createWebGPURenderer(
 		ready();
 	};
 
+	function applyPreset(next: GraphicsPreset): void {
+		preset = next;
+		model.setPreset(next);
+		planet.setSettings(PRESETS[next]);
+		applySize();
+	}
+
 	const lose = (why: string): void => {
-		pipeline?.dispose();
+		for (const p of pipelines.values()) p.dispose();
+		pipelines.clear();
 		pipeline = null;
 		gpu = null;
 		if (restarts >= MAX_RESTARTS) {
@@ -330,19 +347,28 @@ export function createWebGPURenderer(
 				jobs.push(compile(parts, model.camera, model.scene));
 			}
 			await Promise.all(jobs);
-			// the planet pass at the other presets' settings, so the governor's moves swap shaders
-			// instead of compiling them (2 to 4 s each on WebGPU); it is built at the first frame
-			// the preset in use first: its other path (full size or half) is drawn only once the
-			// governor or the pixel budget moves the planet scale, and compiled then otherwise
-			const others = [preset, ...GRAPHICS_PRESETS.filter((name) => name !== preset)];
-			tracker.expect(others.length);
-			for (const name of others) {
-				for (let i = 0; i < 100 && !planet.built; i++) await idle();
-				const r = gpu;
-				if (r)
-					await planet
-						.precompile(r, PRESETS[name], () => compile(model.scene, model.camera, model.scene))
-						.catch(() => {});
+			// Warm-up frames (plan 261): one frame at every preset, with the planet at both its full
+			// and its half path, so the governor's later moves find every shader built. three's WebGPU
+			// renderer builds a shader per object and render target the first time it draws them,
+			// 1 to 4 s for the planet pass; \`compileAsync\` into other targets did not carry over.
+			// Done while the compile badge is up; the player's preset is drawn again after.
+			for (let i = 0; i < 200 && !planet.built; i++) await idle();
+			const keep = preset;
+			const order = [keep, ...GRAPHICS_PRESETS.filter((name) => name !== keep)];
+			tracker.expect(order.length);
+			for (const name of order) {
+				await idle();
+				if (!gpu || preset !== keep) break; // the governor or the player moved meanwhile
+				if (name !== keep) applyPreset(name);
+				try {
+					for (const s of [1, HALF_PLANET_SCALE]) {
+						planet.forceScale = s;
+						drawFrame(0);
+					}
+				} finally {
+					planet.forceScale = null;
+					if (name !== keep) applyPreset(keep);
+				}
 				tracker.finish();
 			}
 			// the instanced vegetation of the other presets, a few milliseconds per idle period (ADR 0055)
@@ -468,12 +494,7 @@ export function createWebGPURenderer(
 					)
 				);
 			},
-			setPreset(next: GraphicsPreset) {
-				preset = next;
-				model.setPreset(next);
-				planet.setSettings(PRESETS[next]);
-				applySize();
-			},
+			setPreset: (next: GraphicsPreset) => applyPreset(next),
 			get preset() {
 				return preset;
 			},
@@ -511,7 +532,8 @@ export function createWebGPURenderer(
 			dispose() {
 				for (const v of variants) v.clear();
 				variants = [];
-				pipeline?.dispose();
+				for (const p of pipelines.values()) p.dispose();
+				pipelines.clear();
 				for (const m of planet.meshes) m.removeFromParent();
 				planet.dispose();
 				for (const m of moons.values()) m.dispose();
