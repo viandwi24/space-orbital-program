@@ -488,7 +488,7 @@ export const partDefinitionSchema = z.object({
 	connector: z.object({ feeds: z.boolean().optional() }).optional(),
 	/**
 	 * Attach nodes. `size` is the diameter of the joint face, m (plan 207, ADR 0212): the stock
-	 * classes are 0.625, 1.25 and 2.5 (`NODE_SIZES`). A stack node without one takes the part's
+	 * classes are 0.625, 1.25, 1.875, 2.5, 3.75, 5 and 7.5 (`NODE_SIZES`, ADR 0256). A stack node without one takes the part's
 	 * class (`nodeSize`); radial and connector nodes have none.
 	 */
 	attach: z

@@ -234,7 +234,7 @@
 | 286 | [Real-rocket blueprints wave 1 (Kronos V, Semyorka-S, Rajawali 9, Hermes-R)](plans/286-real-rocket-blueprints-wave-1.md) | draft | — | ADRs 0263, 0255. |
 | 287 | [Real-rocket blueprints waves 2 and 3](plans/287-real-rocket-blueprints-waves-2-and-3.md) | draft | — | ADRs 0263, 0255. |
 | 288 | [Robotics joint spike (benchmark and research only)](plans/288-robotics-joint-spike.md) | done | Worker E | Verdict no-go for ADR 0262 as written: single joints and determinism pass, the 6-joint chain and its cost fail on both joint kinds (journal 288). ADR 0265 proposed: impulse joints, two in series, kinematic long arms. Plan 282 waits for it. |
-| 289 | [Size classes 1.875–7.5 m with the existing generators](plans/289-size-classes-with-existing-generators.md) | ready | — | Split from 275 for the Linux worker (Agent 3). ADR 0256. Headless; no UI. |
+| 289 | [Size classes 1.875–7.5 m with the existing generators](plans/289-size-classes-with-existing-generators.md) | in-progress | Worker E | `NODE_SIZES` has the seven classes of ADR 0256. There are 32 new stock parts (tanks, decouplers, adapters, nose cones, shields, a 3.75 m port, fairing bases) in OrbitX titles, and a new tier-5 node, Super-heavy lift. A 7.5 m tower stands on the pad and lifts off headless (journal 289). |
 | 290 | [A folded part row in the vessel panel does not open when its summary is clicked](plans/290-folded-part-rows-open-on-click.md) | done | part-row fold session | Found by plan 272's e2e. The row's `open` shared a Svelte effect with its summary text, rewritten every tick, so the native toggle was undone before its `toggle` event stored it; a summary click now flips the stored state. |
 | 291 | [Part detail kit, liveries, bronze material and honest catalogue icons](plans/291-part-detail-kit-livery-and-icons.md) | draft | — | ADRs 0255, 0257. Owner research 2026-10-21 (refs/part-visuals-and-blueprints). Waits until the owner releases the parts work (main busy with renderer and UI/UX fixes). |
 | 292 | [Map toolbar in one row, and a compact maneuver card on staging](plans/292-map-toolbar-one-row-and-compact-maneuver-card.md) | done | map HUD compact session | Owner request 2026-10-21. ADR 0267: Regions is a chip in the map filter row; the node panel is a 260 px card on staging in the right column (summary, icon actions, editor folded behind the pencil with steppers), never over the middle of the view. |
@@ -267,6 +267,7 @@ Existing drafts realigned on 2026-10-17: 063 (runway building), 065, 066, 067, 0
 ## Known issues / open questions
 
 - **Full e2e not run on Firefox and WebKit, nor after plans 251–253** (owner's order, 2026-10-20: all local e2e paused until the owner says otherwise): a known issue of v1.0.0, not a pass. Chromium ran once on the integration tree before the pause (90 passed, 6 red, all triaged in plan 232's Log). The release rests on CI (lint, typecheck, unit tests, build), the graphics measurements and the owner's manual checklist. `eva.e2e` (plan 225) is a known flake.
+- **Size-class inference** (plan 289): a mod part without node sizes, 1.53 to 2.17 m across, now infers 1.875 m (stock parts unchanged). The new classes have no engines yet (plan 276), and only barrel tanks (tapered, toroid and sphere tanks are in plan 275).
 - **Robotics gate** (plan 288, journal 288): Rapier 0.21 JS has no multibody motors, and a 6-joint impulse chain sags about 1 m and costs 5–6× a vessel's step. ADR 0265 (proposed) waits for the owner or the CTO, and plan 282 is gated on it.
 - **Plan 232 release gates**: the `v1.0.0` tag and the public deploy wait for the owner's filled acceptance checklist (`release/1.0.0-acceptance-checklist.md`); its M5 performance pass is where the open frame items below get re-measured.
 - **Second hills planet** (plan 071, journal 071): the image-based light cube still reflects the home sky on a later body with air; hills terrain shadows reach 5 km (the mid patch); a mod hills planet without a `seed` got new continents with plan 071.
@@ -303,6 +304,7 @@ Existing drafts realigned on 2026-10-17: 063 (runway building), 065, 066, 067, 0
 
 ## Recent journal entries
 
+- [289 — Size classes to 7.5 m with the existing generators](journal/289-size-classes-with-existing-generators.md)
 - [292 — Map toolbar in one row, compact maneuver card](journal/292-map-toolbar-and-maneuver-card.md)
 - [288 — Robotics joint spike](journal/288-robotics-joint-spike.md)
 - [290 — Folded part rows that did not open on a click](journal/290-folded-part-rows-open-on-click.md)

@@ -3,7 +3,7 @@ import { partCost } from '../costs.ts';
 import { ModuleDockingPort } from '../docking.ts';
 import { stackNodes } from './shared.ts';
 
-// Docking ports in the three size classes (plan 222, ADR 0218): the top node is the docking face.
+// Docking ports (plan 222, ADR 0218; 3.75 m by plan 289): the top node is the docking face.
 
 const port = (id: string, title: string, size: number, height: number, massKg: number) =>
 	definePart({
@@ -36,6 +36,15 @@ export const PartDockingPortLarge = port(
 	2.5,
 	0.4,
 	150
+);
+
+/** The 3.75 m port (plan 289): ports stop at 3.75 m (ADR 0256). */
+export const PartDockingPort3750 = port(
+	'stock.docking-port-3750',
+	'OrbitX DP-37 "Jabat"',
+	3.75,
+	0.5,
+	350
 );
 
 export const STOCK_DOCKING_PARTS = [

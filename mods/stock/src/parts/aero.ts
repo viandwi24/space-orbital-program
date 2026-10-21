@@ -113,11 +113,49 @@ const CONE_SIZES = [
 	{ size: 2.5, suffix: 'large', label: '2.5 m', massKg: 150, height: 2.2 }
 ] as const;
 
+/** Nose cones only, for the size classes of plan 289 (ADR 0256), with their OrbitX titles. */
+const NOSE_CLASS_SIZES = [
+	{
+		size: 1.875,
+		suffix: '1875',
+		label: '1.875 m',
+		title: 'OrbitX AC-18 "Runcing"',
+		massKg: 85,
+		height: 1.65
+	},
+	{
+		size: 3.75,
+		suffix: '3750',
+		label: '3.75 m',
+		title: 'OrbitX AC-37 "Runcing"',
+		massKg: 340,
+		height: 3.3
+	},
+	{
+		size: 5,
+		suffix: '5000',
+		label: '5 m',
+		title: 'OrbitX AC-50 "Runcing"',
+		massKg: 600,
+		height: 4.4
+	},
+	{
+		size: 7.5,
+		suffix: '7500',
+		label: '7.5 m',
+		title: 'OrbitX AC-75 "Runcing"',
+		massKg: 1_350,
+		height: 6.6
+	}
+] as const;
+
+type ConeSize = (typeof CONE_SIZES)[number] | (typeof NOSE_CLASS_SIZES)[number];
+
 /** A nose cone that caps a stack of `size` m: its bottom node is the joint. */
-const noseCone = (c: (typeof CONE_SIZES)[number]) =>
+const noseCone = (c: ConeSize) =>
 	definePart({
 		id: `stock.nose-cone-${c.suffix}`,
-		title: `Nose Cone ${c.label}`,
+		title: 'title' in c ? c.title : `Nose Cone ${c.label}`,
 		mass: kg(c.massKg),
 		cost: partCost(c.massKg, 'structure'),
 		impactTolerance: 6,
@@ -161,3 +199,6 @@ export const STOCK_CONE_PARTS = [
 	PartTailConeMedium,
 	PartTailConeLarge
 ] as const;
+
+/** The nose cones of the size classes of plan 289. */
+export const STOCK_CLASS_CONES = NOSE_CLASS_SIZES.map(noseCone);

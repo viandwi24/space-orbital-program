@@ -1,5 +1,13 @@
 import { expect, test } from 'bun:test';
-import { describeModule, parseModuleConfig, powerBudget } from '@orbital/sdk';
+import {
+	describeModule,
+	NODE_SIZES,
+	nodeSize,
+	nodeSizesMatch,
+	parseModuleConfig,
+	powerBudget
+} from '@orbital/sdk';
+import beforeSizes from './fixtures/node-sizes-before-289.json';
 import { loaded } from './helpers.ts';
 
 /**
@@ -52,4 +60,38 @@ test('every stock module describes itself with a valid descriptor (plan 208 foun
 			).not.toThrow();
 		}
 	}
+});
+
+test('plan 289: every stock part keeps the node sizes it had before the seven classes', () => {
+	const before = beforeSizes as Record<string, Record<string, number>>;
+	const changed: string[] = [];
+	for (const [id, nodes] of Object.entries(before)) {
+		const part = loaded.registries.parts.get(id);
+		if (!part) {
+			changed.push(`${id}: missing`);
+			continue;
+		}
+		for (const [name, size] of Object.entries(nodes)) {
+			const now = nodeSize(part, name);
+			if (now !== size) changed.push(`${id}/${name}: ${size} -> ${now}`);
+		}
+	}
+	expect(Object.keys(before).length).toBeGreaterThan(50);
+	expect(changed).toEqual([]);
+});
+
+test('plan 289: every node of a new stock part is one of the seven classes (ADR 0256)', () => {
+	const before = beforeSizes as Record<string, unknown>;
+	const off: string[] = [];
+	const added = loaded.registries.parts.list().filter((p) => !(p.id in before) && p.attach);
+	expect(added.length).toBeGreaterThanOrEqual(32);
+	for (const part of added) {
+		for (const name of Object.keys(part.attach ?? {})) {
+			const size = nodeSize(part, name);
+			if (size !== undefined && !NODE_SIZES.some((c) => nodeSizesMatch(c, size))) {
+				off.push(`${part.id}/${name}: ${size}`);
+			}
+		}
+	}
+	expect(off).toEqual([]);
 });
