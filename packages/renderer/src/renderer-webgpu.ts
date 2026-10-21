@@ -347,19 +347,16 @@ export function createWebGPURenderer(
 				jobs.push(compile(parts, model.camera, model.scene));
 			}
 			await Promise.all(jobs);
-			// Warm-up frames (plan 261): one frame at every preset, with the planet at both its full
-			// and its half path, so the governor's later moves find every shader built. three's WebGPU
-			// renderer builds a shader per object and render target the first time it draws them,
-			// 1 to 4 s for the planet pass; \`compileAsync\` into other targets did not carry over.
-			// Done while the compile badge is up; the player's preset is drawn again after.
+			// Warm-up frames (plan 261): the planet drawn once on its full and once on its half path,
+			// so a move of the governor's resolution or the pixel budget finds both shaders built.
+			// three's WebGPU renderer builds a shader per object and render target the first time it
+			// draws them, 1 to 4 s for the planet pass, and \`compileAsync\` into other targets did not
+			// carry over. Only the player's preset: on WebGPU the governor changes resolution, never the
+			// preset (\`governorPresetSteps\`). Done while the compile badge is up.
 			for (let i = 0; i < 200 && !planet.built; i++) await idle();
-			const keep = preset;
-			const order = [keep, ...GRAPHICS_PRESETS.filter((name) => name !== keep)];
-			tracker.expect(order.length);
-			for (const name of order) {
-				await idle();
-				if (!gpu || preset !== keep) break; // the governor or the player moved meanwhile
-				if (name !== keep) applyPreset(name);
+			tracker.expect(1);
+			await idle();
+			if (gpu) {
 				try {
 					for (const s of [1, HALF_PLANET_SCALE]) {
 						planet.forceScale = s;
@@ -367,10 +364,9 @@ export function createWebGPURenderer(
 					}
 				} finally {
 					planet.forceScale = null;
-					if (name !== keep) applyPreset(keep);
 				}
-				tracker.finish();
 			}
+			tracker.finish();
 			// the instanced vegetation of the other presets, a few milliseconds per idle period (ADR 0055)
 			tracker.setStage('vegetation');
 			const budgets = GRAPHICS_PRESETS.map((name) => ({
@@ -518,6 +514,7 @@ export function createWebGPURenderer(
 			get halfPlanetAvailable() {
 				return true;
 			},
+			governorPresetSteps: false,
 			get gpuFrameMs() {
 				return gpuMs;
 			},

@@ -240,6 +240,16 @@ describe('QualityGovernor: rules on synthetic frame series (plan 253)', () => {
 		expect(ups.length).toBeLessThanOrEqual(1);
 	});
 
+	test('resolution only (WebGPU, plan 261): every rung keeps the ceiling preset and the floor still goes to 0.55', () => {
+		const ladder = governorLadder('high', true, 1, false);
+		expect(ladder.every((l) => l.preset === 'high')).toBe(true);
+		expect(ladder.at(-1)!.scale).toBe(0.55);
+		const g = new QualityGovernor('high', undefined, true, false);
+		play(g, 120, () => 60);
+		expect(g.level.preset).toBe('high');
+		expect(g.history.every((h) => h.level.preset === 'high')).toBe(true);
+	});
+
 	test('measured work too close to the budget does not step up', () => {
 		const g = new QualityGovernor('high');
 		play(g, 12, retina(40));
