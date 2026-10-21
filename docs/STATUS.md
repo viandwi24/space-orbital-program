@@ -215,6 +215,7 @@
 | 266 | [A launch is refused with "no free physics frame" while another vessel flies far away, and Flight stops](plans/266-launch-refused-no-free-physics-frame.md) | done | launch-bug session | Owner report 2026-10-21. ADR 0250: `load-vessel` makes room as a wake does (plan 257); debris in the air goes on ballistic rails for it; only a controlled vessel in the air keeps its frame, and Flight shows that as "Launch refused" with what to do. |
 | 267 | [Space Center pins stay behind when the camera zooms, until it is turned](plans/267-space-center-pins-follow-zoom.md) | done | space-center pins session | Owner report 2026-10-21. ADR 0251: pins sit on their anchors; the old labels' spreading lifted them 40 px each when a zoom out crowded the buildings. Checked on WebGL and WebGPU. |
 | 268 | [Vessel panel Parts tab: even gaps between groups and part rows, and the two transfer buttons drawn on top of each other](plans/268-vessel-panel-parts-spacing.md) | done | vessel-panel session | Owner report 2026-10-21. A trigger row was an inline-size container, so it shrank to zero width and "Transfer out" drew over "Transfer in"; gaps on the 4 px tokens (8 px rows, 16 px groups). Checked at 300, 340 and 440 px and in high contrast. |
+| 270 | [Map pick list for stacked vessels, and distinct vessel names](plans/270-map-pick-list-and-distinct-vessel-names.md) | done | map pick list / vessel names session | Owner request 2026-10-21. ADR 0252: "Moon shot 2", "Moon shot debris 2", legacy "(debris)" chains tidied on load; a click on stacked map icons lists them (flight map, Mission Center). |
 | 271 | [The backup reminder lets the Hangar's tool bar show through: give it the toasts' glass card](plans/271-backup-reminder-glass-card.md) | done | backup-reminder session | Owner report 2026-10-21. The reminder had the glass colour without the glass filter; now it blurs what is under it, as the toasts do. Solid with blur off and high contrast. |
 
 Statuses: `draft` (needs refinement before an agent takes it) · `ready` · `in-progress` · `done` · `blocked`.
@@ -280,6 +281,7 @@ Existing drafts realigned on 2026-10-17: 063 (runway building), 065, 066, 067, 0
 
 ## Recent journal entries
 
+- [270 — A pick list for stacked map vessels, and distinct vessel names](journal/270-map-pick-list-and-distinct-vessel-names.md)
 - [267 — Space Center pins that stayed behind on a zoom](journal/267-space-center-pins-follow-zoom.md)
 - [266 — A launch refused with "no free physics frame"](journal/266-launch-refused-no-free-physics-frame.md)
 - [268 — Vessel panel Parts tab spacing and the stacked transfer buttons](journal/268-vessel-panel-parts-spacing.md)

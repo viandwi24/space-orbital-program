@@ -248,3 +248,4 @@ An ADR records one decision, its context, and its consequences. ADRs are **appen
 | 0249 | [The renderer moves to WebGPURenderer with TSL, on its own branch](0249-webgpu-renderer-backend.md) | accepted | 2026-10-20 |
 | 0250 | [A launch makes room in the flight frames; only a controlled vessel in the air keeps its frame](0250-a-launch-makes-room-in-flight-frames.md) | accepted | 2026-10-21 |
 | 0251 | [Space Center pins stay on their anchors; they are not spread apart](0251-space-center-pins-stay-on-their-anchors.md) | accepted | 2026-10-21 |
+| 0252 | [Vessel names are distinct: a number for a repeat, one "debris" suffix](0252-distinct-vessel-names.md) | accepted | 2026-10-21 |
