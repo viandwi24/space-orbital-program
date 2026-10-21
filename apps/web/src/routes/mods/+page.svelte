@@ -1,14 +1,14 @@
 <script lang="ts">
 	import { resolve } from '$app/paths';
-	import { GAME_NAME } from '../../../lib/public/about';
-	import MenuShell from '../../../lib/ui/MenuShell.svelte';
-	import PageHead from '../../../lib/ui/PageHead.svelte';
-	import PageMeta from '../../../lib/ui/PageMeta.svelte';
+	import { GAME_NAME } from '../../lib/public/about';
+	import MenuShell from '../../lib/ui/MenuShell.svelte';
+	import PageHead from '../../lib/ui/PageHead.svelte';
+	import PageMeta from '../../lib/ui/PageMeta.svelte';
 	import { onMount } from 'svelte';
 	import { API_VERSION } from '@orbital/sdk';
-	import Button from '../../../lib/ui/Button.svelte';
-	import Dialog from '../../../lib/ui/Dialog.svelte';
-	import Icon from '../../../lib/ui/Icon.svelte';
+	import Button from '../../lib/ui/Button.svelte';
+	import Dialog from '../../lib/ui/Dialog.svelte';
+	import Icon from '../../lib/ui/Icon.svelte';
 	import {
 		assetLabel,
 		dependencyList,
@@ -17,14 +17,14 @@
 		sizeLabel,
 		sourceLabel,
 		statusLabel
-	} from '../../../lib/mods/format';
-	import { ModManager } from '../../../lib/mods/manager.svelte';
-	import ModPatches from '../../../lib/mods/ModPatches.svelte';
-	import { openModStore } from '../../../lib/mods/store-idb';
+	} from '../../lib/mods/format';
+	import { ModManager } from '../../lib/mods/manager.svelte';
+	import ModPatches from '../../lib/mods/ModPatches.svelte';
+	import { openModStore } from '../../lib/mods/store-idb';
 
 	const manager = new ModManager({
 		open: openModStore,
-		reload: () => location.assign(resolve('/(world)/mods'))
+		reload: () => location.assign(resolve('/mods'))
 	});
 	let fileInput = $state<HTMLInputElement>();
 	let url = $state('');
@@ -159,6 +159,20 @@
 			Nothing in a package runs until you confirm. To build your own, read the modding guide in the
 			project's repository (<code>docs/guides/writing-a-mod.md</code>).
 		</p>
+	</section>
+
+	<section aria-labelledby="dev-tools">
+		<h2 id="dev-tools">Developer tools</h2>
+		<p class="dim">For mod authors and debugging; no world is loaded.</p>
+		<ul class="tools">
+			<li>
+				<a href={resolve('/dev/parts')}>Part viewer</a>
+				<span class="dim"
+					>Every part on its own: turn, zoom, wireframe, attach nodes, colliders, deploy states and
+					size classes side by side.</span
+				>
+			</li>
+		</ul>
 	</section>
 </MenuShell>
 
@@ -346,5 +360,16 @@
 	code {
 		font-family: var(--font-mono);
 		font-size: 0.9em;
+	}
+	.tools {
+		list-style: none;
+		margin: 0;
+		padding: 0;
+		display: grid;
+		gap: 8px;
+	}
+	.tools li {
+		display: grid;
+		gap: 2px;
 	}
 </style>

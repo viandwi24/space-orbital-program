@@ -111,7 +111,7 @@
 			icon="mods"
 			label="Mods"
 			hint="Add-ons active in every world"
-			href={resolve('/(world)/mods')}
+			href={resolve('/mods')}
 			testid="menu-mods"
 		/>
 		<MenuButton
