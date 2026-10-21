@@ -151,3 +151,8 @@ The app followed v2 (plan 233). The differences found by reading `FlightV3.dc.ht
   - Still being re-run on a fresh build when this was pushed: `branch-sites`, `power`, `vessel-panel` (2) and `eva`. Earlier runs had used a stale preview server on port 5192.
   - `eva` also fails on the baseline.
 - 2026-10-21 — Pushed to main on the owner's request, before that e2e re-run finished: lint, typecheck, web vitest with `CI=true` and `bun run test` were run first (see the journal). Stays `in-progress` until the four e2e above pass.
+- 2026-10-21 — Re-run on a fresh build:
+  - `branch-sites` passes (5.7 min, with the test's timeout raised to 6 min).
+  - `power` and `vessel-panel` (landing legs) still fail. A folded part row in the Parts tab does not open on a click on its summary: neither `summary.click()` nor a real mouse click opens it.
+  - Main without v3 (the old vessel panel, the same check in a clean worktree) behaves the same, so the fault comes from the folding rows of plan 256, not from v3. Both tests stop at that step.
+  - The fault is not fixed here.
