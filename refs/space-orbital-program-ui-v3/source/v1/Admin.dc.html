@@ -1,0 +1,256 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Administration — contracts and strategies</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@300;400;500;600;700&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#000}
+a{color:#A8BDF5}a:hover{color:#FFFFFF}
+button{font-family:inherit;cursor:pointer}
+</style>
+</helmet>
+<div style="width: 1920px; height: 1080px; position: relative; overflow: hidden; background: #05070A; font-family: 'Manrope', system-ui, sans-serif; color: #F4F4F5; font-variant-numeric: tabular-nums;">
+
+  <!-- ===== Top ===== -->
+  <div style="position: absolute; left: 24px; top: 24px; display: flex; align-items: center; gap: 8px;">
+    <a href="SpaceCenter.dc.html" aria-label="Back to Space Center" title="Back to Space Center" style="width: 44px; height: 44px; box-sizing: border-box; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: #FFFFFF; background: rgba(22,23,26,0.6); backdrop-filter: blur(28px) saturate(160%); border: 1px solid rgba(255,255,255,0.08);">
+      <svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12 H5 M11 6 L5 12 L11 18"></path></svg>
+    </a>
+    <div style="height: 44px; box-sizing: border-box; display: flex; align-items: center; gap: 10px; padding: 0 16px; background: rgba(22,23,26,0.6); backdrop-filter: blur(28px) saturate(160%); border: 1px solid rgba(255,255,255,0.08); border-radius: 999px;">
+      <div style="font-size: 12px; line-height: 1; font-weight: 700; color: #FFFFFF;">Administration</div>
+      <div style="font-size: 10px; line-height: 1; color: #A1A1AA;">[WORLD NAME 1] · Career</div>
+    </div>
+  </div>
+  <div role="tablist" aria-label="Administration sections" style="position: absolute; left: 50%; top: 24px; transform: translateX(-50%); display: flex; gap: 2px; height: 44px; box-sizing: border-box; padding: 4px; background: rgba(22,23,26,0.6); backdrop-filter: blur(28px) saturate(160%); border: 1px solid rgba(255,255,255,0.08); border-radius: 999px;">
+    <sc-for list="{{sections}}" as="t" hint-placeholder-count="2">
+      <button role="tab" aria-selected="{{t.on}}" onClick="{{t.pick}}" style="{{t.style}}">{{t.label}}</button>
+    </sc-for>
+  </div>
+
+  <!-- agency strip -->
+  <div style="position: absolute; left: 24px; right: 24px; top: 92px; display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px;">
+    <sc-for list="{{agency}}" as="s" hint-placeholder-count="4">
+      <div style="display: flex; flex-direction: column; gap: 8px; padding: 14px 16px; border-radius: 14px; background: rgba(22,23,26,0.6); backdrop-filter: blur(28px) saturate(160%); border: 1px solid rgba(255,255,255,0.08);">
+        <div style="font-size: 8px; line-height: 1; letter-spacing: 0.14em; font-weight: 700; color: #A1A1AA;">{{s.k}}</div>
+        <div style="font-size: 24px; line-height: 1; font-weight: 300; color: #FFFFFF;">{{s.v}}</div>
+        <div style="font-size: 9px; line-height: 1; color: #8B8B93;">{{s.sub}}</div>
+      </div>
+    </sc-for>
+  </div>
+
+  <!-- ===== CONTRACTS ===== -->
+  <sc-if value="{{isContracts}}" hint-placeholder-val="{{ true }}">
+    <div style="position: absolute; left: 24px; top: 210px; bottom: 24px; width: 560px; box-sizing: border-box; display: flex; flex-direction: column; gap: 8px; padding: 10px; background: rgba(22,23,26,0.6); backdrop-filter: blur(28px) saturate(160%); border: 1px solid rgba(255,255,255,0.08); border-radius: 16px;">
+      <div style="display: flex; gap: 4px;">
+        <sc-for list="{{lists}}" as="l" hint-placeholder-count="3">
+          <button aria-pressed="{{l.on}}" onClick="{{l.pick}}" style="{{l.style}}">{{l.label}} <span style="opacity: 0.6;">{{l.count}}</span></button>
+        </sc-for>
+      </div>
+      <div style="display: flex; flex-direction: column; gap: 2px; overflow-y: auto;">
+        <sc-for list="{{contracts}}" as="c" hint-placeholder-count="4">
+          <button aria-pressed="{{c.on}}" onClick="{{c.pick}}" style="{{c.style}}">
+            <div style="width: 30px; height: 30px; flex: none; border-radius: 9px; background: rgba(255,255,255,0.06); display: flex; align-items: center; justify-content: center; color: #E4E4E7;">
+              <svg aria-hidden="true" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linejoin="round" stroke-linecap="round"><path d="{{c.d}}"></path></svg>
+            </div>
+            <div style="display: flex; flex-direction: column; gap: 5px; min-width: 0;">
+              <div style="font-size: 12px; line-height: 1; font-weight: 600; color: #FFFFFF;">{{c.title}}</div>
+              <div style="font-size: 9px; line-height: 1; color: #A1A1AA;">{{c.agency}} · {{c.due}}</div>
+            </div>
+            <div style="margin-left: auto; display: flex; flex-direction: column; align-items: flex-end; gap: 5px; flex: none;">
+              <div style="font-size: 11px; line-height: 1; font-weight: 600; color: #FFFFFF;">[—] funds</div>
+              <div style="{{c.starStyle}}">{{c.stars}}</div>
+            </div>
+          </button>
+        </sc-for>
+      </div>
+    </div>
+
+    <div style="position: absolute; left: 600px; right: 24px; top: 210px; bottom: 24px; box-sizing: border-box; display: grid; grid-template-columns: minmax(0, 1.3fr) minmax(0, 1fr); gap: 12px;">
+      <div style="display: flex; flex-direction: column; gap: 16px; padding: 20px; box-sizing: border-box; background: rgba(22,23,26,0.6); backdrop-filter: blur(28px) saturate(160%); border: 1px solid rgba(255,255,255,0.08); border-radius: 16px;">
+        <div style="display: flex; flex-direction: column; gap: 8px;">
+          <div style="font-size: 9px; line-height: 1; letter-spacing: 0.14em; font-weight: 700; color: #A1A1AA;">{{sel.agency}}</div>
+          <div style="font-size: 26px; line-height: 1.15; font-weight: 300; color: #FFFFFF;">{{sel.title}}</div>
+          <div style="font-size: 11px; line-height: 1.5; color: #A1A1AA;">{{sel.brief}}</div>
+        </div>
+        <div style="display: flex; flex-direction: column; gap: 2px;">
+          <div style="height: 22px; display: flex; align-items: center; font-size: 9px; line-height: 1; letter-spacing: 0.14em; font-weight: 700; color: #A1A1AA;">OBJECTIVES</div>
+          <sc-for list="{{sel.objectives}}" as="o" hint-placeholder-count="3">
+            <div style="display: flex; align-items: center; gap: 10px; height: 36px; padding: 0 2px;">
+              <div style="{{o.box}}">
+                <sc-if value="{{o.done}}" hint-placeholder-val="{{ false }}">
+                  <svg aria-hidden="true" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#0B0B0C" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12 L10 17 L19 7"></path></svg>
+                </sc-if>
+              </div>
+              <div style="font-size: 12px; line-height: 1; color: #E4E4E7;">{{o.text}}</div>
+            </div>
+          </sc-for>
+        </div>
+        <div style="margin-top: auto; display: flex; gap: 6px;">
+          <sc-for list="{{sel.actions}}" as="a" hint-placeholder-count="2">
+            <button onClick="{{a.run}}" style="{{a.style}}">{{a.label}}</button>
+          </sc-for>
+        </div>
+      </div>
+
+      <div style="display: flex; flex-direction: column; gap: 12px;">
+        <div style="display: flex; flex-direction: column; gap: 8px; padding: 14px; box-sizing: border-box; background: rgba(22,23,26,0.6); backdrop-filter: blur(28px) saturate(160%); border: 1px solid rgba(255,255,255,0.08); border-radius: 16px;">
+          <div style="font-size: 9px; line-height: 1; letter-spacing: 0.14em; font-weight: 700; color: #A1A1AA;">REWARDS</div>
+          <div style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 4px;">
+            <sc-for list="{{rewards}}" as="r" hint-placeholder-count="3">
+              <div style="display: flex; flex-direction: column; gap: 4px; padding: 8px; border-radius: 8px; background: rgba(255,255,255,0.05);">
+                <div style="font-size: 7px; line-height: 1; letter-spacing: 0.14em; font-weight: 700; color: #A1A1AA;">{{r.k}}</div>
+                <div style="font-size: 12px; line-height: 1; font-weight: 600; color: #FFFFFF;">{{r.v}}</div>
+              </div>
+            </sc-for>
+          </div>
+          <div style="font-size: 9px; line-height: 1; letter-spacing: 0.14em; font-weight: 700; color: #A1A1AA; padding-top: 6px;">IF FAILED</div>
+          <div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 4px;">
+            <div style="display: flex; flex-direction: column; gap: 4px; padding: 8px; border-radius: 8px; background: rgba(255,255,255,0.05);">
+              <div style="font-size: 7px; line-height: 1; letter-spacing: 0.14em; font-weight: 700; color: #A1A1AA;">FUNDS</div>
+              <div style="font-size: 12px; line-height: 1; font-weight: 600; color: #FF8A8E;">− [—]</div>
+            </div>
+            <div style="display: flex; flex-direction: column; gap: 4px; padding: 8px; border-radius: 8px; background: rgba(255,255,255,0.05);">
+              <div style="font-size: 7px; line-height: 1; letter-spacing: 0.14em; font-weight: 700; color: #A1A1AA;">REPUTATION</div>
+              <div style="font-size: 12px; line-height: 1; font-weight: 600; color: #FF8A8E;">− [—]</div>
+            </div>
+          </div>
+        </div>
+        <div style="display: flex; flex-direction: column; gap: 8px; padding: 14px; box-sizing: border-box; background: rgba(22,23,26,0.6); backdrop-filter: blur(28px) saturate(160%); border: 1px solid rgba(255,255,255,0.08); border-radius: 16px;">
+          <div style="font-size: 9px; line-height: 1; letter-spacing: 0.14em; font-weight: 700; color: #A1A1AA;">DEADLINE</div>
+          <div style="font-size: 18px; line-height: 1; font-weight: 300; color: #FFFFFF;">{{sel.due}}</div>
+          <div style="font-size: 10px; line-height: 1.4; color: #8B8B93;">Counted in world time, so time warp brings it closer.</div>
+        </div>
+      </div>
+    </div>
+  </sc-if>
+
+  <!-- ===== STRATEGIES ===== -->
+  <sc-if value="{{isStrategies}}" hint-placeholder-val="{{ false }}">
+    <div style="position: absolute; left: 24px; right: 24px; top: 210px; display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px;">
+      <sc-for list="{{strategies}}" as="s" hint-placeholder-count="8">
+        <div style="{{s.cardStyle}}">
+          <div style="display: flex; align-items: center; gap: 10px;">
+            <div style="width: 32px; height: 32px; flex: none; border-radius: 9px; background: rgba(255,255,255,0.08); display: flex; align-items: center; justify-content: center; color: #E4E4E7;">
+              <svg aria-hidden="true" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linejoin="round" stroke-linecap="round"><path d="{{s.d}}"></path></svg>
+            </div>
+            <div style="display: flex; flex-direction: column; gap: 4px;">
+              <div style="font-size: 12px; line-height: 1; font-weight: 600; color: #FFFFFF;">{{s.name}}</div>
+              <div style="font-size: 9px; line-height: 1; color: #A1A1AA;">{{s.group}}</div>
+            </div>
+          </div>
+          <div style="font-size: 10px; line-height: 1.5; color: #A1A1AA;">{{s.desc}}</div>
+          <div style="display: flex; align-items: center; gap: 8px;">
+            <div style="font-size: 10px; line-height: 1; color: #8B8B93;">Setup <b style="color: #E4E4E7;">[—]</b></div>
+            <button aria-pressed="{{s.on}}" onClick="{{s.toggle}}" style="{{s.btnStyle}}">{{s.btn}}</button>
+          </div>
+        </div>
+      </sc-for>
+    </div>
+  </sc-if>
+
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"accent":{"editor":"color","default":"#3E6AE1","options":["#3E6AE1","#E82127","#F4F4F5","#22A06B"]},"$preview":{"width":1920,"height":1080}}'>
+class Component extends DCLogic {
+  constructor(props) {
+    super(props);
+    this.state = { section: 'contracts', list: 'offered', sel: 'c1', accepted: ['c4', 'c5'], active: ['s2'] };
+  }
+  renderVals() {
+    const st = this.state;
+    const D = {
+      orbit: 'M12 9.5 A2.5 2.5 0 1 1 11.99 9.5 Z M3 12 A9 4.5 0 1 0 21 12 A9 4.5 0 1 0 3 12 Z',
+      flag: 'M5 21 V4 M5 4 H17 L14 8 L17 12 H5',
+      science: 'M9 3 H15 M10 3 V9 L4.5 19 A1.5 1.5 0 0 0 6 21 H18 A1.5 1.5 0 0 0 19.5 19 L14 9 V3 M7 15 H17',
+      relay: 'M10 10 H14 V14 H10 Z M3 9 H8 V15 H3 Z M16 9 H21 V15 H16 Z M8 12 H10 M14 12 H16',
+      rescue: 'M12 4 A8 8 0 1 1 11.99 4 Z M12 9 A3 3 0 1 1 11.99 9 Z M6.3 6.3 L9.9 9.9 M17.7 6.3 L14.1 9.9 M6.3 17.7 L9.9 14.1 M17.7 17.7 L14.1 14.1',
+      part: 'M8 3 H16 V11 L19 21 H5 L8 11 Z',
+      coin: 'M12 4 A8 8 0 1 1 11.99 4 Z M12 7 V17 M9 9.5 C9 8 15 8 15 10 C15 12 9 12 9 14 C9 16 15 16 15 14.5',
+      people: 'M9 5 A3 3 0 1 1 8.99 5 Z M3 20 C3 16 6 14 9 14 C12 14 15 16 15 20 M16 5.5 A2.5 2.5 0 1 1 15.99 5.5 Z M17 13.5 C19.5 14 21 16 21 19',
+      chart: 'M4 20 V10 M10 20 V4 M16 20 V13 M3 20 H21'
+    };
+    const C = [
+      { id: 'c1', title: 'Reach orbit around the Mun', agency: '[AGENCY]', due: 'Due in [—] days', d: D.orbit, stars: 2,
+        brief: 'Put a crewed vessel into a stable orbit around the Mun and keep it there for a while.',
+        obj: [['Reach the Mun’s sphere of influence', false], ['Establish a stable orbit', false], ['Keep crew aboard', false]] },
+      { id: 'c2', title: 'Plant a flag on Minmus', agency: '[AGENCY]', due: 'Due in [—] days', d: D.flag, stars: 3,
+        brief: 'Land on Minmus and plant a flag during an EVA.', obj: [['Land on Minmus', false], ['Plant a flag', false], ['Return safely', false]] },
+      { id: 'c3', title: 'Test [PART] in orbit', agency: '[AGENCY]', due: 'Due in [—] days', d: D.part, stars: 1,
+        brief: 'Activate the part while orbiting Kerbin between [—] and [—] km.', obj: [['Orbit Kerbin', false], ['Activate [PART] via staging', false]] },
+      { id: 'c4', title: 'Extend the relay network', agency: '[AGENCY]', due: 'Due in [—] days', d: D.relay, stars: 2,
+        brief: 'Place a relay satellite in the requested orbit.', obj: [['Launch a vessel with a relay antenna', true], ['Match orbit within tolerance', false]] },
+      { id: 'c5', title: 'Science from orbit', agency: '[AGENCY]', due: 'Due in [—] days', d: D.science, stars: 1,
+        brief: 'Return or transmit a crew report from orbit around Kerbin.', obj: [['Reach orbit', true], ['Crew report from orbit', false]] },
+      { id: 'c6', title: 'First orbit of Kerbin', agency: '[AGENCY]', due: 'Completed', d: D.orbit, stars: 1, done: true,
+        brief: 'Completed.', obj: [['Reach orbit', true]] }
+    ];
+    const listOf = (c) => c.done ? 'completed' : (st.accepted.indexOf(c.id) >= 0 ? 'active' : 'offered');
+    const LISTS = [['offered', 'Offered'], ['active', 'Active'], ['completed', 'Completed']];
+    const chip = (on) => 'height:26px;padding:0 12px;border-radius:999px;font-size:10px;line-height:1;font-weight:700;border:none;background:' + (on ? '#F4F4F5' : 'rgba(255,255,255,0.06)') + ';color:' + (on ? '#0B0B0C' : '#A1A1AA');
+    const lists = LISTS.map(([k, label]) => ({ label, on: st.list === k, count: String(C.filter((c) => listOf(c) === k).length), pick: () => this.setState({ list: k, sel: (C.find((c) => listOf(c) === k) || {}).id || st.sel }), style: chip(st.list === k) }));
+    const contracts = C.filter((c) => listOf(c) === st.list).map((c) => {
+      const on = st.sel === c.id;
+      return {
+        title: c.title, agency: c.agency, due: c.due, d: c.d, on,
+        stars: '★★★'.slice(0, c.stars) + '☆☆☆'.slice(0, 3 - c.stars),
+        starStyle: 'font-size:10px;line-height:1;letter-spacing:1px;color:#C4C4CC',
+        pick: () => this.setState({ sel: c.id }),
+        style: 'width:100%;height:60px;display:flex;align-items:center;gap:12px;padding:0 12px;border-radius:10px;border:none;text-align:left;color:#E4E4E7;background:' + (on ? 'rgba(255,255,255,0.07)' : 'transparent')
+      };
+    });
+    const sc = C.find((c) => c.id === st.sel) || C[0];
+    const lst = listOf(sc);
+    const btn = (primary) => 'flex:1;height:46px;border:none;border-radius:12px;font-size:12px;line-height:1;font-weight:700;background:' + (primary ? '#F4F4F5' : 'rgba(255,255,255,0.08)') + ';color:' + (primary ? '#0B0B0C' : '#E4E4E7');
+    const sel = {
+      title: sc.title, agency: sc.agency, brief: sc.brief, due: sc.due,
+      objectives: sc.obj.map(([text, done]) => ({ text, done, box: 'width:18px;height:18px;flex:none;box-sizing:border-box;border-radius:5px;display:flex;align-items:center;justify-content:center;border:1.5px solid ' + (done ? '#F4F4F5' : 'rgba(255,255,255,0.3)') + ';background:' + (done ? '#F4F4F5' : 'transparent') })),
+      actions: lst === 'offered'
+        ? [{ label: 'Accept contract', style: btn(true), run: () => this.setState({ accepted: st.accepted.concat([sc.id]), list: 'active' }) }, { label: 'Decline', style: btn(false), run: () => {} }]
+        : lst === 'active'
+          ? [{ label: 'Show in Mission Center', style: btn(true), run: () => {} }, { label: 'Cancel contract', style: btn(false), run: () => this.setState({ accepted: st.accepted.filter((x) => x !== sc.id), list: 'offered' }) }]
+          : [{ label: 'View report', style: btn(false), run: () => {} }]
+    };
+    const rewards = [{ k: 'FUNDS', v: '+ [—]' }, { k: 'SCIENCE', v: '+ [—]' }, { k: 'REPUTATION', v: '+ [—]' }];
+    const agency = [
+      { k: 'FUNDS', v: '[—]', sub: '[—] committed to strategies' },
+      { k: 'REPUTATION', v: '[—]', sub: 'Unlocks harder contracts' },
+      { k: 'SCIENCE', v: '[—]', sub: 'Spend in R&D' },
+      { k: 'CONTRACTS', v: String(C.filter((c) => listOf(c) === 'active').length) + ' active', sub: '[—] slots available' }
+    ];
+    const SECTIONS = [['contracts', 'Contracts'], ['strategies', 'Strategies']];
+    const sections = SECTIONS.map(([k, label]) => ({
+      label, on: st.section === k, pick: () => this.setState({ section: k }),
+      style: 'height:34px;padding:0 16px;border:none;border-radius:999px;font-size:11px;line-height:1;font-weight:700;background:' + (st.section === k ? '#F4F4F5' : 'transparent') + ';color:' + (st.section === k ? '#0B0B0C' : '#A1A1AA')
+    }));
+    const S = [
+      { id: 's1', name: '[STRATEGY 1]', group: 'Finance', d: D.coin, desc: 'Convert part of each contract reward from reputation into funds.' },
+      { id: 's2', name: '[STRATEGY 2]', group: 'Public relations', d: D.people, desc: 'Spend funds to grow reputation over time.' },
+      { id: 's3', name: '[STRATEGY 3]', group: 'Science', d: D.science, desc: 'Turn a share of funds rewards into science.' },
+      { id: 's4', name: '[STRATEGY 4]', group: 'Operations', d: D.chart, desc: 'Lower launch costs in exchange for slower research.' }
+    ];
+    const strategies = S.map((s) => {
+      const on = st.active.indexOf(s.id) >= 0;
+      return {
+        name: s.name, group: s.group, d: s.d, desc: s.desc, on,
+        btn: on ? 'Active · end' : 'Activate',
+        toggle: () => this.setState({ active: on ? st.active.filter((x) => x !== s.id) : st.active.concat([s.id]) }),
+        cardStyle: 'display:flex;flex-direction:column;gap:14px;padding:16px;box-sizing:border-box;border-radius:16px;background:rgba(22,23,26,0.6);backdrop-filter:blur(28px) saturate(160%);border:1px solid ' + (on ? 'rgba(255,255,255,0.45)' : 'rgba(255,255,255,0.08)'),
+        btnStyle: 'margin-left:auto;height:32px;padding:0 14px;border:none;border-radius:999px;font-size:10px;line-height:1;font-weight:700;background:' + (on ? 'rgba(255,255,255,0.12)' : '#F4F4F5') + ';color:' + (on ? '#FFFFFF' : '#0B0B0C')
+      };
+    });
+    return {
+      sections, isContracts: st.section === 'contracts', isStrategies: st.section === 'strategies',
+      agency, lists, contracts, sel, rewards, strategies
+    };
+  }
+}
+</script>
+</body>
+</html>

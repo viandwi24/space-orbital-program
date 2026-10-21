@@ -1,0 +1,249 @@
+{
+  "v": 3,
+  "attachments": {},
+  "pages": [
+    {
+      "id": "v1",
+      "name": "V1 · Original screens"
+    },
+    {
+      "id": "v2",
+      "name": "V2 · Base layout"
+    },
+    {
+      "id": "v3",
+      "name": "V3 · Page system & tidy HUD"
+    }
+  ],
+  "boards": {
+    "Docked.dc.html": {
+      "h": 451,
+      "title": "Flight deck — docked close-up",
+      "w": 1154,
+      "x": 2000,
+      "y": 0,
+      "page": "v1"
+    },
+    "Home.dc.html": {
+      "h": 1080,
+      "is_interactive": true,
+      "title": "0 · Home",
+      "w": 1920,
+      "x": -5,
+      "y": -1200,
+      "page": "v1"
+    },
+    "Worlds.dc.html": {
+      "h": 1080,
+      "is_interactive": true,
+      "title": "0b · Worlds",
+      "w": 1920,
+      "x": 2000,
+      "y": -1200,
+      "page": "v1"
+    },
+    "SpaceCenter.dc.html": {
+      "h": 1080,
+      "is_interactive": true,
+      "title": "W · Space Center",
+      "w": 1920,
+      "x": 4005,
+      "y": -1200,
+      "page": "v1"
+    },
+    "Hangar.dc.html": {
+      "h": 1080,
+      "is_interactive": true,
+      "title": "W1 · Hangar",
+      "w": 1920,
+      "x": 4005,
+      "y": 0,
+      "page": "v1"
+    },
+    "Launch.dc.html": {
+      "h": 1080,
+      "is_interactive": true,
+      "title": "W2 · Launch sites",
+      "w": 1920,
+      "x": 4005,
+      "y": 1200,
+      "page": "v1"
+    },
+    "Astronauts.dc.html": {
+      "h": 1080,
+      "is_interactive": true,
+      "title": "W3 · Astronaut Complex",
+      "w": 1920,
+      "x": 4005,
+      "y": 2400,
+      "page": "v1"
+    },
+    "Research.dc.html": {
+      "h": 1080,
+      "is_interactive": true,
+      "title": "W4 · R&D",
+      "w": 1920,
+      "x": 4005,
+      "y": 3600,
+      "page": "v1"
+    },
+    "Admin.dc.html": {
+      "h": 1080,
+      "is_interactive": true,
+      "title": "W5 · Administration",
+      "w": 1920,
+      "x": 4005,
+      "y": 4800,
+      "page": "v1"
+    },
+    "Main.dc.html": {
+      "h": 1080,
+      "is_interactive": true,
+      "title": "1 · Flight",
+      "w": 1920,
+      "x": -5,
+      "y": 0,
+      "page": "v1"
+    },
+    "MapView.dc.html": {
+      "h": 1080,
+      "is_interactive": true,
+      "title": "2 · Map",
+      "w": 1920,
+      "x": -5,
+      "y": 1200,
+      "page": "v1"
+    },
+    "Map.dc.html": {
+      "h": 1080,
+      "is_interactive": true,
+      "title": "3 · Mission Center",
+      "w": 1920,
+      "x": -5,
+      "y": 2400,
+      "page": "v1"
+    },
+    "Base.dc.html": {
+      "h": 1080,
+      "is_interactive": true,
+      "title": "Base layout — every page",
+      "w": 1920,
+      "x": 0,
+      "y": 0,
+      "page": "v2"
+    },
+    "SpaceCenterV2.dc.html": {
+      "h": 1080,
+      "is_interactive": true,
+      "title": "Space Center v2",
+      "w": 1920,
+      "x": 2000,
+      "y": 0,
+      "page": "v2"
+    },
+    "FlightV2.dc.html": {
+      "h": 1080,
+      "is_interactive": true,
+      "title": "Flight v2",
+      "w": 1920,
+      "x": 4000,
+      "y": 0,
+      "page": "v2"
+    },
+    "SpaceCenterV3.dc.html": {
+      "h": 1080,
+      "is_interactive": true,
+      "title": "Space Center v3 · 1 Overview",
+      "w": 1920,
+      "x": 0,
+      "y": 1500,
+      "page": "v3"
+    },
+    "SpaceCenterV3Build.dc.html": {
+      "h": 1080,
+      "is_interactive": true,
+      "title": "Space Center v3 · 2 Build · placing",
+      "w": 1920,
+      "x": 2000,
+      "y": 1500,
+      "page": "v3"
+    },
+    "SpaceCenterV3Demolish.dc.html": {
+      "h": 1080,
+      "is_interactive": true,
+      "title": "Space Center v3 · 3 Build · demolish",
+      "w": 1920,
+      "x": 4000,
+      "y": 1500,
+      "page": "v3"
+    },
+    "SpaceCenterV3Focus.dc.html": {
+      "h": 1080,
+      "is_interactive": true,
+      "title": "Space Center v3 · 4 Focus · zoomed to building",
+      "w": 1920,
+      "x": 6000,
+      "y": 1500,
+      "page": "v3"
+    },
+    "FlightV3.dc.html": {
+      "h": 1080,
+      "is_interactive": true,
+      "title": "Flight v3 — one dock, compact navball",
+      "w": 1920,
+      "x": 0,
+      "y": 0,
+      "page": "v3"
+    }
+  },
+  "createdOnFiles": {
+    "at": "2026-10-17T09:00:00Z",
+    "v": 1
+  },
+  "designSystems": [],
+  "launch": {
+    "view": "canvas",
+    "page": "v3"
+  },
+  "notes": {
+    "sc3title": {
+      "x": 0,
+      "y": 1230,
+      "text": "Space Center — page system: Overview → Build → Focus",
+      "kind": "title1",
+      "maxW": 7920,
+      "page": "v3"
+    },
+    "fl3title": {
+      "x": 0,
+      "y": -300,
+      "text": "Flight — tidy HUD",
+      "kind": "title1",
+      "maxW": 1920,
+      "page": "v3"
+    }
+  },
+  "order": [
+    "Home.dc.html",
+    "Worlds.dc.html",
+    "SpaceCenter.dc.html",
+    "Hangar.dc.html",
+    "Launch.dc.html",
+    "Astronauts.dc.html",
+    "Research.dc.html",
+    "Admin.dc.html",
+    "Main.dc.html",
+    "Docked.dc.html",
+    "MapView.dc.html",
+    "Map.dc.html",
+    "Base.dc.html",
+    "SpaceCenterV2.dc.html",
+    "FlightV2.dc.html",
+    "SpaceCenterV3.dc.html",
+    "SpaceCenterV3Build.dc.html",
+    "SpaceCenterV3Demolish.dc.html",
+    "SpaceCenterV3Focus.dc.html",
+    "FlightV3.dc.html"
+  ],
+  "title": "Flight HUD — Tesla-style refine"
+}

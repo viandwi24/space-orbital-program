@@ -1,0 +1,806 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Flight v3 — one dock</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@300;400;500;600;700&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#000}
+a{color:#A8BDF5}a:hover{color:#FFFFFF}
+button{font-family:inherit;cursor:pointer}
+</style>
+</helmet>
+<div style="width: 1920px; height: 1080px; position: relative; overflow: hidden; background: #000000; font-family: 'Manrope', system-ui, sans-serif; color: #F4F4F5; font-variant-numeric: tabular-nums;">
+
+  <!-- ===== Scene ===== -->
+  <div aria-hidden="true" style="position: absolute; inset: 0;">
+    <sc-for list="{{stars}}" as="s" hint-placeholder-count="40">
+      <div style="{{s.style}}"></div>
+    </sc-for>
+  </div>
+  <div aria-hidden="true" style="position: absolute; left: -900px; top: -1500px; width: 3000px; height: 3000px; border-radius: 50%; background: radial-gradient(circle at 30% 70%, #6E78B8 0%, #4B4F93 30%, #2B2E63 52%, #131636 70%, #05060F 84%); box-shadow: 0 0 0 2px rgba(190,170,255,0.35), 0 0 120px 30px rgba(140,120,255,0.25);"></div>
+  <svg role="img" aria-label="Probe Moon shot" width="90" height="120" viewBox="0 0 90 120" style="position: absolute; left: 915px; top: 330px;">
+    <rect x="25" y="8" width="40" height="16" rx="4" fill="#2B2D31" stroke="#9EA4AC" stroke-width="1.2"></rect>
+    <path d="M18 24 H72 L76 34 H14 Z" fill="#D9DCE1" stroke="#9EA4AC" stroke-width="1.2"></path>
+    <rect x="14" y="34" width="62" height="56" rx="6" fill="#F1F2F4" stroke="#B9BEC5" stroke-width="1.2"></rect>
+    <rect x="14" y="48" width="62" height="6" fill="#1A1B1E"></rect>
+    <rect x="14" y="68" width="62" height="6" fill="#1A1B1E"></rect>
+    <rect x="50" y="56" width="16" height="10" rx="2" fill="#C9744E"></rect>
+    <path d="M24 90 H66 L60 108 H30 Z" fill="#2B2D31" stroke="#9EA4AC" stroke-width="1.2"></path>
+  </svg>
+
+  <!-- ===== Top-left · Time bar ===== -->
+  <div style="position: absolute; left: 24px; top: 24px; display: flex; align-items: center; gap: 10px; height: 44px; box-sizing: border-box; padding: 4px 6px 4px 4px; background: rgba(22,23,26,0.6); backdrop-filter: blur(28px) saturate(160%); border: 1px solid rgba(255,255,255,0.08); border-radius: 999px;">
+    <button aria-label="{{playLabel}}" onClick="{{togglePlay}}" style="width: 36px; height: 36px; border-radius: 50%; border: none; background: #F4F4F5; color: #0B0B0C; display: flex; align-items: center; justify-content: center; padding: 0;">
+      <sc-if value="{{paused}}" hint-placeholder-val="{{ false }}">
+        <svg aria-hidden="true" width="14" height="14" viewBox="0 0 24 24"><path d="M7 4 L20 12 L7 20 Z" fill="currentColor"></path></svg>
+      </sc-if>
+      <sc-if value="{{playing}}" hint-placeholder-val="{{ true }}">
+        <svg aria-hidden="true" width="14" height="14" viewBox="0 0 24 24"><rect x="6" y="4" width="4" height="16" rx="1" fill="currentColor"></rect><rect x="14" y="4" width="4" height="16" rx="1" fill="currentColor"></rect></svg>
+      </sc-if>
+    </button>
+    <div role="group" aria-label="Time warp" style="display: flex; align-items: center; gap: 3px;">
+      <sc-for list="{{warps}}" as="w" hint-placeholder-count="8">
+        <button aria-label="{{w.label}}" title="{{w.label}}" aria-disabled="{{w.locked}}" onClick="{{w.pick}}" style="{{w.style}}"></button>
+      </sc-for>
+    </div>
+    <div style="min-width: 30px; font-size: 12px; line-height: 1; font-weight: 600; color: #FFFFFF;">{{warpLabel}}</div>
+    <div aria-hidden="true" style="width: 1px; height: 18px; background: rgba(255,255,255,0.12);"></div>
+    <div style="font-size: 12px; line-height: 1; font-weight: 500; color: #FFFFFF;">T+ 01:59</div>
+    <button aria-label="Catch up to now" title="Catch up to now" onClick="{{catchUp}}" style="{{catchStyle}}">
+      <svg aria-hidden="true" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linejoin="round" stroke-linecap="round"><path d="M4 6 L11 12 L4 18 Z M12 6 L19 12 L12 18 Z M21 5 V19"></path></svg>
+      <span aria-hidden="true" style="{{catchDot}}"></span>
+    </button>
+  </div>
+
+  <!-- ===== Top-center · event toasts (max 2, same width) ===== -->
+  <div aria-live="polite" style="position: absolute; left: 50%; top: 24px; transform: translateX(-50%); width: 380px; display: flex; flex-direction: column; gap: 8px;">
+    <sc-for list="{{toasts}}" as="t" hint-placeholder-count="1">
+      <div role="alert" style="display: flex; align-items: center; gap: 10px; min-height: 44px; box-sizing: border-box; padding: 8px 6px 8px 8px; background: rgba(22,23,26,0.72); backdrop-filter: blur(28px) saturate(160%); border: 1px solid rgba(255,255,255,0.1); border-radius: 12px;">
+        <div style="{{t.iconStyle}}">
+          <svg aria-hidden="true" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"><path d="M12 4 L21 20 H3 Z M12 10 V14 M12 17 H12.01"></path></svg>
+        </div>
+        <div style="display: flex; flex-direction: column; gap: 4px; min-width: 0;">
+          <div style="display: flex; align-items: center; gap: 6px; font-size: 12px; line-height: 1; font-weight: 600; color: #FFFFFF;">{{t.title}}<span style="{{t.countStyle}}">{{t.count}}</span></div>
+          <div style="font-size: 10px; line-height: 1.3; color: #A1A1AA;">{{t.body}}</div>
+        </div>
+        <button aria-label="Dismiss" title="Dismiss" onClick="{{t.close}}" style="margin-left: auto; width: 26px; height: 26px; flex: none; border: none; border-radius: 50%; padding: 0; background: transparent; color: #8B8B93; display: flex; align-items: center; justify-content: center;">
+          <svg aria-hidden="true" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M6 6 L18 18 M18 6 L6 18"></path></svg>
+        </button>
+      </div>
+    </sc-for>
+  </div>
+
+  <!-- ===== Top-right · Menu bar (white = on, gray = off; dot = current page only) ===== -->
+  <div style="position: absolute; right: 24px; top: 24px; display: flex; align-items: center; gap: 4px; padding: 4px; background: rgba(22,23,26,0.6); backdrop-filter: blur(28px) saturate(160%); border: 1px solid rgba(255,255,255,0.08); border-radius: 999px;">
+    <sc-for list="{{panelToggles}}" as="p" hint-placeholder-count="4">
+      <button aria-label="{{p.label}}" aria-pressed="{{p.on}}" title="{{p.label}}" onClick="{{p.toggle}}" style="{{p.style}}">
+        <svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round" stroke-linecap="round"><path d="{{p.d}}"></path></svg>
+      </button>
+    </sc-for>
+    <button aria-label="Change camera" title="Change camera" style="width: 36px; height: 36px; border-radius: 50%; border: none; background: transparent; color: #8B8B93; display: flex; align-items: center; justify-content: center; padding: 0;">
+      <svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"><path d="M3 8 H7 L9 5 H15 L17 8 H21 V19 H3 Z"></path><circle cx="12" cy="13" r="3.5"></circle></svg>
+    </button>
+    <div aria-hidden="true" style="width: 1px; height: 18px; margin: 0 2px; background: rgba(255,255,255,0.12);"></div>
+    <button aria-label="Vessel (current)" aria-current="page" title="Vessel" style="position: relative; width: 36px; height: 36px; border-radius: 50%; border: none; padding: 0; background: transparent; color: #FFFFFF; display: flex; align-items: center; justify-content: center;">
+      <svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round" stroke-linecap="round"><path d="M12 3 C15 5.5 16 9 16 13 V16 L18.5 19 H5.5 L8 16 V13 C8 9 9 5.5 12 3 Z M10 19 V21 M14 19 V21"></path></svg>
+      <span aria-hidden="true" style="position: absolute; left: 50%; bottom: 3px; width: 4px; height: 4px; margin-left: -2px; border-radius: 50%; background: #FFFFFF;"></span>
+    </button>
+    <a href="MapView.dc.html" aria-label="Map" title="Map" style="width: 36px; height: 36px; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: #8B8B93;">
+      <svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round" stroke-linecap="round"><path d="M3 6 L9 4 L15 6 L21 4 V18 L15 20 L9 18 L3 20 Z M9 4 V18 M15 6 V20"></path></svg>
+    </a>
+    <a href="SpaceCenterV3.dc.html" aria-label="Space Center" title="Space Center" style="width: 36px; height: 36px; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: #8B8B93;">
+      <svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"><path d="M4 21 V10 L9 7.5 V21 M9 21 V3 L15 6 V21 M15 21 V11 L20 13 V21 M3 21 H21"></path></svg>
+    </a>
+    <a href="Hangar.dc.html" aria-label="VAB" title="VAB" style="width: 36px; height: 36px; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: #8B8B93;">
+      <svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"><path d="M4 21 V9 L12 3 L20 9 V21 Z M12 10 C13.6 11.4 14 13.4 14 16 V21 H10 V16 C10 13.4 10.4 11.4 12 10 Z"></path></svg>
+    </a>
+    <div aria-hidden="true" style="width: 1px; height: 18px; margin: 0 2px; background: rgba(255,255,255,0.12);"></div>
+    <button aria-label="Menu" title="Menu" style="width: 36px; height: 36px; border-radius: 50%; border: none; background: transparent; color: #8B8B93; display: flex; align-items: center; justify-content: center; padding: 0;">
+      <svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><path d="M4 7 H20 M4 12 H20 M4 17 H20"></path></svg>
+    </button>
+  </div>
+
+  <!-- ===== Left · ONE dock for everything about the vessel (grouped rail + up to 2 columns: pinned + current) ===== -->
+  <sc-if value="{{showDock}}" hint-placeholder-val="{{ true }}">
+    <div style="position: absolute; left: 24px; top: 80px; display: flex; align-items: stretch; box-sizing: border-box; background: rgba(22,23,26,0.6); backdrop-filter: blur(28px) saturate(160%); border: 1px solid rgba(255,255,255,0.08); border-radius: 16px;">
+      <div role="tablist" aria-orientation="vertical" aria-label="Panels" style="display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 4px;">
+        <sc-for list="{{railGroups}}" as="grp" hint-placeholder-count="3">
+          <sc-if value="{{grp.notFirst}}" hint-placeholder-val="{{ true }}">
+            <div aria-hidden="true" style="width: 18px; height: 1px; margin: 4px 0; background: rgba(255,255,255,0.12);"></div>
+          </sc-if>
+          <div role="group" aria-label="{{grp.name}}" style="display: flex; flex-direction: column; gap: 2px;">
+            <sc-for list="{{grp.items}}" as="r" hint-placeholder-count="3">
+              <button role="tab" aria-selected="{{r.on}}" aria-label="{{r.name}}" title="{{r.title}}" onClick="{{r.pick}}" style="{{r.style}}">
+                <svg aria-hidden="true" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round" stroke-linecap="round"><path d="{{r.d}}"></path></svg>
+                <span aria-hidden="true" style="{{r.dot}}"></span>
+              </button>
+            </sc-for>
+          </div>
+        </sc-for>
+        <div aria-hidden="true" style="width: 18px; height: 1px; margin: 4px 0; background: rgba(255,255,255,0.12);"></div>
+        <button aria-label="Panel library" title="Add or remove panels" style="width: 36px; height: 36px; border-radius: 50%; border: none; padding: 0; background: transparent; color: #8B8B93; display: flex; align-items: center; justify-content: center;">
+          <svg aria-hidden="true" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M12 5 V19 M5 12 H19"></path></svg>
+        </button>
+      </div>
+
+      <sc-for list="{{cols}}" as="col" hint-placeholder-count="1">
+        <div role="tabpanel" aria-label="{{col.name}}" style="width: 272px; max-height: 860px; overflow-y: auto; box-sizing: border-box; display: flex; flex-direction: column; gap: 8px; padding: 10px 12px 12px; border-left: 1px solid rgba(255,255,255,0.07);">
+          <div style="display: flex; align-items: center; gap: 6px; height: 26px;">
+            <div style="font-size: 9px; line-height: 1; letter-spacing: 0.14em; font-weight: 700; color: #A1A1AA;">{{col.title}}</div>
+            <div style="font-size: 10px; line-height: 1; color: #8B8B93;">{{col.sub}}</div>
+            <button aria-label="Close panel" title="Close panel" onClick="{{col.close}}" style="margin-left: auto; width: 24px; height: 24px; flex: none; border: none; border-radius: 50%; padding: 0; background: transparent; color: #8B8B93; display: flex; align-items: center; justify-content: center;">
+              <svg aria-hidden="true" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"><path d="M6 6 L18 18 M18 6 L6 18"></path></svg>
+            </button>
+          </div>
+
+          <!-- Overview -->
+          <sc-if value="{{col.isOverview}}" hint-placeholder-val="{{ true }}">
+            <div style="display: flex; flex-direction: column; gap: 5px;">
+              <div style="font-size: 18px; line-height: 1.1; font-weight: 300; color: #FFFFFF;">Moon shot</div>
+              <div style="font-size: 10px; line-height: 1; color: #A1A1AA;">Probe · Orbiting Earth</div>
+            </div>
+            <div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 4px;">
+              <sc-for list="{{col.stats}}" as="s" hint-placeholder-count="4">
+                <div style="display: flex; flex-direction: column; gap: 5px; padding: 8px; border-radius: 8px; background: rgba(255,255,255,0.05);">
+                  <div style="font-size: 7px; line-height: 1; letter-spacing: 0.14em; font-weight: 700; color: #A1A1AA;">{{s.k}}</div>
+                  <div style="{{s.vStyle}}">{{s.v}}</div>
+                </div>
+              </sc-for>
+            </div>
+            <div style="padding: 6px 0 0; font-size: 8px; line-height: 1; letter-spacing: 0.14em; font-weight: 700; color: #A1A1AA;">GROUP CONTROL</div>
+            <div style="display: flex; flex-direction: column;">
+              <sc-for list="{{col.groups}}" as="g" hint-placeholder-count="5">
+                <div style="display: flex; align-items: center; gap: 8px; height: 36px; border-top: 1px solid rgba(255,255,255,0.05);">
+                  <div style="width: 24px; height: 24px; flex: none; border-radius: 7px; background: rgba(255,255,255,0.06); display: flex; align-items: center; justify-content: center; color: #E4E4E7;">
+                    <svg aria-hidden="true" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linejoin="round" stroke-linecap="round"><path d="{{g.d}}"></path></svg>
+                  </div>
+                  <div style="display: flex; flex-direction: column; gap: 3px;">
+                    <div style="font-size: 11px; line-height: 1; font-weight: 600; color: #FFFFFF;">{{g.name}}</div>
+                    <div style="font-size: 9px; line-height: 1; color: #A1A1AA;">{{g.sub}}</div>
+                  </div>
+                  <button aria-label="{{g.swLabel}}" aria-pressed="{{g.on}}" onClick="{{g.toggle}}" style="{{g.track}}"><span style="{{g.knob}}"></span></button>
+                </div>
+              </sc-for>
+            </div>
+          </sc-if>
+
+          <!-- Parts -->
+          <sc-if value="{{col.isParts}}" hint-placeholder-val="{{ false }}">
+            <div style="display: flex; flex-direction: column;">
+              <sc-for list="{{col.parts}}" as="p" hint-placeholder-count="5">
+                <div style="display: flex; align-items: center; gap: 8px; height: 40px; border-top: 1px solid rgba(255,255,255,0.05);">
+                  <div style="width: 24px; height: 24px; flex: none; border-radius: 7px; background: rgba(255,255,255,0.06); display: flex; align-items: center; justify-content: center; color: #E4E4E7;">
+                    <svg aria-hidden="true" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linejoin="round" stroke-linecap="round"><path d="{{p.d}}"></path></svg>
+                  </div>
+                  <div style="display: flex; flex-direction: column; gap: 3px; min-width: 0;">
+                    <div style="font-size: 11px; line-height: 1; font-weight: 600; color: #FFFFFF;">{{p.name}}</div>
+                    <div style="{{p.subStyle}}">{{p.sub}}</div>
+                  </div>
+                  <button aria-label="{{p.swLabel}}" aria-pressed="{{p.on}}" onClick="{{p.toggle}}" style="{{p.track}}"><span style="{{p.knob}}"></span></button>
+                </div>
+              </sc-for>
+            </div>
+          </sc-if>
+
+          <!-- Comms -->
+          <sc-if value="{{col.isComms}}" hint-placeholder-val="{{ false }}">
+            <div style="display: flex; align-items: center; gap: 8px; padding: 10px; border-radius: 10px; background: rgba(255,255,255,0.05);">
+              <span style="{{col.linkDot}}"></span>
+              <div style="display: flex; flex-direction: column; gap: 3px;">
+                <div style="font-size: 11px; line-height: 1; font-weight: 600; color: #FFFFFF;">{{col.linkLabel}}</div>
+                <div style="font-size: 9px; line-height: 1; color: #A1A1AA;">{{col.linkSub}}</div>
+              </div>
+            </div>
+            <div style="padding: 4px 0 0; font-size: 8px; line-height: 1; letter-spacing: 0.14em; font-weight: 700; color: #A1A1AA;">ENDPOINTS</div>
+            <div style="display: flex; flex-direction: column;">
+              <sc-for list="{{col.endpoints}}" as="e" hint-placeholder-count="3">
+                <div style="display: flex; align-items: center; gap: 8px; height: 36px; border-top: 1px solid rgba(255,255,255,0.05);">
+                  <div style="display: flex; flex-direction: column; gap: 3px;">
+                    <div style="font-size: 11px; line-height: 1; font-weight: 600; color: #FFFFFF;">{{e.name}}</div>
+                    <div style="font-size: 9px; line-height: 1; color: #A1A1AA;">{{e.sub}}</div>
+                  </div>
+                  <div style="margin-left: auto; display: flex; align-items: flex-end; gap: 1.5px; height: 11px;">
+                    <sc-for list="{{e.bars}}" as="b" hint-placeholder-count="4"><span style="{{b}}"></span></sc-for>
+                  </div>
+                </div>
+              </sc-for>
+            </div>
+          </sc-if>
+
+          <!-- Crew -->
+          <sc-if value="{{col.isCrew}}" hint-placeholder-val="{{ false }}">
+            <div style="display: flex; flex-direction: column; align-items: center; gap: 8px; padding: 20px 12px; border-radius: 10px; background: rgba(255,255,255,0.04); text-align: center;">
+              <div style="width: 36px; height: 36px; border-radius: 50%; background: rgba(255,255,255,0.06); color: #8B8B93; display: flex; align-items: center; justify-content: center;">
+                <svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" stroke-linecap="round"><path d="M9 5 A3 3 0 1 1 8.99 5 Z M3 20 C3 16 6 14 9 14 C12 14 15 16 15 20 M16 5.5 A2.5 2.5 0 1 1 15.99 5.5 Z M17 13.5 C19.5 14 21 16 21 19"></path></svg>
+              </div>
+              <div style="font-size: 12px; line-height: 1; font-weight: 600; color: #FFFFFF;">No crew aboard</div>
+              <div style="font-size: 10px; line-height: 1.4; color: #A1A1AA;">Uncrewed probe. Seat crew on the Launch screen.</div>
+            </div>
+          </sc-if>
+
+          <!-- Orbit -->
+          <sc-if value="{{col.isOrbit}}" hint-placeholder-val="{{ false }}">
+            <div style="display: flex; flex-direction: column;">
+              <sc-for list="{{col.orbitRows}}" as="o" hint-placeholder-count="5">
+                <div title="{{o.hint}}" style="display: grid; grid-template-columns: 1fr auto 28px; align-items: center; column-gap: 8px; min-height: 36px; border-top: 1px solid rgba(255,255,255,0.05);">
+                  <div style="font-size: 11px; line-height: 1; color: #A1A1AA;">{{o.k}}</div>
+                  <div style="display: flex; flex-direction: column; align-items: flex-end; gap: 3px;">
+                    <div style="font-size: 13px; line-height: 1; font-weight: 600; color: #FFFFFF;">{{o.v}}</div>
+                    <div style="{{o.subStyle}}">{{o.sub}}</div>
+                  </div>
+                  <div style="display: flex; justify-content: flex-end;">
+                    <sc-if value="{{o.hasWarp}}" hint-placeholder-val="{{ false }}">
+                      <button aria-label="{{o.warpLabel}}" title="{{o.warpLabel}}" style="width: 26px; height: 26px; border: none; border-radius: 7px; padding: 0; background: rgba(255,255,255,0.06); color: #E4E4E7; display: flex; align-items: center; justify-content: center;">
+                        <svg aria-hidden="true" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M5 6 L11 12 L5 18 Z M13 6 L19 12 L13 18 Z"></path></svg>
+                      </button>
+                    </sc-if>
+                  </div>
+                </div>
+              </sc-for>
+            </div>
+          </sc-if>
+
+          <!-- Resources -->
+          <sc-if value="{{col.isResources}}" hint-placeholder-val="{{ false }}">
+            <div style="display: flex; flex-direction: column; gap: 12px; padding-top: 4px;">
+              <sc-for list="{{col.resources}}" as="r" hint-placeholder-count="3">
+                <div style="display: flex; flex-direction: column; gap: 5px;">
+                  <div style="display: flex; justify-content: space-between; font-size: 11px; line-height: 1;"><span style="color: #A1A1AA;">{{r.name}}</span><span style="{{r.valStyle}}">{{r.val}}</span></div>
+                  <div style="height: 3px; border-radius: 999px; background: rgba(255,255,255,0.1); overflow: hidden;"><div style="{{r.fill}}"></div></div>
+                </div>
+              </sc-for>
+            </div>
+          </sc-if>
+
+          <!-- Science -->
+          <sc-if value="{{col.isScience}}" hint-placeholder-val="{{ false }}">
+            <div style="display: flex; flex-direction: column;">
+              <sc-for list="{{col.experiments}}" as="x" hint-placeholder-count="2">
+                <div style="display: flex; align-items: center; gap: 8px; height: 40px; border-top: 1px solid rgba(255,255,255,0.05);">
+                  <div style="display: flex; flex-direction: column; gap: 3px;">
+                    <div style="font-size: 11px; line-height: 1; font-weight: 600; color: #FFFFFF;">{{x.name}}</div>
+                    <div style="{{x.subStyle}}">{{x.sub}}</div>
+                  </div>
+                  <button aria-label="{{x.runLabel}}" title="Run experiment" style="margin-left: auto; width: 26px; height: 26px; border: none; border-radius: 7px; padding: 0; display: flex; align-items: center; justify-content: center; background: rgba(255,255,255,0.08); color: #E4E4E7;">
+                    <svg aria-hidden="true" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M8 5 L19 12 L8 19 Z"></path></svg>
+                  </button>
+                </div>
+              </sc-for>
+            </div>
+          </sc-if>
+
+          <!-- Maneuver -->
+          <sc-if value="{{col.isManeuver}}" hint-placeholder-val="{{ false }}">
+            <div style="display: flex; flex-direction: column; align-items: center; gap: 8px; padding: 18px 10px; border-radius: 10px; background: rgba(255,255,255,0.04); text-align: center;">
+              <div style="font-size: 11px; line-height: 1.3; font-weight: 600; color: #FFFFFF;">No maneuver node</div>
+              <div style="font-size: 10px; line-height: 1.4; color: #A1A1AA;">Add a node on the orbit in Map view.</div>
+              <a href="MapView.dc.html" style="height: 28px; padding: 0 12px; display: flex; align-items: center; border-radius: 7px; text-decoration: none; font-size: 10px; line-height: 1; font-weight: 700; background: #F4F4F5; color: #0B0B0C;">Open Map</a>
+            </div>
+          </sc-if>
+
+          <!-- Scripts / plugin -->
+          <sc-if value="{{col.isScripts}}" hint-placeholder-val="{{ false }}">
+            <div style="display: flex; flex-direction: column;">
+              <sc-for list="{{col.scripts}}" as="x" hint-placeholder-count="2">
+                <div style="display: flex; align-items: center; gap: 8px; height: 40px; border-top: 1px solid rgba(255,255,255,0.05);">
+                  <div style="display: flex; flex-direction: column; gap: 3px;">
+                    <div style="font-size: 11px; line-height: 1; font-weight: 600; color: #FFFFFF;">{{x.name}}</div>
+                    <div style="font-size: 9px; line-height: 1; color: #A1A1AA;">{{x.sub}}</div>
+                  </div>
+                  <button aria-label="{{x.runLabel}}" title="Run script" style="margin-left: auto; width: 26px; height: 26px; border: none; border-radius: 7px; padding: 0; display: flex; align-items: center; justify-content: center; background: rgba(255,255,255,0.08); color: #E4E4E7;">
+                    <svg aria-hidden="true" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M8 5 L19 12 L8 19 Z"></path></svg>
+                  </button>
+                </div>
+              </sc-for>
+            </div>
+          </sc-if>
+          <sc-if value="{{col.isPlugin}}" hint-placeholder-val="{{ false }}">
+            <div style="display: flex; flex-direction: column; align-items: center; gap: 6px; padding: 24px 10px; border-radius: 10px; border: 1px dashed rgba(255,255,255,0.16); text-align: center;">
+              <div style="font-size: 9px; line-height: 1; font-weight: 700; letter-spacing: 0.14em; color: #A1A1AA;">PLUGIN AREA</div>
+              <div style="font-size: 10px; line-height: 1.4; color: #8B8B93;">[Rendered by the plugin]</div>
+            </div>
+          </sc-if>
+        </div>
+      </sc-for>
+    </div>
+  </sc-if>
+
+  <!-- ===== Right · Staging (whole right column is free now, grows upward) ===== -->
+  <sc-if value="{{showStaging}}" hint-placeholder-val="{{ true }}">
+    <div style="position: absolute; right: 24px; bottom: 56px; width: 260px; max-height: 944px; display: flex; flex-direction: column; gap: 6px; padding: 10px; box-sizing: border-box; background: rgba(22,23,26,0.6); backdrop-filter: blur(28px) saturate(160%); border: 1px solid rgba(255,255,255,0.08); border-radius: 16px;">
+      <div style="display: flex; align-items: center; gap: 8px; height: 22px; padding: 0 0 0 6px;">
+        <div style="font-size: 9px; line-height: 1; letter-spacing: 0.14em; font-weight: 700; color: #A1A1AA;">STAGING</div>
+        <div style="font-size: 9px; line-height: 1; font-weight: 600; color: #8B8B93;">4 → 1</div>
+        <button title="Δv is calculated here, for the vessel as flown" style="margin-left: auto; height: 22px; padding: 0 6px 0 8px; display: flex; align-items: center; gap: 4px; border: none; border-radius: 999px; background: rgba(255,255,255,0.06); color: #E4E4E7; font-size: 9px; line-height: 1; font-weight: 600;">
+          Δv · Here
+          <svg aria-hidden="true" width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9 L12 15 L18 9"></path></svg>
+        </button>
+      </div>
+      <div style="display: flex; flex-direction: column; overflow-y: auto;">
+        <sc-for list="{{stages}}" as="g" hint-placeholder-count="3">
+          <div style="display: flex; align-items: center; gap: 8px; min-height: 40px; padding: 0 6px; border-top: 1px solid rgba(255,255,255,0.05);">
+            <div style="width: 18px; font-size: 12px; line-height: 1; font-weight: 600; color: #8B8B93;">{{g.n}}</div>
+            <div style="display: flex; flex-direction: column; gap: 4px; min-width: 0;">
+              <div style="display: flex; gap: 3px; color: #A1A1AA;">
+                <sc-for list="{{g.icons}}" as="i" hint-placeholder-count="2">
+                  <svg aria-hidden="true" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" stroke-linecap="round"><path d="{{i}}"></path></svg>
+                </sc-for>
+              </div>
+              <div style="font-size: 9px; line-height: 1; color: #8B8B93; white-space: nowrap;">{{g.parts}}</div>
+            </div>
+            <div style="margin-left: auto; display: flex; flex-direction: column; align-items: flex-end; gap: 4px;">
+              <div style="font-size: 11px; line-height: 1; font-weight: 600; color: #E4E4E7;">{{g.dv}}</div>
+              <div style="font-size: 9px; line-height: 1; color: #8B8B93;">{{g.twr}}</div>
+            </div>
+          </div>
+        </sc-for>
+      </div>
+      <div style="display: flex; flex-direction: column; gap: 8px; padding: 10px 8px; border-radius: 10px; background: rgba(255,255,255,0.07);">
+        <div style="display: flex; align-items: center; gap: 8px; height: 18px;">
+          <div style="{{stageBadge}}">01</div>
+          <div style="font-size: 8px; line-height: 1; letter-spacing: 0.14em; font-weight: 700; color: #A1A1AA;">NEXT · Δv</div>
+          <div style="margin-left: auto; display: flex; align-items: baseline; gap: 3px;">
+            <div style="font-size: 14px; line-height: 1; font-weight: 600; color: #FFFFFF;">0</div>
+            <div style="font-size: 9px; line-height: 1; color: #A1A1AA;">m/s</div>
+          </div>
+        </div>
+        <div style="display: flex; justify-content: space-between; font-size: 9px; line-height: 1; color: #A1A1AA;"><span>TWR 0.00</span><span>Burn —</span></div>
+      </div>
+      <div style="display: flex; align-items: center; gap: 8px; height: 30px;">
+        <button aria-label="Activate next stage" style="height: 30px; padding: 0 16px; border: none; border-radius: 8px; font-size: 11px; line-height: 1; font-weight: 700; letter-spacing: 0.1em; background: #F4F4F5; color: #0B0B0C;">GO</button>
+        <div style="font-size: 8px; line-height: 1; letter-spacing: 0.14em; font-weight: 700; color: #A1A1AA;">TOTAL Δv</div>
+        <div style="margin-left: auto; padding-right: 6px; display: flex; align-items: baseline; gap: 3px;">
+          <div style="font-size: 13px; line-height: 1; font-weight: 600; color: #FFFFFF;">0</div>
+          <div style="font-size: 9px; line-height: 1; color: #A1A1AA;">m/s vac</div>
+        </div>
+      </div>
+    </div>
+  </sc-if>
+  <!-- ===== Bottom-center · compact flight module: [readouts] [navball] [SAS] + status strip ===== -->
+  <sc-if value="{{showNav}}" hint-placeholder-val="{{ true }}">
+    <div style="position: absolute; left: 684px; top: 792px; width: 552px; height: 232px; filter: drop-shadow(0 16px 32px rgba(0,0,0,0.6));">
+      <div style="position: absolute; left: 0; top: 88px; width: 552px; height: 144px; border-radius: 20px; background: #141518;"></div>
+      <div style="position: absolute; left: 178px; top: -4px; width: 204px; height: 204px; border-radius: 50%; background: #141518;"></div>
+      <div style="position: absolute; left: 256px; top: -14px; width: 48px; text-align: center; font-size: 11px; font-weight: 700; color: #FFFFFF; padding: 3px 0; border-radius: 999px; background: #26282C;">264°</div>
+
+      <!-- navball -->
+      <div style="position: absolute; left: 190px; top: 8px; width: 180px; height: 180px; border-radius: 50%; overflow: hidden;">
+        <svg role="img" aria-label="Attitude navball, heading 264°" width="180" height="180" viewBox="-140 -140 280 280">
+          <defs>
+            <clipPath id="nb3Clip"><circle cx="0" cy="0" r="140"></circle></clipPath>
+            <radialGradient id="nb3Shade" cx="35%" cy="30%" r="75%">
+              <stop offset="0%" stop-color="#FFFFFF" stop-opacity="0.18"></stop>
+              <stop offset="60%" stop-color="#000000" stop-opacity="0"></stop>
+              <stop offset="100%" stop-color="#000000" stop-opacity="0.55"></stop>
+            </radialGradient>
+          </defs>
+          <g clip-path="url(#nb3Clip)">
+            <rect x="-300" y="-300" width="300" height="600" fill="#26282C"></rect>
+            <rect x="0" y="-300" width="300" height="600" fill="#DCDFE4"></rect>
+            <line x1="0" y1="-300" x2="0" y2="300" stroke="#FFFFFF" stroke-width="2.5"></line>
+            <line x1="-300" y1="-40" x2="300" y2="-40" stroke="#8B9098" stroke-width="1.5" opacity="0.5"></line>
+            <line x1="-300" y1="40" x2="300" y2="40" stroke="#8B9098" stroke-width="1.5" opacity="0.5"></line>
+            <text x="-70" y="-46" font-size="16" font-family="Manrope, sans-serif" font-weight="700" fill="#9BA0A8">30</text>
+            <text x="50" y="-46" font-size="16" font-family="Manrope, sans-serif" font-weight="700" fill="#5B6068">30</text>
+            <g transform="translate(-4 70)" stroke="{{accent}}" stroke-width="4" fill="none">
+              <circle cx="0" cy="0" r="12"></circle>
+              <path d="M-8 -8 L8 8 M8 -8 L-8 8"></path>
+            </g>
+          </g>
+          <circle cx="0" cy="0" r="140" fill="url(#nb3Shade)"></circle>
+          <path d="M-52 0 H-20 L-10 12 L0 0 L10 12 L20 0 H52" fill="none" stroke="#0B0B0C" stroke-width="10" stroke-linejoin="round" stroke-linecap="round"></path>
+          <path d="M-52 0 H-20 L-10 12 L0 0 L10 12 L20 0 H52" fill="none" stroke="#FFFFFF" stroke-width="4.5" stroke-linejoin="round" stroke-linecap="round"></path>
+          <circle cx="0" cy="0" r="4" fill="#FFFFFF" stroke="#0B0B0C" stroke-width="2.5"></circle>
+        </svg>
+      </div>
+
+      <!-- arcs around the ball: left = vertical speed, right = throttle -->
+      <svg aria-hidden="true" width="552" height="232" viewBox="0 0 552 232" style="position: absolute; left: 0; top: 0; overflow: visible;">
+        <path d="M206.5 36.3 A96 96 0 0 0 206.5 159.7" fill="none" stroke="rgba(255,255,255,0.12)" stroke-width="4" stroke-linecap="round"></path>
+        <line x1="178" y1="98" x2="192" y2="98" stroke="#FFFFFF" stroke-width="2" stroke-linecap="round"></line>
+        <path d="M353.5 159.7 A96 96 0 0 0 353.5 36.3" fill="none" stroke="rgba(255,255,255,0.12)" stroke-width="4" stroke-linecap="round"></path>
+        <path d="M353.5 159.7 A96 96 0 0 0 374.4 115.3" fill="none" stroke="{{thrColor}}" stroke-width="4" stroke-linecap="round"></path>
+      </svg>
+      <div title="Vertical speed: 0.0 m/s (centre = level, up = climbing)" style="position: absolute; left: 160px; top: 170px; width: 52px; text-align: center; font-size: 9px; line-height: 1; font-weight: 600; color: #A1A1AA;">V/S <b style="color: #FFFFFF; font-weight: 600;">0.0</b></div>
+      <button onClick="{{throttleUp}}" aria-label="{{thrLabel}}" title="{{thrLabel}}" style="position: absolute; left: 350px; top: 166px; height: 16px; padding: 0 4px; border: none; border-radius: 999px; background: transparent; font-size: 9px; line-height: 1; font-weight: 700; color: {{thrText}};">THR 37%</button>
+
+      <!-- left wing: readouts -->
+      <div style="position: absolute; left: 18px; top: 118px; width: 150px; display: flex; flex-direction: column; gap: 16px;">
+        <div style="display: flex; align-items: center; gap: 5px; height: 16px;">
+          <div style="width: 26px; font-size: 8px; line-height: 1; letter-spacing: 0.12em; font-weight: 700; color: #A1A1AA;">VEL</div>
+          <div style="font-size: 15px; font-weight: 500; line-height: 1; color: #FFFFFF;">3,581.0</div>
+          <div style="font-size: 9px; line-height: 1; color: #A1A1AA;">m/s</div>
+          <button title="Speed reference: orbit" style="margin-left: auto; border: none; border-radius: 999px; padding: 2px 6px; font-size: 8px; line-height: 1; font-weight: 700; letter-spacing: 0.08em; background: #2A2C30; color: #E4E4E7;">ORB</button>
+        </div>
+        <div style="display: flex; align-items: center; gap: 5px; height: 16px;">
+          <div style="width: 26px; font-size: 8px; line-height: 1; letter-spacing: 0.12em; font-weight: 700; color: #A1A1AA;">ALT</div>
+          <div style="font-size: 15px; font-weight: 500; line-height: 1; color: #FFFFFF;">350.0</div>
+          <div style="font-size: 9px; line-height: 1; color: #A1A1AA;">km</div>
+          <button title="Altitude reference: sea level" style="margin-left: auto; border: none; border-radius: 999px; padding: 2px 6px; font-size: 8px; line-height: 1; font-weight: 700; letter-spacing: 0.08em; background: #2A2C30; color: #E4E4E7;">SEA</button>
+        </div>
+      </div>
+
+      <!-- right: round SAS pod (same as before) with SAS / RCS pills on top -->
+      <div style="position: absolute; left: 400px; top: 60px; width: 136px; height: 136px; border-radius: 50%; background: #141518;"></div>
+      <div title="{{sasHint}}" style="position: absolute; left: 412px; top: 22px; width: 112px; display: flex; gap: 4px; padding: 4px; border-radius: 999px; background: #141518;">
+        <button aria-disabled="{{noControl}}" onClick="{{toggleSas}}" style="{{sasPill}}">SAS</button>
+        <button aria-disabled="{{noControl}}" onClick="{{toggleRcs}}" style="{{rcsPill}}">RCS</button>
+      </div>
+      <sc-for list="{{sasBtns}}" as="b" hint-placeholder-count="7">
+        <button aria-label="{{b.label}}" title="{{b.title}}" aria-disabled="{{noControl}}" aria-pressed="{{b.on}}" onClick="{{b.pick}}" style="{{b.style}}">
+          <svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="{{b.d}}"></path></svg>
+        </button>
+      </sc-for>
+
+      <!-- status strip: persistent vessel conditions -->
+      <div style="position: absolute; left: 16px; top: 202px; width: 520px; height: 1px; background: rgba(255,255,255,0.07);"></div>
+      <div role="status" aria-label="Vessel status" style="position: absolute; left: 16px; top: 207px; width: 520px; height: 20px; display: flex; align-items: center; justify-content: center; gap: 6px;">
+        <sc-for list="{{chips}}" as="c" hint-placeholder-count="3">
+          <button aria-expanded="{{c.open}}" onClick="{{c.toggle}}" title="{{c.hint}}" style="{{c.style}}">
+            <span style="{{c.dot}}"></span>{{c.label}}
+          </button>
+        </sc-for>
+        <sc-if value="{{allClear}}" hint-placeholder-val="{{ false }}">
+          <div style="display: flex; align-items: center; gap: 5px; font-size: 9px; line-height: 1; font-weight: 600; color: #A1A1AA;"><span style="width: 6px; height: 6px; border-radius: 50%; background: #7BD88F;"></span>All systems nominal</div>
+        </sc-if>
+      </div>
+
+      <!-- status detail popover -->
+      <sc-if value="{{hasPop}}" hint-placeholder-val="{{ false }}">
+        <div role="dialog" aria-label="{{pop.title}}" style="position: absolute; left: 140px; bottom: 36px; width: 280px; box-sizing: border-box; display: flex; flex-direction: column; gap: 8px; padding: 12px; border-radius: 14px; background: rgba(22,23,26,0.9); backdrop-filter: blur(24px); border: 1px solid rgba(255,255,255,0.12);">
+          <div style="display: flex; align-items: center; gap: 6px;">
+            <span style="{{pop.dot}}"></span>
+            <div style="font-size: 12px; line-height: 1; font-weight: 600; color: #FFFFFF;">{{pop.title}}</div>
+            <button aria-label="Close" onClick="{{closePop}}" style="margin-left: auto; width: 22px; height: 22px; border: none; border-radius: 50%; padding: 0; background: transparent; color: #8B8B93; display: flex; align-items: center; justify-content: center;">
+              <svg aria-hidden="true" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"><path d="M6 6 L18 18 M18 6 L6 18"></path></svg>
+            </button>
+          </div>
+          <div style="font-size: 10px; line-height: 1.45; color: #A1A1AA;">{{pop.body}}</div>
+          <sc-if value="{{pop.hasFix}}" hint-placeholder-val="{{ false }}">
+            <button onClick="{{pop.fix}}" style="height: 30px; border: none; border-radius: 8px; background: #F4F4F5; color: #0B0B0C; font-size: 11px; line-height: 1; font-weight: 700;">{{pop.fixLabel}}</button>
+          </sc-if>
+        </div>
+      </sc-if>
+    </div>
+  </sc-if>
+  <!-- ===== Status bar ===== -->
+  <footer role="status" aria-label="Status bar" style="position: absolute; left: 0; right: 0; bottom: 0; height: 32px; box-sizing: border-box; display: flex; align-items: center; gap: 14px; padding: 0 24px; background: rgba(22,23,26,0.6); backdrop-filter: blur(28px) saturate(160%); border-top: 1px solid rgba(255,255,255,0.08); font-size: 10px; line-height: 1; color: #A1A1AA;">
+    <div style="display: flex; align-items: center; gap: 8px;">
+      <span style="font-size: 11px; font-weight: 700; color: #FFFFFF;">New world (2)</span>
+      <span style="height: 16px; padding: 0 6px; display: flex; align-items: center; border-radius: 999px; font-size: 8px; font-weight: 700; letter-spacing: 0.08em; background: rgba(255,255,255,0.1); color: #E4E4E7;">SANDBOX</span>
+      <span>Earth system</span>
+    </div>
+    <div aria-hidden="true" style="width: 1px; height: 12px; background: rgba(255,255,255,0.12);"></div>
+    <div style="display: flex; align-items: center; gap: 6px;"><span style="{{linkDot}}"></span><span style="color: #FFFFFF; font-weight: 600;">{{linkLabel}}</span><span>{{linkSub}}</span></div>
+    <div aria-hidden="true" style="width: 1px; height: 12px; background: rgba(255,255,255,0.12);"></div>
+    <div style="display: flex; align-items: center; gap: 6px;">
+      <svg aria-hidden="true" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linejoin="round" stroke-linecap="round"><path d="M12 3 C15 5.5 16 9 16 13 V16 L18.5 19 H5.5 L8 16 V13 C8 9 9 5.5 12 3 Z M10 19 V21 M14 19 V21"></path></svg>
+      <span>Moon shot · Orbiting Earth</span>
+    </div>
+    <div style="margin: 0 auto; display: flex; align-items: center; gap: 16px;">
+      <span>Funds <b style="color: #FFFFFF; font-weight: 600;">—</b></span>
+      <span>Science <b style="color: #FFFFFF; font-weight: 600;">0.0</b></span>
+      <span>Reputation <b style="color: #FFFFFF; font-weight: 600;">—</b></span>
+      <span>Contracts <b style="color: #FFFFFF; font-weight: 600;">—</b></span>
+    </div>
+    <div style="display: flex; align-items: center; gap: 6px;">
+      <svg aria-hidden="true" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linejoin="round"><path d="M5 3 H17 L20 6 V21 H4 V3 Z M8 3 V8 H15 V3 M8 21 V14 H16 V21"></path></svg>
+      <span>Saved 11 s ago</span>
+    </div>
+    <div aria-hidden="true" style="width: 1px; height: 12px; background: rgba(255,255,255,0.12);"></div>
+    <div style="display: flex; align-items: center; gap: 6px;">
+      <svg aria-hidden="true" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linejoin="round" stroke-linecap="round"><path d="M4 4 H10 V10 H4 Z M14 4 H20 V10 H14 Z M4 14 H10 V20 H4 Z M17 14 V20 M14 17 H20"></path></svg>
+      <span>0 mods</span>
+    </div>
+    <div aria-hidden="true" style="width: 1px; height: 12px; background: rgba(255,255,255,0.12);"></div>
+    <button aria-label="Notifications, 2 new" title="Notifications" style="position: relative; width: 26px; height: 26px; margin-right: -6px; border: none; border-radius: 6px; padding: 0; display: flex; align-items: center; justify-content: center; background: transparent; color: #E4E4E7;">
+      <svg aria-hidden="true" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linejoin="round" stroke-linecap="round"><path d="M6 16 V11 A6 6 0 0 1 18 11 V16 L20 18 H4 Z M10 21 H14"></path></svg>
+      <span aria-hidden="true" style="position: absolute; right: 1px; top: 2px; min-width: 12px; height: 12px; padding: 0 3px; box-sizing: border-box; border-radius: 999px; display: flex; align-items: center; justify-content: center; font-size: 8px; line-height: 1; font-weight: 700; background: #F4F4F5; color: #0B0B0C;">2</span>
+    </button>
+  </footer>
+
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"accent":{"editor":"color","default":"#3E6AE1","options":["#3E6AE1","#E82127","#F4F4F5","#22A06B"]},"$preview":{"width":1920,"height":1080}}'>
+class Component extends DCLogic {
+  constructor(props) {
+    super(props);
+    this.state = {
+      paused: false, warp: 0, maxWarp: 5, behind: true, occluded: true,
+      on: { core: true, battery: true, solar: false, antenna: true, lights: false, engine: true },
+      sas: false, rcs: false, mode: 'stab',
+      show: { dock: true, staging: true, nav: true },
+      dock: 'overview',
+      pop: null, flash: null, seq: 2,
+      toasts: [{ id: 1, key: 'throttle', count: 1 }]
+    };
+  }
+
+  addToast(key) {
+    const st = this.state;
+    const found = st.toasts.find((t) => t.key === key);
+    let toasts;
+    if (found) toasts = st.toasts.map((t) => t.key === key ? Object.assign({}, t, { count: t.count + 1 }) : t);
+    else toasts = [{ id: st.seq, key, count: 1 }].concat(st.toasts).slice(0, 2);
+    this.setState({ toasts, seq: st.seq + 1 });
+    const id = found ? found.id : st.seq;
+    setTimeout(() => this.setState({ toasts: this.state.toasts.filter((t) => t.id !== id) }), 6000);
+  }
+
+  renderVals() {
+    const accent = this.props.accent ?? '#3E6AE1';
+    const st = this.state;
+    const set = (o) => this.setState(o);
+    const AMBER = '#FFB86B', RED = '#FF8A8E';
+    const power = !!st.on.solar;
+    const noControl = !power;
+    const linked = !st.occluded && st.on.antenna;
+
+    // ---------- scene ----------
+    let seed = 11;
+    const rnd = () => { seed = (seed * 9301 + 49297) % 233280; return seed / 233280; };
+    const stars = [];
+    for (let i = 0; i < 120; i++) {
+      const x = Math.round(rnd() * 1920), y = Math.round(rnd() * 1080);
+      if (x + y < 1500) continue;
+      stars.push({ style: 'position:absolute;left:' + x + 'px;top:' + y + 'px;width:1px;height:1px;border-radius:50%;background:#FFFFFF;opacity:' + (0.25 + rnd() * 0.6).toFixed(2) });
+    }
+
+    // ---------- time bar ----------
+    const rates = [1, 2, 4, 10, 50, 100, 1000, 10000];
+    const fmt = (r) => r >= 1000 ? (r / 1000) + 'k×' : r + '×';
+    const warps = rates.map((r, i) => {
+      const locked = i > st.maxWarp;
+      const bg = locked ? 'repeating-linear-gradient(135deg, rgba(255,255,255,0.14) 0 1.5px, transparent 1.5px 4px)'
+        : st.paused ? 'rgba(255,255,255,0.12)' : (i <= st.warp ? (i === st.warp ? accent : '#F4F4F5') : 'rgba(255,255,255,0.12)');
+      return {
+        locked, label: locked ? fmt(r) + ' unavailable below 637 km' : 'Time warp ' + fmt(r),
+        pick: () => locked ? this.addToast('warp') : set({ warp: i, paused: false }),
+        style: 'width:' + (i < 4 ? 6 : 10) + 'px;height:18px;border:none;padding:0;border-radius:3px;cursor:' + (locked ? 'not-allowed' : 'pointer') + ';background:' + bg
+      };
+    });
+
+    // ---------- toasts (events only) ----------
+    const TOAST = {
+      throttle: { title: 'Can’t throttle', body: 'The probe core has no electric charge.', color: AMBER },
+      warp: { title: 'Max warp 100×', body: 'Higher warp unlocks above 637 km.', color: '#A1A1AA' },
+      sas: { title: 'SAS unavailable', body: 'The vessel is uncontrolled: no power.', color: AMBER }
+    };
+    const toasts = st.toasts.map((t) => {
+      const d = TOAST[t.key];
+      return {
+        title: d.title, body: d.body, count: '×' + t.count,
+        countStyle: t.count > 1 ? 'height:15px;padding:0 5px;display:inline-flex;align-items:center;border-radius:999px;font-size:8px;font-weight:700;background:rgba(255,255,255,0.1);color:#E4E4E7' : 'display:none',
+        iconStyle: 'width:28px;height:28px;flex:none;border-radius:8px;display:flex;align-items:center;justify-content:center;color:' + d.color + ';background:' + (d.color === AMBER ? 'rgba(255,184,107,0.12)' : 'rgba(255,255,255,0.06)'),
+        close: () => set({ toasts: st.toasts.filter((x) => x.id !== t.id) })
+      };
+    });
+    const flashChip = (id) => { set({ flash: id }); setTimeout(() => this.setState({ flash: null }), 1200); };
+    const openPanel = (id) => set({ dock: id, pop: null, show: Object.assign({}, st.show, { dock: true }) });
+
+    // ---------- vessel status chips ----------
+    const setOn = (id, v) => set({ on: Object.assign({}, st.on, { [id]: v }) });
+    const CHIPS = [];
+    if (!power) CHIPS.push({ id: 'control', label: 'UNCONTROLLED', color: RED, title: 'Uncontrolled', body: 'No working command source. The probe core needs electric charge to fly the vessel.', fixLabel: 'Open Parts', fix: () => openPanel('parts') });
+    if (!power) CHIPS.push({ id: 'power', label: 'NO POWER', color: AMBER, title: 'No electric charge', body: 'Electric charge is at 0. Solar panels are stowed, so nothing is recharging the batteries.', fixLabel: 'Extend solar panels', fix: () => set({ on: Object.assign({}, st.on, { solar: true }), pop: null, toasts: st.toasts.filter((t) => t.key !== 'throttle' && t.key !== 'sas') }) });
+    if (!linked) CHIPS.push({ id: 'signal', label: 'NO SIGNAL', color: AMBER, title: st.occluded ? 'Occluded by Earth' : 'Antenna stowed', body: st.occluded ? 'Earth blocks the line of sight to every ground station. The link returns when the vessel clears the limb.' : 'Deploy the antenna to reconnect.', fixLabel: 'Open Comms', fix: () => openPanel('comms') });
+    const chips = CHIPS.map((c) => {
+      const open = st.pop === c.id;
+      const flash = st.flash === c.id;
+      return {
+        label: c.label, open, hint: c.title + ' — click for details',
+        toggle: () => set({ pop: open ? null : c.id }),
+        style: 'height:20px;padding:0 7px;display:flex;align-items:center;gap:5px;border-radius:999px;font-size:8px;line-height:1;font-weight:700;letter-spacing:0.08em;color:' + c.color + ';background:' + (open || flash ? 'rgba(255,255,255,0.12)' : 'rgba(255,255,255,0.05)') + ';border:1px solid ' + (flash ? c.color : open ? 'rgba(255,255,255,0.22)' : 'transparent'),
+        dot: 'width:5px;height:5px;border-radius:50%;background:' + c.color
+      };
+    });
+    const pc = CHIPS.find((c) => c.id === st.pop);
+    const pop = pc ? { title: pc.title, body: pc.body, hasFix: !!pc.fix, fixLabel: pc.fixLabel, fix: pc.fix, dot: 'width:6px;height:6px;border-radius:50%;background:' + pc.color }
+      : { title: '', body: '', hasFix: false, fixLabel: '', fix: () => {}, dot: '' };
+
+    // ---------- SAS (compact 4 + 3 grid) ----------
+    const POS = { stab: [0, 0], pro: [0, -44], norm: [38, -22], rout: [38, 22], retro: [0, 44], rin: [-38, 22], anti: [-38, -22] };
+    const SAS = [
+      ['stab', 'Stability assist', 'M12 5 A7 7 0 1 1 11.99 5 Z M12 10.4 A1.6 1.6 0 1 1 11.99 10.4 Z'],
+      ['pro', 'Prograde', 'M12 7.5 A5.5 5.5 0 1 1 11.99 7.5 Z M12 7.5 V3 M6.5 13 H2 M17.5 13 H22'],
+      ['norm', 'Normal', 'M12 4 L20 18 H4 Z'],
+      ['rout', 'Radial out', 'M12 7 A5 5 0 1 1 11.99 7 Z M8.5 8.5 L4 4 M15.5 8.5 L20 4 M8.5 15.5 L4 20 M15.5 15.5 L20 20'],
+      ['retro', 'Retrograde', 'M12 6 A6 6 0 1 1 11.99 6 Z M8 8 L16 16 M16 8 L8 16'],
+      ['rin', 'Radial in', 'M12 4 A8 8 0 1 1 11.99 4 Z M6.3 6.3 L9.5 9.5 M17.7 6.3 L14.5 9.5 M6.3 17.7 L9.5 14.5 M17.7 17.7 L14.5 14.5'],
+      ['anti', 'Anti-normal', 'M12 20 L20 6 H4 Z M12 6 V2']
+    ];
+    const sasBtns = SAS.map(([k, label, d]) => {
+      const on = !noControl && st.sas && st.mode === k;
+      const [dx, dy] = POS[k];
+      return {
+        label, d, on, title: noControl ? label + ' — unavailable: uncontrolled' : label,
+        pick: () => { if (noControl) { flashChip('control'); return; } set({ mode: k, sas: true }); },
+        style: 'position:absolute;left:' + (468 + dx - 16) + 'px;top:' + (128 + dy - 16) + 'px;width:32px;height:32px;border-radius:50%;border:none;padding:0;display:flex;align-items:center;justify-content:center;cursor:' + (noControl ? 'not-allowed' : 'pointer') + ';background:' + (on ? accent : '#24262A') + ';color:' + (on ? '#FFFFFF' : noControl ? '#4A4B50' : st.sas ? '#E4E4E7' : '#6B6B73')
+      };
+    });
+    const pill = (on) => 'flex:1;height:24px;padding:0 8px;border-radius:999px;font-size:10px;font-weight:700;letter-spacing:0.1em;border:none;cursor:' + (noControl ? 'not-allowed' : 'pointer') + ';background:' + (on && !noControl ? accent : '#2A2C30') + ';color:' + (noControl ? '#4A4B50' : on ? '#FFFFFF' : '#A1A1AA');
+
+    // ---------- menu bar: page actions (white = shown, gray = hidden) ----------
+    const flat = (on) => 'width:36px;height:36px;border-radius:50%;border:none;display:flex;align-items:center;justify-content:center;padding:0;background:transparent;color:' + (on ? '#FFFFFF' : '#6B6B73');
+    const panelToggles = [
+      { key: 'dock', label: 'Panels', d: 'M4 4 H20 V20 H4 Z M9 4 V20' },
+      { key: 'nav', label: 'Navball', d: 'M12 4 A8 8 0 1 1 11.99 4 Z M4 12 H20 M8.5 12 L12 15 L15.5 12' },
+      { key: 'staging', label: 'Staging', d: 'M5 4 H19 V8 H5 Z M5 10 H19 V14 H5 Z M5 16 H19 V20 H5 Z' }
+    ].map((p) => {
+      const on = !!st.show[p.key];
+      return { label: p.label + (on ? ' (shown)' : ' (hidden)'), d: p.d, on, style: flat(on), toggle: () => set({ show: Object.assign({}, st.show, { [p.key]: !on }) }) };
+    });
+
+    // ---------- dock: grouped rail, pinned + current column ----------
+    const P = {
+      pod: 'M9 3 H15 L20 19 H4 Z M12 9.5 A2.5 2.5 0 1 1 11.99 9.5 Z',
+      parts: 'M12 3 L20 7.5 V16.5 L12 21 L4 16.5 V7.5 Z M4 7.5 L12 12 L20 7.5 M12 12 V21',
+      comms: 'M4 6 A11 11 0 0 0 16 18 Z M10 12 L17 5 M12 21 H20 M16 18 V21',
+      crew: 'M9 5 A3 3 0 1 1 8.99 5 Z M3 20 C3 16 6 14 9 14 C12 14 15 16 15 20 M16 5.5 A2.5 2.5 0 1 1 15.99 5.5 Z M17 13.5 C19.5 14 21 16 21 19',
+      orbit: 'M12 9.5 A2.5 2.5 0 1 1 11.99 9.5 Z M3 12 A9 4.5 0 1 0 21 12 A9 4.5 0 1 0 3 12 Z',
+      res: 'M12 3 C9 8 7 10.5 7 13.5 A5 5 0 0 0 17 13.5 C17 10.5 15 8 12 3 Z',
+      mnv: 'M12 4 L20 12 L12 20 L4 12 Z M12 9 V15 M9 12 H15',
+      sci: 'M9 3 H15 M10 3 V9 L4.5 19 A1.5 1.5 0 0 0 6 21 H18 A1.5 1.5 0 0 0 19.5 19 L14 9 V3 M7 15 H17',
+      script: 'M8 7 L3 12 L8 17 M16 7 L21 12 L16 17',
+      plugin: 'M9 3 V7 M15 3 V7 M6 7 H18 V12 A6 6 0 0 1 6 12 Z M12 18 V21',
+      engine: 'M8 3 H16 V11 L19 21 H5 L8 11 Z',
+      battery: 'M3 7 H19 V17 H3 Z M21 10 V14 M11 9 L9 12 H13 L11 15',
+      solar: 'M3 5 H21 V15 H3 Z M9 5 V15 M15 5 V15 M3 10 H21 M12 15 V20 M8 20 H16',
+      light: 'M9 18 H15 M10 21 H14 M12 3 A6 6 0 0 0 8 13.5 V16 H16 V13.5 A6 6 0 0 0 12 3 Z'
+    };
+    const GROUPS = [
+      { name: 'Vessel', items: [['overview', 'Overview', 'Moon shot', P.pod], ['parts', 'Parts', '5 parts', P.parts], ['comms', 'Comms', linked ? 'Connected' : 'No signal', P.comms], ['crew', 'Crew', '0 aboard', P.crew]] },
+      { name: 'Flight', items: [['orbit', 'Orbit', 'Earth', P.orbit], ['resources', 'Resources', 'Totals', P.res], ['maneuver', 'Maneuver', 'No node', P.mnv], ['science', 'Science', '2 ready', P.sci]] },
+      { name: 'Plugins', items: [['scripts', 'Scripts', 'Plugin', P.script], ['plugin', 'Plugin panel', 'Plugin', P.plugin]] }
+    ];
+    const ALL = {};
+    GROUPS.forEach((g) => g.items.forEach(([id, name, sub, d]) => { ALL[id] = { id, name, sub, d }; }));
+    const visible = st.dock ? [st.dock] : [];
+    const pickRail = (id) => set({ dock: id === st.dock ? null : id });
+    const railGroups = GROUPS.map((g, gi) => ({
+      name: g.name, notFirst: gi > 0,
+      items: g.items.map(([id, name]) => {
+        const on = visible.indexOf(id) >= 0;
+        return {
+          name, on, d: ALL[id].d, title: name,
+          pick: () => pickRail(id),
+          style: 'position:relative;width:36px;height:36px;border-radius:50%;border:none;padding:0;background:transparent;display:flex;align-items:center;justify-content:center;color:' + (on ? '#FFFFFF' : '#8B8B93'),
+          dot: 'position:absolute;right:0;top:50%;width:4px;height:4px;margin-top:-2px;border-radius:50%;background:' + (on ? '#FFFFFF' : 'transparent')
+        };
+      })
+    }));
+
+    const track = (on) => 'margin-left:auto;width:30px;height:18px;flex:none;border:none;padding:2px;border-radius:999px;display:flex;align-items:center;justify-content:' + (on ? 'flex-end' : 'flex-start') + ';background:' + (on ? accent : 'rgba(255,255,255,0.14)');
+    const knob = 'width:14px;height:14px;border-radius:50%;background:#FFFFFF;display:block';
+    const bars = (n) => [4, 6, 8.5, 11].map((h, i) => 'display:block;width:2.5px;height:' + h + 'px;border-radius:1px;background:' + (i < n ? '#FFFFFF' : 'rgba(255,255,255,0.2)'));
+    const PARTS = [
+      { id: 'core', name: 'Probe core', d: P.pod, words: ['Active', 'Off'], need: true },
+      { id: 'battery', name: 'Battery bank', d: P.battery, words: ['0 EC', 'Off'] },
+      { id: 'solar', name: 'Solar panels ×2', d: P.solar, words: ['Extended · charging', 'Stowed'] },
+      { id: 'antenna', name: 'Antenna', d: P.comms, words: ['Deployed', 'Stowed'] },
+      { id: 'engine', name: 'Main engine', d: P.engine, words: ['S03 · ready', 'Shut down'] }
+    ];
+    const parts = PARTS.map((p) => {
+      const on = !!st.on[p.id];
+      let sub = on ? p.words[0] : p.words[1];
+      if (p.id === 'battery' && power) sub = 'Charging';
+      if (p.id === 'core' && !power) sub = 'No power';
+      return {
+        name: p.name, d: p.d, on, sub,
+        subStyle: 'font-size:9px;line-height:1;color:' + ((p.id === 'core' || p.id === 'battery') && !power ? AMBER : '#A1A1AA'),
+        swLabel: p.name + (on ? ' — turn off' : ' — turn on'),
+        toggle: () => setOn(p.id, !on), track: track(on), knob
+      };
+    });
+    const GROUPCTRL = [
+      { name: 'Engines', ids: ['engine'], d: P.engine },
+      { name: 'Batteries', ids: ['battery'], d: P.battery },
+      { name: 'Solar panels', ids: ['solar'], d: P.solar },
+      { name: 'Lights', ids: ['lights'], d: P.light },
+      { name: 'Antennas', ids: ['antenna'], d: P.comms }
+    ];
+    const groups = GROUPCTRL.map((g) => {
+      const n = g.ids.filter((id) => st.on[id]).length;
+      const on = n === g.ids.length;
+      return {
+        name: g.name, d: g.d, on, sub: n + ' / ' + g.ids.length + ' on',
+        swLabel: (on ? 'Turn off all ' : 'Turn on all ') + g.name.toLowerCase(),
+        toggle: () => { const next = Object.assign({}, st.on); g.ids.forEach((id) => { next[id] = !on; }); set({ on: next }); },
+        track: track(on), knob
+      };
+    });
+    const stats = [
+      { k: 'CONTROL', v: noControl ? 'None' : 'Probe core', c: noControl ? RED : '#FFFFFF' },
+      { k: 'ELECTRIC', v: power ? 'Charging' : '0 EC', c: power ? '#FFFFFF' : AMBER },
+      { k: 'LINK', v: linked ? 'Connected' : st.occluded ? 'Occluded' : 'Offline', c: linked ? '#FFFFFF' : AMBER },
+      { k: 'MASS', v: '[—] t', c: '#FFFFFF' }
+    ].map((s) => ({ k: s.k, v: s.v, vStyle: 'font-size:12px;line-height:1;font-weight:600;color:' + s.c }));
+    const subS = (t) => t ? 'font-size:9px;line-height:1;color:#8B8B93' : 'display:none';
+    const orbitRows = [
+      { k: 'Apoapsis', v: '350.0 km', sub: 'in 53:43', warp: 'Warp to apoapsis', hint: 'Highest point of the orbit' },
+      { k: 'Periapsis', v: '350.0 km', sub: 'in 25:18', warp: 'Warp to periapsis', hint: 'Lowest point of the orbit' },
+      { k: 'Period', v: '56:48', hint: 'Time for one full orbit' },
+      { k: 'Inclination', v: '0.0°', hint: 'Tilt against the equator' },
+      { k: 'Eccentricity', v: '0.000', hint: '0 = circular orbit' }
+    ].map((o) => ({ k: o.k, v: o.v, sub: o.sub || '—', subStyle: subS(o.sub), hasWarp: !!o.warp, warpLabel: o.warp || '', hint: o.hint }));
+    const resources = [
+      { name: 'Electric charge', val: power ? 'Charging' : '0 / [—]', warn: !power, pct: power ? 30 : 0 },
+      { name: 'Monopropellant', val: '[—] / [—]', pct: 60 },
+      { name: 'Methalox', val: '[—] / [—]', pct: 100 }
+    ].map((r) => ({ name: r.name, val: r.val, valStyle: 'font-weight:600;color:' + (r.warn ? AMBER : '#FFFFFF'), fill: 'display:block;width:' + r.pct + '%;height:100%;border-radius:999px;background:#F4F4F5' }));
+    const endpoints = [
+      { name: '[GROUND STATION 1]', sub: st.occluded ? 'Behind Earth' : 'In view' },
+      { name: '[GROUND STATION 2]', sub: st.occluded ? 'Behind Earth' : 'In view' }
+    ].map((e) => ({ name: e.name, sub: e.sub, bars: bars(linked ? 3 : 0) }));
+    const experiments = [
+      { name: 'Temperature scan', sub: 'Ready' },
+      { name: 'Barometer', sub: linked ? 'Ready' : 'Ready · can’t transmit, no signal' }
+    ].map((x) => ({ name: x.name, sub: x.sub, runLabel: 'Run ' + x.name, subStyle: 'font-size:9px;line-height:1;color:' + (x.sub.indexOf('can’t') >= 0 ? AMBER : '#A1A1AA') }));
+    const scripts = [
+      { name: '[SCRIPT 1]', sub: 'Idle' },
+      { name: '[SCRIPT 2]', sub: 'Idle' }
+    ].map((x) => ({ name: x.name, sub: x.sub, runLabel: 'Run ' + x.name }));
+
+    const cols = visible.map((id) => {
+      const def = ALL[id];
+      return {
+        name: def.name, title: def.name.toUpperCase(), sub: def.sub,
+        close: () => set({ dock: null }),
+        isOverview: id === 'overview', isParts: id === 'parts', isComms: id === 'comms', isCrew: id === 'crew',
+        isOrbit: id === 'orbit', isResources: id === 'resources', isManeuver: id === 'maneuver', isScience: id === 'science',
+        isScripts: id === 'scripts', isPlugin: id === 'plugin',
+        stats, groups, parts, orbitRows, resources, endpoints, experiments, scripts,
+        linkLabel: linked ? 'Connected' : 'No signal',
+        linkSub: linked ? '1 station · direct' : st.occluded ? 'Occluded by Earth' : 'Antenna stowed',
+        linkDot: 'width:7px;height:7px;flex:none;border-radius:50%;background:' + (linked ? accent : AMBER)
+      };
+    });
+
+    // ---------- staging (right) ----------
+    const ENG = P.engine;
+    const DEC = 'M4 9 H20 M4 15 H20 M12 3 V7 M12 17 V21';
+    const stages = [
+      { n: '04', icons: [DEC], parts: 'Decoupler', dv: '0 m/s', twr: 'TWR —' },
+      { n: '03', icons: [ENG, DEC], parts: 'Main engine · decoupler', dv: '0 m/s', twr: 'TWR 0.00' },
+      { n: '02', icons: [DEC, DEC, DEC], parts: 'Decouplers ×3', dv: '0 m/s', twr: 'TWR —' }
+    ];
+
+    return {
+      accent, stars, warps, toasts,
+      warpLabel: st.paused ? '—' : fmt(rates[st.warp]),
+      paused: st.paused, playing: !st.paused, playLabel: st.paused ? 'Resume' : 'Pause',
+      togglePlay: () => set({ paused: !st.paused }),
+      catchUp: () => set({ behind: false }),
+      catchStyle: (st.behind ? 'display:flex;' : 'display:none;') + 'position:relative;width:32px;height:32px;border:none;border-radius:50%;padding:0;background:rgba(255,255,255,0.06);color:#E4E4E7;align-items:center;justify-content:center',
+      catchDot: 'position:absolute;right:4px;top:4px;width:5px;height:5px;border-radius:50%;background:' + accent,
+      panelToggles,
+      showDock: st.show.dock, railGroups, cols,
+      showStaging: st.show.staging, stages,
+      stageBadge: 'height:18px;padding:0 6px;display:flex;align-items:center;border-radius:5px;font-size:11px;line-height:1;font-weight:700;color:#FFFFFF;background:' + accent,
+      showNav: st.show.nav,
+      chips, allClear: chips.length === 0, hasPop: !!pc, pop, closePop: () => set({ pop: null }),
+      noControl, sasBtns,
+      sasHint: noControl ? 'Unavailable: uncontrolled' : 'SAS and RCS',
+      sasPill: pill(st.sas), rcsPill: pill(st.rcs),
+      toggleSas: () => { if (noControl) { this.addToast('sas'); flashChip('control'); return; } set({ sas: !st.sas }); },
+      toggleRcs: () => { if (noControl) { flashChip('control'); return; } set({ rcs: !st.rcs }); },
+      thrColor: power ? accent : '#5B5D63',
+      thrText: power ? '#FFFFFF' : '#8B8B93',
+      thrLabel: power ? 'Throttle 37%' : 'Throttle 37% — not responding, no power',
+      throttleUp: () => { if (!power) { this.addToast('throttle'); flashChip('power'); } },
+      linkLabel: linked ? 'Connected' : 'No signal',
+      linkSub: linked ? '1 station' : st.occluded ? 'Occluded by Earth' : 'Antenna stowed',
+      linkDot: 'width:6px;height:6px;border-radius:50%;background:' + (linked ? accent : AMBER)
+    };
+  }
+}
+</script>
+</body>
+</html>

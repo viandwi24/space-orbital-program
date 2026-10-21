@@ -1,0 +1,182 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>R&amp;D — tech tree</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@300;400;500;600;700&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#000}
+a{color:#A8BDF5}a:hover{color:#FFFFFF}
+button{font-family:inherit;cursor:pointer}
+</style>
+</helmet>
+<div style="width: 1920px; height: 1080px; position: relative; overflow: hidden; background: #05070A; font-family: 'Manrope', system-ui, sans-serif; color: #F4F4F5; font-variant-numeric: tabular-nums;">
+
+  <!-- ===== Top ===== -->
+  <div style="position: absolute; left: 24px; top: 24px; display: flex; align-items: center; gap: 8px;">
+    <a href="SpaceCenter.dc.html" aria-label="Back to Space Center" title="Back to Space Center" style="width: 44px; height: 44px; box-sizing: border-box; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: #FFFFFF; background: rgba(22,23,26,0.6); backdrop-filter: blur(28px) saturate(160%); border: 1px solid rgba(255,255,255,0.08);">
+      <svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12 H5 M11 6 L5 12 L11 18"></path></svg>
+    </a>
+    <div style="height: 44px; box-sizing: border-box; display: flex; align-items: center; gap: 10px; padding: 0 16px; background: rgba(22,23,26,0.6); backdrop-filter: blur(28px) saturate(160%); border: 1px solid rgba(255,255,255,0.08); border-radius: 999px;">
+      <div style="font-size: 12px; line-height: 1; font-weight: 700; color: #FFFFFF;">R&amp;D · Tech tree</div>
+      <div style="font-size: 10px; line-height: 1; color: #A1A1AA;">[WORLD NAME 1]</div>
+    </div>
+  </div>
+  <div style="position: absolute; left: 50%; top: 24px; transform: translateX(-50%); height: 44px; box-sizing: border-box; display: flex; align-items: center; gap: 16px; padding: 0 16px; background: rgba(22,23,26,0.6); backdrop-filter: blur(28px) saturate(160%); border: 1px solid rgba(255,255,255,0.08); border-radius: 999px; font-size: 10px; line-height: 1; color: #A1A1AA;">
+    <span style="display: flex; align-items: center; gap: 6px;"><span style="width: 10px; height: 10px; border-radius: 3px; background: #F4F4F5;"></span>Unlocked</span>
+    <span style="display: flex; align-items: center; gap: 6px;"><span style="width: 10px; height: 10px; box-sizing: border-box; border-radius: 3px; border: 1.5px solid #F4F4F5;"></span>Can research</span>
+    <span style="display: flex; align-items: center; gap: 6px;"><span style="width: 10px; height: 10px; box-sizing: border-box; border-radius: 3px; border: 1px solid rgba(255,255,255,0.2);"></span>Locked</span>
+  </div>
+  <div style="position: absolute; right: 24px; top: 24px; height: 44px; box-sizing: border-box; display: flex; align-items: center; gap: 10px; padding: 0 16px; background: rgba(22,23,26,0.6); backdrop-filter: blur(28px) saturate(160%); border: 1px solid rgba(255,255,255,0.08); border-radius: 999px;">
+    <svg aria-hidden="true" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#E4E4E7" stroke-width="1.9" stroke-linejoin="round" stroke-linecap="round"><path d="M9 3 H15 M10 3 V9 L4.5 19 A1.5 1.5 0 0 0 6 21 H18 A1.5 1.5 0 0 0 19.5 19 L14 9 V3 M7 15 H17"></path></svg>
+    <div style="font-size: 10px; line-height: 1; color: #A1A1AA;">Science</div>
+    <div style="font-size: 13px; line-height: 1; font-weight: 600; color: #FFFFFF;">[—]</div>
+  </div>
+
+  <!-- ===== Tree ===== -->
+  <div style="position: absolute; left: 24px; top: 92px; width: 1500px; height: 964px; box-sizing: border-box; border-radius: 16px; background: rgba(22,23,26,0.55); border: 1px solid rgba(255,255,255,0.06);">
+    <div style="position: absolute; left: 0; right: 0; top: 0; display: flex; height: 40px;">
+      <sc-for list="{{tiers}}" as="t" hint-placeholder-count="5">
+        <div style="{{t.style}}">{{t.label}}</div>
+      </sc-for>
+    </div>
+    <svg aria-hidden="true" width="1500" height="964" viewBox="0 0 1500 964" style="position: absolute; left: 0; top: 0;">
+      <sc-for list="{{edges}}" as="e" hint-placeholder-count="14">
+        <path d="{{e.d}}" fill="none" stroke="{{e.stroke}}" stroke-width="1.5"></path>
+      </sc-for>
+    </svg>
+    <sc-for list="{{nodes}}" as="n" hint-placeholder-count="14">
+      <button aria-pressed="{{n.on}}" aria-label="{{n.aria}}" onClick="{{n.pick}}" style="{{n.style}}">
+        <svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" stroke-linecap="round"><path d="{{n.d}}"></path></svg>
+        <span style="display: flex; flex-direction: column; gap: 4px; min-width: 0;">
+          <span style="font-size: 11px; line-height: 1; font-weight: 700;">{{n.name}}</span>
+          <span style="{{n.subStyle}}">{{n.sub}}</span>
+        </span>
+      </button>
+    </sc-for>
+  </div>
+
+  <!-- ===== Right · node detail ===== -->
+  <div style="position: absolute; right: 24px; top: 92px; width: 348px; box-sizing: border-box; display: flex; flex-direction: column; gap: 14px; padding: 16px; background: rgba(22,23,26,0.6); backdrop-filter: blur(28px) saturate(160%); border: 1px solid rgba(255,255,255,0.08); border-radius: 16px;">
+    <div style="display: flex; flex-direction: column; gap: 8px;">
+      <div style="font-size: 9px; line-height: 1; letter-spacing: 0.14em; font-weight: 700; color: #A1A1AA;">{{sel.tier}}</div>
+      <div style="font-size: 22px; line-height: 1.1; font-weight: 300; color: #FFFFFF;">{{sel.name}}</div>
+      <div style="{{sel.chipStyle}}">{{sel.state}}</div>
+    </div>
+    <div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 4px;">
+      <div style="display: flex; flex-direction: column; gap: 4px; padding: 8px; border-radius: 8px; background: rgba(255,255,255,0.05);">
+        <div style="font-size: 7px; line-height: 1; letter-spacing: 0.14em; font-weight: 700; color: #A1A1AA;">COST</div>
+        <div style="font-size: 12px; line-height: 1; font-weight: 600; color: #FFFFFF;">[—] science</div>
+      </div>
+      <div style="display: flex; flex-direction: column; gap: 4px; padding: 8px; border-radius: 8px; background: rgba(255,255,255,0.05);">
+        <div style="font-size: 7px; line-height: 1; letter-spacing: 0.14em; font-weight: 700; color: #A1A1AA;">REQUIRES</div>
+        <div style="font-size: 12px; line-height: 1; font-weight: 600; color: #FFFFFF; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">{{sel.requires}}</div>
+      </div>
+    </div>
+    <div style="display: flex; flex-direction: column; gap: 2px;">
+      <div style="height: 20px; display: flex; align-items: center; font-size: 9px; line-height: 1; letter-spacing: 0.14em; font-weight: 700; color: #A1A1AA;">UNLOCKS PARTS</div>
+      <sc-for list="{{sel.parts}}" as="p" hint-placeholder-count="3">
+        <div style="display: flex; align-items: center; gap: 8px; height: 34px; padding: 0 2px;">
+          <div style="width: 24px; height: 24px; flex: none; border-radius: 7px; background: rgba(255,255,255,0.06); display: flex; align-items: center; justify-content: center; color: #E4E4E7;">
+            <svg aria-hidden="true" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" stroke-linecap="round"><path d="{{p.d}}"></path></svg>
+          </div>
+          <div style="font-size: 11px; line-height: 1; font-weight: 600; color: #FFFFFF;">{{p.name}}</div>
+        </div>
+      </sc-for>
+    </div>
+    <button onClick="{{sel.unlock}}" aria-disabled="{{sel.disabled}}" style="{{sel.btnStyle}}">{{sel.btn}}</button>
+  </div>
+
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"accent":{"editor":"color","default":"#3E6AE1","options":["#3E6AE1","#E82127","#F4F4F5","#22A06B"]},"$preview":{"width":1920,"height":1080}}'>
+class Component extends DCLogic {
+  constructor(props) {
+    super(props);
+    this.state = { sel: 'n5', unlocked: ['n1', 'n2', 'n3', 'n4', 'n6'] };
+  }
+  renderVals() {
+    const st = this.state;
+    const D = {
+      start: 'M12 4 A8 8 0 1 1 11.99 4 Z M12 8 V12 L15 14',
+      rocket: 'M12 2 C15 5 16 9 16 13 L18 17 H6 L8 13 C8 9 9 5 12 2 Z',
+      tank: 'M9 3 H15 A3 3 0 0 1 18 6 V18 A3 3 0 0 1 15 21 H9 A3 3 0 0 1 6 18 V6 A3 3 0 0 1 9 3 Z M6 12 H18',
+      wrench: 'M14 6 A4 4 0 0 0 18 12 L20 14 L14 20 L12 18 A4 4 0 0 0 6 14 L4 12 L10 6 L12 8 Z',
+      science: 'M9 3 H15 M10 3 V9 L4.5 19 A1.5 1.5 0 0 0 6 21 H18 A1.5 1.5 0 0 0 19.5 19 L14 9 V3 M7 15 H17',
+      fin: 'M12 3 C16 8 17 14 17 21 H7 C7 14 8 8 12 3 Z',
+      gyro: 'M12 4 A8 8 0 1 1 11.99 4 Z M4 12 H20 M12 4 C9 7 9 17 12 20',
+      power: 'M3 7 H19 V17 H3 Z M21 10 V14 M11 9 L9 12 H13 L11 15',
+      shield: 'M12 3 L19 6 V11 C19 15.5 16 19 12 21 C8 19 5 15.5 5 11 V6 Z',
+      comms: 'M4 6 A11 11 0 0 0 16 18 Z M10 12 L17 5 M12 21 H20 M16 18 V21',
+      engine: 'M8 3 H16 V11 L19 21 H5 L8 11 Z'
+    };
+    const N = [
+      { id: 'n1', name: 'Start', t: 0, r: 3, d: D.start, parts: [['Command pod · 1 seat', D.rocket], ['Parachute', D.fin]] },
+      { id: 'n2', name: 'Basic rocketry', t: 1, r: 2, d: D.rocket, parts: [['Booster engine', D.engine], ['Methalox tank S', D.tank]] },
+      { id: 'n3', name: 'Engineering 101', t: 1, r: 4, d: D.wrench, parts: [['Stack decoupler', D.wrench], ['Thermometer', D.science]] },
+      { id: 'n4', name: 'General rocketry', t: 2, r: 1, d: D.rocket, parts: [['Core engine', D.engine], ['Methalox tank M', D.tank]] },
+      { id: 'n5', name: 'Stability', t: 2, r: 3, d: D.fin, parts: [['Fin', D.fin], ['Nose cone', D.fin], ['Reaction wheel', D.gyro]] },
+      { id: 'n6', name: 'Basic science', t: 2, r: 5, d: D.science, parts: [['Science bay', D.science], ['Barometer', D.science]] },
+      { id: 'n7', name: 'Advanced rocketry', t: 3, r: 0, d: D.rocket, parts: [['Vacuum engine', D.engine], ['Methalox tank L', D.tank]] },
+      { id: 'n8', name: 'Fuel systems', t: 3, r: 2, d: D.tank, parts: [['Monoprop tank', D.tank], ['Fuel line', D.wrench]] },
+      { id: 'n9', name: 'Flight control', t: 3, r: 3, d: D.gyro, parts: [['RCS thruster', D.engine], ['Probe core', D.gyro]] },
+      { id: 'n10', name: 'Electrics', t: 3, r: 5, d: D.power, parts: [['Battery bank', D.power], ['Solar array', D.power]] },
+      { id: 'n11', name: 'Survivability', t: 3, r: 6, d: D.shield, parts: [['Heat shield', D.shield], ['Landing leg', D.wrench]] },
+      { id: 'n12', name: 'Heavy rocketry', t: 4, r: 1, d: D.engine, parts: [['[HEAVY ENGINE]', D.engine]] },
+      { id: 'n13', name: 'Basic comms', t: 4, r: 4, d: D.comms, parts: [['Direct antenna', D.comms], ['Relay antenna', D.comms]] },
+      { id: 'n14', name: 'Advanced electrics', t: 4, r: 6, d: D.power, parts: [['Fuel cell', D.power], ['Floodlight', D.power]] }
+    ];
+    const E = [['n1', 'n2'], ['n1', 'n3'], ['n2', 'n4'], ['n2', 'n5'], ['n3', 'n5'], ['n3', 'n6'], ['n4', 'n7'], ['n4', 'n8'], ['n5', 'n9'], ['n6', 'n10'], ['n6', 'n11'], ['n7', 'n12'], ['n8', 'n12'], ['n10', 'n13'], ['n9', 'n13'], ['n10', 'n14']];
+    const W = 210, H = 60, X0 = 40, DX = 290, Y0 = 70, DY = 124;
+    const pos = (n) => ({ x: X0 + n.t * DX, y: Y0 + n.r * DY });
+    const parents = (id) => E.filter((e) => e[1] === id).map((e) => e[0]);
+    const unlocked = (id) => st.unlocked.indexOf(id) >= 0;
+    const stateOf = (id) => unlocked(id) ? 'unlocked' : (parents(id).every(unlocked) ? 'available' : 'locked');
+
+    const TIER = ['TIER 1', 'TIER 2', 'TIER 3', 'TIER 4', 'TIER 5'];
+    const tiers = TIER.map((label, i) => ({ label, style: 'position:absolute;left:' + (X0 + i * DX) + 'px;top:22px;font-size:9px;line-height:1;letter-spacing:0.14em;font-weight:700;color:#8B8B93' }));
+    const edges = E.map(([a, b]) => {
+      const A = pos(N.find((n) => n.id === a)), B = pos(N.find((n) => n.id === b));
+      const x1 = A.x + W, y1 = A.y + H / 2, x2 = B.x, y2 = B.y + H / 2, mx = (x1 + x2) / 2;
+      const lit = unlocked(a) && stateOf(b) !== 'locked';
+      return { d: 'M' + x1 + ' ' + y1 + ' H' + mx + ' V' + y2 + ' H' + x2, stroke: lit ? 'rgba(255,255,255,0.55)' : 'rgba(255,255,255,0.14)' };
+    });
+    const nodes = N.map((n) => {
+      const p = pos(n), s = stateOf(n.id), on = st.sel === n.id;
+      const bg = s === 'unlocked' ? '#F4F4F5' : 'rgba(22,23,26,0.95)';
+      const fg = s === 'unlocked' ? '#0B0B0C' : (s === 'available' ? '#FFFFFF' : '#6B6B73');
+      const border = on ? '2px solid ' + (s === 'unlocked' ? '#FFFFFF' : '#FFFFFF') : (s === 'available' ? '1.5px solid #F4F4F5' : (s === 'unlocked' ? '1.5px solid transparent' : '1px solid rgba(255,255,255,0.14)'));
+      return {
+        name: n.name, d: n.d, on,
+        sub: s === 'unlocked' ? 'Unlocked' : (s === 'available' ? '[—] science' : 'Locked'),
+        aria: n.name + ' — ' + s,
+        pick: () => this.setState({ sel: n.id }),
+        style: 'position:absolute;left:' + p.x + 'px;top:' + p.y + 'px;width:' + W + 'px;height:' + H + 'px;box-sizing:border-box;display:flex;align-items:center;gap:10px;padding:0 12px;border-radius:12px;text-align:left;background:' + bg + ';color:' + fg + ';border:' + border + (on ? ';box-shadow:0 0 0 4px rgba(255,255,255,0.12)' : ''),
+        subStyle: 'font-size:9px;line-height:1;color:' + (s === 'unlocked' ? '#52525B' : (s === 'available' ? '#A1A1AA' : '#6B6B73'))
+      };
+    });
+    const sn = N.find((n) => n.id === st.sel) || N[0];
+    const ss = stateOf(sn.id);
+    const req = parents(sn.id).map((id) => N.find((n) => n.id === id).name).join(', ') || '—';
+    const sel = {
+      name: sn.name, tier: TIER[sn.t], requires: req,
+      state: ss === 'unlocked' ? 'UNLOCKED' : (ss === 'available' ? 'READY TO RESEARCH' : 'LOCKED'),
+      chipStyle: 'align-self:flex-start;height:20px;padding:0 8px;display:flex;align-items:center;border-radius:999px;font-size:8px;line-height:1;font-weight:700;letter-spacing:0.1em;background:' + (ss === 'unlocked' ? '#F4F4F5' : 'rgba(255,255,255,0.08)') + ';color:' + (ss === 'unlocked' ? '#0B0B0C' : (ss === 'available' ? '#FFFFFF' : '#8B8B93')),
+      parts: sn.parts.map(([name, d]) => ({ name, d })),
+      btn: ss === 'unlocked' ? 'Already unlocked' : (ss === 'available' ? 'Research · [—] science' : 'Research ' + req + ' first'),
+      disabled: ss !== 'available',
+      unlock: () => { if (ss === 'available') this.setState({ unlocked: st.unlocked.concat([sn.id]) }); },
+      btnStyle: 'height:46px;border:none;border-radius:12px;font-size:12px;line-height:1;font-weight:700;background:' + (ss === 'available' ? '#F4F4F5' : 'rgba(255,255,255,0.06)') + ';color:' + (ss === 'available' ? '#0B0B0C' : '#8B8B93') + ';cursor:' + (ss === 'available' ? 'pointer' : 'default')
+    };
+    return { tiers, edges, nodes, sel };
+  }
+}
+</script>
+</body>
+</html>
