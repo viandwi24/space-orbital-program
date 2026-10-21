@@ -23,6 +23,8 @@
 	import RecoverDialog from '../hud/RecoverDialog.svelte';
 	import { VESSEL_TYPES, type VesselType } from '@orbital/core';
 	import PerfOverlay from '../perf/PerfOverlay.svelte';
+	import { terminateQuestion, type FleetPick } from '../fleet-actions';
+	import { formatFunds } from '../format';
 	import type { PerfSample } from '../perf/perf-stats';
 	import {
 		TRACK_FILTERS,
@@ -65,6 +67,15 @@
 		onsort,
 		onrecover,
 		onterminate,
+		checked = new Set(),
+		oncheck,
+		bulk = null,
+		onbulkrecover,
+		onbulkterminate,
+		onbulkclear,
+		debrisCount = 0,
+		clearSites = [],
+		oncleardebris,
 		onrename,
 		onsettype,
 		windowDestinations = [],
@@ -117,6 +128,18 @@
 		/** Fleet actions on the selected vessel (plan 223). */
 		onrecover?: (vessel: number) => void;
 		onterminate?: (vessel: number) => void;
+		/** Vessel rows checked for a bulk action (plan 318), by row key. */
+		checked?: ReadonlySet<string>;
+		oncheck?: (key: string, on: boolean) => void;
+		/** The checked vessels: what the bulk bar can do with them. */
+		bulk?: FleetPick | null;
+		onbulkrecover?: () => void;
+		onbulkterminate?: () => void;
+		onbulkclear?: () => void;
+		/** Clear debris (plan 318): how much there is, and the sites it can be cleared around. */
+		debrisCount?: number;
+		clearSites?: readonly { id: string; name: string }[];
+		oncleardebris?: (site: string | null) => void;
 		onrename?: (vessel: number, name: string) => void;
 		onsettype?: (vessel: number, type: VesselType) => void;
 		/** Alarms (plan 224): add or replace one, and delete one by id. */
@@ -158,6 +181,11 @@
 	let editing = $state<AlarmDraft | null>(null);
 	let recovering = $state<number | null>(null);
 	let terminating = $state<number | null>(null);
+	// bulk actions and Clear debris (plan 318)
+	let bulkTerminating = $state(false);
+	let bulkRecovering = $state(false);
+	let clearing = $state(false);
+	let clearAt = $state('');
 	let renaming = $state<number | null>(null);
 	let newName = $state('');
 </script>
@@ -253,7 +281,16 @@
 			{/if}
 			<ul class="list" data-testid="mc-tracking">
 				{#each rows as row (row.key)}
-					<li>
+					<li class:pickable={oncheck !== undefined && row.kind === 'vessel'}>
+						{#if oncheck && row.kind === 'vessel'}
+							<input
+								type="checkbox"
+								checked={checked.has(row.key)}
+								onchange={(e) => oncheck(row.key, e.currentTarget.checked)}
+								aria-label="Select {row.label}"
+								data-testid="mc-check-{row.key}"
+							/>
+						{/if}
 						<ListRow
 							name={row.label}
 							sub={row.sub}
@@ -271,7 +308,106 @@
 					</li>
 				{/each}
 			</ul>
+			{#if bulk && bulk.vessels.length > 0}
+				<div class="bulk" role="group" aria-label="Selected vessels" data-testid="mc-bulk">
+					<span class="sub">{bulk.vessels.length} selected</span>
+					{#if onbulkrecover && bulk.recoverable.length > 0}
+						<Button onclick={() => (bulkRecovering = true)} data-testid="mc-bulk-recover"
+							>Recover {bulk.recoverable.length}</Button
+						>
+					{/if}
+					{#if onbulkterminate}
+						<Button
+							variant="ghost"
+							onclick={() => {
+								if (terminateQuestion(bulk!) === null) onbulkterminate();
+								else bulkTerminating = true;
+							}}
+							data-testid="mc-bulk-terminate">Terminate</Button
+						>
+					{/if}
+					<Button variant="ghost" onclick={() => onbulkclear?.()} data-testid="mc-bulk-none"
+						>Clear selection</Button
+					>
+				</div>
+			{/if}
+			{#if oncleardebris}
+				<div class="bulk" data-testid="mc-clear-debris">
+					<select bind:value={clearAt} aria-label="Debris to clear" data-testid="mc-clear-where">
+						<option value="">All debris ({debrisCount})</option>
+						{#each clearSites as site (site.id)}<option value={site.id}>Near {site.name}</option
+							>{/each}
+					</select>
+					<Button
+						variant="ghost"
+						disabled={debrisCount === 0}
+						onclick={() => (clearing = true)}
+						data-testid="mc-clear-go">Clear debris</Button
+					>
+				</div>
+			{/if}
 		</Panel>
+		<Dialog
+			open={bulkTerminating && bulk !== null}
+			title="Terminate {bulk?.vessels.length ?? 0} vessels?"
+			onclose={() => (bulkTerminating = false)}
+		>
+			<p class="why">{bulk ? terminateQuestion(bulk) : ''}</p>
+			<div class="fleetacts">
+				<Button variant="ghost" onclick={() => (bulkTerminating = false)}>Keep them</Button>
+				<Button
+					variant="primary"
+					onclick={() => {
+						bulkTerminating = false;
+						onbulkterminate?.();
+					}}
+					data-testid="mc-bulk-terminate-confirm">Terminate</Button
+				>
+			</div>
+		</Dialog>
+		<Dialog
+			open={bulkRecovering && bulk !== null}
+			title="Recover {bulk?.recoverable.length ?? 0} vessels?"
+			onclose={() => (bulkRecovering = false)}
+		>
+			<p class="why">
+				{bulk?.recoverable.map((v) => v.name ?? `Vessel ${v.id}`).join(', ')}. Credit: {formatFunds(
+					bulk?.credit ?? 0
+				)}.{bulk && bulk.recoverable.length < bulk.vessels.length
+					? ` ${bulk.vessels.length - bulk.recoverable.length} selected cannot be recovered (not landed or still moving).`
+					: ''}
+			</p>
+			<div class="fleetacts">
+				<Button variant="ghost" onclick={() => (bulkRecovering = false)}>Not now</Button>
+				<Button
+					variant="primary"
+					onclick={() => {
+						bulkRecovering = false;
+						onbulkrecover?.();
+					}}
+					data-testid="mc-bulk-recover-confirm">Recover</Button
+				>
+			</div>
+		</Dialog>
+		<Dialog open={clearing} title="Clear debris?" onclose={() => (clearing = false)}>
+			<p class="why">
+				{clearAt === ''
+					? `All ${debrisCount} debris objects leave the world for good.`
+					: `The debris near ${clearSites.find((s) => s.id === clearAt)?.name ?? clearAt} leaves the world for good.`}
+				Vessels with a control source and flags stay.
+			</p>
+			<div class="fleetacts">
+				<Button variant="ghost" onclick={() => (clearing = false)}>Keep it</Button>
+				<Button
+					variant="primary"
+					onclick={() => {
+						clearing = false;
+						oncleardebris?.(clearAt === '' ? null : clearAt);
+					}}
+					data-testid="mc-clear-confirm">Clear debris</Button
+				>
+			</div>
+		</Dialog>
 		<Panel title="Crew roster">
 			{#if crew.length === 0}
 				<p class="calm">No one is hired yet.</p>
@@ -462,8 +598,10 @@
 						{/if}
 					{/if}
 					{#if onterminate}
-						<Button variant="ghost" onclick={() => (terminating = v.id)} data-testid="mc-terminate"
-							>Terminate</Button
+						<Button
+							variant="ghost"
+							onclick={() => (v.crew > 0 ? (terminating = v.id) : onterminate(v.id))}
+							data-testid="mc-terminate">Terminate</Button
 						>
 					{/if}
 				</div>
@@ -485,8 +623,9 @@
 					onclose={() => (terminating = null)}
 				>
 					<p class="why">
-						The vessel leaves the world for good. Crew aboard follow the world's crew rule, as in a
-						crash.
+						The vessel leaves the world for good. {v.crew === 1
+							? '1 crew member is'
+							: `${v.crew} crew members are`} aboard; they follow the world's crew rule, as in a crash.
 					</p>
 					<div class="fleetacts">
 						<Button variant="ghost" onclick={() => (terminating = null)}>Keep it</Button>
@@ -666,6 +805,7 @@
 	.fleet input,
 	.fleet select,
 	.fleetacts select,
+	.bulk select,
 	.rename input {
 		min-width: 0;
 		flex: 1 1 0;
@@ -676,6 +816,22 @@
 		background: var(--surface-inset);
 		border: 1px solid var(--border-subtle);
 		border-radius: var(--radius-row);
+	}
+	.pickable {
+		display: flex;
+		align-items: center;
+		gap: 0.375rem;
+	}
+	.pickable > :global(:last-child) {
+		flex: 1 1 auto;
+		min-width: 0;
+	}
+	.bulk {
+		display: flex;
+		flex-wrap: wrap;
+		align-items: center;
+		gap: 0.5rem;
+		margin-top: 0.5rem;
 	}
 	.fleetacts {
 		display: flex;

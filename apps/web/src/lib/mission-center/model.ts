@@ -329,6 +329,8 @@ export interface ObjectCard {
 		type: VesselType;
 		/** Present while it can be recovered (landed or splashed, at rest): the sim's quote. */
 		recovery?: { value: number; factor: number; distance: number | null; credit: number };
+		/** Crew aboard (plan 318): Terminate asks first only when there are any. */
+		crew: number;
 	};
 }
 
@@ -391,7 +393,8 @@ export function objectCard(
 						id: Number(v.id),
 						name: vesselName(v),
 						type: vesselTypeOf(v),
-						...(v.recovery ? { recovery: v.recovery } : {})
+						...(v.recovery ? { recovery: v.recovery } : {}),
+						crew: v.crew?.length ?? 0
 					}
 				}
 			: {})

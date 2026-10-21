@@ -24,6 +24,7 @@
 	import { worldSession } from '../../../lib/world-session';
 	import { bootWorld } from '../../../lib/world-boot';
 	import { formatFunds } from '../../../lib/format';
+	import { fleetPick, focusAfterRemoval, isDebrisVessel } from '../../../lib/fleet-actions';
 	import { bodyNodes } from '../../../lib/map-path';
 	import { nextWindow, windowDestinations as windowDestinations_ } from '../../../lib/editor/trip';
 	import { bodyMu } from '../../../lib/orbit-info';
@@ -123,6 +124,47 @@
 		note = r && !r.ok ? r.reason : null;
 		if (r?.ok && save) await worldSession.saveNow();
 	}
+	/** Vessels checked in the tracking list (plan 318): the bulk bar acts on them. */
+	let checked = $state<ReadonlySet<string>>(new Set());
+	const checkedIds = (): number[] =>
+		[...checked].filter((k) => k.startsWith('vessel:')).map((k) => Number(k.slice(7)));
+	const bulk = $derived(snapshot && checked.size > 0 ? fleetPick(snapshot, checkedIds()) : null);
+	const debrisCount = $derived(snapshot?.vessels.filter(isDebrisVessel).length ?? 0);
+	/** Vessels left the world (plan 318): the focus moves on, a removed flight is no longer resumed. */
+	function removed(ids: readonly number[]): void {
+		if (!snapshot) return;
+		if (worldSession.focus && ids.includes(worldSession.focus.vessel)) worldSession.focus = null;
+		focus = focusAfterRemoval(snapshot, focus, ids);
+		checked = new Set([...checked].filter((k) => !ids.includes(Number(k.slice(7)))));
+		if (selected && ids.includes(Number(selected.slice(7)))) select(null);
+	}
+	/** Recover or terminate many (plan 318): one command each, one save after. */
+	async function fleetMany(
+		kind: 'recover-vessel' | 'terminate-vessel',
+		ids: number[]
+	): Promise<void> {
+		const done: number[] = [];
+		let why: string | null = null;
+		for (const id of ids) {
+			const r = await mc?.dispatch({ type: kind, vessel: entityId(id) });
+			if (r?.ok) done.push(id);
+			else if (r) why = r.reason;
+		}
+		note = why;
+		removed(done);
+		if (done.length > 0) await worldSession.saveNow();
+	}
+	async function clearDebris(site: string | null): Promise<void> {
+		const r = await mc?.dispatch(site ? { type: 'clear-debris', site } : { type: 'clear-debris' });
+		note = r && !r.ok ? r.reason : null;
+		if (r?.ok) await worldSession.saveNow();
+	}
+	// a checked vessel that left the world (cleared, crashed, docked) is no longer checked
+	$effect(() => {
+		const here = new Set(snapshot?.vessels.map((v) => `vessel:${v.id}`) ?? []);
+		const kept = [...checked].filter((k) => here.has(k));
+		if (kept.length !== checked.size) checked = new Set(kept);
+	});
 	const card = $derived(objectCard(selected, snapshot, bodies, focus));
 	const clock = $derived(
 		snapshot && epoch && bodies.length ? formatDate(calendarOf(bodies), epoch, snapshot.t).text : ''
@@ -394,11 +436,24 @@
 		onsearch={(t) => (search = t)}
 		{sort}
 		onsort={(s) => (sort = s)}
-		onrecover={(id) => void fleetCommand({ type: 'recover-vessel', vessel: entityId(id) }, true)}
-		onterminate={(id) => {
-			void fleetCommand({ type: 'terminate-vessel', vessel: entityId(id) }, true);
-			select(null);
+		onrecover={(id) => void fleetMany('recover-vessel', [id])}
+		onterminate={(id) => void fleetMany('terminate-vessel', [id])}
+		{checked}
+		oncheck={(key, on) => {
+			const next = new Set(checked);
+			if (on) next.add(key);
+			else next.delete(key);
+			checked = next;
 		}}
+		{bulk}
+		onbulkrecover={() =>
+			void fleetMany('recover-vessel', bulk?.recoverable.map((v) => Number(v.id)) ?? [])}
+		onbulkterminate={() =>
+			void fleetMany('terminate-vessel', bulk?.vessels.map((v) => Number(v.id)) ?? [])}
+		onbulkclear={() => (checked = new Set())}
+		{debrisCount}
+		clearSites={worldSites.map((s) => ({ id: s.id, name: s.name }))}
+		oncleardebris={(site) => void clearDebris(site)}
 		onrename={(id, name) =>
 			void fleetCommand({ type: 'rename-vessel', vessel: entityId(id), name }, true)}
 		onsettype={(id, vesselType) =>
