@@ -14,7 +14,7 @@ import type { ReliabilitySnapshot } from './reliability.ts';
 import type { OrbitalElements } from '@orbital/kepler';
 import type { BodyId, EntityId, PartId } from './ids.ts';
 import type { Quat, Vec3 } from './math.ts';
-import type { AutopilotSnapshot } from './autopilots.ts';
+import type { AutopilotLast, AutopilotSettingValue, AutopilotSnapshot } from './autopilots.ts';
 
 export type VesselMode = 'flight' | 'on-rails';
 
@@ -352,6 +352,10 @@ export interface VesselSnapshot {
 	target?: TargetSnapshot;
 	/** The engaged autopilot (plan 310, ADR 0271 point 5); absent without one. */
 	autopilot?: AutopilotSnapshot;
+	/** The last autopilot run and why it ended, or a refused engage (ADR 0285 point 4). */
+	autopilotLast?: AutopilotLast;
+	/** Settings stored per autopilot id (ADR 0285 point 3); absent when none were set. */
+	autopilotSettings?: Record<string, Record<string, AutopilotSettingValue>>;
 	/** Crew aboard (plan 106): who sits in which part, with their ability factors. */
 	crew?: Array<{
 		member: string;
@@ -834,6 +838,13 @@ export type Command =
 	  }
 	/** Start an autopilot on the vessel (plan 310, ADR 0271): `params` go to its `start`. */
 	| { type: 'autopilot-engage'; vessel: EntityId; autopilot: string; params?: unknown }
+	/** Store settings for an autopilot on the vessel (ADR 0285 point 3): merged, then given to `start`. */
+	| {
+			type: 'autopilot-settings';
+			vessel: EntityId;
+			autopilot: string;
+			settings: Record<string, AutopilotSettingValue>;
+	  }
 	/** Stop the vessel's autopilot (outcome `disengaged`). */
 	| { type: 'autopilot-disengage'; vessel: EntityId }
 	| {

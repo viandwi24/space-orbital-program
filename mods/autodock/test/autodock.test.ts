@@ -35,7 +35,7 @@ const rcs = (first: number, on: number): Part[] =>
 	}));
 
 /** Probe core, a port on top, wheel, monopropellant, four RCS blocks. */
-const chaser = (): VesselDesign =>
+const chaser = (thrusters = true): VesselDesign =>
 	({
 		formatVersion: 3,
 		name: 'Chaser',
@@ -44,7 +44,7 @@ const chaser = (): VesselDesign =>
 			link(1, 'stock.docking-port', 0, 'top'),
 			link(2, 'stock.reaction-wheel', 0),
 			link(3, 'stock.monoprop-tank', 2),
-			...rcs(4, 3)
+			...(thrusters ? rcs(4, 3) : [])
 		],
 		stages: []
 	}) as VesselDesign;
@@ -79,7 +79,11 @@ const about = (axis: 'x', angle: number): Quat => ({
  * Both in one circular equatorial orbit; the station's port faces backwards along the track (+Z,
  * the orbit runs toward -Z) and the chaser trails it by `behind` m (negative: ahead of it).
  */
-async function scene(behind: number): Promise<{ sim: Sim; a: EntityId; b: EntityId }> {
+async function scene(
+	behind: number,
+	beside = 0,
+	thrusters = true
+): Promise<{ sim: Sim; a: EntityId; b: EntityId }> {
 	const sim = await createSim({
 		plugins: [Stock, AutoDockMod],
 		backendFactory: () => createRapierBackend({ solverIterations: 16 }),
@@ -104,10 +108,10 @@ async function scene(behind: number): Promise<{ sim: Sim; a: EntityId; b: Entity
 	const a = loaded(
 		sim.dispatch({
 			type: 'load-vessel',
-			design: chaser(),
+			design: chaser(thrusters),
 			placement: {
 				kind: 'state',
-				position: { x: r, y: 0, z: behind },
+				position: { x: r, y: beside, z: behind },
 				velocity: { x: 0, y: 0, z: -v },
 				orientation: { x: 0, y: 0, z: 0, w: 1 }
 			}
@@ -131,8 +135,8 @@ function prepare(sim: Sim, a: EntityId, b: EntityId): void {
 }
 
 describe('Auto Dock (plan 310)', () => {
-	test('docks a chaser 200 m away within 15 minutes of sim time', async () => {
-		const { sim, a, b } = await scene(200);
+	/** Engage and fly until docked, ended or `limit` s; the log lines seen on the way. */
+	async function dock(sim: Sim, a: EntityId, b: EntityId, limit = 15 * 60) {
 		prepare(sim, a, b);
 		const ended: Array<{ outcome: string; reason: string }> = [];
 		let docked = false;
@@ -140,55 +144,72 @@ describe('Auto Dock (plan 310)', () => {
 		sim.events.on('vessel:docked', () => (docked = true));
 		expect(
 			sim.dispatch({ type: 'autopilot-engage', vessel: a, autopilot: 'autodock.dock' })
-		).toEqual({
-			ok: true
-		});
+		).toEqual({ ok: true });
 		const phases = new Set<string>();
+		const log = new Set<string>();
 		const start = sim.time;
 		let lastLog = start;
-		while (!docked && sim.time - start < 15 * 60 && ended.length === 0) {
+		while (!docked && sim.time - start < limit && ended.length === 0) {
 			for (let i = 0; i < 50; i++) sim.step(0.02);
 			const p = snap(sim, a)?.autopilot;
-			if (p) phases.add(p.phase);
+			if (p) {
+				phases.add(p.phase);
+				for (const l of p.log) log.add(l);
+			}
 			if (p && sim.time - lastLog >= 60) {
 				lastLog = sim.time;
 				console.log(`autodock t+${Math.round(sim.time - start)} s ${p.phase}: ${p.status}`);
 			}
 		}
 		const took = sim.time - start;
+		const last = sim.snapshot().vessels.find((v) => v.autopilotLast)?.autopilotLast;
 		console.log(
-			`autodock: ${docked ? `docked after ${took.toFixed(0)} s` : 'not docked'}; ended ${JSON.stringify(ended)}`
+			`autodock: ${docked ? `docked after ${took.toFixed(0)} s` : 'not docked'}; ended ${JSON.stringify(ended)}\n  log: ${[...log, ...(last?.log.slice(-1) ?? [])].join('\n       ')}`
 		);
-		expect(docked).toBe(true);
-		expect(took).toBeLessThan(15 * 60);
-		expect([...phases]).toEqual(expect.arrayContaining(['align', 'approach']));
-		expect(ended).toEqual([expect.objectContaining({ outcome: 'done', reason: 'docked' })]);
+		return { docked, took, phases, ended, log: [...log] };
+	}
+
+	test('docks a chaser 200 m away within 15 minutes of sim time', async () => {
+		const { sim, a, b } = await scene(200);
+		const r = await dock(sim, a, b);
+		expect(r.docked).toBe(true);
+		expect(r.took).toBeLessThan(15 * 60);
+		expect([...r.phases]).toEqual(expect.arrayContaining(['align', 'approach']));
+		expect(r.ended).toEqual([expect.objectContaining({ outcome: 'done', reason: 'docked' })]);
 		expect(sim.snapshot().vessels.filter((v) => v.id === a || v.id === b)).toHaveLength(1);
 		sim.dispose();
 	}, 300_000);
 
-	test('aborts from behind the target port', async () => {
-		const { sim, a, b } = await scene(-100);
-		prepare(sim, a, b);
-		const ended: unknown[] = [];
-		sim.events.on('autopilot:ended', (e) => ended.push(e));
-		expect(
-			sim.dispatch({ type: 'autopilot-engage', vessel: a, autopilot: 'autodock.dock' })
-		).toEqual({
-			ok: true
-		});
-		for (let i = 0; i < 50 && ended.length === 0; i++) sim.step(0.02);
-		expect(ended).toEqual([
-			{
-				vessel: a,
-				autopilot: 'autodock.dock',
-				outcome: 'aborted',
-				reason: expect.stringContaining('Behind')
-			}
-		]);
-		expect(snap(sim, a)!.autopilot).toBeUndefined();
+	test('from 40 m beside the port (the owner, 2026-10-22) it flies round to the axis and docks', async () => {
+		const { sim, a, b } = await scene(0, 40);
+		const r = await dock(sim, a, b);
+		expect(r.docked).toBe(true);
+		expect([...r.phases]).toEqual(expect.arrayContaining(['reposition', 'approach']));
+		expect(r.log.some((l) => l.includes('flying round'))).toBe(true);
 		sim.dispose();
-	}, 60_000);
+	}, 300_000);
+
+	test('from behind the port it flies round the station and docks', async () => {
+		const { sim, a, b } = await scene(-80);
+		const r = await dock(sim, a, b);
+		expect(r.docked).toBe(true);
+		expect(r.log.some((l) => l.includes('behind the port'))).toBe(true);
+		sim.dispose();
+	}, 300_000);
+
+	test('aborts, with the reason in the last run, when RCS cannot move the vessel', async () => {
+		const { sim, a, b } = await scene(60, 0, false);
+		const r = await dock(sim, a, b, 300);
+		expect(r.docked).toBe(false);
+		expect(r.ended).toEqual([
+			expect.objectContaining({
+				outcome: 'aborted',
+				reason: expect.stringContaining('RCS cannot move')
+			})
+		]);
+		expect(snap(sim, a)!.autopilotLast).toMatchObject({ outcome: 'aborted' });
+		sim.dispose();
+	}, 120_000);
 
 	test('refuses to start without a control port, a target port, or from too far', async () => {
 		const { sim, a, b } = await scene(200);

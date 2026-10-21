@@ -5,6 +5,7 @@
 	import StatCell from '../ui/StatCell.svelte';
 	import Switch from '../ui/Switch.svelte';
 	import Button from '../ui/Button.svelte';
+	import Segmented from '../ui/Segmented.svelte';
 	import Self from './PanelView.svelte';
 	import type { ShownNode } from './evaluate';
 
@@ -13,8 +14,8 @@
 		onaction
 	}: {
 		node: ShownNode;
-		/** A button or switch at `path` was used (`on` for a switch). */
-		onaction: (path: string, on?: boolean) => void;
+		/** A button, switch or select at `path` was used (`on` for a switch, the value for a select). */
+		onaction: (path: string, on?: boolean | string) => void;
 	} = $props();
 </script>
 
@@ -40,6 +41,16 @@
 {:else if node.kind === 'switch'}
 	<div class="wide">
 		<Switch checked={node.on} label={node.label} onchange={(on) => onaction(node.path, on)} />
+	</div>
+{:else if node.kind === 'select'}
+	<div class="wide">
+		<Segmented
+			label={node.label}
+			value={node.value ?? ''}
+			options={node.options}
+			onchange={(v) => onaction(node.path, v)}
+			testid="panel-select-{node.path}"
+		/>
 	</div>
 {:else if node.kind === 'button'}
 	<div class="wide">

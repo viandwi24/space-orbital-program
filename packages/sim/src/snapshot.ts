@@ -180,6 +180,9 @@ export function vesselSnapshot(core: SimCore, id: EntityId): VesselSnapshot {
 	};
 	const pilot = autopilotSnapshot(core, vessel);
 	if (pilot) snapshot.autopilot = pilot;
+	if (vessel.autopilotLast) snapshot.autopilotLast = structuredClone(vessel.autopilotLast);
+	if (vessel.autopilotSettings)
+		snapshot.autopilotSettings = structuredClone(vessel.autopilotSettings);
 	snapshot.nodes = nodeSnapshots(core, vessel);
 	const target = resolveTarget(core, vessel);
 	if (target) {

@@ -262,11 +262,12 @@
 | 314 | [A bigger Hangar, and tall craft framed whole](plans/314-bigger-hangar.md) | done | part visuals session | Owner: Kronos V reached the roof. Room 90 × 90 × 69 m (×1.5), camera limits scaled, the view widens to 75° for tall craft; a test fits every blueprint with 1.3× room. Journal 314. |
 | 315 | [Hangar: see inside fairings, bays and petals](plans/315-hangar-see-inside.md) | done | part visuals session | Owner's request. Hover tip (name, mass, holds), x-ray shells, Open/Close in the editor, Show payload; picks reach through a shell only to what it holds. Journal 315. |
 | 316 | [Hangar: part list and start state](plans/316-hangar-part-list-and-start-state.md) | done | part visuals session | Owner's request. A Parts tree in the right panel (select, hover to find); start switches for panels, legs, bays, doors and fuel cells saved in the design; the Hangar draws each part from its start snapshot. Journal 316. |
-| 317 | [Worlds and Create World v3: the console-style library, a full-page Create World, generated system art](plans/317-worlds-and-create-world-v3.md) | in-progress | ui-v3 session | Owner's v3-2 package; ADR 0273 (generated art, optional mod `illustration`/`icon`, API 0.1.101). |
+| 317 | [Worlds and Create World v3: the console-style library, a full-page Create World, generated system art](plans/317-worlds-and-create-world-v3.md) | done | ui-v3 session | Owner's v3-2 package; ADR 0273 (generated art, optional mod `illustration`/`icon`, API 0.1.101). |
 | 318 | [Terminate and Recover from every vessel list, a launch site occupied dialog, and Clear debris](plans/318-terminate-recover-and-occupied-pad.md) | done | launch-bug session | Owner request 2026-10-22. ADR 0274: `atSite` on the vessel snapshot, `clear-debris`; KSP's occupied-pad dialog before a launch. |
 | 320 | [Vessel programs: the player wins per channel, saved scripts, the programs list](plans/320-vessel-programs.md) | done | vessel programs session | ADR 0276, research `vessel-programs.md`: the player takes any control channel from a script or autopilot and gets it back 1 s after letting go; scripts are saved with their `memory` and resume; "N programs" in the status bar; Delete and Abort stop programs; built-in mods on the Mods page; the replay recorder kept no command source (fixed). Journal 320. |
 | 321 | [Guidance Computer: MechJeb-style autopilots mod](plans/321-guidance-computer-autopilots-mod.md) | done | vessel programs session | Built-in mod: execute node, circularize, ascent to orbit, land on the moon, all headless-tested; ADR 0277 gives the pilot body, mass, engines and nodes. Journal 321. |
 | 322 | [Several scripts at once; Switch to from the programs list](plans/322-several-scripts-and-programs-list-switch.md) | draft | | One script session per vessel in the host. |
+| 330 | [Docking blueprints, Auto Dock fly-around, logs, options and mod panel UI](plans/330-docking-blueprints-auto-dock-fly-around-and-panels.md) | done | auto dock session | ADR 0285. Blueprint audit and fixes, docked ports snap face to face, Auto Dock flies round to the axis with options, a log and an alignment display; mod panels get `select` and their own UI in a sandboxed frame. Journal 330. Local commits dee491dc and 09462b18 say "plan 321": the number was taken while they were written. |
 
 Statuses: `draft` (needs refinement before an agent takes it) · `ready` · `in-progress` · `done` · `blocked`.
 
@@ -335,6 +336,7 @@ Existing drafts realigned on 2026-10-17: 063 (runway building), 065, 066, 067, 0
 ## Recent journal entries
 
 - [318 — Terminate and Recover everywhere, the occupied pad, Clear debris](journal/318-terminate-recover-and-occupied-pad.md)
+- [317 — Worlds and Create World v3, with generated system art](journal/317-worlds-and-create-world-v3.md)
 - [321 — Guidance Computer](journal/321-guidance-computer-autopilots-mod.md)
 - [320 — Vessel programs](journal/320-vessel-programs.md)
 - [316 — Part list and start state](journal/316-hangar-part-list-and-start-state.md)

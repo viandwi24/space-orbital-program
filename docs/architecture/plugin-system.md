@@ -168,6 +168,8 @@ Config literals are checked against the module's schema input type (wrong type, 
 
 ## Type sharing between plugins
 
+Plan 330 (ADR 0285) adds a `select` node (a segmented choice that returns a command), and `custom: { height, source }`: the mod's own ES module, mounted in a sandboxed srcdoc frame (scripts only, an opaque origin). The frame's fixed bootstrap is in the site's CSP; the frame gets the panel input as plain data and can only send commands. Autopilots gain settings (`autopilot-settings`, saved per vessel and passed to `start`), a 30-line log and `autopilotLast`. Code: `apps/web/src/lib/dock/mod-frame.ts`, `ModPanelFrame.svelte`.
+
 1. **`depends` → `contributes`:** typed API injected into `ctx` (above).
 2. **Plain exports:** a plugin is a package; `import { ModuleEngine, type EngineConfig } from "@orbital/mod-stock"` works. External mods use `@orbital/sdk` as a `peerDependency` so there is one copy of the types.
 3. **Module augmentation** for open registries. The interfaces `EventMap`, `ResourceMap` (resource id -> info) and `ModuleMap` (module id -> config input type) are declared in core and re-exported by the SDK. **Mods augment `'@orbital/sdk'`** (the only package they import); TypeScript merges through the re-export into core's declaration (verified by `packages/sdk/test/define.test-d.ts`, and from `mods/stock`):

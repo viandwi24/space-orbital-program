@@ -252,6 +252,23 @@ const maxIndex = (core: SimCore, v: VesselState): number =>
 		...(v.design?.parts.map((p) => p.index) ?? [])
 	);
 
+/** The shortest rotation taking unit `a` onto unit `b`. */
+function turnBetween(a: Vec3, b: Vec3): Quat {
+	const c = dot(a, b);
+	if (c < -1 + 1e-12) {
+		const perp = Math.abs(a.x) < 0.9 ? { x: 1, y: 0, z: 0 } : { x: 0, y: 1, z: 0 };
+		const axis = normalize({
+			x: a.y * perp.z - a.z * perp.y,
+			y: a.z * perp.x - a.x * perp.z,
+			z: a.x * perp.y - a.y * perp.x
+		});
+		return { x: axis.x, y: axis.y, z: axis.z, w: 0 };
+	}
+	const x = { x: a.y * b.z - a.z * b.y, y: a.z * b.x - a.x * b.z, z: a.x * b.y - a.y * b.x };
+	const n = Math.hypot(x.x, x.y, x.z, 1 + c);
+	return { x: x.x / n, y: x.y / n, z: x.z / n, w: (1 + c) / n };
+}
+
 function merge(core: SimCore, frame: FlightFrame, pa: Port, pb: Port): void {
 	const va = vesselOf(core, pa.vessel);
 	const vb = vesselOf(core, pb.vessel);
@@ -284,7 +301,21 @@ function merge(core: SimCore, frame: FlightFrame, pa: Port, pb: Port): void {
 		...(other.controlPart !== undefined ? { controlPart: other.controlPart } : {}),
 		time: core.t
 	};
-	const poses = new Map(other.parts.map((id) => [id, partTransform(core, frame, id)]));
+	// Snap the absorbed vessel so the two faces meet exactly, face to face (plan 321, as KSP does on
+	// capture): a capture within 0.15 m and 15 degrees left the ports crooked with a gap
+	const snap = turnBetween(gone.dir, scale(keep.dir, -1));
+	const poses = new Map(
+		other.parts.map((id) => {
+			const t = partTransform(core, frame, id);
+			return [
+				id,
+				{
+					position: add(keep.at, qRotate(snap, sub(t.position, gone.at))),
+					rotation: qMul(snap, t.rotation)
+				}
+			];
+		})
+	);
 	const mK = totalMass(core, keeper.parts);
 	const mG = totalMass(core, other.parts);
 	for (const id of other.parts) {

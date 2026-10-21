@@ -49,6 +49,9 @@ export interface WorldSystem {
 		description?: string;
 		facts?: SystemVariantDefinition['facts'];
 	}>;
+	/** A mod's own card art and icon for the system (ADR 0273), from its first variant that has one. */
+	illustration?: string;
+	icon?: string;
 }
 
 export function loadWorldCatalog(): WorldCatalog {
@@ -74,6 +77,15 @@ export function loadWorldCatalog(): WorldCatalog {
 		scenarios: registries.scenarios.list()
 	};
 }
+
+/** The first `illustration` and `icon` a system's variants give (ADR 0273 point 4). */
+const art = (
+	variants: readonly SystemVariantDefinition[]
+): { illustration?: string; icon?: string } => {
+	const illustration = variants.find((v) => v.illustration)?.illustration;
+	const icon = variants.find((v) => v.icon)?.icon;
+	return { ...(illustration ? { illustration } : {}), ...(icon ? { icon } : {}) };
+};
 
 /** Stock, then every system a plugin declares (plan 124, ADR 0184), each with its own bodies. */
 export function systemsOf(plugins: readonly Plugin[]): WorldSystem[] {
@@ -106,7 +118,8 @@ export function systemsOf(plugins: readonly Plugin[]): WorldSystem[] {
 				label: v.label,
 				description: v.description,
 				facts: v.facts
-			}))
+			})),
+			...art(variants)
 		});
 	}
 	return systems;

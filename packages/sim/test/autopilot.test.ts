@@ -69,6 +69,21 @@ const pilots: Plugin = definePlugin({
 			})
 		);
 		ctx.autopilots.register(
+			defineAutopilot<{ n: number; speed: unknown }>({
+				id: 'test.logger',
+				title: 'Logger',
+				start: (_ctrl, params) => ({ n: 0, speed: (params as { speed?: unknown })?.speed ?? null }),
+				step(_ctrl, memory) {
+					memory.n++;
+					return {
+						phase: 'log',
+						log: `line ${memory.n} speed ${String(memory.speed)}`,
+						...(memory.n >= 40 ? { abort: 'enough lines' } : {})
+					};
+				}
+			})
+		);
+		ctx.autopilots.register(
 			defineAutopilot<{ n: number }>({
 				id: 'test.throws',
 				title: 'Thrower',
@@ -226,5 +241,57 @@ describe('autopilots (plan 310)', () => {
 			expect.objectContaining({ outcome: 'aborted', reason: 'Thrower failed: boom' })
 		]);
 		sim.dispose();
+	}, 60_000);
+
+	test('settings reach start, the log keeps 30 lines, and the last run stays with its reason (plan 330)', async () => {
+		const { sim, id } = await setup('Nope');
+		const v = () => sim.snapshot().vessels[0]!;
+		expect(
+			sim.dispatch({
+				type: 'autopilot-settings',
+				vessel: id,
+				autopilot: 'test.logger',
+				settings: { speed: 'careful' }
+			})
+		).toMatchObject({ ok: true });
+		expect(v().autopilotSettings).toEqual({ 'test.logger': { speed: 'careful' } });
+		// a refused engage is kept with its reason
+		expect(
+			sim.dispatch({ type: 'autopilot-engage', vessel: id, autopilot: 'test.count' })
+		).toMatchObject({ ok: false });
+		expect(v().autopilotLast).toMatchObject({
+			id: 'test.count',
+			outcome: 'refused',
+			reason: 'not this one'
+		});
+		expect(
+			sim.dispatch({ type: 'autopilot-engage', vessel: id, autopilot: 'test.logger' })
+		).toMatchObject({ ok: true });
+		run(sim, 2);
+		const log = v().autopilot!.log;
+		expect(log[0]).toContain('engaged Logger');
+		expect(log.at(-1)).toContain('speed careful');
+		run(sim, 3);
+		expect(v().autopilot).toBeUndefined();
+		const last = v().autopilotLast!;
+		expect(last).toMatchObject({
+			id: 'test.logger',
+			title: 'Logger',
+			outcome: 'aborted',
+			reason: 'enough lines'
+		});
+		expect(last.log.length).toBeLessThanOrEqual(30);
+		expect(last.log.at(-1)).toContain('aborted: enough lines');
+		// the settings and the last run are saved
+		const resumed = await createSim({
+			plugins: [Stock, pilots],
+			backendFactory: rapier(),
+			resume: JSON.parse(JSON.stringify(sim.save()))
+		});
+		const r = resumed.snapshot().vessels[0]!;
+		expect(r.autopilotSettings).toEqual({ 'test.logger': { speed: 'careful' } });
+		expect(r.autopilotLast?.reason).toBe('enough lines');
+		sim.dispose();
+		resumed.dispose();
 	}, 60_000);
 });

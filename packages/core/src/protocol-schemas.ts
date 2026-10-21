@@ -172,6 +172,15 @@ export const commandSchema: z.ZodType<Command> = z.discriminatedUnion('type', [
 	}),
 	z.object({ type: z.literal('autopilot-disengage'), vessel: entity }),
 	z.object({
+		type: z.literal('autopilot-settings'),
+		vessel: entity,
+		autopilot: definitionIdSchema,
+		settings: z.record(
+			z.string().min(1).max(40),
+			z.union([z.boolean(), z.number().finite(), z.string().max(200)])
+		)
+	}),
+	z.object({
 		type: z.literal('action'),
 		vessel: entity,
 		part: entity,

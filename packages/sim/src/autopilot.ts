@@ -7,6 +7,7 @@
  * mass, engines; ADR 0277). A throwing autopilot ends as `aborted`.
  */
 import {
+	AUTOPILOT_LOG_LINES,
 	AUTOPILOT_RATE,
 	createVesselPilot,
 	type AutopilotDefinition,
@@ -63,11 +64,27 @@ export function engageAutopilot(
 		);
 	}
 	if (vessel.autopilot) endAutopilot(core, vesselId, 'disengaged', `replaced by ${def.title}`);
+	// the stored settings first, the command's params on top (ADR 0285 point 3)
+	const stored = vessel.autopilotSettings?.[id];
+	const merged =
+		stored && (params === undefined || (typeof params === 'object' && params !== null))
+			? { ...stored, ...(params as object | undefined) }
+			: params;
 	let memory: unknown;
 	try {
-		memory = plain(def.start(pilotFor(core, vesselId), params));
+		memory = plain(def.start(pilotFor(core, vesselId), merged));
 	} catch (e) {
-		return refuse(message(e));
+		const reason = message(e);
+		// the panel says why (ADR 0285 point 4)
+		vessel.autopilotLast = {
+			id,
+			title: def.title,
+			outcome: 'refused',
+			reason,
+			time: core.t,
+			log: []
+		};
+		return refuse(reason);
 	}
 	const period = 1 / (def.rate ?? AUTOPILOT_RATE);
 	vessel.autopilot = {
@@ -76,7 +93,9 @@ export function engageAutopilot(
 		last: core.t - period, // the first step runs with the next tick
 		phase: 'engaged',
 		status: '',
-		readouts: {}
+		readouts: {},
+		since: core.t,
+		log: [`0 s  engaged ${def.title}`]
 	};
 	core.active.add(vesselId);
 	return { ok: true };
@@ -86,7 +105,7 @@ export function engageAutopilot(
 export function endAutopilot(
 	core: SimCore,
 	vesselId: EntityId,
-	outcome: AutopilotOutcome,
+	outcome: Exclude<AutopilotOutcome, 'refused'>,
 	reason: string
 ): void {
 	if (!core.world.hasEntity(vesselId) || !core.world.has(vesselId, VESSEL)) return;
@@ -95,6 +114,16 @@ export function endAutopilot(
 	if (!a) return;
 	delete vessel.autopilot;
 	delete vessel.translate;
+	const log = [...(a.log ?? [])];
+	log.push(`${Math.round(core.t - (a.since ?? core.t))} s  ${outcome}: ${reason}`);
+	vessel.autopilotLast = {
+		id: a.id,
+		title: definitionOf(core, a.id)?.title ?? a.id,
+		outcome,
+		reason,
+		time: core.t,
+		log: log.slice(-AUTOPILOT_LOG_LINES)
+	};
 	core.events.emit('autopilot:ended', { vessel: vesselId, autopilot: a.id, outcome, reason });
 }
 
@@ -141,6 +170,18 @@ export function runAutopilots(core: SimCore): void {
 		a.phase = String(result?.phase ?? a.phase);
 		a.status = String(result?.status ?? '');
 		a.readouts = readoutsOf(result?.readouts);
+		const lines =
+			result?.log === undefined
+				? []
+				: typeof result.log === 'string'
+					? [result.log]
+					: [...result.log];
+		if (lines.length > 0) {
+			const at = `${Math.round(core.t - (a.since ?? core.t))} s  `;
+			a.log = [...(a.log ?? []), ...lines.map((l) => at + String(l).slice(0, 160))].slice(
+				-AUTOPILOT_LOG_LINES
+			);
+		}
 		core.active.add(id);
 		if (result?.abort) endAutopilot(core, id, 'aborted', String(result.abort));
 		else if (result?.done) endAutopilot(core, id, 'done', a.status || 'done');
@@ -159,6 +200,7 @@ export function autopilotSnapshot(
 		title: definitionOf(core, a.id)?.title ?? a.id,
 		phase: a.phase,
 		status: a.status,
-		readouts: { ...a.readouts }
+		readouts: { ...a.readouts },
+		log: [...(a.log ?? [])]
 	};
 }

@@ -1,7 +1,7 @@
 ---
 id: 317
 title: "Worlds and Create World v3: the console-style library, a full-page Create World, generated system art"
-status: in-progress
+status: done
 owner: "ui-v3 session (Claude, 2026-10-22)"
 depends: [272]
 phase: 7
@@ -62,18 +62,23 @@ The Worlds screen and Create World follow the owner's v3-2 design package (`refs
 
 ## Acceptance criteria
 
-- [ ] `bun run test`, `bun run typecheck`, `bun run lint` and the web vitest with `CI=true` pass.
-- [ ] The gallery vitest draws stock, Sol 1:1, Sol rescaled and every stock preset, deterministic and inside the box.
-- [ ] A preset or variant with `illustration` shows it, and one without shows the generated art (vitest).
-- [ ] Screenshots of Worlds, Achievements and the three Create World steps are in the journal.
+- [x] `bun run test`, `bun run typecheck`, `bun run lint` and the web vitest with `CI=true` pass (see Log for the two known exceptions).
+- [x] The gallery vitest draws stock, Sol 1:1, Sol rescaled and every stock preset, deterministic and inside the box.
+- [x] A preset or variant with `illustration` shows it, and one without shows the generated art (vitest).
+- [x] Screenshots of Worlds, Achievements and the three Create World steps are in the journal.
 
 ## Docs checklist
 
-- [ ] STATUS
-- [ ] Journal 317
-- [ ] ADR 0273 indexed
-- [ ] `guides/` (writing a mod) notes `illustration` and `icon`
+- [x] STATUS
+- [x] Journal 317
+- [x] ADR 0273 indexed
+- [x] `guides/` (writing a mod) notes `illustration` and `icon`
 
 ## Log
 
 - 2026-10-22 — Created on the owner's request via the main session; ADR 0273 written.
+- 2026-10-22 — Done, without e2e (the owner's rule for this task):
+  - The screenshot spec passes on the production build.
+  - `bun run typecheck`: 0 errors. `bun run lint`: clean.
+  - Web vitest with `CI=true`: 1464 pass, no obsolete snapshots. The 2 tests that fail are `sim-host-script-worker` Worker timeouts, which fail on the base too.
+  - `bun run test`: 2162 pass and 3 fail. The 3 are the career-bot runs, which ran past the 30 s timeout on a loaded machine; `career-bot.test.ts` alone with `--timeout 120000` is 9 of 9.

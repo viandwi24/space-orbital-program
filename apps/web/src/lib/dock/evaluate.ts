@@ -12,6 +12,13 @@ export type ShownNode =
 	| { kind: 'switch'; label: string; on: boolean; path: string }
 	| { kind: 'button'; label: string; enabled: boolean; path: string }
 	| {
+			kind: 'select';
+			label: string;
+			options: { value: string; label: string }[];
+			value: string | null;
+			path: string;
+	  }
+	| {
 			kind: 'list';
 			label?: string;
 			items: {
@@ -65,6 +72,14 @@ function show(node: PanelNode, input: PanelInput, memory: PanelMemory, path: str
 			return { kind: 'switch', label: node.label, on: node.value(input) === true, path };
 		case 'button':
 			return { kind: 'button', label: node.label, enabled: node.command(input) !== null, path };
+		case 'select':
+			return {
+				kind: 'select',
+				label: node.label,
+				options: node.options.map((o) => ({ value: o.value, label: o.label })),
+				value: node.value(input),
+				path
+			};
 		case 'list':
 			return {
 				kind: 'list',
@@ -130,7 +145,7 @@ export function commandOf(
 	panel: Pick<PanelDefinition, 'view'>,
 	path: string,
 	input: PanelInput,
-	on?: boolean
+	on?: boolean | string
 ): { command: Command | null } | { error: string } {
 	try {
 		// a row's button in a list (plan 231): `<list path>:<row>:<action>`, the rows as they are now
@@ -143,7 +158,9 @@ export function commandOf(
 		}
 		const node = nodeAt(panel.view, path);
 		if (node?.kind === 'button') return { command: node.command(input) };
-		if (node?.kind === 'switch') return { command: node.command(input, on ?? !node.value(input)) };
+		if (node?.kind === 'switch')
+			return { command: node.command(input, typeof on === 'boolean' ? on : !node.value(input)) };
+		if (node?.kind === 'select' && typeof on === 'string') return { command: node.command(input, on) };
 		return { command: null };
 	} catch (e) {
 		return { error: message(e) };
