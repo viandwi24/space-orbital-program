@@ -6,6 +6,7 @@
 import type { TechNodeDefinition } from './tech-tree.ts';
 import type { CommodityDefinition, RecipeDefinition } from './market.ts';
 import type { ScenarioDefinition } from './scenarios.ts';
+import type { BlueprintDefinition } from './blueprints.ts';
 import type { PanelDefinition } from './panels.ts';
 import type { CategoryDefinition } from './categories.ts';
 import type { AchievementDefinition } from './milestones.ts';
@@ -158,6 +159,8 @@ export interface BasePluginContext {
 	readonly failureModes: Registrar<FailureModeDefinition>;
 	/** Scenarios, the mission packs (plan 100, ADR 0151). */
 	readonly scenarios: Registrar<ScenarioDefinition>;
+	/** Ready-made designs for the Hangar's Library (plan 285, ADR 0263). */
+	readonly blueprints: Registrar<BlueprintDefinition>;
 	/** Dock panels (plan 112, ADR 0149). */
 	readonly panels: Registrar<PanelDefinition>;
 	/** Crew traits and name syllables (plan 106, ADR 0176). */
@@ -222,6 +225,7 @@ export const REGISTRY_KINDS = [
 	'recipe',
 	'failure-mode',
 	'scenario',
+	'blueprint',
 	'panel',
 	'crew-trait',
 	'crew-names'
@@ -298,6 +302,7 @@ const RESERVED_KEYS: ReadonlySet<string> = new Set([
 	'recipes',
 	'failureModes',
 	'scenarios',
+	'blueprints',
 	'panels',
 	'crewTraits',
 	'crewNames',
@@ -501,6 +506,7 @@ export function loadPlugins(plugins: readonly Plugin[], options: LoadOptions = {
 			recipes: registrar(registries.recipes),
 			failureModes: registrar(registries.failureModes),
 			scenarios: registrar(registries.scenarios),
+			blueprints: registrar(registries.blueprints),
 			panels: registrar(registries.panels),
 			crewTraits: registrar(registries.crewTraits),
 			crewNames: registrar(registries.crewNames),
@@ -689,6 +695,7 @@ export function loadPlugins(plugins: readonly Plugin[], options: LoadOptions = {
 				recipe: section(registries.recipes),
 				'failure-mode': section(registries.failureModes),
 				scenario: section(registries.scenarios),
+				blueprint: section(registries.blueprints),
 				panel: section(registries.panels),
 				'crew-trait': section(registries.crewTraits),
 				'crew-names': section(registries.crewNames)

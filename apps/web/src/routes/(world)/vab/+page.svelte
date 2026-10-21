@@ -1,5 +1,4 @@
 <script lang="ts">
-	import { MISSION_BLUEPRINTS } from '../../../lib/editor/missions';
 	import { resolve } from '$app/paths';
 	import { GAME_NAME } from '../../../lib/public/about';
 	import PageMeta from '../../../lib/ui/PageMeta.svelte';
@@ -7,6 +6,7 @@
 	import Catalogue from '../../../lib/vab/Catalogue.svelte';
 	import ChecksList from '../../../lib/vab/ChecksList.svelte';
 	import LibraryDialog from '../../../lib/vab/LibraryDialog.svelte';
+	import BlueprintLibrary from '../../../lib/vab/BlueprintLibrary.svelte';
 	import SelectionCard from '../../../lib/vab/SelectionCard.svelte';
 	import StageEditor from '../../../lib/vab/StageEditor.svelte';
 	import PowerBudget from '../../../lib/vab/PowerBudget.svelte';
@@ -91,6 +91,8 @@
 		if (next !== settings.tutorial) settings.setTutorial(next);
 	});
 	const tutorialStep = $derived(currentStep(settings.tutorial, 'vab'));
+	/** The empty Hangar's featured blueprints (plan 285); the rest are in the Library. */
+	const FEATURED = ['learn.two-stage', 'kronos-selene', 'wayfarer-shuttle', 'trailblazer-rover'];
 	/** The welcome card carries the first step's words; the guide card waits for the first part. */
 	const emptyHangar = $derived(
 		vab.editor.design.parts.length === 0 && !vab.armed && vab.editor.loose.length === 0
@@ -269,26 +271,22 @@
 					Pick a command pod on the left, then click the glowing ring on the platform. Keep adding
 					parts below it, then stage the engines on the right.
 				</p>
+				<div class="featured" aria-label="Featured blueprints">
+					{#each FEATURED as id (id)}
+						{@const card = vab.blueprints.find((c) => c.id === id)}
+						{#if card}
+							<button class="feature" onclick={() => vab.loadBlueprint(card.id)}>
+								<strong>{card.title}</strong>
+								<span>{card.inspiredBy ?? card.summary}</span>
+							</button>
+						{/if}
+					{/each}
+				</div>
 				<div class="row">
-					<Button onclick={() => vab.loadExample()}>Load the two-stage example</Button>
-					<Button onclick={() => vab.loadBoosterExample()}>Load the booster rocket</Button>
-					<Button onclick={() => vab.loadAsparagusExample()}>Load the asparagus rocket</Button>
-					<Button onclick={() => vab.loadGliderExample()}>Load the glider</Button>
-					<Button onclick={() => vab.loadMoonExample()}>Load the moon shot</Button>
+					<Button onclick={() => (vab.blueprintsOpen = true)}>Open the Library</Button>
 					{#if vab.vesselEntries.length > 0}
 						<Button onclick={() => vab.openLibrary()}>Open a saved vessel</Button>
 					{/if}
-				</div>
-				<h3>Famous missions</h3>
-				<div class="row">
-					{#each MISSION_BLUEPRINTS as mission (mission.id)}
-						<Button
-							onclick={() => vab.loadMission(mission.id)}
-							aria-label={`${mission.title}: ${mission.inspiredBy}`}
-						>
-							{mission.title}
-						</Button>
-					{/each}
 				</div>
 			</div>
 		{/if}
@@ -298,6 +296,7 @@
 	<p class="sr-only" id="stack-description">{vab.stackText}</p>
 
 	<LibraryDialog {vab} />
+	<BlueprintLibrary {vab} />
 
 	<Dialog
 		open={vab.confirmOpen}
@@ -471,12 +470,34 @@
 		margin: 0;
 		color: var(--text-dim);
 	}
-	.welcome h3 {
-		margin: var(--s-2) 0 0;
+	.featured {
+		display: grid;
+		grid-template-columns: repeat(auto-fit, minmax(9rem, 1fr));
+		gap: var(--s-2);
+		margin: var(--s-2) 0;
+	}
+	.feature {
+		display: grid;
+		gap: 0.2rem;
+		text-align: left;
+		padding: 0.6rem 0.7rem;
+		border-radius: 0.6rem;
+		border: 1px solid rgb(255 255 255 / 0.14);
+		color: inherit;
+		font: inherit;
+		cursor: pointer;
+		background-color: #12355e;
+		background-image:
+			linear-gradient(rgb(255 255 255 / 0.1) 1px, transparent 1px),
+			linear-gradient(90deg, rgb(255 255 255 / 0.1) 1px, transparent 1px);
+		background-size: 12px 12px;
+	}
+	.feature:hover,
+	.feature:focus-visible {
+		border-color: rgb(255 255 255 / 0.5);
+	}
+	.feature span {
 		font-size: var(--t-sm);
-		font-weight: 600;
-		letter-spacing: 0.08em;
-		text-transform: uppercase;
 		color: var(--text-dim);
 	}
 	.row {

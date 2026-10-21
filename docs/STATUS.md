@@ -230,7 +230,7 @@
 | 282 | [Robotics: rigid groups and motored joints](plans/282-robotics-articulated-vessels.md) | draft | — | Superseded for robotics: built as plan 306 (ADR 0269: kinematic joints). The sequencer and alligator hinges stay here as ideas. |
 | 283 | [Rovers: suspension, wheels, cab, seat, scanning arms, drill](plans/283-rover-and-arms.md) | draft | — | ADRs 0262, 0264. |
 | 284 | [EVA inventory and deployed science stations](plans/284-eva-inventory-and-deployed-science.md) | draft | — | ADR 0264. |
-| 285 | [Blueprint Library: cards, filters, labels, defineBlueprint](plans/285-blueprint-library.md) | draft | — | ADR 0263. |
+| 285 | [Blueprint Library: cards, filters, labels, defineBlueprint](plans/285-blueprint-library.md) | done | part visuals session | ADR 0263, first slice: `defineBlueprint` (API 0.1.100), a Library dialog with cards, filters, search and stats, featured cards in the empty Hangar. Leftovers in draft 310. Journal 285. |
 | 286 | [Mission blueprints: Apollo 11, Shuttle, station, orbiter, telescope, research satellite](plans/286-real-rocket-blueprints-wave-1.md) | draft | — | ADRs 0263, 0255. |
 | 287 | [Rover mission and other famous rockets](plans/287-real-rocket-blueprints-waves-2-and-3.md) | draft | — | ADRs 0263, 0255. |
 | 288 | [Robotics joint spike (benchmark and research only)](plans/288-robotics-joint-spike.md) | done | Worker E | Verdict no-go for ADR 0262 as written: single joints and determinism pass, the 6-joint chain and its cost fail on both joint kinds (journal 288). ADR 0265 proposed: impulse joints, two in series, kinematic long arms. Plan 282 waits for it. |
@@ -254,6 +254,7 @@
 | 306 | [Robotics: kinematic hinges, servos, rotors and pistons](plans/306-robotics-kinematic-joints.md) | done | part visuals session | ADR 0269 supersedes 0262 points 1, 2, 5, 7 and 0265: joints re-pose parts inside the one body, rebuilt at most 10 Hz; 7 parts; limit 4 in series, 16 per vessel. Journal 306. |
 | 307 | [Rover: wheels in three sizes, chassis, drive mode, blueprint](plans/307-rover-wheels-and-drive-mode.md) | done | part visuals session | First slice of plan 283: `wheel-throttle` (API 0.1.99), wheel top speed, rover wheels S/M/L and a deck, Flight drive mode (Alt+G, on by itself near the ground), Trailblazer Rover driven headless off the pad. Journal 307. |
 | 308 | [Attach to sideways nodes (a hub's side ports)](plans/308-sideways-node-attach.md) | done | part visuals session | The editor turns a part onto a node at right angles (as a fallback, never a flip); the resolver accepts the tilt; Horizon Station gets an airlock and a cupola on the hub's sides. Journal 308. |
+| 310 | [Blueprint Library follow-ups: labels, checklist, thumbnail cache, career locks](plans/310-blueprint-library-follow-ups.md) | draft | — | Leftovers of 285. |
 
 Statuses: `draft` (needs refinement before an agent takes it) · `ready` · `in-progress` · `done` · `blocked`.
 
@@ -321,6 +322,7 @@ Existing drafts realigned on 2026-10-17: 063 (runway building), 065, 066, 067, 0
 
 ## Recent journal entries
 
+- [285 — Blueprint Library](journal/285-blueprint-library.md)
 - [307 — Rover: wheels, drive mode, blueprint](journal/307-rover-wheels-and-drive-mode.md)
 - [308 — Attach to sideways nodes](journal/308-sideways-node-attach.md)
 - [306 — Robotics: kinematic joints](journal/306-robotics-kinematic-joints.md)

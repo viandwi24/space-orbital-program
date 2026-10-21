@@ -6,6 +6,7 @@
 import type { TechNodeDefinition } from './tech-tree.ts';
 import type { CommodityDefinition, RecipeDefinition } from './market.ts';
 import type { ScenarioDefinition } from './scenarios.ts';
+import type { BlueprintDefinition } from './blueprints.ts';
 import type { PanelDefinition } from './panels.ts';
 import type { CategoryDefinition } from './categories.ts';
 import type { AchievementDefinition } from './milestones.ts';
@@ -140,6 +141,8 @@ export interface ReadonlyRegistries {
 	failureModes: ReadonlyRegistry<FailureModeDefinition>;
 	/** Scenarios, the mission packs (plan 100, ADR 0151). */
 	scenarios: ReadonlyRegistry<ScenarioDefinition>;
+	/** Ready-made designs for the Hangar's Library (plan 285, ADR 0263). */
+	blueprints: ReadonlyRegistry<BlueprintDefinition>;
 	/** Dock panels (plan 112, ADR 0149). */
 	panels: ReadonlyRegistry<PanelDefinition>;
 	/** Crew traits and name syllables (plan 106, ADR 0176). */
