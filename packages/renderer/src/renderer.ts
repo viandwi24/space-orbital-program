@@ -207,7 +207,10 @@ export interface Renderer {
 	readonly cameraMode: CameraMode;
 	/** What the mode means now (Auto resolves to Free or Orbital); null before the first frame. */
 	readonly resolvedCameraMode: Exclude<CameraMode, 'auto'> | null;
-	/** Point the flight camera at one part of the active vessel, `null` back to the vessel (plan 226). */
+	/**
+	 * Point the flight camera at one part of the active vessel (plan 226), or of another vessel in
+	 * view (plan 306), `null` back to the vessel.
+	 */
 	focusPart(id: EntityId | null): void;
 	readonly focusedPart: EntityId | null;
 	/** Draw one frame and return it as a PNG (plan 226): the canvas only, never the HTML interface. */
@@ -216,6 +219,11 @@ export interface Renderer {
 	highlightPart(id: EntityId | null): void;
 	/** The active vessel's part under a point of the canvas box (CSS px), or null (plan 214). */
 	partAt(x: number, y: number): EntityId | null;
+	/**
+	 * Another vessel's part under a point of the canvas box (CSS px), with its vessel, or null
+	 * (plan 306, ADR 0269): the Flight view's vessel menu. The active vessel is skipped.
+	 */
+	vesselAt(x: number, y: number): { vessel: EntityId; part: EntityId } | null;
 	orbitCamera(input: { dYaw?: number; dPitch?: number; zoomFactor?: number }): void;
 	/**
 	 * Where the camera looks, a unit vector in the sim's inertial axes (plan 225: EVA keys move the

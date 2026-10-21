@@ -664,6 +664,46 @@ export class SceneModel {
 		return null;
 	}
 
+	/**
+	 * Another vessel's part under the canvas point (x, y) in CSS px, with its vessel, or null (plan
+	 * 306, ADR 0269): one raycast against every vessel's part meshes but the active one's.
+	 */
+	vesselAt(x: number, y: number): { vessel: EntityId; part: EntityId } | null {
+		if (this.map) return null;
+		const { width, height } = this.viewport;
+		if (width <= 0 || height <= 0) return null;
+		const roots = new Map<Object3D, { vessel: number; part: number }>();
+		for (const [vid, v] of this.vessels) {
+			if (this.active !== null && vid === Number(this.active)) continue;
+			for (const [id, p] of v.parts) {
+				roots.set(p.model.root, { vessel: vid, part: id });
+				p.model.root.updateWorldMatrix(true, true);
+			}
+		}
+		if (roots.size === 0) return null;
+		this.camera.updateMatrixWorld();
+		this.picker.setFromCamera(new Vector2((x / width) * 2 - 1, 1 - (y / height) * 2), this.camera);
+		for (const hit of this.picker.intersectObjects([...roots.keys()], true)) {
+			for (let o: Object3D | null = hit.object; o; o = o.parent) {
+				const found = roots.get(o);
+				if (found) return { vessel: found.vessel as EntityId, part: found.part as EntityId };
+			}
+		}
+		return null;
+	}
+
+	/** Render-space position of a part of a vessel other than the active one, or undefined. */
+	private otherFocus(id: EntityId): Vec3 | undefined {
+		for (const [vid, v] of this.vessels) {
+			if (this.active !== null && vid === Number(this.active)) continue;
+			const p = v.parts.get(Number(id));
+			if (!p) continue;
+			const w = p.model.root.getWorldPosition(new Vector3());
+			return { x: w.x, y: w.y, z: w.z };
+		}
+		return undefined;
+	}
+
 	highlightPart(id: EntityId | null): void {
 		const next = id === null ? null : Number(id);
 		if (next === this.highlight.id) return;
@@ -1859,7 +1899,11 @@ export class SceneModel {
 				group && active && this.focusId !== null
 					? active.parts.find((p) => p.id === this.focusId)
 					: undefined;
-			if (focused) {
+			// a part of another vessel (plan 306: "Focus camera" in the vessel menu)
+			const elsewhere =
+				!focused && active && this.focusId !== null ? this.otherFocus(this.focusId) : undefined;
+			if (elsewhere) target = elsewhere;
+			else if (focused) {
 				target = {
 					x: target.x + focused.position.x,
 					y: target.y + focused.position.y,
@@ -1878,7 +1922,7 @@ export class SceneModel {
 				}
 			}
 			// Look at the middle of the vessel, not at its root part (the capsule at the top).
-			if (!this.focus && !focused) {
+			if (!this.focus && !focused && !elsewhere) {
 				target = {
 					x: target.x + this.vesselCentre.x,
 					y: target.y + this.vesselCentre.y,

@@ -265,3 +265,5 @@ An ADR records one decision, its context, and its consequences. ADRs are **appen
 | 0266 | [Map paths are drawn in the frames of the bodies now; spheres of influence on demand](0266-map-paths-drawn-in-body-frames-and-soi-on-demand.md) | accepted | 2026-10-21 |
 | 0267 | [The map's filters and Regions in one row; the maneuver card on staging at the right](0267-map-toolbar-one-row-and-maneuver-card-on-staging.md) | accepted | 2026-10-21 |
 | 0268 | [In-game text is English; part nicknames are English words](0268-in-game-text-is-english.md) | accepted | 2026-10-21 |
+| 0269 | [Flight vessel menu, targets resolved at the docking port, controls in the control part's axes](0269-flight-vessel-menu-port-targets-and-control-from-axes.md) | accepted | 2026-10-21 |
+| 0270 | [A public vessel-control API and autopilots that mods define](0270-vessel-control-api-and-mod-autopilots.md) | accepted | 2026-10-21 |

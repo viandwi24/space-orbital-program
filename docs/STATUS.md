@@ -251,6 +251,7 @@
 | 303 | [Mission parts batch: 59 parts and six mission blueprints](plans/303-mission-parts-and-blueprints.md) | done | part visuals session | Owner: all parts now, short tests. Remainders stay in 276, 280, 281, 286, 295–300. Journal 303. |
 | 304 | [Hangar free placement follow-ups: the root part, plane handles, e2e](plans/304-hangar-free-placement-follow-ups.md) | draft | — | Left by 279 (ADR 0258). |
 | 305 | [English in-game text: nicknames, blueprint names, a guard test](plans/305-english-in-game-text.md) | done | part visuals session | ADR 0268 (owner: the game is global). Journal 305. |
+| 306 | [Vessel menu in Flight, docking-port targets, a vessel-control API and the Auto Dock mod](plans/306-vessel-menu-port-targets-control-api-and-auto-dock.md) | in-progress | auto dock session | ADRs 0269, 0270 |
 
 Statuses: `draft` (needs refinement before an agent takes it) · `ready` · `in-progress` · `done` · `blocked`.
 
