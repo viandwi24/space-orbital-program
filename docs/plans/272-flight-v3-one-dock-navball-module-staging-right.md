@@ -145,3 +145,9 @@ The app followed v2 (plan 233). The differences found by reading `FlightV3.dc.ht
 ## Log
 
 - 2026-10-21 — Created from the owner's v3 package. Diff written above; ADR 0253 drafted.
+- 2026-10-21 — Built in the worktree branch `ui/272-v3`; ADR 0253; journal 272 with before/after screenshots at 1440, 1280 and 1024.
+- 2026-10-21 — e2e on the production build (Chromium). After merging origin/main, the HUD's first model comes about 20 s after `/flight` loads, because WebGPU is the default and headless Chromium has no adapter. Baseline main fails `hud-layout` the same way. The tests now wait up to 60 s for staging, and the main session fixed the adapter check (e87d07a7).
+  - Pass: `base-layout` (4), `hud-layout` (4), `smoke` (7), `space-center`, `build-menu`, `astronauts`.
+  - Still being re-run on a fresh build when this was pushed: `branch-sites`, `power`, `vessel-panel` (2) and `eva`. Earlier runs had used a stale preview server on port 5192.
+  - `eva` also fails on the baseline.
+- 2026-10-21 — Pushed to main on the owner's request, before that e2e re-run finished: lint, typecheck, web vitest with `CI=true` and `bun run test` were run first (see the journal). Stays `in-progress` until the four e2e above pass.
