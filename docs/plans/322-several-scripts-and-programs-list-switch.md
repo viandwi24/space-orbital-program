@@ -1,23 +1,23 @@
 ---
-id: 317
+id: 322
 title: "Several scripts at once, one per vessel; Switch to from the programs list"
 status: draft
 owner: ""
-depends: [315]
+depends: [320]
 phase: 0
 created: 2026-10-21
 updated: 2026-10-21
 ---
 
-# 317 — Several scripts at once
+# 322 — Several scripts at once
 
 ## Goal
 
-Each vessel can run its own script at the same time (ADR 0273 point 7 keeps one per world for now): the sim host keeps a script session per vessel, every saved script resumes when the world opens, and the status bar's programs list can switch Flight to a program's vessel.
+Each vessel can run its own script at the same time (ADR 0276 point 7 keeps one per world for now): the sim host keeps a script session per vessel, every saved script resumes when the world opens, and the status bar's programs list can switch Flight to a program's vessel.
 
 ## Context
 
-- ADR 0273 (programs), 0232 (one sandbox per world), 0038 (sandbox frame), 0039 (warp hold: written for one script vessel).
+- ADR 0276 (programs), 0232 (one sandbox per world), 0038 (sandbox frame), 0039 (warp hold: written for one script vessel).
 - Code: `apps/web/src/lib/sim-host.ts` (`session`, `scriptVessel`, the warp hold), `world-session.ts` (`resumeSaved` takes the first), `layout/StatusBar.svelte` (Stop only).
 
 ## Scope
@@ -34,9 +34,9 @@ Each vessel can run its own script at the same time (ADR 0273 point 7 keeps one 
 ## Docs checklist
 
 - [ ] `docs/STATUS.md` updated (board row).
-- [ ] `docs/journal/317-several-scripts-and-programs-list-switch.md` written.
-- [ ] `docs/architecture/scripting.md` describes the session map; ADR 0273 point 7 superseded by a new ADR.
+- [ ] `docs/journal/322-several-scripts-and-programs-list-switch.md` written.
+- [ ] `docs/architecture/scripting.md` describes the session map; ADR 0276 point 7 superseded by a new ADR.
 
 ## Log
 
-- 2026-10-21 — Drafted by the vessel programs session: plan 315 kept one script per world to leave ADR 0039's warp hold unchanged.
+- 2026-10-21 — Drafted by the vessel programs session: plan 320 kept one script per world to leave ADR 0039's warp hold unchanged.

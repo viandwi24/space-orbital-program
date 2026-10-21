@@ -3,7 +3,7 @@
 	"version": "0.0.0",
 	"license": "Apache-2.0",
 	"private": true,
-	"description": "Guidance Computer (plan 316): MechJeb-style autopilots (execute a node, circularize, ascent, landing) written with the public SDK only.",
+	"description": "Guidance Computer (plan 321): MechJeb-style autopilots (execute a node, circularize, ascent, landing) written with the public SDK only.",
 	"type": "module",
 	"exports": {
 		".": "./src/index.ts"

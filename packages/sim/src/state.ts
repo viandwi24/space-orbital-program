@@ -215,7 +215,7 @@ export interface VesselState {
 	/** Samples brought aboard by boarding crew (plan 109): credited at recovery. */
 	samples?: Array<{ subject: string; value: number }>;
 	/**
-	 * The player script flying this vessel (plan 315, ADR 0273 point 6): saved, and restarted with
+	 * The player script flying this vessel (plan 320, ADR 0276 point 6): saved, and restarted with
 	 * `memory` when the world opens.
 	 */
 	script?: {
@@ -226,7 +226,7 @@ export interface VesselState {
 		startedAt: number;
 	};
 	/**
-	 * Channels the player took from the vessel's program (ADR 0273 point 3): `held` while the
+	 * Channels the player took from the vessel's program (ADR 0276 point 3): `held` while the
 	 * player's value is non-zero, else the sim time the program may write the channel again.
 	 */
 	override?: Partial<Record<ControlChannel, 'held' | number>>;

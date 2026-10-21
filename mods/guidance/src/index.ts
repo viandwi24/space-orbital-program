@@ -1,7 +1,7 @@
 /**
- * @orbital/mod-guidance — the Guidance Computer (plan 316): MechJeb-style autopilots written
+ * @orbital/mod-guidance — the Guidance Computer (plan 321): MechJeb-style autopilots written
  * against @orbital/sdk like any third-party mod, and one panel to engage them. Each is a program
- * (ADR 0273): the player takes a control back by touching it, Delete stops it.
+ * (ADR 0276): the player takes a control back by touching it, Delete stops it.
  */
 import { definePanel, definePlugin, type PanelInput } from '@orbital/sdk';
 import { Ascent, Circularize, ExecuteNode, Land } from './autopilots.ts';

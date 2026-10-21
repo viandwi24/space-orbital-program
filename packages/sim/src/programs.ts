@@ -1,5 +1,5 @@
 /**
- * Vessel programs (plan 315, ADR 0273): who wins a control channel when the player and a program
+ * Vessel programs (plan 320, ADR 0276): who wins a control channel when the player and a program
  * (an engaged autopilot or a running script) both write it, and the script record that is saved
  * with the vessel.
  *
@@ -18,7 +18,7 @@ import type { CommandSource } from './delay.ts';
 import { VESSEL, type VesselState } from './state.ts';
 import { endAutopilot } from './autopilot.ts';
 
-/** Sources that are programs (ADR 0273 point 2). */
+/** Sources that are programs (ADR 0276 point 2). */
 export const isProgramSource = (source: CommandSource): boolean =>
 	source === 'script' || source === 'autopilot';
 
@@ -104,7 +104,7 @@ export function stopAutopilot(core: SimCore, vessel: EntityId, v: VesselState, r
 	if (v.autopilot) endAutopilot(core, vessel, 'disengaged', reason);
 }
 
-/** The scripts saved on vessels, for the host to restart when a world opens (ADR 0273 point 6). */
+/** The scripts saved on vessels, for the host to restart when a world opens (ADR 0276 point 6). */
 export function savedScripts(core: SimCore): Array<{
 	vessel: EntityId;
 	name: string;

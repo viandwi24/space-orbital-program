@@ -83,7 +83,7 @@ export type SimEvent =
 	  }
 	| { type: 'mode-changed'; vessel: number; mode: 'flight' | 'on-rails'; reason: string }
 	| { type: 'vessel-destroyed'; vessel: number; reason: string }
-	/** The player took channels from the vessel's program (plan 315, ADR 0273 point 4). */
+	/** The player took channels from the vessel's program (plan 320, ADR 0276 point 4). */
 	| { type: 'program-override'; vessel: number; channels: string[] }
 	/** The player let go: the program flies the vessel again. */
 	| { type: 'program-resumed'; vessel: number }
@@ -157,7 +157,7 @@ export type ClientMessage =
 	| { kind: 'catch-up'; seconds: number }
 	/**
 	 * Run `source` on `vessel` (`name` for the programs list). With `resume` the host runs the script
-	 * saved on the vessel instead, with its memory (plan 315, ADR 0273 point 6); `source` is ignored.
+	 * saved on the vessel instead, with its memory (plan 320, ADR 0276 point 6); `source` is ignored.
 	 */
 	| {
 			kind: 'script-start';
@@ -172,7 +172,7 @@ export type ClientMessage =
 	| { kind: 'dispose' };
 
 export type WorkerMessage =
-	/** `savedScripts`: vessels with a saved script to resume (plan 315, ADR 0273 point 6). */
+	/** `savedScripts`: vessels with a saved script to resume (plan 320, ADR 0276 point 6). */
 	| ({ kind: 'ready'; savedScripts?: Array<{ vessel: number; name: string }> } & Catalog)
 	/** `warp` is the sim's own time warp, which it changes itself (SOI change, warp-to); optional for old fixtures. */
 	/** `stepMs`: wall time of the sim step behind it (plan 203's Info tab). */

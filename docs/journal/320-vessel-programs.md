@@ -1,6 +1,6 @@
-# 315 — Vessel programs
+# 320 — Vessel programs
 
-**Plan:** [plans/315-vessel-programs.md](../plans/315-vessel-programs.md) · **Session:** vessel programs session (Claude), 2026-10-21 · **ADR:** 0273 · **Research:** `research/vessel-programs.md`
+**Plan:** [plans/320-vessel-programs.md](../plans/320-vessel-programs.md) · **Session:** vessel programs session (Claude), 2026-10-21 · **ADR:** 0276 · **Research:** `research/vessel-programs.md`
 
 ## What was done
 
@@ -27,6 +27,6 @@ See the plan's Log for the final command output. Browser (dev server on the work
 
 ## Open questions
 
-- Several scripts at once (draft 317) and the MechJeb-style autopilots (draft 316, waits for plan 310 Part 3).
+- Several scripts at once (draft 322) and the MechJeb-style autopilots (draft 321, waits for plan 310 Part 3).
 - Plan 310 Part 3 merged in: its runner dispatches with source `autopilot` (changed here) and `program-stop` calls its `endAutopilot(..., 'disengaged', reason)`; `programs.test.ts` flies a test autopilot through both.
 - The HUD's throttle gauge shows the page's throttle, not the sim's: a script's throttle is not reflected (as before this plan).

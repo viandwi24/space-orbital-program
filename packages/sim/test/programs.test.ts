@@ -1,4 +1,4 @@
-/** Plan 315 (ADR 0273): the player wins a control channel from a program and gives it back; scripts are saved. */
+/** Plan 320 (ADR 0276): the player wins a control channel from a program and gives it back; scripts are saved. */
 import { describe, expect, test } from 'bun:test';
 import { SCRIPT_MEMORY_MAX, type EntityId } from '@orbital/core';
 import Stock from '@orbital/mod-stock';
@@ -28,7 +28,7 @@ const attitude = (vessel: EntityId, pitch: number, yaw: number, roll = 0) =>
 	({ type: 'attitude', vessel, pitch, yaw, roll }) as const;
 const asScript = { source: 'script' as const };
 
-describe('the player wins per channel (ADR 0273 point 3)', () => {
+describe('the player wins per channel (ADR 0276 point 3)', () => {
 	test('a held player pitch drops the script pitch but not its yaw, and pitch returns 1 s after release', async () => {
 		const { sim, vessel, state, events } = await withScript();
 		expect(sim.dispatch(attitude(vessel, 0.5, 0.5), asScript).ok).toBe(true);
@@ -112,7 +112,7 @@ describe('the player wins per channel (ADR 0273 point 3)', () => {
 	});
 });
 
-describe('saved scripts (ADR 0273 point 6)', () => {
+describe('saved scripts (ADR 0276 point 6)', () => {
 	test('attach, memory and detach change the vessel record and the snapshot', async () => {
 		const { sim, vessel, state } = await withScript();
 		expect(sim.snapshot().vessels.find((v) => v.id === vessel)!.script).toMatchObject({
@@ -183,7 +183,7 @@ const burner = definePlugin({
 	}
 });
 
-describe('autopilots are programs too (ADR 0273 with ADR 0271)', () => {
+describe('autopilots are programs too (ADR 0276 with ADR 0271)', () => {
 	async function engaged() {
 		const sim = await createSim({ plugins: [Stock, burner], backendFactory: rapier(8), seed: 3 });
 		const r = sim.dispatch({ type: 'load-vessel', design });

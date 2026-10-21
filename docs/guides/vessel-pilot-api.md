@@ -19,7 +19,7 @@ Read-outs (SI units; inertial axes are the shared axes of `ship.position`):
 | `relative()` | `{ position, velocity, localPosition, localVelocity, distance, closing }`: target point minus own point. With a port targeted and a port as control part, both points are the port faces (ADR 0270) |
 | `alignment()` | port to port: `{ angle, along, lateral, lateralDistance, distance, closing, velocity, sameSize }`. `angle` rad between the faces (0 = face to face); `along` how far the own face is out in front of the target face along its axis (negative: behind it); `lateral` the offset from that axis; `closing` the speed along it toward the face; `velocity` own minus target |
 | `resource(id)` | `{ amount, capacity }` over the vessel, or undefined |
-| `body` | `{ id, mu, radius, atmosphereHeight, angularVelocity }` of the sphere-of-influence body (ADR 0274; undefined when the host gave no facts) |
+| `body` | `{ id, mu, radius, atmosphereHeight, angularVelocity }` of the sphere-of-influence body (ADR 0277; undefined when the host gave no facts) |
 | `mass` | the vessel's current mass, kg (undefined without facts) |
 | `engines`, `maxThrust` | each engine module `{ part, thrustVacuum, ispVacuum, ignited, flameout }`; the vacuum thrust of those burning, N |
 
@@ -35,7 +35,7 @@ Controls (each one command; values are clamped):
 | `rcs(on)`, `throttle(v)`, `stage()` | `set-rcs`, `throttle`, `stage` |
 | `controlFrom(part \| null)` | `set-control-part` (a command part or a docking port) |
 | `setTarget(ref \| null)`, `setTargetPort(vessel, part)` | `target-set` (a whole vessel, a body, or one docking port) |
-| `addNode(time, prograde, normal, radial)`, `removeNode(id?)` | `node-set` (a new node) and `node-remove` (ADR 0274) |
+| `addNode(time, prograde, normal, radial)`, `removeNode(id?)` | `node-set` (a new node) and `node-remove` (ADR 0277) |
 
 `body`, `mass` and `engines` come from the sim: inside an autopilot they are always there. A pilot a page builds from a snapshot alone has none (`createVesselPilot(view, id, send, facts?)`).
 
@@ -77,9 +77,9 @@ export default definePlugin({
 - The end is the event `autopilot:ended { vessel, autopilot, outcome, reason }` with outcome `done`, `aborted` (an `abort`, a throw, the vessel losing control, the definition not loaded) or `disengaged`. A docking ends the autopilot of both vessels with `done`, `docked`. The sim clears the RCS translation the autopilot left.
 - The memory is saved with the vessel and comes back on load. Keep it plain data.
 - The autopilot runs in the sim, at its rate on sim time, before the step's physics: it is deterministic and runs headless in `bun test`. Commands it sends follow the signal-delay rule as a script's would.
-- It is a *program* (ADR 0273): its commands carry the source `autopilot`, so a control channel the player touches is theirs until 1 s after they let go (`vessel.override` lists them), Delete and Abort stop it, and the status bar lists it. Keep the memory JSON-safe: no `Infinity` or `NaN` (they come back as `null`).
+- It is a *program* (ADR 0276): its commands carry the source `autopilot`, so a control channel the player touches is theirs until 1 s after they let go (`vessel.override` lists them), Delete and Abort stop it, and the status bar lists it. Keep the memory JSON-safe: no `Infinity` or `NaN` (they come back as `null`).
 
-## The Guidance Computer (plan 316)
+## The Guidance Computer (plan 321)
 
 `mods/guidance` (built in) is the second worked example, with MechJeb-style autopilots on the pilot alone:
 

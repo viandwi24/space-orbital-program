@@ -1,7 +1,7 @@
 /**
- * The Guidance Computer in the headless sim (plan 316): a node is executed, an orbit circularized,
+ * The Guidance Computer in the headless sim (plan 321): a node is executed, an orbit circularized,
  * a two-stage rocket flown from the pad to orbit, a lander set down on the moon; the player's
- * throttle wins during a burn (ADR 0273) and `program-stop` disengages.
+ * throttle wins during a burn (ADR 0276) and `program-stop` disengages.
  */
 import { describe, expect, test } from 'bun:test';
 import { partId, type CommandResult, type EntityId, type VesselDesign } from '@orbital/sdk';
@@ -99,7 +99,7 @@ function circular(sim: Sim, body: string, radius: number, alt: number) {
 	};
 }
 
-describe('Guidance Computer (plan 316)', () => {
+describe('Guidance Computer (plan 321)', () => {
 	test('executes a 300 m/s prograde node to within a metre per second', async () => {
 		const sim = await newSim();
 		const mu = muOf(sim, 'stock.home');

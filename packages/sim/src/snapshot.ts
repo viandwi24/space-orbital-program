@@ -304,7 +304,7 @@ export function rulesView(core: SimCore): Readonly<Record<string, boolean | numb
 	return core.rulesView;
 }
 
-/** The vessel's script and the channels the player holds against it (plan 315, ADR 0273). */
+/** The vessel's script and the channels the player holds against it (plan 320, ADR 0276). */
 function programView(
 	core: SimCore,
 	vessel: VesselState

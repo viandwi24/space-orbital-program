@@ -1,5 +1,5 @@
 ---
-id: 315
+id: 320
 title: "Vessel programs: the player wins per channel, saved scripts that resume, the programs list, built-in mods on the Mods page"
 status: done
 owner: "vessel programs session (Claude)"
@@ -9,7 +9,7 @@ created: 2026-10-21
 updated: 2026-10-21
 ---
 
-# 315 — Vessel programs
+# 320 — Vessel programs
 
 ## Goal
 
@@ -17,23 +17,23 @@ A script or a mod autopilot is a *program* attached to one vessel. It keeps flyi
 
 ## Context
 
-- Owner's requests (2026-10-21): scripts run per vessel even when it is not flown; foundation for mods that control ships; program state survives closing the world; a list of running programs in the status bar footer; research how KSP, KSP 2 and others decide who wins; MechJeb-style mods (plan 316); built-in mods in the Mods menu.
-- Research: `research/vessel-programs.md`. ADRs: **0273** (this plan), 0271 (autopilots, plan 310), 0232, 0201 point 9, 0049 point 5, 0039 (warp hold), 0179 (signal refusal).
+- Owner's requests (2026-10-21): scripts run per vessel even when it is not flown; foundation for mods that control ships; program state survives closing the world; a list of running programs in the status bar footer; research how KSP, KSP 2 and others decide who wins; MechJeb-style mods (plan 321); built-in mods in the Mods menu.
+- Research: `research/vessel-programs.md`. ADRs: **0276** (this plan), 0271 (autopilots, plan 310), 0232, 0201 point 9, 0049 point 5, 0039 (warp hold), 0179 (signal refusal).
 - Code: `packages/sim/src/commands.ts`, `delay.ts` (`CommandSource`), `state.ts`, `save.ts`; `packages/core/src/protocol.ts`, `save.ts`; `packages/scripting/src/runner.ts`, `prelude.ts`; `apps/web/src/lib/sim-host.ts`, `world-session`, `flight-loop.ts`, `hud/StatusStrip.svelte`, `hud/status-chips.ts`, `routes/(world)/mods/+page.svelte`.
 
 ## Scope
 
 **In:**
 - Part A: built-in mods on the Mods page.
-- Part B: command sources and per-channel override in the sim (ADR 0273 points 2 to 5), snapshot `override`, events, `program-stop`, Delete key, Abort stops programs.
+- Part B: command sources and per-channel override in the sim (ADR 0276 points 2 to 5), snapshot `override`, events, `program-stop`, Delete key, Abort stops programs.
 - Part C: saved scripts (`script-attach`/`-detach`/`-memory`, `memory`/`resumed` in the script API, resume on world open, one script per vessel), save version bump.
 - Part D: the programs chip and list in the status strip, Manual badge in the HUD.
 
-**Out:** the MechJeb-style autopilots (plan 316); porting the dev autopilot; e2e; quickjs-wasi snapshots.
+**Out:** the MechJeb-style autopilots (plan 321); porting the dev autopilot; e2e; quickjs-wasi snapshots.
 
 ## Steps
 
-1. Plan, ADR 0273, research. Part A, commit.
+1. Plan, ADR 0276, research. Part A, commit.
 2. Part B with sim tests, commit.
 3. Part C with scripting, sim and web tests, commit.
 4. Part D with web tests, commit.
@@ -51,19 +51,20 @@ A script or a mod autopilot is a *program* attached to one vessel. It keeps flyi
 ## Docs checklist
 
 - [x] `docs/STATUS.md` updated (board row).
-- [x] `docs/journal/315-vessel-programs.md` written.
+- [x] `docs/journal/320-vessel-programs.md` written.
 - [x] `docs/architecture/scripting.md` and `docs/guides/scripting.md` describe programs, sources, override, `memory`/`resumed`.
-- [x] ADR 0273 linked above and in the ADR index.
+- [x] ADR 0276 linked above and in the ADR index.
 - [x] `docs/research/vessel-programs.md` written.
 
 ## Log
 
 - 2026-10-21 — Created and started by the vessel programs session after the research; split with the auto dock session (plan 310 owns the autopilot runner, this plan builds on it). Part A done first because it does not depend on 310.
-- 2026-10-21 — Parts A to D done. One script per world kept (ADR 0273 point 7 says so; several at once is draft 317). Found and fixed: the replay recorder dropped the command source. Merged origin/main (plan 310 Part 2): held channels compared in the control part's axes. `stopAutopilot` waits for plan 310's `endAutopilot` (agreed with the auto dock session). Drafts 316 (Guidance Computer) and 317 (several scripts) written.
+- 2026-10-21 — Parts A to D done. One script per world kept (ADR 0276 point 7 says so; several at once is draft 322). Found and fixed: the replay recorder dropped the command source. Merged origin/main (plan 310 Part 2): held channels compared in the control part's axes. `stopAutopilot` waits for plan 310's `endAutopilot` (agreed with the auto dock session). Drafts 321 (Guidance Computer) and 322 (several scripts) written.
 - 2026-10-21 — Verification:
   - `bun test packages/sim/test/programs.test.ts`: 8 pass; `packages/scripting/test/memory.test.ts`: 4 pass; web vitest `builtin-list`, `programs-model`, `sim-host-script`, `script-api`, `keybindings`: pass.
   - `bun run typecheck`: 0 errors (1 old warning). `bun run build`: done. `bun run docs:check`: OK.
   - `bun run test`: 2151 pass, 4 fail under load (two benchmarks, the 3 600-day career bot, the 1 000-staging reliability run); all four pass when run alone (benchmarks 2 + 2 pass, career bot and reliability 2 pass).
   - Web vitest with `CI=true`: 1420 pass, 3 fail before the help row fix (keybindings, now passing) and the two real-thread tests of `sim-host-script-worker.test.ts`, which fail on `main` too on this machine (Node 26 has no `--experimental-transform-types`).
   - Browser: Mods page "Built in"; a script resumed after reload (`resumed true runs 2`); Delete stopped it with a toast.
-- 2026-10-21 — Renumbered from 311/0272 (taken on main) to 315/0273, drafts to 316/317. Merged origin/main 7b4622c0 (plan 310 Part 3 and Auto Dock): autopilot commands use source `autopilot`; `program-stop` calls `endAutopilot`; `programs.test.ts` 10 pass.
+- 2026-10-21 — Renumbered from 311/0272 (taken on main) to 320/0276, drafts to 321/322. Merged origin/main 7b4622c0 (plan 310 Part 3 and Auto Dock): autopilot commands use source `autopilot`; `program-stop` calls `endAutopilot`; `programs.test.ts` 10 pass.
+- 2026-10-22 — Renumbered again before merging to main: 315/316/317 and ADRs 0273/0274 were taken there; now plans 320/321/322 and ADRs 0276/0277.

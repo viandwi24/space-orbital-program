@@ -185,7 +185,7 @@ export const ACTIONS = [
 	flight('Parts', 'gear', 'Landing gear up or down', 'KeyG'),
 	flight('Parts', 'lights', 'Lights on or off', 'KeyU'),
 	flight('Fly', 'abort', 'Abort: stop programs, cut the engines and fire the Abort group', 'Backspace'),
-	// plan 315 (ADR 0273 point 5): the player's kill switch for autopilots and scripts
+	// plan 320 (ADR 0276 point 5): the player's kill switch for autopilots and scripts
 	flight('Fly', 'programStop', 'Stop the programs (autopilot, script) flying this vessel', 'Delete'),
 	flight('Fly', 'precision', 'Fine control', 'CapsLock'),
 	flight('RCS', 'rcsToggle', 'RCS on or off', 'KeyR'),

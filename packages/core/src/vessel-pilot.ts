@@ -59,7 +59,7 @@ export interface DockingAlignment {
 	sameSize: boolean;
 }
 
-/** The body the vessel is in the sphere of influence of (ADR 0274). */
+/** The body the vessel is in the sphere of influence of (ADR 0277). */
 export interface PilotBody {
 	id: string;
 	/** Gravitational parameter, m³/s². */
@@ -72,7 +72,7 @@ export interface PilotBody {
 	angularVelocity: Vec3;
 }
 
-/** One engine module of the vessel (ADR 0274), from its descriptor (ADR 0033). */
+/** One engine module of the vessel (ADR 0277), from its descriptor (ADR 0033). */
 export interface PilotEngine {
 	part: EntityId;
 	/** Full-throttle thrust in vacuum, N. */
@@ -83,7 +83,7 @@ export interface PilotEngine {
 	flameout: boolean;
 }
 
-/** What the host knows beyond the snapshot (ADR 0274): the sim's runner always passes it. */
+/** What the host knows beyond the snapshot (ADR 0277): the sim's runner always passes it. */
 export interface PilotFacts {
 	body: PilotBody;
 	/** Current mass of the vessel, kg. */
@@ -93,7 +93,7 @@ export interface PilotFacts {
 
 export interface VesselPilot {
 	readonly time: number;
-	/** The sphere-of-influence body; undefined when the host gave no facts (ADR 0274). */
+	/** The sphere-of-influence body; undefined when the host gave no facts (ADR 0277). */
 	readonly body: PilotBody | undefined;
 	/** Current mass, kg; undefined without facts. */
 	readonly mass: number | undefined;
@@ -140,7 +140,7 @@ export interface VesselPilot {
 	controlFrom(part: EntityId | null): void;
 	setTarget(target: TargetRef | null): void;
 	setTargetPort(vessel: EntityId, part: EntityId): void;
-	/** Add a maneuver node (ADR 0274): delta-v components in m/s at sim time `time`. */
+	/** Add a maneuver node (ADR 0277): delta-v components in m/s at sim time `time`. */
 	addNode(time: number, prograde: number, normal: number, radial: number): void;
 	/** Remove a node by id, or the first one. */
 	removeNode(id?: number): void;

@@ -221,7 +221,7 @@ const ve = thrust / flow;
 const burn = (dv) => (ship.mass * ve * (1 - Math.exp(-dv / ve))) / thrust;
 ```
 
-## Programs: saved state, resuming, and who flies (plan 315, ADR 0273)
+## Programs: saved state, resuming, and who flies (plan 320, ADR 0276)
 
 A running script is a *program* attached to the vessel it flies. It keeps flying that vessel when you switch to another vessel or leave Flight, and the status bar lists it ("1 program"; click it for the list and a Stop button).
 

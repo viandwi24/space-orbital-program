@@ -260,9 +260,9 @@
 | 312 | [Blueprint Library follow-ups: labels, checklist, thumbnail cache, career locks](plans/312-blueprint-library-follow-ups.md) | draft | — | Leftovers of 285. |
 | 313 | [Tethers and winches between vessels, and releasable struts](plans/313-tethers-winches-and-strut-release.md) | draft | — | Owner's question 2026-10-21 (KSP struts and KAS cables). ADR 0272 proposed; research in `refs/part-visuals-and-blueprints/connectors-and-tethers.md`. |
 | 314 | [A bigger Hangar, and tall craft framed whole](plans/314-bigger-hangar.md) | done | part visuals session | Owner: Kronos V reached the roof. Room 90 × 90 × 69 m (×1.5), camera limits scaled, the view widens to 75° for tall craft; a test fits every blueprint with 1.3× room. Journal 314. |
-| 315 | [Vessel programs: the player wins per channel, saved scripts, the programs list](plans/315-vessel-programs.md) | done | vessel programs session | ADR 0273, research `vessel-programs.md`: the player takes any control channel from a script or autopilot and gets it back 1 s after letting go; scripts are saved with their `memory` and resume; "N programs" in the status bar; Delete and Abort stop programs; built-in mods on the Mods page; the replay recorder kept no command source (fixed). Journal 315. |
-| 316 | [Guidance Computer: MechJeb-style autopilots mod](plans/316-guidance-computer-autopilots-mod.md) | done | vessel programs session | Built-in mod: execute node, circularize, ascent to orbit, land on the moon, all headless-tested; ADR 0274 gives the pilot body, mass, engines and nodes. Journal 316. |
-| 317 | [Several scripts at once; Switch to from the programs list](plans/317-several-scripts-and-programs-list-switch.md) | draft | | One script session per vessel in the host. |
+| 320 | [Vessel programs: the player wins per channel, saved scripts, the programs list](plans/320-vessel-programs.md) | done | vessel programs session | ADR 0276, research `vessel-programs.md`: the player takes any control channel from a script or autopilot and gets it back 1 s after letting go; scripts are saved with their `memory` and resume; "N programs" in the status bar; Delete and Abort stop programs; built-in mods on the Mods page; the replay recorder kept no command source (fixed). Journal 320. |
+| 321 | [Guidance Computer: MechJeb-style autopilots mod](plans/321-guidance-computer-autopilots-mod.md) | done | vessel programs session | Built-in mod: execute node, circularize, ascent to orbit, land on the moon, all headless-tested; ADR 0277 gives the pilot body, mass, engines and nodes. Journal 321. |
+| 322 | [Several scripts at once; Switch to from the programs list](plans/322-several-scripts-and-programs-list-switch.md) | draft | | One script session per vessel in the host. |
 
 Statuses: `draft` (needs refinement before an agent takes it) · `ready` · `in-progress` · `done` · `blocked`.
 
@@ -330,8 +330,8 @@ Existing drafts realigned on 2026-10-17: 063 (runway building), 065, 066, 067, 0
 
 ## Recent journal entries
 
-- [316 — Guidance Computer](journal/316-guidance-computer-autopilots-mod.md)
-- [315 — Vessel programs](journal/315-vessel-programs.md)
+- [321 — Guidance Computer](journal/321-guidance-computer-autopilots-mod.md)
+- [320 — Vessel programs](journal/320-vessel-programs.md)
 - [314 — A bigger Hangar](journal/314-bigger-hangar.md)
 - [311 — Lights, the RCS jet, RCS propellant](journal/311-lights-panel-angled-nav.md)
 - [309 — Mission flight tests](journal/309-mission-flight-tests.md)

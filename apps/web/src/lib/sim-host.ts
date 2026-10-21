@@ -62,7 +62,7 @@ export const HELD_REASON =
 	'held while time warp is requested or active (on rails the attitude is frozen); it is applied again at warp 1';
 /** While a script runs, its timing is reported at most this often, ms. */
 export const SCRIPT_STATUS_MS = 500;
-/** How often a running script's changed memory is committed to its vessel, ms (plan 315, ADR 0273). */
+/** How often a running script's changed memory is committed to its vessel, ms (plan 320, ADR 0276). */
 export const SCRIPT_MEMORY_MS = 1_000;
 /** Lines of print output and refusals forwarded per tick; the rest of a flood is dropped. */
 export const MAX_LOG_LINES_PER_TICK = 50;
@@ -187,7 +187,7 @@ export function createSimHost(options: SimHostOptions): SimHost {
 	let lastRefusal = '';
 	/** Answers to the script's commands, offered with its next snapshot (ADR 0039, plan 032). */
 	let verdicts: CommandVerdict[] = [];
-	/** The script's memory not yet committed to the sim, and when it was last (plan 315, ADR 0273). */
+	/** The script's memory not yet committed to the sim, and when it was last (plan 320, ADR 0276). */
 	let pendingMemory: Record<string, unknown> | undefined;
 	let memoryAt = 0;
 	/** Last accepted throttle per vessel: a script that burns cannot be put on rails. */
@@ -300,7 +300,7 @@ export function createSimHost(options: SimHostOptions): SimHost {
 		lines = [];
 		options.post({ kind: 'script-log', lines: out });
 	};
-	/** Commit the script's memory to its vessel, so a save carries it (ADR 0273 point 6). */
+	/** Commit the script's memory to its vessel, so a save carries it (ADR 0276 point 6). */
 	const commitMemory = (): void => {
 		const memory = pendingMemory;
 		pendingMemory = undefined;
@@ -311,7 +311,7 @@ export function createSimHost(options: SimHostOptions): SimHost {
 	};
 	/**
 	 * The script's run is over: `reason` detaches it from its vessel (it is no longer saved); null
-	 * keeps it saved to resume when the world opens again (ADR 0273 point 6).
+	 * keeps it saved to resume when the world opens again (ADR 0276 point 6).
 	 */
 	const forget = (reason: string | null): void => {
 		if (!sim || scriptVessel < 0) return;
@@ -429,7 +429,7 @@ export function createSimHost(options: SimHostOptions): SimHost {
 		if (!sim.snapshot().vessels.some((v) => Number(v.id) === vessel)) {
 			return refuse(`vessel ${vessel} does not exist`);
 		}
-		// a resumed run is the script saved on the vessel, with its memory (ADR 0273 point 6)
+		// a resumed run is the script saved on the vessel, with its memory (ADR 0276 point 6)
 		const saved = run.resume ? sim.scripts().find((x) => Number(x.vessel) === vessel) : undefined;
 		if (run.resume && !saved) return refuse(`vessel ${vessel} has no saved script`);
 		const source = saved?.source ?? asked;
@@ -488,7 +488,7 @@ export function createSimHost(options: SimHostOptions): SimHost {
 		session = created;
 	}
 
-	/** `keep`: the world is closing; the script stays saved on its vessel (ADR 0273 point 6). */
+	/** `keep`: the world is closing; the script stays saved on its vessel (ADR 0276 point 6). */
 	function stopScript(keep = false): void {
 		endScript(keep ? null : 'stopped');
 		lines = [];
@@ -702,7 +702,7 @@ export function createSimHost(options: SimHostOptions): SimHost {
 							event: { type: 'building-ready', kind: e.kind, level: e.level }
 						})
 					),
-					// who flies is never silent (plan 315, ADR 0273 point 4)
+					// who flies is never silent (plan 320, ADR 0276 point 4)
 					created.events.on('program:override', (e) =>
 						options.post({
 							kind: 'sim-event',

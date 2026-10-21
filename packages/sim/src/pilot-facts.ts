@@ -1,5 +1,5 @@
 /**
- * What the sim tells an autopilot's pilot beyond the snapshot (plan 316, ADR 0274): the body of
+ * What the sim tells an autopilot's pilot beyond the snapshot (plan 321, ADR 0277): the body of
  * the vessel's sphere of influence, the vessel's mass, and its engines from their descriptors.
  */
 import {

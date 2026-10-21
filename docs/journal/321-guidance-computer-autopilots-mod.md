@@ -1,10 +1,10 @@
-# 316 — Guidance Computer
+# 321 — Guidance Computer
 
-**Plan:** [plans/316-guidance-computer-autopilots-mod.md](../plans/316-guidance-computer-autopilots-mod.md) · **Session:** vessel programs session (Claude), 2026-10-21 · **ADR:** 0274
+**Plan:** [plans/321-guidance-computer-autopilots-mod.md](../plans/321-guidance-computer-autopilots-mod.md) · **Session:** vessel programs session (Claude), 2026-10-21 · **ADR:** 0277
 
 ## What was done
 
-- **ADR 0274:** `createVesselPilot(view, id, send, facts?)`; the pilot reads `body` (mu, radius, atmosphere height, spin), `mass`, `engines`/`maxThrust`, and gets `addNode`/`removeNode`. The sim's runner passes `pilotFacts(core, id)` (`packages/sim/src/pilot-facts.ts`: `totalMass`, engine descriptors of ADR 0033, `bodyAngularVelocity`).
+- **ADR 0277:** `createVesselPilot(view, id, send, facts?)`; the pilot reads `body` (mu, radius, atmosphere height, spin), `mass`, `engines`/`maxThrust`, and gets `addNode`/`removeNode`. The sim's runner passes `pilotFacts(core, id)` (`packages/sim/src/pilot-facts.ts`: `totalMass`, engine descriptors of ADR 0033, `bodyAngularVelocity`).
 - **`mods/guidance`** (`@orbital/mod-guidance`, built in): `guidance.node`, `guidance.circularize`, `guidance.ascent`, `guidance.land` and the "Guidance Computer" panel; two-body helpers in `orbit.ts`.
 - **Web:** in `BUILTIN_PLUGINS`; the Mods page describes it.
 

@@ -1,26 +1,26 @@
 ---
-id: 316
+id: 321
 title: "Guidance Computer: a built-in mod with MechJeb-style autopilots (node executor, circularize, ascent, landing)"
 status: done
 owner: "vessel programs session (Claude)"
-depends: [310, 315]
+depends: [310, 320]
 phase: 0
 created: 2026-10-21
 updated: 2026-10-21
 ---
 
-# 316 — Guidance Computer
+# 321 — Guidance Computer
 
 ## Goal
 
-A built-in mod, `@orbital/mod-guidance` ("Guidance Computer"), ships the autopilots players know from MechJeb 2 as programs: execute the next maneuver node, circularize at apoapsis or periapsis, fly an ascent to a chosen orbit, and land (suicide burn, then a soft touchdown). Each is an ADR 0271 autopilot that uses only the public SDK (`defineAutopilot`, `VesselControl`) and a `definePanel` panel. The player takes any channel back by touching it and stops them with Delete (ADR 0273); the Mods page lists the mod under Built in.
+A built-in mod, `@orbital/mod-guidance` ("Guidance Computer"), ships the autopilots players know from MechJeb 2 as programs: execute the next maneuver node, circularize at apoapsis or periapsis, fly an ascent to a chosen orbit, and land (suicide burn, then a soft touchdown). Each is an ADR 0271 autopilot that uses only the public SDK (`defineAutopilot`, `VesselControl`) and a `definePanel` panel. The player takes any channel back by touching it and stops them with Delete (ADR 0276); the Mods page lists the mod under Built in.
 
 ## Context
 
 - Owner's request (2026-10-21): "mods like auto docking, and several of the well-known MechJeb 2 features, in our game as mods; built-in mods appear in the Mods menu".
 - Research: `research/vessel-programs.md` (MechJeb's per-axis yield and PID reset, kRPC's AutoPilot refusing SAS).
-- ADRs: 0271 (autopilots), 0273 (arbitration, saved state), **0274** (pilot read-outs: body, mass, engines, nodes), 0056 (maneuver nodes), 0049 (SAS).
-- Depends on plan 310 Part 3 (`defineAutopilot`, `autopilot-engage`/`-disengage`, snapshot `autopilot`) and plan 315.
+- ADRs: 0271 (autopilots), 0276 (arbitration, saved state), **0277** (pilot read-outs: body, mass, engines, nodes), 0056 (maneuver nodes), 0049 (SAS).
+- Depends on plan 310 Part 3 (`defineAutopilot`, `autopilot-engage`/`-disengage`, snapshot `autopilot`) and plan 320.
 
 ## Scope
 
@@ -38,7 +38,7 @@ A built-in mod, `@orbital/mod-guidance` ("Guidance Computer"), ships the autopil
 
 ## Steps
 
-1. ADR 0274: the pilot reads the body, mass and engines and sets nodes (the sim's runner passes them); commit.
+1. ADR 0277: the pilot reads the body, mass and engines and sets nodes (the sim's runner passes them); commit.
 2. Mod skeleton and the node executor with sim tests; commit.
 3. Circularize and ascent with sim tests; commit.
 4. Landing with a moon test; commit.
@@ -54,12 +54,12 @@ A built-in mod, `@orbital/mod-guidance` ("Guidance Computer"), ships the autopil
 ## Docs checklist
 
 - [x] `docs/STATUS.md` updated (board row).
-- [x] `docs/journal/316-guidance-computer-autopilots-mod.md` written.
+- [x] `docs/journal/321-guidance-computer-autopilots-mod.md` written.
 - [x] `docs/guides/` section on the Guidance Computer.
 
 ## Log
 
-- 2026-10-21 — Drafted by the vessel programs session (plan 315) from the owner's request; waits for plan 310 Part 3.
-- 2026-10-21 — Refined and started in the same session at the owner's request; plan 310 Part 3 is on main. The pilot lacked body, mass, thrust and nodes: ADR 0274.
+- 2026-10-21 — Drafted by the vessel programs session (plan 320) from the owner's request; waits for plan 310 Part 3.
+- 2026-10-21 — Refined and started in the same session at the owner's request; plan 310 Part 3 is on main. The pilot lacked body, mass, thrust and nodes: ADR 0277.
 - 2026-10-22 — Done. `bun test mods/guidance`: 6 pass. `bun run typecheck`: 0 errors; `bun run build`: done; `bun run docs:check`: OK. `bun run test`: 2178 pass, 1 fail (the 50-vessel background benchmark, passes alone: 2 pass). Web vitest: 1452 pass; fails: the two real-thread script tests (Node 26, fail on main too) and `branch-model` under load (5 pass alone). Browser: Mods page lists the mod; `guidance.ascent` flew the turn from the pad in the dev build.
 

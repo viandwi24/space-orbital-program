@@ -42,7 +42,7 @@ export interface EventMap {
 	};
 	/** The vessel's target no longer exists (it was destroyed or removed); the target is cleared (plan 035). */
 	'vessel:target-lost': { vessel: EntityId; target: number };
-	/** The player took control channels from the vessel's program (plan 315, ADR 0273 point 4). */
+	/** The player took control channels from the vessel's program (plan 320, ADR 0276 point 4). */
 	'program:override': { vessel: EntityId; channels: ControlChannel[] };
 	/** The player let go of every channel; the program flies the vessel again. */
 	'program:resumed': { vessel: EntityId };

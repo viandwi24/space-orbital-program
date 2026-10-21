@@ -41,7 +41,7 @@ export interface ReplayFile {
 	terrain: boolean;
 	/** The `SimSave` the recording started from (validated by `createSim` on resume). */
 	start: unknown;
-	/** `source`: a program's command keeps who sent it (plan 315, ADR 0273 point 2); absent is the player. */
+	/** `source`: a program's command keeps who sent it (plan 320, ADR 0276 point 2); absent is the player. */
 	commands: Array<{ t: number; command: unknown; source?: 'script' | 'autopilot' }>;
 	checkpoints: Checkpoint[];
 }

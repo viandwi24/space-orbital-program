@@ -19,7 +19,7 @@ import type { DispatchOptions, Sim } from './sim.ts';
 export interface ReplayRecorder {
 	/**
 	 * Dispatch through the recorder: an accepted command is logged with the sim time and, for a
-	 * program's, its source (plan 315: a script's command must stay a script's, ADR 0273 point 2).
+	 * program's, its source (plan 320: a script's command must stay a script's, ADR 0276 point 2).
 	 */
 	dispatch(command: Command, options?: DispatchOptions): CommandResult;
 	/** Call after each `step`: takes a checkpoint when one is due. */

@@ -3,8 +3,8 @@
  * engaged autopilot at its rate on sim time, before the step's physics, with a `VesselPilot` built
  * from fresh snapshots of the vessel and its target vessel. Every control call is a command
  * through `dispatch`, the handler the keys and scripts use, sent with source `autopilot` (a program,
- * ADR 0273; the signal-delay rule treats it like a script). The pilot gets the sim's facts (body,
- * mass, engines; ADR 0274). A throwing autopilot ends as `aborted`.
+ * ADR 0276; the signal-delay rule treats it like a script). The pilot gets the sim's facts (body,
+ * mass, engines; ADR 0277). A throwing autopilot ends as `aborted`.
  */
 import {
 	AUTOPILOT_RATE,

@@ -1,8 +1,8 @@
 /**
- * The Guidance Computer's autopilots (plan 316, ADR 0271, 0273, 0274): execute the next maneuver
+ * The Guidance Computer's autopilots (plan 321, ADR 0271, 0276, 0277): execute the next maneuver
  * node, circularize, fly an ascent to orbit, land. Each flies only through the `VesselPilot` and
  * keeps its memory as plain JSON (a phase and a few numbers), so a world reopened mid-burn goes on.
- * The player takes any channel by touching it (ADR 0273); these loops have no integrators to reset.
+ * The player takes any channel by touching it (ADR 0276); these loops have no integrators to reset.
  */
 import { defineAutopilot, type AutopilotStep, type Vec3, type VesselPilot } from '@orbital/sdk';
 import {
@@ -28,7 +28,7 @@ const NODE_DONE = 0.1;
 /** Seconds between two stagings, so a stage that just fired gets to light. */
 const STAGE_GAP = 1.5;
 
-/** The pilot's facts (ADR 0274), or a reason they are missing. */
+/** The pilot's facts (ADR 0277), or a reason they are missing. */
 function facts(pilot: VesselPilot): { mu: number; radius: number; mass: number } | string {
 	if (!pilot.body || pilot.mass === undefined) return 'the vessel has no guidance data';
 	return { mu: pilot.body.mu, radius: pilot.body.radius, mass: pilot.mass };

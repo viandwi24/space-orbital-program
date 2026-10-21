@@ -1,10 +1,10 @@
 /**
- * Vessel programs (plan 315, ADR 0273): an engaged autopilot or a running player script flies a
+ * Vessel programs (plan 320, ADR 0276): an engaged autopilot or a running player script flies a
  * vessel; the player takes any control channel back by touching it, and the program resumes it
  * `PROGRAM_RESUME_DELAY` seconds of sim time after the player lets go.
  */
 
-/** The control channels a program and the player share (ADR 0273 point 3). */
+/** The control channels a program and the player share (ADR 0276 point 3). */
 export const CONTROL_CHANNELS = [
 	'pitch',
 	'yaw',
@@ -20,7 +20,7 @@ export type ControlChannel = (typeof CONTROL_CHANNELS)[number];
 /** Sim seconds after the player lets go of a channel before a program may write it again. */
 export const PROGRAM_RESUME_DELAY = 1;
 
-/** Largest saved script source and memory, as UTF-16 code units of the JSON text (ADR 0273 point 6). */
+/** Largest saved script source and memory, as UTF-16 code units of the JSON text (ADR 0276 point 6). */
 export const SCRIPT_SOURCE_MAX = 65_536;
 export const SCRIPT_MEMORY_MAX = 65_536;
 
