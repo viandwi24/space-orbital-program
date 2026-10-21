@@ -432,7 +432,13 @@ function burn(pilot: VesselPilot, m: RendezvousMemory, mass: number): AutopilotS
 		Object.assign(m, newNodeMemory(false), { warpedFor: -1 });
 		return toStage(m, m.next, `${m.stage} burn done`);
 	}
-	return { phase: m.stage, status: `${title(m.stage)}: ${step.status ?? ''}`, readouts: step.readouts };
+	// the node's own delta-v is the burn's; "Delta-v left" stays the vessel's
+	const { 'Delta-v left': burnLeft, ...rest } = step.readouts ?? {};
+	return {
+		phase: m.stage,
+		status: `${title(m.stage)}: ${step.status ?? ''}`,
+		readouts: { ...rest, ...(burnLeft === undefined ? {} : { 'Burn left': burnLeft }) }
+	};
 }
 
 const TITLES: Record<RendezvousStage, string> = {

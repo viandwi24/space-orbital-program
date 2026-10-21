@@ -97,20 +97,21 @@
 	}
 	button {
 		position: relative;
-		flex: 1 0 auto;
+		flex: 1 1 auto;
+		min-width: 0;
 		display: inline-flex;
 		align-items: center;
 		justify-content: center;
 		gap: 0.25rem;
 		min-height: 1.75rem;
-		padding: 0 0.5rem;
+		padding: 0 0.3rem;
 		border: 0;
 		border-radius: var(--radius-pill);
 		background: transparent;
 		color: var(--text-secondary);
 		font: inherit;
-		font-size: var(--t-small);
-		font-weight: 600;
+		font-size: var(--t-label);
+		font-weight: 700;
 		cursor: pointer;
 		white-space: nowrap;
 	}

@@ -97,7 +97,7 @@ function status(ids: string[], idle: string) {
 		kind: 'notice' as const,
 		text: (i: PanelInput): string | null => {
 			const a = flying(i, ...ids);
-			if (a) return `${a.title} · ${a.phase}${a.status ? ` — ${a.status}` : ''}`;
+			if (a) return a.status ? `${a.title}: ${a.status}` : `${a.title} · ${a.phase}`;
 			const why = refusal(i, ...ids) ?? blocked(i, ids[0]!);
 			if (why) return why;
 			const last = i.vessel?.autopilotLast;
@@ -207,7 +207,7 @@ const ascentTab: PanelNode[] = [
 			{ kind: 'readout', label: 'Phase', value: (i) => flying(i, Ascent.id)?.phase ?? 'off' }
 		]
 	},
-	actions(engage('Engage ascent', Ascent.id), abort(Ascent.id))
+	actions(engage('Engage', Ascent.id), abort(Ascent.id))
 ];
 
 const NODE = [ExecuteNode.id, Circularize.id];
@@ -241,7 +241,7 @@ const orbitTab: PanelNode[] = [
 			} }
 		]
 	},
-	actions(engage('Execute next node', ExecuteNode.id), abort(...NODE)),
+	actions(engage('Execute node', ExecuteNode.id), abort(...NODE)),
 	{
 		kind: 'section',
 		title: 'Circularize',
@@ -335,7 +335,7 @@ const rendezvousTab: PanelNode[] = [
 			}
 		]
 	},
-	actions(engage('Engage rendezvous', Rendezvous.id), abort(...RDV))
+	actions(engage('Engage', Rendezvous.id), abort(...RDV))
 ];
 
 const landingTab: PanelNode[] = [
@@ -351,17 +351,24 @@ const landingTab: PanelNode[] = [
 		]
 	},
 	{
-		kind: 'number',
-		label: 'Touchdown speed',
-		unit: 'm/s',
-		min: 0.5,
-		max: 3,
-		step: 0.1,
-		value: (i) => Number(settingsOf(i, Land.id).touchdown ?? TOUCHDOWN_SPEED),
-		command: (i, v) => setting(i, Land.id, 'touchdown', v)
+		kind: 'section',
+		title: 'Touchdown',
+		columns: 1,
+		children: [
+			{
+				kind: 'number',
+				label: 'Touchdown speed',
+				unit: 'm/s',
+				min: 0.5,
+				max: 3,
+				step: 0.1,
+				value: (i) => Number(settingsOf(i, Land.id).touchdown ?? TOUCHDOWN_SPEED),
+				command: (i, v) => setting(i, Land.id, 'touchdown', v)
+			}
+		]
 	},
 	{ kind: 'notice', text: () => 'Deploy the landing legs yourself: the computer does not.', tone: () => 'info' },
-	actions(engage('Engage landing', Land.id), abort(Land.id))
+	actions(engage('Engage', Land.id), abort(Land.id))
 ];
 
 const logTab: PanelNode[] = [
@@ -369,7 +376,7 @@ const logTab: PanelNode[] = [
 		kind: 'notice',
 		text: (i) => {
 			const a = engaged(i);
-			return a ? `${a.title} · ${a.phase}${a.status ? ` — ${a.status}` : ''}` : 'Nothing engaged.';
+			return a ? (a.status ? `${a.title}: ${a.status}` : `${a.title} · ${a.phase}`) : 'Nothing engaged.';
 		},
 		tone: (i) => (engaged(i) ? 'active' : 'info')
 	},

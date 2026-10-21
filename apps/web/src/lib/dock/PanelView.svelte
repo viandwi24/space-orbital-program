@@ -48,7 +48,7 @@
 {:else if node.kind === 'tabs'}
 	<PanelTabs {node} {onaction} />
 {:else if node.kind === 'progress'}
-	<div class="wide">
+	{#if node.value !== null || node.text !== null}<div class="wide">
 		<span class="k">{node.label}{#if node.text}<span class="v">{node.text}</span>{/if}</span>
 		<div
 			class="bar"
@@ -60,7 +60,7 @@
 		>
 			<div class="fill" style="width: {node.value === null ? 0 : node.value * 100}%"></div>
 		</div>
-	</div>
+	</div>{/if}
 {:else if node.kind === 'number'}
 	<label class="field">
 		<span class="k">{node.label}</span>
@@ -96,11 +96,13 @@
 			/>{/if}
 	</div>
 {:else if node.kind === 'switch'}
-	<div class="wide">
+	<div class="wide line">
+		<span class="name">{node.label}</span>
 		<Switch checked={node.on} label={node.label} onchange={(on) => onaction(node.path, on)} />
 	</div>
 {:else if node.kind === 'select'}
 	<div class="wide">
+		<span class="k" aria-hidden="true">{node.label}</span>
 		<Segmented
 			label={node.label}
 			value={node.value ?? ''}
@@ -110,7 +112,8 @@
 		/>
 	</div>
 {:else if node.kind === 'button'}
-	<div class="wide">
+	<!-- a toned button (ADR 0287) takes one column, so Engage and Abort sit side by side -->
+	<div class={node.tone ? 'act' : 'wide'}>
 		<Button
 			variant={node.tone ?? 'default'}
 			disabled={!node.enabled}
@@ -177,6 +180,23 @@
 		display: grid;
 		grid-template-columns: repeat(2, minmax(0, 1fr));
 		gap: 0.25rem;
+	}
+	.act {
+		display: grid;
+	}
+	.act :global(.btn) {
+		width: 100%;
+	}
+	.wide.line {
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+		gap: 0.5rem;
+	}
+	.name {
+		font-size: var(--t-small);
+		font-weight: 600;
+		color: var(--text-primary);
 	}
 	.grid.one {
 		grid-template-columns: minmax(0, 1fr);

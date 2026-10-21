@@ -259,7 +259,7 @@ describe('Rendezvous autopilot (plan 331)', () => {
 		const set = dock.command(input(), true)!;
 		expect(sim.dispatch(set).ok).toBe(true);
 		expect(dock.value(input())).toBe(true);
-		const engage = all.find((x) => x.kind === 'button' && x.label === 'Engage rendezvous');
+		const engage = all.find((x) => x.kind === 'button' && x.label === 'Engage');
 		if (engage?.kind !== 'button') throw new Error('no engage');
 		expect(sim.dispatch(engage.command(input())!).ok).toBe(true);
 		for (let k = 0; k < 5; k++) sim.step(0.1);
@@ -267,7 +267,7 @@ describe('Rendezvous autopilot (plan 331)', () => {
 		expect(typeof readout('Delta-v estimate')).toBe('number');
 		expect(view.active?.(input())).toBe('rendezvous');
 		expect(view.tabs.find((t) => t.id === 'rendezvous')!.badge?.(input())).toBe('ON');
-		expect(notice.text(input())).toStartWith('Rendezvous · ');
+		expect(notice.text(input())).toStartWith('Rendezvous');
 		expect(notice.tone?.(input())).toBe('active');
 		// the other programs say why they are off
 		const ascent = view.tabs.find((t) => t.id === 'ascent')!.children[0]!;

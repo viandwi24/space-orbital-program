@@ -46,12 +46,12 @@ describe('Guidance Computer panel (plan 332)', () => {
 	test('a program that cannot start says why and has no Engage', () => {
 		const v = vessel();
 		expect(statusOf('orbit', v)).toEqual({ text: 'No maneuver node: add one on the map.', tone: 'warn' });
-		expect(button('orbit', 'Execute next node').command(input(v))).toBeNull();
+		expect(button('orbit', 'Execute node').command(input(v))).toBeNull();
 		expect(statusOf('rendezvous', v).text).toBe('Target a vessel or a docking port first.');
 		expect(statusOf('ascent', v).text).toBe('Already in orbit.');
 		const ground = vessel({ surface: true, orbit: undefined });
 		expect(statusOf('landing', ground).text).toBe('Already on the ground.');
-		expect(button('ascent', 'Engage ascent').command(input(ground))).toEqual({
+		expect(button('ascent', 'Engage').command(input(ground))).toEqual({
 			type: 'autopilot-engage',
 			vessel: entityId(1),
 			autopilot: 'guidance.ascent'
@@ -73,7 +73,7 @@ describe('Guidance Computer panel (plan 332)', () => {
 		expect(view.active?.(input(v))).toBe('orbit');
 		expect(tab('orbit').badge?.(input(v))).toBe('ON');
 		expect(tab('ascent').badge?.(input(v))).toBeNull();
-		expect(statusOf('orbit', v)).toEqual({ text: 'Execute node · burn — Burning: 6.0 m/s left', tone: 'active' });
+		expect(statusOf('orbit', v)).toEqual({ text: 'Execute node: Burning: 6.0 m/s left', tone: 'active' });
 		const progress = nodesOf('orbit').find((n) => n.kind === 'progress');
 		if (progress?.kind !== 'progress') throw new Error('no progress');
 		expect(progress.value(input(v))).toBe(0.5);
