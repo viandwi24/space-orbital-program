@@ -1,8 +1,9 @@
 /**
  * The moving props of the hangar (plan 029): an overhead crane carrying a crate, a tug with a
- * trailer on a lane behind the platform, and ground crew in high-visibility vests. Poses are pure
- * functions of time (unit-tested); the builders make a handful of meshes each (the crew is one
- * instanced mesh per body part for all of them). With reduced motion everything stays at `REST_TIME`.
+ * trailer on a lane behind the platform, and people at work: the crew character of plan 341 in
+ * engineer, scientist, mechanic and researcher outfits. Poses are pure functions of time
+ * (unit-tested); the builders make a handful of meshes each (one skinned mesh per person). With
+ * reduced motion everything stays at `REST_TIME`.
  */
 import {
 	BoxGeometry,
@@ -10,7 +11,6 @@ import {
 	Color,
 	CylinderGeometry,
 	Group,
-	InstancedMesh,
 	Matrix4,
 	Mesh,
 	MeshStandardMaterial,
@@ -22,6 +22,10 @@ import {
 	type Material
 } from 'three';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
+import { createWalkers, type CrewSpec, type Walkers as Crew } from '../crew/walkers.ts';
+
+export { WALK_SPEED, crewPose, type CrewPose, type CrewSpec } from '../crew/walkers.ts';
+export type { Crew };
 
 /** The time the props show when motion is reduced: a pleasing still frame. */
 export const REST_TIME = 23;
@@ -100,133 +104,64 @@ export const TUG_LENGTH = 3.6;
 
 // --- crew ------------------------------------------------------------------------------------------------------
 
-export interface CrewSpec {
-	vest: number;
-	hat: number;
-	skin: number;
-	/** Path: a point, a circle around the platform, or a line paced back and forth. */
-	path:
-		| { kind: 'stand'; x: number; z: number; facing: number }
-		| { kind: 'circle'; radius: number; start: number; direction: 1 | -1 }
-		| {
-				kind: 'line';
-				from: readonly [number, number];
-				to: readonly [number, number];
-				pause: number;
-		  };
-}
-
-const VESTS = [0xff7a1a, 0xc8f018, 0xff7a1a, 0xc8f018];
-const HATS = [0xf4f4ef, 0xf2c200, 0x2a6fd6, 0xf4f4ef];
-const SKINS = [0xf1c9a5, 0xc68c5c, 0x8d5a3a, 0xe0ac80];
-
+/** The Hangar's people: engineers, scientists, mechanics and researchers at work (owner, 2026-10-22). */
 export const CREW: readonly CrewSpec[] = [
 	{
-		vest: VESTS[0]!,
-		hat: HATS[0]!,
-		skin: SKINS[0]!,
+		outfit: 'engineer',
+		id: 'hangar-1',
 		path: { kind: 'circle', radius: 8.3, start: 0.9, direction: 1 }
 	},
 	{
-		vest: VESTS[1]!,
-		hat: HATS[1]!,
-		skin: SKINS[1]!,
+		outfit: 'scientist',
+		id: 'hangar-2',
 		path: { kind: 'circle', radius: 8.9, start: 4.1, direction: -1 }
 	},
 	{
-		vest: VESTS[2]!,
-		hat: HATS[2]!,
-		skin: SKINS[2]!,
+		outfit: 'mechanic',
+		id: 'hangar-3',
 		path: { kind: 'line', from: [-19.5, -8.6], to: [-12.8, -9.4], pause: 3 }
 	},
 	{
-		vest: VESTS[3]!,
-		hat: HATS[3]!,
-		skin: SKINS[3]!,
+		outfit: 'researcher',
+		id: 'hangar-9',
+		path: { kind: 'line', from: [8.5, 13.5], to: [19, 8.5], pause: 4 }
+	},
+	{
+		outfit: 'engineer',
+		id: 'hangar-10',
+		path: { kind: 'line', from: [-13.5, 10.5], to: [-21, 4.5], pause: 2.5 }
+	},
+	{
+		outfit: 'engineer',
+		id: 'hangar-4',
+		action: 'work',
 		path: { kind: 'stand', x: -18.6, z: -16.4, facing: -0.6 }
 	},
 	{
-		vest: VESTS[0]!,
-		hat: HATS[1]!,
-		skin: SKINS[2]!,
+		outfit: 'scientist',
+		id: 'hangar-5',
+		action: 'work',
 		path: { kind: 'stand', x: -17.4, z: -17.2, facing: Math.PI - 0.7 }
 	},
 	{
-		vest: VESTS[1]!,
-		hat: HATS[0]!,
-		skin: SKINS[3]!,
+		outfit: 'mechanic',
+		id: 'hangar-6',
+		action: 'idle',
 		path: { kind: 'stand', x: 13.2, z: -9.6, facing: Math.PI + 0.5 }
 	},
 	{
-		vest: VESTS[2]!,
-		hat: HATS[3]!,
-		skin: SKINS[0]!,
-		path: { kind: 'stand', x: 4.4, z: 5.6, facing: -2.2 }
+		outfit: 'researcher',
+		id: 'hangar-7',
+		action: 'wave',
+		path: { kind: 'stand', x: 4.4, z: 7.6, facing: -2.2 }
 	},
 	{
-		vest: VESTS[3]!,
-		hat: HATS[2]!,
-		skin: SKINS[1]!,
-		path: { kind: 'stand', x: -6.1, z: -3.8, facing: 0.9 }
+		outfit: 'scientist',
+		id: 'hangar-8',
+		action: 'idle',
+		path: { kind: 'stand', x: -6.1, z: -5.8, facing: 0.9 }
 	}
 ];
-
-export const WALK_SPEED = 1.15;
-
-export interface CrewPose {
-	x: number;
-	z: number;
-	/** Yaw about y so the figure faces its walking direction (its front is +x at yaw 0, like the tug). */
-	yaw: number;
-	/** Distance walked, m; 0 for a standing figure. The legs swing with it. */
-	walked: number;
-	moving: boolean;
-}
-
-export function crewPose(spec: CrewSpec, t: number): CrewPose {
-	const p = spec.path;
-	if (p.kind === 'stand') return { x: p.x, z: p.z, yaw: p.facing, walked: 0, moving: false };
-	if (p.kind === 'circle') {
-		const a = p.start + (p.direction * WALK_SPEED * t) / p.radius;
-		const tangent = a + (p.direction * Math.PI) / 2;
-		return {
-			x: Math.cos(a) * p.radius,
-			z: Math.sin(a) * p.radius,
-			// +x rotated by yaw must point along (cos tangent, sin tangent) in xz: yaw = -tangent.
-			yaw: -tangent,
-			walked: WALK_SPEED * t,
-			moving: true
-		};
-	}
-	const dx = p.to[0] - p.from[0];
-	const dz = p.to[1] - p.from[1];
-	const len = Math.hypot(dx, dz);
-	const leg = len / WALK_SPEED;
-	const cycle = 2 * (leg + p.pause);
-	const c = ((t % cycle) + cycle) % cycle;
-	let u: number;
-	let forward = true;
-	let moving = true;
-	if (c < leg) u = c / leg;
-	else if (c < leg + p.pause) {
-		u = 1;
-		moving = false;
-	} else if (c < 2 * leg + p.pause) {
-		u = 1 - (c - leg - p.pause) / leg;
-		forward = false;
-	} else {
-		u = 0;
-		moving = false;
-	}
-	const heading = Math.atan2(forward ? dz : -dz, forward ? dx : -dx);
-	return {
-		x: p.from[0] + dx * u,
-		z: p.from[1] + dz * u,
-		yaw: -heading,
-		walked: moving ? WALK_SPEED * t : 0,
-		moving
-	};
-}
 
 // --- builders ----------------------------------------------------------------------------------------------------
 
@@ -541,112 +476,7 @@ export function poseTug(tug: Tug, t: number, motion: boolean): void {
 	}
 }
 
-export interface Crew {
-	meshes: InstancedMesh[];
-	/** Materials created for the crew (the shared mover materials are the caller's). */
-	materials: Material[];
-	geometries: BufferGeometry[];
-	/** Writes the matrices of all figures for time `t`. */
-	pose(t: number): void;
-}
-
-const EULER_Q = new Quaternion();
-const AXIS_X = new Vector3(1, 0, 0);
-const AXIS_Y = new Vector3(0, 1, 0);
-const tmp = new Matrix4();
-
-/**
- * All crew as 7 instanced meshes (legs, torso, strips, arms, head, hat, one call each): the same
- * geometry for every figure, vest/hat/skin colours per instance.
- */
-export function createCrew(m: MoverMaterials, specs: readonly CrewSpec[] = CREW): Crew {
-	const n = specs.length;
-	const legGeo = new BoxGeometry(0.16, 0.86, 0.18).translate(0, -0.43, 0);
-	const torsoGeo = new BoxGeometry(0.42, 0.58, 0.25).translate(0, 0.29, 0);
-	const stripGeo = merged([
-		box(0.435, 0.05, 0.265, [0, 0.14, 0]),
-		box(0.435, 0.05, 0.265, [0, 0.38, 0]),
-		box(0.05, 0.58, 0.265, [0.11, 0.29, 0]),
-		box(0.05, 0.58, 0.265, [-0.11, 0.29, 0])
-	]);
-	const armGeo = new BoxGeometry(0.1, 0.56, 0.1).translate(0, -0.28, 0);
-	const headGeo = new SphereGeometry(0.105, 12, 9);
-	const hatGeo = merged([
-		place(new SphereGeometry(0.125, 12, 6, 0, Math.PI * 2, 0, Math.PI / 2), [0, 0.02, 0]),
-		place(new CylinderGeometry(0.15, 0.15, 0.015, 14), [0.04, 0.02, 0])
-	]);
-	const geometries = [legGeo, torsoGeo, stripGeo, armGeo, headGeo, hatGeo];
-	const make = (g: BufferGeometry, mat: Material, count: number): InstancedMesh => {
-		const im = new InstancedMesh(g, mat, count);
-		im.castShadow = true;
-		im.frustumCulled = false;
-		return im;
-	};
-	const legs = make(legGeo, m.pants, n * 2);
-	const tinted = [
-		new MeshStandardMaterial({ color: 0xffffff, roughness: 0.7 }),
-		new MeshStandardMaterial({ color: 0xffffff, roughness: 0.75 }),
-		new MeshStandardMaterial({ color: 0xffffff, roughness: 0.4 })
-	];
-	const torso = make(torsoGeo, tinted[0]!, n);
-	const strips = make(stripGeo, m.strip, n);
-	const arms = make(armGeo, m.sleeve, n * 2);
-	const heads = make(headGeo, tinted[1]!, n);
-	const hats = make(hatGeo, tinted[2]!, n);
-	specs.forEach((s, i) => {
-		torso.setColorAt(i, new Color(s.vest));
-		heads.setColorAt(i, new Color(s.skin));
-		hats.setColorAt(i, new Color(s.hat));
-	});
-	const meshes = [legs, torso, strips, arms, heads, hats];
-	for (const mesh of [torso, heads, hats]) {
-		if (mesh.instanceColor) mesh.instanceColor.needsUpdate = true;
-	}
-
-	const put = (im: InstancedMesh, index: number, base: Matrix4, local: Matrix4): void => {
-		im.setMatrixAt(index, tmp.multiplyMatrices(base, local));
-	};
-	const local = new Matrix4();
-	const compose = (x: number, y: number, z: number, swing = 0): Matrix4 =>
-		local.compose(
-			new Vector3(x, y, z),
-			EULER_Q.setFromAxisAngle(AXIS_X, swing),
-			new Vector3(1, 1, 1)
-		);
-
-	return {
-		meshes,
-		materials: tinted,
-		geometries,
-		pose(t) {
-			specs.forEach((spec, i) => {
-				const p = crewPose(spec, t);
-				const phase = (p.walked / 0.72) * Math.PI;
-				const swing = p.moving ? Math.sin(phase) * 0.55 : 0;
-				const bob = p.moving ? Math.abs(Math.sin(phase)) * 0.03 : 0;
-				// Figure frame: front +x, so the legs swing about z; rotate the pieces' local +z swing axis into place.
-				const base = new Matrix4().compose(
-					new Vector3(p.x, bob, p.z),
-					EULER_Q.clone().setFromAxisAngle(AXIS_Y, p.yaw),
-					new Vector3(1, 1, 1)
-				);
-				// Swing is about the figure's side axis (z); build with a quarter turn so x-axis swing maps to it.
-				const side = (x: number, y: number, z: number, a: number): Matrix4 =>
-					local.compose(
-						new Vector3(x, y, z),
-						EULER_Q.setFromAxisAngle(new Vector3(0, 0, 1), -a),
-						new Vector3(1, 1, 1)
-					);
-				put(legs, i * 2, base, side(0, 0.86, 0.1, swing));
-				put(legs, i * 2 + 1, base, side(0, 0.86, -0.1, -swing));
-				put(torso, i, base, compose(0, 0.86, 0));
-				put(strips, i, base, compose(0, 0.86, 0));
-				put(arms, i * 2, base, side(0, 1.4, 0.26, -swing * 0.8));
-				put(arms, i * 2 + 1, base, side(0, 1.4, -0.26, swing * 0.8));
-				put(heads, i, base, compose(0.01, 1.58, 0));
-				put(hats, i, base, compose(0.01, 1.64, 0));
-			});
-			for (const mesh of meshes) mesh.instanceMatrix.needsUpdate = true;
-		}
-	};
+/** The Hangar's crew (plan 341): the shared walkers. */
+export function createCrew(_m: MoverMaterials, specs: readonly CrewSpec[] = CREW): Crew {
+	return createWalkers(specs);
 }

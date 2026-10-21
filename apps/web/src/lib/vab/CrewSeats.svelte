@@ -6,6 +6,7 @@
 	 */
 	import type { VabController } from './controller.svelte';
 	import { panelFolds } from './panel-folds.svelte';
+	import CrewPortrait from '../astronauts/CrewPortrait.svelte';
 
 	let { vab }: { vab: VabController } = $props();
 
@@ -47,7 +48,10 @@
 						aria-pressed={vab.seated.some((s) => s.member === m.id)}
 						data-testid="vab-crew-{m.id}"
 						onclick={() => vab.toggleCrew(m.id)}
-						><span class="name">{m.name}</span><span class="sub">{m.profession}</span></button
+						><CrewPortrait member={{ id: m.id, profession: m.profession }} size={24} /><span
+							class="text"
+							><span class="name">{m.name}</span><span class="sub">{m.profession}</span></span
+						></button
 					>
 				{/each}
 			</div>
@@ -116,10 +120,9 @@
 	}
 	.roster button {
 		display: flex;
-		flex-direction: column;
-		align-items: flex-start;
-		gap: 2px;
-		padding: 6px 10px;
+		align-items: center;
+		gap: 6px;
+		padding: 4px 10px 4px 4px;
 		border: 0;
 		border-radius: var(--radius-tile);
 		font: inherit;
@@ -130,6 +133,12 @@
 	.roster button[aria-pressed='true'] {
 		color: var(--selected-fg);
 		background: var(--selected-bg);
+	}
+	.text {
+		display: flex;
+		flex-direction: column;
+		align-items: flex-start;
+		gap: 2px;
 	}
 	.sub {
 		font-size: var(--t-label);

@@ -68,10 +68,12 @@ import {
 	layoutTufts,
 	layoutVegetation,
 	siteDetail,
+	SITE_PEOPLE,
 	tuftCell,
 	TUFT_CELLS,
 	VENTS
 } from './site.ts';
+import { createWalkers } from './crew/walkers.ts';
 import {
 	armStep,
 	armTarget,
@@ -270,6 +272,8 @@ export class LaunchSite {
 	private seen = false;
 	private readonly pad = newPadTracker();
 	private readonly steam = new SiteSteam(VENTS);
+	/** Staff walking about the pad (plan 341): one skinned mesh each, always drawn. */
+	private readonly people = createWalkers(SITE_PEOPLE);
 	private detailStructures = true;
 	private lastLamps = 0;
 
@@ -297,6 +301,8 @@ export class LaunchSite {
 		this.listGroup.name = 'site-buildings';
 		this.root.add(this.listGroup);
 		this.buildStructures();
+		for (const m of this.people.meshes) this.root.add(m);
+		this.people.pose(0);
 		this.buildFloodLights();
 		this.setTrees(treeBudget, tufts);
 	}
@@ -453,6 +459,7 @@ export class LaunchSite {
 		m.beaconA.color.setScalar(beaconLevel(input.time, 0));
 		m.beaconB.color.setScalar(beaconLevel(input.time, 0.5));
 		m.glassLit.emissiveIntensity = 0.9 * windowGlow(this.lastLamps);
+		this.people.pose(input.time);
 	}
 
 	private static key(count: number, tufts: number): string {
@@ -853,6 +860,8 @@ export class LaunchSite {
 			g.dispose();
 		for (const set of this.sets.values()) for (const v of set.meshes) v.dispose();
 		this.steam.dispose();
+		for (const p of this.people.geometries) p.dispose();
+		for (const m of this.people.materials) m.dispose();
 		const { textures, ...mats } = this.materials;
 		for (const m of Object.values(mats)) m.dispose();
 		for (const t of textures) t.dispose();

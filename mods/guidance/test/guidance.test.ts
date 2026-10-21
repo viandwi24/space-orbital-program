@@ -8,7 +8,7 @@ import { partId, type CommandResult, type EntityId, type VesselDesign } from '@o
 import Stock from '@orbital/mod-stock';
 import { createRapierBackend } from '@orbital/physics';
 import { createSim, type Sim } from '@orbital/sim';
-import GuidanceMod, { length, orbitOf, visViva } from '../src/index.ts';
+import GuidanceMod, { cross, length, orbitOf, visViva } from '../src/index.ts';
 
 const HOME_RADIUS = 600_000;
 const MOON_RADIUS = 190_000;
@@ -182,6 +182,26 @@ describe('Guidance Computer (plan 321)', () => {
 		const o = orbitOf(s.position, s.velocity, mu);
 		expect(ended).toMatch(/^done/);
 		expect(o.periapsis - HOME_RADIUS).toBeGreaterThan(70_000);
+		sim.dispose();
+	}, 600_000);
+
+	test('flies the ascent to an inclination of 30° (plan 332)', async () => {
+		const sim = await newSim();
+		const id = loaded(sim.dispatch({ type: 'load-vessel', design: twoStage() }));
+		expect(
+			sim.dispatch({
+				type: 'autopilot-engage',
+				vessel: id,
+				autopilot: 'guidance.ascent',
+				params: { altitude: 80_000, inclination: 30 }
+			}).ok
+		).toBe(true);
+		const ended = fly(sim, id, 1_500);
+		expect(ended).toMatch(/^done/);
+		const s = vesselOf(sim, id)!;
+		const h = cross(s.position, s.velocity);
+		const inclination = (Math.acos(h.y / length(h)) * 180) / Math.PI;
+		expect(Math.abs(inclination - 30)).toBeLessThan(3);
 		sim.dispose();
 	}, 600_000);
 

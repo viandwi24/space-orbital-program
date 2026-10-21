@@ -3,14 +3,40 @@
  * input and give a plain tree the page draws; anything that throws marks the panel as failed and
  * nothing else. Sparkline values are kept per panel between updates.
  */
-import type { Command, PanelDefinition, PanelInput, PanelNode } from '@orbital/core';
+import type { Command, PanelDefinition, PanelInput, PanelNode, PanelTone } from '@orbital/core';
 
 export type ShownNode =
-	| { kind: 'section'; title?: string; children: ShownNode[] }
+	| { kind: 'section'; title?: string; columns: 1 | 2; children: ShownNode[] }
+	/** Every tab is evaluated; the host shows one (ADR 0287 point 1). */
+	| {
+			kind: 'tabs';
+			label: string;
+			path: string;
+			active: string | null;
+			tabs: { id: string; label: string; badge: string | null; children: ShownNode[] }[];
+	  }
+	| { kind: 'progress'; label: string; value: number | null; text: string | null }
+	| {
+			kind: 'number';
+			label: string;
+			unit?: string;
+			min: number;
+			max: number;
+			step: number | null;
+			value: number | null;
+			path: string;
+	  }
+	| { kind: 'notice'; text: string | null; tone: PanelTone }
 	| { kind: 'readout'; label: string; value: string | null; unit?: string }
 	| { kind: 'meter'; label: string; value: number | null }
 	| { kind: 'switch'; label: string; on: boolean; path: string }
-	| { kind: 'button'; label: string; enabled: boolean; path: string }
+	| {
+			kind: 'button';
+			label: string;
+			enabled: boolean;
+			path: string;
+			tone: 'primary' | 'danger' | null;
+	  }
 	| {
 			kind: 'select';
 			label: string;
@@ -43,8 +69,48 @@ function show(node: PanelNode, input: PanelInput, memory: PanelMemory, path: str
 			return {
 				kind: 'section',
 				...(node.title === undefined ? {} : { title: node.title }),
+				columns: node.columns ?? 2,
 				children: node.children.map((c, i) => show(c, input, memory, `${path}.${i}`))
 			};
+		case 'tabs': {
+			const active = node.active?.(input) ?? null;
+			return {
+				kind: 'tabs',
+				label: node.label,
+				path,
+				active: active !== null && node.tabs.some((t) => t.id === active) ? active : null,
+				tabs: node.tabs.map((t, k) => ({
+					id: t.id,
+					label: t.label,
+					badge: t.badge?.(input) ?? null,
+					children: t.children.map((c, i) => show(c, input, memory, `${path}.${k}.${i}`))
+				}))
+			};
+		}
+		case 'progress': {
+			const v = node.value(input);
+			return {
+				kind: 'progress',
+				label: node.label,
+				value: v === null || !Number.isFinite(v) ? null : Math.min(1, Math.max(0, v)),
+				text: node.text?.(input) ?? null
+			};
+		}
+		case 'number': {
+			const v = node.value(input);
+			return {
+				kind: 'number',
+				label: node.label,
+				...(node.unit === undefined ? {} : { unit: node.unit }),
+				min: node.min,
+				max: node.max,
+				step: node.step ?? null,
+				value: v === null || !Number.isFinite(v) ? null : v,
+				path
+			};
+		}
+		case 'notice':
+			return { kind: 'notice', text: node.text(input), tone: node.tone?.(input) ?? 'info' };
 		case 'readout': {
 			const v = node.value(input);
 			const value =
@@ -71,7 +137,13 @@ function show(node: PanelNode, input: PanelInput, memory: PanelMemory, path: str
 		case 'switch':
 			return { kind: 'switch', label: node.label, on: node.value(input) === true, path };
 		case 'button':
-			return { kind: 'button', label: node.label, enabled: node.command(input) !== null, path };
+			return {
+				kind: 'button',
+				label: node.label,
+				enabled: node.command(input) !== null,
+				path,
+				tone: node.tone ?? null
+			};
 		case 'select':
 			return {
 				kind: 'select',
@@ -131,13 +203,23 @@ export function evaluatePanel(
 	}
 }
 
-/** The node at `path` (`v.0.2`). */
+/** The node at `path` (`v.0.2`; inside tabs two steps, the tab and the child: `v.1.0.3`). */
 function nodeAt(view: PanelNode, path: string): PanelNode | undefined {
 	let node: PanelNode | undefined = view;
-	for (const i of path.split('.').slice(1)) {
-		node = node?.kind === 'section' ? node.children[Number(i)] : undefined;
+	const steps = path.split('.').slice(1);
+	for (let k = 0; k < steps.length; k++) {
+		const i = Number(steps[k]);
+		if (node?.kind === 'section') node = node.children[i];
+		else if (node?.kind === 'tabs') node = node.tabs[i]?.children[Number(steps[++k])];
+		else node = undefined;
 	}
 	return node;
+}
+
+/** A number field's entry: clamped to its range and rounded to its step. */
+export function clampEntry(node: { min: number; max: number; step?: number | null }, v: number): number {
+	const stepped = node.step ? Math.round(v / node.step) * node.step : v;
+	return Math.min(node.max, Math.max(node.min, Number(stepped.toFixed(9))));
 }
 
 /** The command a button or switch at `path` gives now, or an error to show in the panel. */
@@ -145,7 +227,7 @@ export function commandOf(
 	panel: Pick<PanelDefinition, 'view'>,
 	path: string,
 	input: PanelInput,
-	on?: boolean | string
+	on?: boolean | string | number
 ): { command: Command | null } | { error: string } {
 	try {
 		// a row's button in a list (plan 231): `<list path>:<row>:<action>`, the rows as they are now
@@ -161,6 +243,8 @@ export function commandOf(
 		if (node?.kind === 'switch')
 			return { command: node.command(input, typeof on === 'boolean' ? on : !node.value(input)) };
 		if (node?.kind === 'select' && typeof on === 'string') return { command: node.command(input, on) };
+		if (node?.kind === 'number' && typeof on === 'number' && Number.isFinite(on))
+			return { command: node.command(input, clampEntry(node, on)) };
 		return { command: null };
 	} catch (e) {
 		return { error: message(e) };

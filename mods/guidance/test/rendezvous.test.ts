@@ -17,7 +17,7 @@ import Stock from '@orbital/mod-stock';
 import AutoDockMod from '@orbital/mod-autodock';
 import { createRapierBackend } from '@orbital/physics';
 import { createSim, type Sim } from '@orbital/sim';
-import GuidanceMod, { HOLD_DISTANCE, RendezvousPanel, aimBurn, phasingBurn } from '../src/index.ts';
+import GuidanceMod, { HOLD_DISTANCE, GuidancePanel, aimBurn, phasingBurn } from '../src/index.ts';
 
 type Part = VesselDesign['parts'][number];
 const link = (index: number, part: string, parent: number, parentNode = 'bottom'): Part => ({
@@ -239,28 +239,42 @@ describe('Rendezvous autopilot (plan 331)', () => {
 	test('the panel shows the target before it engages, and engages and stores its settings', async () => {
 		const { sim, a } = await scene(100_000, 5_000 / 700_000, 0);
 		const nodes = (n: PanelNode): PanelNode[] => (n.kind === 'section' ? n.children.flatMap(nodes) : [n]);
-		const all = nodes(RendezvousPanel.view);
+		const view = GuidancePanel.view;
+		if (view.kind !== 'tabs') throw new Error('not tabs');
+		const all = view.tabs.find((t) => t.id === 'rendezvous')!.children.flatMap(nodes);
 		const input = (): PanelInput =>
 			({ snapshot: sim.snapshot(), vessel: vesselOf(sim, a), altitude: 0, speed: 0, time: sim.time }) as unknown as PanelInput;
 		const readout = (label: string) => {
 			const n = all.find((x) => x.kind === 'readout' && x.label === label);
 			return n?.kind === 'readout' ? n.value(input()) : undefined;
 		};
-		expect(readout('Status')).toBe('Ready to engage');
+		const notice = all.find((x) => x.kind === 'notice');
+		if (notice?.kind !== 'notice') throw new Error('no status line');
+		expect(notice.text(input())).toContain('Target a vessel or a docking port');
+		expect(view.active?.(input())).toBeNull();
 		expect(Number(readout('Distance'))).toBeGreaterThan(4_900);
-		const dock = all.find((x) => x.kind === 'select' && x.label === 'Dock when close');
-		if (dock?.kind !== 'select') throw new Error('no dock select');
-		expect(dock.value(input())).toBe('off');
-		const set = dock.command(input(), 'on')!;
+		const dock = all.find((x) => x.kind === 'switch' && x.label === 'Dock when close');
+		if (dock?.kind !== 'switch') throw new Error('no dock switch');
+		expect(dock.value(input())).toBe(false);
+		const set = dock.command(input(), true)!;
 		expect(sim.dispatch(set).ok).toBe(true);
-		expect(dock.value(input())).toBe('on');
-		const engage = all.find((x) => x.kind === 'button' && x.label === 'Engage');
+		expect(dock.value(input())).toBe(true);
+		const engage = all.find((x) => x.kind === 'button' && x.label === 'Engage rendezvous');
 		if (engage?.kind !== 'button') throw new Error('no engage');
 		expect(sim.dispatch(engage.command(input())!).ok).toBe(true);
 		for (let k = 0; k < 5; k++) sim.step(0.1);
 		expect(readout('Phase')).not.toBe('off');
 		expect(typeof readout('Delta-v estimate')).toBe('number');
+		expect(view.active?.(input())).toBe('rendezvous');
+		expect(view.tabs.find((t) => t.id === 'rendezvous')!.badge?.(input())).toBe('ON');
+		expect(notice.text(input())).toStartWith('Rendezvous · ');
+		expect(notice.tone?.(input())).toBe('active');
+		// the other programs say why they are off
+		const ascent = view.tabs.find((t) => t.id === 'ascent')!.children[0]!;
+		if (ascent.kind !== 'notice') throw new Error('no ascent status');
+		expect(ascent.text(input())).toBe('Rendezvous is flying: abort it first.');
 		const abort = all.find((x) => x.kind === 'button' && x.label === 'Abort');
+		if (abort?.kind === 'button') expect(abort.tone).toBe('danger');
 		if (abort?.kind !== 'button') throw new Error('no abort');
 		expect(sim.dispatch(abort.command(input())!).ok).toBe(true);
 		expect(vesselOf(sim, a).autopilot).toBeUndefined();

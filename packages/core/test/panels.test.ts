@@ -40,6 +40,38 @@ describe('panel definitions', () => {
 			expect(panelDefinitionSchema.safeParse(bad).success).toBe(false);
 	});
 
+	test('tabs, progress, number fields, notices, button tones and one-column sections parse (ADR 0287)', () => {
+		const view = {
+			kind: 'tabs',
+			label: 'Programs',
+			active: () => 'a',
+			tabs: [
+				{
+					id: 'a',
+					label: 'A',
+					badge: () => 'ON',
+					children: [
+						{ kind: 'progress', label: 'Done', value: () => 0.5, text: () => 'half' },
+						{ kind: 'number', label: 'Alt', unit: 'km', min: 70, max: 500, step: 5, value: () => 80, command: () => null },
+						{ kind: 'notice', text: () => 'why', tone: () => 'warn' },
+						{ kind: 'button', label: 'Go', tone: 'primary', command: () => null }
+					]
+				},
+				{ id: 'b', label: 'B', children: [{ kind: 'section', columns: 1, children: [] }] }
+			]
+		};
+		expect(panelDefinitionSchema.safeParse({ ...panel, view }).success).toBe(true);
+		for (const bad of [
+			{ ...view, tabs: [] },
+			{ ...view, tabs: [view.tabs[1], view.tabs[1]] },
+			{ kind: 'number', label: 'N', min: 5, max: 1, value: () => 1, command: () => null },
+			{ kind: 'button', label: 'B', tone: 'loud', command: () => null },
+			{ kind: 'section', columns: 3, children: [] },
+			{ kind: 'notice', text: 'static' }
+		])
+			expect(panelDefinitionSchema.safeParse({ ...panel, view: bad }).success).toBe(false);
+	});
+
 	test('rail order: ascending, ties in registration order', () => {
 		expect(
 			sortPanels([

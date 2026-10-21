@@ -1,5 +1,13 @@
 import { describe, expect, it } from 'bun:test';
-import { Color, InstancedMesh, Mesh, Object3D, PerspectiveCamera, Vector3 } from 'three';
+import {
+	Color,
+	InstancedMesh,
+	Mesh,
+	Object3D,
+	PerspectiveCamera,
+	Vector3,
+	SkinnedMesh
+} from 'three';
 import { DEFAULT_TIME_OF_DAY, dayLight, floorPatch } from '../src/vab/hangar-light.ts';
 import {
 	CREW,
@@ -150,12 +158,17 @@ describe('hangar variants', () => {
 		low.dispose();
 	});
 
-	it('draws the hall in a bounded number of meshes with the crew as seven instanced meshes at most', () => {
+	it('draws the hall in a bounded number of meshes with the crew as one skinned mesh each', () => {
 		const h = createHangar({ dust: 0, textureSize: 32 });
 		h.root.remove(h.shafts);
 		const c = count(h.root);
 		expect(c.meshes).toBeLessThan(85);
-		expect(c.instanced).toBeLessThanOrEqual(7);
+		expect(c.instanced).toBeLessThanOrEqual(1);
+		let skinned = 0;
+		h.root.traverse((o) => {
+			if (o instanceof SkinnedMesh) skinned++;
+		});
+		expect(skinned).toBe(CREW.length);
 		h.dispose();
 	});
 

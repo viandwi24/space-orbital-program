@@ -30,7 +30,12 @@ export type SlotName =
 	// plan 291: a ribbed bronze bell, insulation foam (an external tank), black heat tiles
 	| 'bronze'
 	| 'foam'
-	| 'tile';
+	| 'tile'
+	// plan 341: the crew character on the EVA suit (ADR 0291)
+	| 'skin'
+	| 'hair'
+	| 'eye'
+	| 'blush';
 
 export interface BuiltGeometry {
 	geometry: BufferGeometry;

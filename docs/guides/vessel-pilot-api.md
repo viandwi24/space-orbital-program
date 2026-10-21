@@ -22,6 +22,7 @@ Read-outs (SI units; inertial axes are the shared axes of `ship.position`):
 | `body` | `{ id, mu, radius, atmosphereHeight, angularVelocity }` of the sphere-of-influence body (ADR 0277; undefined when the host gave no facts) |
 | `mass` | the vessel's current mass, kg (undefined without facts) |
 | `engines`, `maxThrust` | each engine module `{ part, thrustVacuum, ispVacuum, ignited, flameout }`; the vacuum thrust of those burning, N |
+| `propellantMass` | the mass of the propellant mix the burning engines draw, over the whole vessel, kg (ADR 0286): with `mass` and the exhaust velocity, the delta-v left is `ve · ln(mass / (mass − propellantMass))` |
 
 Controls (each one command; values are clamped):
 
@@ -36,8 +37,10 @@ Controls (each one command; values are clamped):
 | `controlFrom(part \| null)` | `set-control-part` (a command part or a docking port) |
 | `setTarget(ref \| null)`, `setTargetPort(vessel, part)` | `target-set` (a whole vessel, a body, or one docking port) |
 | `addNode(time, prograde, normal, radial)`, `removeNode(id?)` | `node-set` (a new node) and `node-remove` (ADR 0277) |
+| `warpTo(time)` | `warp-to` at the highest level the world's warp limits allow (ADR 0286); an engine that lights drops it to physics warp |
+| `engage(autopilot, params?)` | `autopilot-engage` on the own vessel: the new autopilot replaces the caller (which ends `disengaged`, "replaced by …"); returns false when it was refused |
 
-`body`, `mass` and `engines` come from the sim: inside an autopilot they are always there. A pilot a page builds from a snapshot alone has none (`createVesselPilot(view, id, send, facts?)`).
+`body`, `mass`, `engines` and `propellantMass` come from the sim: inside an autopilot they are always there. A pilot a page builds from a snapshot alone has none (`createVesselPilot(view, id, send, facts?)`).
 
 `direction` and an attitude `hold` need no particular SAS level: the computer that asks for them does the aiming.
 
@@ -90,7 +93,23 @@ export default definePlugin({
 | `guidance.ascent` | `{ altitude?, shape? }` | launches, gravity turn east (pitch `90° · (1 − f^shape)` up to 75 % of the atmosphere), eases off near the target apoapsis, coasts out of the air, circularizes; stages on flame-out |
 | `guidance.land` | | burns retrograde until the periapsis is underground, coasts to the suicide-burn height, brakes along a speed profile that ends at 1.2 m/s, touches down upright |
 
+| `guidance.rendezvous` | `{ standoff?, dock?, warp? }` | flies to the target vessel (or a targeted port's vessel) from anywhere in the same sphere of influence and stops 100–200 m from it, at rest (below). Plan 331, ADR 0286 |
+
 Its panel ("Guidance Computer") engages each one and shows the phase and read-outs. `mods/guidance/test` flies all four headless (a 300 m/s node to under 1 m/s, a 100 x 75 km orbit to e < 0.005, the two-stage rocket from the pad to a periapsis above 70 km, a lander down on the moon under 2 m/s).
+
+### Rendezvous (plan 331)
+
+Like MechJeb's rendezvous autopilot. Target a vessel or one of its docking ports, open the **Rendezvous** panel and press **Engage**. It needs a burning engine (stage first), and RCS with monopropellant for the last kilometre if you have it. Phases, shown in the panel with the distance, the relative speed, the delta-v used, an estimate of what is still needed and what is left:
+
+1. **plane** — above 0.05° between the two orbit planes, a plane change at the nearer relative node;
+2. **phasing** or **transfer** — in the same orbit, a phasing orbit of one or more turns that comes back to the burn point as the target gets there; otherwise a Hohmann transfer at its phase window, or (when the window is more than 12 orbits away) a Hohmann to the target's height and a circularization, then the phasing; a **course correction** when the predicted closest approach is farther than 2 km (it aims 300 m above the target);
+3. **match** — matches the target's velocity 200 m before the closest approach, so the vessel stops beside the target, not in it;
+4. **close** — flies the relative velocity toward the target, slowing to a stop at the standoff: the main engine out to 3 km, RCS translation inside 1 km;
+5. **hold** — at rest within 200 m until you stop it, press Abort, or engage Auto Dock. With **Dock when close** on and a port targeted, it controls from a free port of the same size and hands over to Auto Dock (`autodock.dock`) itself.
+
+Every far burn is a maneuver node (you see it on the map) flown by the node executor, and coasts longer than two minutes are warped through (setting **Warp through coasts**; stop the warp and it waits in real time). It aborts when the estimate (plus 10 %) is more than the delta-v left, when fuel and RCS propellant run out, when the vessel loses electric charge, on a collision course it cannot brake out of, and when four transfer plans miss. Settings: **Stop at** 100, 150 or 200 m, **Dock when close**, **Warp through coasts**. Both orbits must be closed and around the same body.
+
+Headless (`mods/guidance/test/rendezvous.test.ts`): 20 km apart in one 100 km orbit, it holds at about 156 m and 0.15 m/s after about 20 m/s; from 100 km to a target at 150 km inclined 2°, about 170 m/s (78 of them for the plane); a nearly dry tank aborts with "Not enough delta-v"; "Dock when close" hands over to Auto Dock.
 
 
 ## Settings, logs and the last run (plan 330, ADR 0285)

@@ -160,7 +160,9 @@ describe('part seams', () => {
 					// boxes and cylinders (plan 311)
 					'light-panel',
 					'light-angled',
-					'light-nav'
+					'light-nav',
+					// the crew character: spheres, lathes and capsules, no revolve (plan 341)
+					'suit'
 				].includes(visual.kind)
 			)
 				continue;
