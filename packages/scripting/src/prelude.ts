@@ -1,12 +1,13 @@
 /**
  * Guest-side prelude: runs inside QuickJS before the user script. It is an expression evaluating
- * to `function (host, seed)` returning `{ update, start }`. The `host` object (functions built by
+ * to `function (host, seed, bodiesJson, debugOn, memoryJson, resumedOn)` returning
+ * `{ update, memoryText, start }`. The `host` object (functions built by
  * the runner) is captured in this closure and never stored on the global, so a script cannot
  * reach it; every value crossing it is a string the host parses and validates.
  *
  * The source must not contain backticks or `${`: it lives in a template literal.
  */
-export const PRELUDE = String.raw`(function (host, seed, bodiesJson, debugOn) {
+export const PRELUDE = String.raw`(function (host, seed, bodiesJson, debugOn, memoryJson, resumedOn) {
 	'use strict';
 	let T = null;
 	let refusals = [];
@@ -257,6 +258,10 @@ export const PRELUDE = String.raw`(function (host, seed, bodiesJson, debugOn) {
 		}));
 	}
 	fixed('print', (...args) => host.print(args.map(text).join(' ')));
+	// Saved state (plan 320, ADR 0276 point 6): the object is the script's to change; the binding is fixed.
+	const memory = JSON.parse(memoryJson);
+	fixed('memory', memory);
+	fixed('resumed', resumedOn === true);
 
 	return {
 		update(json, verdictsJson) {
@@ -289,6 +294,14 @@ export const PRELUDE = String.raw`(function (host, seed, bodiesJson, debugOn) {
 			waiters = later;
 			due.sort((a, b) => a.at - b.at);
 			for (const w of due) w.resolve();
+		},
+		memoryText() {
+			try {
+				const t = JSON.stringify(memory);
+				return t === undefined ? '' : t;
+			} catch (e) {
+				return '';
+			}
 		},
 		start(fn) {
 			fn().then(

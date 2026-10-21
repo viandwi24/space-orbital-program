@@ -184,7 +184,9 @@ export const ACTIONS = [
 	// Plan 216 (ADR 0206): keys the KSP profile has, for the plans that wire them
 	flight('Parts', 'gear', 'Landing gear up or down', 'KeyG'),
 	flight('Parts', 'lights', 'Lights on or off', 'KeyU'),
-	flight('Fly', 'abort', 'Abort: cut the engines and fire the Abort group', 'Backspace'),
+	flight('Fly', 'abort', 'Abort: stop programs, cut the engines and fire the Abort group', 'Backspace'),
+	// plan 320 (ADR 0276 point 5): the player's kill switch for autopilots and scripts
+	flight('Fly', 'programStop', 'Stop the programs (autopilot, script) flying this vessel', 'Delete'),
 	flight('Fly', 'precision', 'Fine control', 'CapsLock'),
 	flight('RCS', 'rcsToggle', 'RCS on or off', 'KeyR'),
 	flight('RCS', 'translateForward', 'Translate forward', 'KeyH'),
@@ -643,8 +645,9 @@ export const BINDING_GROUPS: readonly BindingGroup[] = [
 			{ actions: ['gear', 'lights'], text: 'Landing gear, lights' },
 			{
 				actions: ['abort'],
-				text: 'Abort: cut the engines, fire the Abort group (set in the Hangar)'
+				text: 'Abort: stop programs, cut the engines, fire the Abort group (set in the Hangar)'
 			},
+			{ actions: ['programStop'], text: 'Stop the autopilot and script flying this vessel' },
 			{ actions: ['precision'], text: 'Fine control (Caps Lock on)' }
 		]
 	},

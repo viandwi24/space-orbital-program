@@ -61,6 +61,12 @@ export const GLOBALS: readonly ApiEntry[] = [
 		'Game date at simulation time t (default: now) in the world calendar.'
 	),
 	fn('print', 'print(...values)', 'Write a line to the panel log.'),
+	value(
+		'memory',
+		'memory',
+		'Your saved state: a plain object kept with the vessel in every save. Change its fields; a world that opens runs the script again with it.'
+	),
+	value('resumed', 'resumed', 'True when this run was restarted from a save, with the saved memory.'),
 	fn(
 		'warp',
 		'warp(factor): Promise<{ ok, reason? }>',

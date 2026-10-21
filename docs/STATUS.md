@@ -263,6 +263,9 @@
 | 315 | [Hangar: see inside fairings, bays and petals](plans/315-hangar-see-inside.md) | done | part visuals session | Owner's request. Hover tip (name, mass, holds), x-ray shells, Open/Close in the editor, Show payload; picks reach through a shell only to what it holds. Journal 315. |
 | 316 | [Hangar: part list and start state](plans/316-hangar-part-list-and-start-state.md) | done | part visuals session | Owner's request. A Parts tree in the right panel (select, hover to find); start switches for panels, legs, bays, doors and fuel cells saved in the design; the Hangar draws each part from its start snapshot. Journal 316. |
 | 317 | [Worlds and Create World v3: the console-style library, a full-page Create World, generated system art](plans/317-worlds-and-create-world-v3.md) | in-progress | ui-v3 session | Owner's v3-2 package; ADR 0273 (generated art, optional mod `illustration`/`icon`, API 0.1.101). |
+| 320 | [Vessel programs: the player wins per channel, saved scripts, the programs list](plans/320-vessel-programs.md) | done | vessel programs session | ADR 0276, research `vessel-programs.md`: the player takes any control channel from a script or autopilot and gets it back 1 s after letting go; scripts are saved with their `memory` and resume; "N programs" in the status bar; Delete and Abort stop programs; built-in mods on the Mods page; the replay recorder kept no command source (fixed). Journal 320. |
+| 321 | [Guidance Computer: MechJeb-style autopilots mod](plans/321-guidance-computer-autopilots-mod.md) | done | vessel programs session | Built-in mod: execute node, circularize, ascent to orbit, land on the moon, all headless-tested; ADR 0277 gives the pilot body, mass, engines and nodes. Journal 321. |
+| 322 | [Several scripts at once; Switch to from the programs list](plans/322-several-scripts-and-programs-list-switch.md) | draft | | One script session per vessel in the host. |
 
 Statuses: `draft` (needs refinement before an agent takes it) · `ready` · `in-progress` · `done` · `blocked`.
 
@@ -330,6 +333,8 @@ Existing drafts realigned on 2026-10-17: 063 (runway building), 065, 066, 067, 0
 
 ## Recent journal entries
 
+- [321 — Guidance Computer](journal/321-guidance-computer-autopilots-mod.md)
+- [320 — Vessel programs](journal/320-vessel-programs.md)
 - [316 — Part list and start state](journal/316-hangar-part-list-and-start-state.md)
 - [315 — Seeing inside in the Hangar](journal/315-hangar-see-inside.md)
 - [314 — A bigger Hangar](journal/314-bigger-hangar.md)

@@ -91,10 +91,19 @@ The editor asks the engine whether the script compiles, without running it. `che
 
 `hud/ScriptPanel.svelte` with `hud/CodeEditor.svelte` (a textarea over a painted layer: `script-highlight.ts` tokenizer, line numbers, error-line band; colours are `--syn-*` tokens in `ui/tokens.css`, contrast-tested). Errors: `runner.errorLine` (1-based script line, from the first `script.js` stack frame minus the two wrapper lines; frames in `error` are rewritten to `line N:col`) travels `result` -> `script-status.errorLine` -> `ScriptView.errorLine`; the route shows the marker only while the editor still holds the text that ran. Share and import (`script-share.ts`): text, `#script=v1.<base64url deflate-raw>` links (read on load and on `hashchange`, 64 KB cap before and after decompression), `.orbital.js` files; imported text is flagged until the player confirms a Run.
 
+## Programs (plan 320, ADR 0276)
+
+A running script is recorded on its vessel (`VesselState.script = { name, source, memory, resumed, startedAt }`), so it is in every save; the snapshot shows `vessel.script` without the source and memory, and `Sim.scripts()` returns them for the host.
+
+- **Commands carry a source** (`CommandSource = 'player' | 'script' | 'autopilot'`, `delay.ts`). The page's commands are `player`; `sim-host.ts` dispatches the script's with `script`; ADR 0271's autopilots use `autopilot`. The delay queue and the replay recorder keep the source (before plan 320 the recorder dropped it and every script command was the player's).
+- **Arbitration** (`packages/sim/src/programs.ts`): a `player` write overrides a channel (`CONTROL_CHANNELS` in core) on a vessel with a program: `held` while non-zero, then `PROGRAM_RESUME_DELAY` (1 s) of sim time; throttles for 1 s after each write. A program's write to an overridden channel is dropped; the `attitude` handler compares channels in the control part's axes (ADR 0270). `stepOverrides` expires them once per frame. Events `program:override`, `program:resumed`, `program:stopped`; the snapshot's `vessel.override` lists the channels held now.
+- **Lifecycle in the host:** a Run dispatches `script-attach`; the runner's `TickResult.memory` (when the guest's `JSON.stringify(memory)` changed and passes `scriptMemoryProblem`) is committed with `script-memory` at most every `SCRIPT_MEMORY_MS` (1 s); the end of a run (finish, failure, Stop, a new Run) dispatches `script-detach`; `script-stop { keep: true }` (the world closing) commits the memory and keeps the record. The sim's `script:detached` (from `program-stop`) closes the session. The `ready` message lists `savedScripts`; `worldSession` resumes the first with `script-start { resume: true }`, and the host takes the source and memory from `Sim.scripts()`.
+- **The runner** gets `memory` and `resumed` as fixed globals (prelude); after an override ends it re-sends the last throttle and attitude command, because the script set them once and its write was dropped.
+
 ## Sample
 
 `ascentScript` (`src/samples/ascent.ts`) is the plan 007 ascent as a script: gravity turn, stage on flameout, cut at an 80 km apoapsis, coast, circularise to a 76 km periapsis, PD attitude loop from `ship.orientation`. `test/ascent.test.ts` flies it headlessly; see the journal for the orbit it reaches. The sample reads wheel torque and engine thrust/Isp from `ship.wheels` and `ship.engines`; its only physical constant is standard gravity.
 
 ## Known limits
 
-Scripts are JavaScript, not TypeScript; one script per vessel per runner; the editor has no completion or auto-indent (Tab still moves focus); telemetry only covers the controlled vessel; no target or maneuver data (the sim has neither, draft plan 035).
+Scripts are JavaScript, not TypeScript; one script per world at a time (several at once: draft plan 322); the editor has no completion or auto-indent (Tab still moves focus); telemetry only covers the controlled vessel; no target or maneuver data (the sim has neither, draft plan 035).

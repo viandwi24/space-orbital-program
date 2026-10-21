@@ -38,8 +38,10 @@ import {
 	ruleChangeProblem,
 	ruleValueProblem,
 	sitesOf,
+	scriptMemoryProblem,
 	type Command,
 	type CommandResult,
+	type ControlChannel,
 	type EntityId,
 	type Quat,
 	type Vec3
@@ -67,6 +69,15 @@ import {
 } from './comms.ts';
 import { cancelTransmission, enqueueTransmission, recoverQueued } from './transmission.ts';
 import { delayOf, enqueue, type CommandSource } from './delay.ts';
+import {
+	detachScript,
+	hasProgram,
+	isOverridden,
+	isProgramSource,
+	notePlayerWrite,
+	overriddenChannels,
+	stopAutopilot
+} from './programs.ts';
 import { ruleOf } from './economy.ts';
 import { dropForThrust, requestWarp, requestWarpTo } from './warp.ts';
 
@@ -359,8 +370,12 @@ function controlTurn(core: SimCore, v: VesselState): Quat | undefined {
 export function dispatch(
 	core: SimCore,
 	raw: unknown,
-	source: CommandSource | 'queued' = 'player'
+	source: CommandSource | 'queued' = 'player',
+	queuedFrom: CommandSource = 'player'
 ): CommandResult {
+	// who sent it, also for a command coming off the delay queue (plan 320, ADR 0276 point 2)
+	const from: CommandSource = source === 'queued' ? queuedFrom : source;
+	const program = isProgramSource(from);
 	const parsed = commandSchema.safeParse(raw);
 	if (!parsed.success) {
 		const issues = parsed.error.issues.map(
@@ -381,7 +396,7 @@ export function dispatch(
 			const wait = delayOf(core, command, source);
 			if (wait > 0) {
 				const at = core.t + wait;
-				enqueue(core, command, at);
+				enqueue(core, command, at, from);
 				return { ok: true, queued: at };
 			}
 		}
@@ -397,12 +412,15 @@ export function dispatch(
 			if (typeof v === 'string') return refuse(v);
 			const noSignal = signalRefusal(core, command.vessel, 'throttle');
 			if (noSignal) return refuse(noSignal);
+			// the player holds the throttle: a program's write is dropped (ADR 0276 point 3)
+			if (program && isOverridden(core, v, 'throttle')) return { ok: true, overridden: ['throttle'] };
 			if (command.value > 0 && v.mode === 'on-rails') {
 				dropForThrust(core, command.vessel); // rails warp falls to physics warp (ADR 0202 point 5)
 				const why = ensureFlight(core, command.vessel, 'throttle');
 				if (why) return refuse(why);
 			}
 			v.control.throttle = command.value;
+			if (from === 'player') notePlayerWrite(core, command.vessel, v, { throttle: command.value }, true);
 			return accept();
 		}
 		case 'wheel-throttle': {
@@ -442,21 +460,37 @@ export function dispatch(
 			if (typeof v === 'string') return refuse(v);
 			const noSignal = signalRefusal(core, command.vessel, 'attitude');
 			if (noSignal) return refuse(noSignal);
-			const t = command.translate;
-			if (t && ![t.x, t.y, t.z].every((n) => Number.isFinite(n) && Math.abs(n) <= 1))
+			const asked = command.translate;
+			if (asked && ![asked.x, asked.y, asked.z].every((n) => Number.isFinite(n) && Math.abs(n) <= 1))
 				return refuse('translate must be three numbers in -1..1');
+			// The input is in the control part's axes (ADR 0270 point 4). A program keeps the channels
+			// the player holds as they are (plan 320, ADR 0276 point 3): the vessel's present demand,
+			// turned back into those axes, stands in for them.
+			const turn = controlTurn(core, v);
+			const back = turn && qConj(turn);
+			const inControl = (u: { x: number; y: number; z: number }) => (back ? qRotate(back, u) : u);
+			const dropped = program ? overriddenChannels(core, v) : [];
+			const keep = (channel: ControlChannel, mine: number, theirs: number): number =>
+				dropped.includes(channel) ? mine : theirs;
+			const now = inControl({ x: v.control.pitch, y: v.control.roll, z: v.control.yaw });
+			const pitch = keep('pitch', now.x, command.pitch);
+			const yaw = keep('yaw', now.z, command.yaw);
+			const roll = keep('roll', now.y, command.roll);
+			const was = inControl(v.translate ?? { x: 0, y: 0, z: 0 });
+			const t = asked && {
+				x: keep('translateX', was.x, asked.x),
+				y: keep('translateY', was.y, asked.y),
+				z: keep('translateZ', was.z, asked.z)
+			};
 			const translating = t !== undefined && (t.x !== 0 || t.y !== 0 || t.z !== 0);
-			const demanded =
-				command.pitch !== 0 || command.yaw !== 0 || command.roll !== 0 || translating;
+			const demanded = pitch !== 0 || yaw !== 0 || roll !== 0 || translating;
 			if (demanded && v.mode === 'on-rails') {
 				const why = ensureFlight(core, command.vessel, 'attitude');
 				if (why) return refuse(why);
 			}
-			// the input is in the control part's axes (ADR 0270 point 4): turned into the vessel's
-			const turn = controlTurn(core, v);
 			const torque = turn
-				? qRotate(turn, { x: command.pitch, y: command.roll, z: command.yaw })
-				: { x: command.pitch, y: command.roll, z: command.yaw };
+				? qRotate(turn, { x: pitch, y: roll, z: yaw })
+				: { x: pitch, y: roll, z: yaw };
 			v.control.pitch = clampUnit(torque.x);
 			v.control.yaw = clampUnit(torque.z);
 			v.control.roll = clampUnit(torque.y);
@@ -466,6 +500,62 @@ export function dispatch(
 					v.translate = { x: clampUnit(move.x), y: clampUnit(move.y), z: clampUnit(move.z) };
 				else delete v.translate;
 			}
+			if (from === 'player') {
+				notePlayerWrite(core, command.vessel, v, {
+					pitch,
+					yaw,
+					roll,
+					...(t ? { translateX: t.x, translateY: t.y, translateZ: t.z } : {})
+				});
+			}
+			const lost = dropped.filter(
+				(c) => c === 'pitch' || c === 'yaw' || c === 'roll' || (asked !== undefined && c.startsWith('translate'))
+			);
+			return lost.length > 0 ? { ok: true, overridden: lost } : accept();
+		}
+		case 'program-stop': {
+			const v = core.world.get(command.vessel, VESSEL);
+			if (!v) return refuse(`unknown vessel ${command.vessel}`);
+			if (!hasProgram(v)) return accept();
+			const reason = command.reason ?? 'stopped';
+			detachScript(core, command.vessel, v, reason);
+			stopAutopilot(core, command.vessel, v, reason);
+			delete v.override;
+			core.events.emit('program:stopped', { vessel: command.vessel, reason });
+			return accept();
+		}
+		case 'script-attach': {
+			const v = core.world.get(command.vessel, VESSEL);
+			if (!v) return refuse(`unknown vessel ${command.vessel}`);
+			// a resumed run keeps the memory the save gave it; a new Run starts empty
+			const keepMemory = command.resumed === true && v.script?.source === command.source;
+			v.script = {
+				name: command.name,
+				source: command.source,
+				memory: keepMemory ? v.script!.memory : {},
+				resumed: command.resumed === true,
+				startedAt: keepMemory ? v.script!.startedAt : core.t
+			};
+			core.events.emit('script:attached', {
+				vessel: command.vessel,
+				name: command.name,
+				resumed: command.resumed === true
+			});
+			return accept();
+		}
+		case 'script-memory': {
+			const v = core.world.get(command.vessel, VESSEL);
+			if (!v) return refuse(`unknown vessel ${command.vessel}`);
+			if (!v.script) return refuse(`vessel ${command.vessel} has no script`);
+			const problem = scriptMemoryProblem(command.memory);
+			if (problem) return refuse(problem);
+			v.script.memory = JSON.parse(JSON.stringify(command.memory));
+			return accept();
+		}
+		case 'script-detach': {
+			const v = core.world.get(command.vessel, VESSEL);
+			if (!v) return refuse(`unknown vessel ${command.vessel}`);
+			detachScript(core, command.vessel, v, command.reason ?? 'stopped');
 			return accept();
 		}
 		case 'transfer': {

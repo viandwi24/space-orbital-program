@@ -43,6 +43,7 @@ import { NBODY_FRAME_EVALUATIONS, nBodyOn, takeEvaluations } from './nbody.ts';
 import { dispatch } from './commands.ts';
 import { freshAgencies } from './agencies.ts';
 import { drainQueue, type CommandSource } from './delay.ts';
+import { savedScripts, stepOverrides } from './programs.ts';
 import {
 	DEFAULT_MAX_FLIGHT_FRAMES,
 	FLIGHT_FRAME_PART_STEPS,
@@ -184,7 +185,10 @@ export interface SimOptions {
 	world?: WorldInfo;
 }
 
-/** Who sent a command (plan 117, ADR 0188 point 6): `script` for the script runner's commands. */
+/**
+ * Who sent a command (plan 117, ADR 0188 point 6): `script` for the script runner's commands,
+ * `autopilot` for an autopilot's (plan 320, ADR 0276 point 2).
+ */
 export interface DispatchOptions {
 	source?: CommandSource;
 }
@@ -199,6 +203,11 @@ export interface Sim {
 	 */
 	dispatch(command: Command, options?: DispatchOptions): CommandResult;
 	dispatch(command: unknown, options?: DispatchOptions): CommandResult;
+	/**
+	 * The scripts saved on vessels, with source and memory (plan 320, ADR 0276 point 6): what the
+	 * host restarts when a world opens.
+	 */
+	scripts(): Array<{ vessel: EntityId; name: string; source: string; memory: Record<string, unknown> }>;
 	/** Plain-data view of the current state. */
 	snapshot(): Snapshot;
 	/**
@@ -479,7 +488,7 @@ export async function createSim(options: SimOptions): Promise<Sim> {
 	};
 
 	/** Commands whose light time has passed apply first (signal delay, plan 117, ADR 0188 point 6). */
-	const drain = (): void => drainQueue(core, (c) => dispatch(core, c, 'queued'));
+	const drain = (): void => drainQueue(core, (c, from) => dispatch(core, c, 'queued', from));
 
 	/** One fixed flight step for every flight frame (and the rails vessels alongside). */
 	function flightStep(): void {
@@ -589,6 +598,7 @@ export async function createSim(options: SimOptions): Promise<Sim> {
 			holdWarpLimit(core);
 			thawFrozen(core);
 			if (core.paused) return; // the clock is paused (plan 205): nothing advances
+			stepOverrides(core); // the player's let-go channels return to their programs (plan 320)
 			takeEvaluations(); // this frame's budget counts from here (ADR 0122 point 5)
 			core.accumulator += warpedDelta(core, wallDelta);
 			let flightSteps = 0;
@@ -631,6 +641,7 @@ export async function createSim(options: SimOptions): Promise<Sim> {
 			holdWarp(flightSteps);
 		},
 		dispatch: (command, options) => dispatch(core, command, options?.source ?? 'player'),
+		scripts: () => savedScripts(core),
 		snapshot: () => takeSnapshot(core),
 		save: () => writeSave({ core, mods, seed }),
 		world: core.world,

@@ -43,8 +43,16 @@ export interface SimClient {
 	 * Run `source` against `vessel` (replaces a running script). `port` is the sim Worker's end of
 	 * the channel to the script Worker in the sandbox iframe (ADR 0038); it is transferred.
 	 */
-	startScript(source: string, vessel: number, port: MessagePort): void;
-	stopScript(): void;
+	startScript(source: string, vessel: number, port: MessagePort, name?: string): void;
+	/**
+	 * Run the script saved on `vessel` again, with its memory (plan 320, ADR 0276 point 6): what a
+	 * world that opens does for `savedScripts`.
+	 */
+	resumeScript(vessel: number, port: MessagePort): void;
+	/** `keep`: the world is closing; the script stays saved on its vessel to resume later. */
+	stopScript(keep?: boolean): void;
+	/** Vessels whose saved script can resume, from the sim's boot (empty before `ready`). */
+	readonly savedScripts: ReadonlyArray<{ vessel: number; name: string }>;
 	onScript(listener: (event: ScriptEvent) => void): () => void;
 	onStage(listener: (event: StageEvent) => void): () => void;
 	onSimEvent(listener: (event: SimEventMessage) => void): () => void;
@@ -67,6 +75,7 @@ export function createSimClient(worker: WorkerLike): SimClient {
 	let stepMs: number | null = null;
 	let isReady = false;
 	let disposed = false;
+	let savedScripts: ReadonlyArray<{ vessel: number; name: string }> = [];
 	const pending = new Map<number, (result: CommandResult) => void>();
 	const pendingSaves = new Map<
 		number,
@@ -106,7 +115,8 @@ export function createSimClient(worker: WorkerLike): SimClient {
 		switch (message.kind) {
 			case 'ready': {
 				isReady = true;
-				const { kind: _kind, ...catalog } = message;
+				const { kind: _kind, savedScripts: saved, ...catalog } = message;
+				savedScripts = saved ?? [];
 				resolveReady(catalog);
 				break;
 			}
@@ -188,12 +198,25 @@ export function createSimClient(worker: WorkerLike): SimClient {
 			errorListeners.add(listener);
 			return () => errorListeners.delete(listener);
 		},
-		startScript(source, vessel, port) {
-			if (!disposed) worker.postMessage({ kind: 'script-start', source, vessel, port }, [port]);
+		startScript(source, vessel, port, name) {
+			if (!disposed)
+				worker.postMessage(
+					{ kind: 'script-start', source, vessel, port, ...(name ? { name } : {}) },
+					[port]
+				);
 			else port.close();
 		},
-		stopScript() {
-			if (!disposed) worker.postMessage({ kind: 'script-stop' });
+		resumeScript(vessel, port) {
+			savedScripts = savedScripts.filter((x) => x.vessel !== vessel);
+			if (!disposed)
+				worker.postMessage({ kind: 'script-start', source: '', vessel, port, resume: true }, [port]);
+			else port.close();
+		},
+		stopScript(keep) {
+			if (!disposed) worker.postMessage({ kind: 'script-stop', ...(keep ? { keep: true } : {}) });
+		},
+		get savedScripts() {
+			return savedScripts;
 		},
 		onScript(listener) {
 			scriptListeners.add(listener);
