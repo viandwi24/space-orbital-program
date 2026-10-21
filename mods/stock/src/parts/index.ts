@@ -16,6 +16,7 @@ export * from './recovery.ts';
 export * from './science.ts';
 export * from './structure.ts';
 export * from './tanks.ts';
+export * from './missions.ts';
 
 import {
 	PartBoosterLiquid,

@@ -12,6 +12,8 @@ import { cylinder, stackNodes } from './shared.ts';
 export const PartSolarPanel = definePart({
 	id: 'stock.solar-panel',
 	title: 'Solar Panel',
+	// a stack part from before plan 280: kept for old designs, its surface-mounted successor is in the catalogue (ADR 0259)
+	catalog: { hidden: true },
 	mass: kg(30),
 	cost: partCost(30, 'command'),
 	impactTolerance: 6,
@@ -29,6 +31,8 @@ export const PartSolarPanel = definePart({
 export const PartSolarPanelFixed = definePart({
 	id: 'stock.solar-panel-fixed',
 	title: 'Fixed Solar Panel',
+	// a stack part from before plan 280: kept for old designs, its surface-mounted successor is in the catalogue (ADR 0259)
+	catalog: { hidden: true },
 	mass: kg(15),
 	cost: partCost(15, 'command'),
 	impactTolerance: 8,
@@ -49,6 +53,8 @@ export const PartSolarPanelFixed = definePart({
 export const PartSolarArrayLarge = definePart({
 	id: 'stock.solar-array-large',
 	title: 'Large Solar Array',
+	// a stack part from before plan 280: kept for old designs, its surface-mounted successor is in the catalogue (ADR 0259)
+	catalog: { hidden: true },
 	mass: kg(300),
 	cost: partCost(300, 'command'),
 	impactTolerance: 5,
@@ -66,6 +72,8 @@ export const PartSolarArrayLarge = definePart({
 export const PartRtg = definePart({
 	id: 'stock.rtg',
 	title: 'Radioisotope Generator',
+	// a stack part from before plan 280: kept for old designs, its surface-mounted successor is in the catalogue (ADR 0259)
+	catalog: { hidden: true },
 	mass: kg(80),
 	cost: partCost(80, 'engine'),
 	impactTolerance: 8,
@@ -91,10 +99,10 @@ const battery = (id: string, title: string, ec: number, size: number, height: nu
 		cost: partCost((ec / 100) * 5, 'command'),
 		impactTolerance: 8,
 		shape: { kind: 'cylinder', radius: size / 2, height },
+		// a disc of cells, not a striped tank (plan 280)
 		visual: {
-			kind: 'tank',
-			palette: { primary: '#2b2f36', secondary: '#d5d8dc', accent: '#e3a61f' },
-			params: { stripe: 0.5, bands: 1 }
+			kind: 'battery',
+			palette: { primary: '#d5d8dc', secondary: '#2b2f36', accent: '#e3a61f' }
 		},
 		attach: stackNodes(height, size),
 		modules: [[ModuleResourceContainer, { contents: { [ElectricCharge.id]: { capacity: ec } } }]]

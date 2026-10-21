@@ -36,6 +36,8 @@ function instrument(
 			palette: { primary: '#d5d8dc', secondary: '#2a2e35', accent },
 			params: { stripe: 0.5, bands: 1 }
 		},
+		// stack parts from before plan 280, kept for old designs (ADR 0259)
+		catalog: { hidden: true },
 		attach: stackNodes(height),
 		modules: [[ModuleExperiment, { experiment, label, ...(extra.held ? { held: true } : {}) }]]
 	});

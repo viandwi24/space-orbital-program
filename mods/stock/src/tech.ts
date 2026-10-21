@@ -40,7 +40,14 @@ export const STOCK_TECH = [
 		cost: 10,
 		requires: ['stock.basics'],
 		description: 'Measure temperature and pressure on the way up, and keep the data.',
-		unlocks: ['stock.thermometer', 'stock.barometer', 'stock.data-drive']
+		unlocks: [
+			'stock.thermometer',
+			'stock.barometer',
+			'stock.data-drive',
+			'stock.thermometer-radial',
+			'stock.barometer-radial',
+			'stock.data-drive-radial'
+		]
 	}),
 	defineTechNode({
 		id: 'stock.experiments',
@@ -49,7 +56,13 @@ export const STOCK_TECH = [
 		cost: 5,
 		requires: ['stock.basics'],
 		description: 'Goo and materials that react to where they fly.',
-		unlocks: ['stock.goo-canister', 'stock.materials-bay']
+		unlocks: [
+			'stock.goo-canister',
+			'stock.materials-bay',
+			'stock.goo-radial',
+			'stock.materials-radial',
+			'stock.atmosphere-radial'
+		]
 	}),
 	defineTechNode({
 		id: 'stock.structures',
@@ -64,7 +77,12 @@ export const STOCK_TECH = [
 			'stock.strut',
 			'stock.fuel-line',
 			// a small tank for probes (plan 289)
-			'stock.tank-0625'
+			'stock.tank-0625',
+			'stock.truss',
+			'stock.coupler-2',
+			'stock.coupler-3',
+			'stock.coupler-4',
+			'stock.service-bay'
 		]
 	}),
 	defineTechNode({
@@ -114,7 +132,12 @@ export const STOCK_TECH = [
 		requires: ['stock.instruments'],
 		milestone: 'orbit:stock.home',
 		description: 'Fly without crew: a probe core and a whip antenna.',
-		unlocks: ['stock.probe-core', 'stock.whip-antenna']
+		unlocks: [
+			'stock.probe-core',
+			'stock.whip-antenna',
+			'stock.antenna-whip-radial',
+			'stock.satellite-bus'
+		]
 	}),
 	defineTechNode({
 		id: 'stock.power',
@@ -130,7 +153,10 @@ export const STOCK_TECH = [
 			'stock.battery-small',
 			'stock.battery-medium',
 			'stock.light-spot',
-			'stock.light-flood'
+			'stock.light-flood',
+			'stock.solar-flat',
+			'stock.solar-fold',
+			'stock.battery-radial'
 		]
 	}),
 	defineTechNode({
@@ -152,7 +178,13 @@ export const STOCK_TECH = [
 		milestone: 'orbit:stock.home',
 		description:
 			'More parachutes: a radial one, a drogue for fast descents, and a ring of mains that leaves the apex free for a docking port.',
-		unlocks: ['stock.radial-parachute', 'stock.drogue-chute', 'stock.parachute-ring']
+		unlocks: [
+			'stock.radial-parachute',
+			'stock.drogue-chute',
+			'stock.parachute-ring',
+			'stock.capsule-sphere',
+			'stock.capsule-cone'
+		]
 	}),
 	// ---- tier 3: 490 science, after a Cinder flyby ----
 	defineTechNode({
@@ -163,7 +195,14 @@ export const STOCK_TECH = [
 		requires: ['stock.orbital-engines'],
 		milestone: 'flyby:stock.cinder',
 		description: 'Legs and a ladder for the ground of another world.',
-		unlocks: ['stock.landing-legs', 'stock.ladder']
+		unlocks: [
+			'stock.landing-legs',
+			'stock.ladder',
+			'stock.lander-descent',
+			'stock.lander-ascent',
+			'stock.landing-leg-single',
+			'stock.lander-can'
+		]
 	}),
 	defineTechNode({
 		id: 'stock.surface-science',
@@ -173,7 +212,12 @@ export const STOCK_TECH = [
 		requires: ['stock.experiments'],
 		milestone: 'flyby:stock.cinder',
 		description: 'The instruments that need solid ground.',
-		unlocks: ['stock.seismometer', 'stock.surface-sampler']
+		unlocks: [
+			'stock.seismometer',
+			'stock.surface-sampler',
+			'stock.seismometer-radial',
+			'stock.surface-sampler-radial'
+		]
 	}),
 	defineTechNode({
 		id: 'stock.deep-space',
@@ -183,7 +227,14 @@ export const STOCK_TECH = [
 		requires: ['stock.probes'],
 		milestone: 'flyby:stock.cinder',
 		description: 'A dish for long links and an air sampler.',
-		unlocks: ['stock.dish-antenna', 'stock.atmosphere-sampler']
+		unlocks: [
+			'stock.dish-antenna',
+			'stock.atmosphere-sampler',
+			'stock.antenna-dish-fold',
+			'stock.antenna-relay',
+			'stock.telescope',
+			'stock.magnetometer-boom'
+		]
 	}),
 	defineTechNode({
 		id: 'stock.rcs',
@@ -225,7 +276,14 @@ export const STOCK_TECH = [
 			'stock.adapter-1250-1875',
 			'stock.adapter-1875-2500',
 			'stock.nose-cone-1875',
-			'stock.heat-shield-1875'
+			'stock.heat-shield-1875',
+			'stock.lattice-interstage',
+			'stock.engine-plate-8',
+			'stock.engine-vacuum-xl',
+			'stock.pod-3',
+			'stock.escape-tower',
+			'stock.descent-module',
+			'stock.orbital-module'
 		]
 	}),
 	// ---- tier 4: 300 science, after a landing on Cinder ----
@@ -241,7 +299,9 @@ export const STOCK_TECH = [
 			'stock.docking-port-small',
 			'stock.docking-port',
 			'stock.docking-port-large',
-			'stock.docking-port-3750'
+			'stock.docking-port-3750',
+			'stock.hub',
+			'stock.crew-cabin'
 		]
 	}),
 	defineTechNode({
@@ -257,7 +317,10 @@ export const STOCK_TECH = [
 			'stock.fairing-base',
 			'stock.fairing-base-large',
 			'stock.fairing-base-1875',
-			'stock.fairing-base-3750'
+			'stock.fairing-base-3750',
+			'stock.service-bay-wide',
+			'stock.cargo-bay',
+			'stock.payload-petals'
 		]
 	}),
 	defineTechNode({
@@ -268,7 +331,17 @@ export const STOCK_TECH = [
 		requires: ['stock.landing'],
 		milestone: 'landing:stock.cinder',
 		description: 'Long flights with crew, and a collar to float.',
-		unlocks: ['stock.life-support-pack', 'stock.scrubber', 'stock.flotation-collar']
+		unlocks: [
+			'stock.life-support-pack',
+			'stock.scrubber',
+			'stock.flotation-collar',
+			'stock.life-support-radial',
+			'stock.scrubber-radial',
+			'stock.hab-module',
+			'stock.lab-module',
+			'stock.airlock',
+			'stock.cupola'
+		]
 	}),
 	defineTechNode({
 		id: 'stock.advanced-power',
@@ -278,7 +351,14 @@ export const STOCK_TECH = [
 		requires: ['stock.power'],
 		milestone: 'landing:stock.cinder',
 		description: 'A large solar array and a large battery.',
-		unlocks: ['stock.solar-array-large', 'stock.battery-large']
+		unlocks: [
+			'stock.solar-array-large',
+			'stock.battery-large',
+			'stock.solar-array-xl',
+			'stock.solar-wings',
+			'stock.fuel-cell',
+			'stock.radiator'
+		]
 	}),
 	// ---- tier 5 ----
 	defineTechNode({
@@ -290,7 +370,7 @@ export const STOCK_TECH = [
 		milestone: 'landing:stock.cinder',
 		description:
 			'A base kit to found a site on another body, and a drill for its outposts (plan 128).',
-		unlocks: ['stock.base-kit', 'stock.drill']
+		unlocks: ['stock.base-kit', 'stock.drill', 'stock.rover-cab']
 	}),
 	defineTechNode({
 		id: 'stock.nuclear-power',
@@ -300,7 +380,7 @@ export const STOCK_TECH = [
 		requires: ['stock.advanced-power'],
 		milestone: 'landing:stock.cinder',
 		description: 'A radioisotope generator: power far from the star, day and night.',
-		unlocks: ['stock.rtg']
+		unlocks: ['stock.rtg', 'stock.rtg-radial']
 	}),
 	defineTechNode({
 		id: 'stock.super-heavy-lift',
@@ -332,7 +412,14 @@ export const STOCK_TECH = [
 			'stock.heat-shield-3750',
 			'stock.heat-shield-5000',
 			'stock.fairing-base-5000',
-			'stock.fairing-base-7500'
+			'stock.fairing-base-7500',
+			'stock.engine-plate-5',
+			'stock.engine-plate-9',
+			'stock.external-tank',
+			'stock.srb-xl',
+			'stock.orbiter-nose',
+			'stock.orbiter-aft',
+			'stock.wing-delta'
 		]
 	})
 ];

@@ -1,0 +1,1279 @@
+/**
+ * Parts for the famous-mission blueprints (plans 276, 280, 281, 295–300; ADRs 0255, 0257, 0259–0261):
+ * surface-mounted power, comms and science; bays and structure; capsules, cabins and station
+ * modules; a lunar lander; satellites and a telescope; the shuttle; engine plates and the escape
+ * tower. Titles follow ADR 0255 (`OrbitX <code> "<nickname>"`).
+ */
+import { definePart, kg } from '@orbital/sdk';
+import { ModuleAnimate, ModuleBay, ModuleFuelCell } from '../animate.ts';
+import { AntennaDish, AntennaWhip, ModuleAntenna } from '../comms.ts';
+import { partCost } from '../costs.ts';
+import { ModuleDataStorage } from '../data.ts';
+import {
+	ModuleCommand,
+	ModuleDecoupler,
+	ModuleEngine,
+	ModuleLandingLeg,
+	ModuleProbeComputer,
+	ModuleReactionWheel,
+	ModuleResourceContainer,
+	ModuleScrubber,
+	ModuleWing
+} from '../modules.ts';
+import { ModuleParachute } from '../parachute.ts';
+import {
+	ElectricCharge,
+	Food,
+	LiquidFuel,
+	Monopropellant,
+	Oxidizer,
+	SolidFuel,
+	Supplies,
+	Oxygen,
+	Water
+} from '../resources.ts';
+import {
+	ExperimentAtmosphereSample,
+	ExperimentGoo,
+	ExperimentMagnetometer,
+	ExperimentMaterials,
+	ExperimentObservation,
+	ExperimentPressure,
+	ExperimentSeismic,
+	ExperimentSurfaceSample,
+	ExperimentTemperature,
+	ModuleExperiment
+} from '../science.ts';
+import { ModuleRtg, ModuleSolarPanel } from '../solar.ts';
+import { stackNodes, type Vec3Tuple } from './shared.ts';
+
+const WHITE = { primary: '#e9ebee', secondary: '#2a2e35', accent: '#e0572b' };
+const radialAt = (x: number) => ({
+	radial: { pos: [-x, 0, 0] as Vec3Tuple, dir: [-1, 0, 0] as Vec3Tuple }
+});
+const box = (x: number, y: number, z: number) => ({
+	kind: 'box' as const,
+	size: [x, y, z] as [number, number, number]
+});
+const cyl = (radius: number, height: number) => ({ kind: 'cylinder' as const, radius, height });
+const bottomOnly = (height: number, size: number) => ({
+	bottom: { pos: [0, -height / 2, 0] as Vec3Tuple, dir: [0, -1, 0] as Vec3Tuple, size }
+});
+const LFOX = (fuel: number) => ({
+	[LiquidFuel.id]: { capacity: fuel },
+	[Oxidizer.id]: { capacity: Math.round((fuel * 11) / 9) }
+});
+const lfox = [
+	{ resource: LiquidFuel.id, ratio: 0.9 },
+	{ resource: Oxidizer.id, ratio: 1.1 }
+];
+
+// ---- power (plan 280, ADR 0259) -------------------------------------------------------------
+
+export const PartSolarFlat = definePart({
+	id: 'stock.solar-flat',
+	title: 'OrbitX SD-1 "Lempeng"',
+	mass: kg(10),
+	cost: partCost(10, 'command'),
+	impactTolerance: 8,
+	shape: box(0.04, 0.5, 0.5),
+	visual: {
+		kind: 'solar-flat',
+		palette: { primary: '#d5d8dc', secondary: '#2b2f36', accent: '#7a8aa6' }
+	},
+	attach: radialAt(0.02),
+	modules: [[ModuleSolarPanel, { rate: 0.35, deployable: false, normal: [1, 0, 0] }]]
+});
+
+export const PartSolarFold = definePart({
+	id: 'stock.solar-fold',
+	title: 'OrbitX SD-6 "Sayap"',
+	mass: kg(25),
+	cost: partCost(25, 'command'),
+	impactTolerance: 6,
+	shape: box(0.12, 0.5, 0.3),
+	visual: {
+		kind: 'solar-fold',
+		palette: { primary: '#d5d8dc', secondary: '#2b2f36', accent: '#e3a61f' },
+		params: { reach: 0.3, panel: 0.42, panels: 3 },
+		deploy: { module: ModuleSolarPanel.id, flag: 'deployed', seconds: 2.5 }
+	},
+	attach: radialAt(0.06),
+	modules: [[ModuleSolarPanel, { rate: 1.6, normal: [1, 0, 0] }]]
+});
+
+export const PartSolarArrayXl = definePart({
+	id: 'stock.solar-array-xl',
+	title: 'OrbitX SD-24 "Bentang"',
+	mass: kg(300),
+	cost: partCost(300, 'command'),
+	impactTolerance: 5,
+	shape: box(0.24, 0.7, 0.36),
+	visual: {
+		kind: 'solar-array',
+		palette: { primary: '#d5d8dc', secondary: '#2b2f36', accent: '#e3a61f' },
+		params: { mast: 0.6, wing: 2.4, width: 0.9 },
+		deploy: { module: ModuleSolarPanel.id, flag: 'deployed', seconds: 5 }
+	},
+	attach: radialAt(0.12),
+	modules: [[ModuleSolarPanel, { rate: 8.25, mode: 'track' }]]
+});
+
+export const PartSolarWings = definePart({
+	id: 'stock.solar-wings',
+	title: 'OrbitX SD-W "Kepak"',
+	mass: kg(120),
+	cost: partCost(120, 'command'),
+	impactTolerance: 6,
+	shape: cyl(0.625, 0.35),
+	visual: {
+		kind: 'solar-wings',
+		palette: { primary: '#d5d8dc', secondary: '#2b2f36', accent: '#e3a61f' },
+		params: { panel: 0.7, panels: 4 },
+		deploy: { module: ModuleSolarPanel.id, flag: 'deployed', seconds: 4 }
+	},
+	attach: stackNodes(0.35),
+	modules: [[ModuleSolarPanel, { rate: 3, normal: [0, 0, 1], stageable: true }]]
+});
+
+export const PartBatteryRadial = definePart({
+	id: 'stock.battery-radial',
+	title: 'OrbitX BA-1R "Sel"',
+	mass: kg(5),
+	cost: partCost(5, 'command'),
+	impactTolerance: 8,
+	shape: box(0.08, 0.3, 0.2),
+	visual: {
+		kind: 'battery',
+		palette: { primary: '#d5d8dc', secondary: '#2b2f36', accent: '#e3a61f' },
+		params: { radial: true }
+	},
+	attach: radialAt(0.04),
+	modules: [[ModuleResourceContainer, { contents: { [ElectricCharge.id]: { capacity: 100 } } }]]
+});
+
+export const PartRtgRadial = definePart({
+	id: 'stock.rtg-radial',
+	title: 'OrbitX SD-R "Tungku"',
+	mass: kg(80),
+	cost: partCost(80, 'engine'),
+	impactTolerance: 8,
+	shape: box(0.36, 0.6, 0.36),
+	visual: { kind: 'rtg', palette: { primary: '#3b4047', secondary: '#e3a61f', accent: '#d9552b' } },
+	attach: radialAt(0.18),
+	modules: [[ModuleRtg, {}]]
+});
+
+export const PartFuelCell = definePart({
+	id: 'stock.fuel-cell',
+	title: 'OrbitX SD-F "Bara"',
+	mass: kg(50),
+	cost: partCost(50, 'command'),
+	impactTolerance: 8,
+	shape: box(0.2, 0.35, 0.3),
+	visual: { kind: 'fuel-cell', palette: WHITE },
+	attach: radialAt(0.1),
+	modules: [[ModuleFuelCell, { rate: 1.5 }]]
+});
+
+// ---- comms (plan 280) -------------------------------------------------------------------------
+
+export const PartWhipRadial = definePart({
+	id: 'stock.antenna-whip-radial',
+	title: 'OrbitX GC-16 "Cambuk"',
+	mass: kg(5),
+	cost: partCost(5, 'command'),
+	impactTolerance: 6,
+	shape: box(0.08, 0.12, 0.08),
+	visual: {
+		kind: 'antenna-whip',
+		palette: WHITE,
+		params: { length: 1.2 },
+		deploy: { module: ModuleAntenna.id, flag: 'enabled', seconds: 1.5 }
+	},
+	attach: radialAt(0.04),
+	modules: [[ModuleAntenna, { antenna: AntennaWhip.id }]]
+});
+
+export const PartDishFold = definePart({
+	id: 'stock.antenna-dish-fold',
+	title: 'OrbitX GC-5 "Payung"',
+	mass: kg(60),
+	cost: partCost(60, 'command'),
+	impactTolerance: 6,
+	shape: box(0.14, 0.3, 0.3),
+	visual: {
+		kind: 'antenna-dish',
+		palette: WHITE,
+		params: { dish: 0.45, arm: 0.35 },
+		deploy: { module: ModuleAntenna.id, flag: 'enabled', seconds: 2.5 }
+	},
+	attach: radialAt(0.07),
+	modules: [[ModuleAntenna, { antenna: AntennaDish.id }]]
+});
+
+export const PartRelayDish = definePart({
+	id: 'stock.antenna-relay',
+	title: 'OrbitX GC-88 "Piring"',
+	mass: kg(200),
+	cost: partCost(200, 'command'),
+	impactTolerance: 5,
+	shape: cyl(0.9, 1.0),
+	visual: { kind: 'antenna-relay', palette: WHITE },
+	attach: bottomOnly(1.0, 1.25),
+	modules: [[ModuleAntenna, { antenna: AntennaDish.id }]]
+});
+
+// ---- science and containers (plan 280) -------------------------------------------------------
+
+function radialInstrument(
+	id: string,
+	title: string,
+	massKg: number,
+	experiment: string,
+	label: string,
+	kind: string,
+	size: [number, number, number],
+	held = false
+) {
+	const doors = kind === 'goo' || kind === 'materials';
+	return definePart({
+		id,
+		title,
+		mass: kg(massKg),
+		cost: partCost(massKg, 'command'),
+		impactTolerance: 8,
+		shape: box(...size),
+		visual: {
+			kind: 'instrument',
+			palette: WHITE,
+			params: { kind },
+			...(doors ? { deploy: { module: ModuleAnimate.id, flag: 'open', seconds: 1.5 } } : {})
+		},
+		attach: radialAt(size[0] / 2),
+		modules: [
+			[ModuleExperiment, { experiment, label, ...(held ? { held: true } : {}) }],
+			...(doors ? [[ModuleAnimate, { label: 'Doors' }] as const] : [])
+		]
+	});
+}
+
+export const PartThermometerRadial = radialInstrument(
+	'stock.thermometer-radial',
+	'OrbitX SI-T "Termo"',
+	10,
+	ExperimentTemperature.id,
+	'Log temperature',
+	'thermometer',
+	[0.12, 0.2, 0.14]
+);
+export const PartBarometerRadial = radialInstrument(
+	'stock.barometer-radial',
+	'OrbitX SI-P "Baro"',
+	10,
+	ExperimentPressure.id,
+	'Log pressure',
+	'barometer',
+	[0.14, 0.18, 0.18]
+);
+export const PartSeismometerRadial = radialInstrument(
+	'stock.seismometer-radial',
+	'OrbitX SI-S "Getar"',
+	20,
+	ExperimentSeismic.id,
+	'Log seismic activity',
+	'seismometer',
+	[0.2, 0.2, 0.2]
+);
+export const PartAtmosphereRadial = radialInstrument(
+	'stock.atmosphere-radial',
+	'OrbitX SI-A "Hirup"',
+	15,
+	ExperimentAtmosphereSample.id,
+	'Take air sample',
+	'atmosphere',
+	[0.22, 0.2, 0.2]
+);
+export const PartSurfaceRadial = radialInstrument(
+	'stock.surface-sampler-radial',
+	'OrbitX SI-G "Cedok"',
+	30,
+	ExperimentSurfaceSample.id,
+	'Take surface sample',
+	'surface',
+	[0.2, 0.3, 0.2]
+);
+export const PartGooRadial = radialInstrument(
+	'stock.goo-radial',
+	'OrbitX SI-L "Lendir"',
+	50,
+	ExperimentGoo.id,
+	'Observe goo',
+	'goo',
+	[0.3, 0.4, 0.3],
+	true
+);
+export const PartMaterialsRadial = radialInstrument(
+	'stock.materials-radial',
+	'OrbitX SI-M "Lab Mini"',
+	200,
+	ExperimentMaterials.id,
+	'Study materials',
+	'materials',
+	[0.45, 0.7, 0.6],
+	true
+);
+export const PartMagnetometer = definePart({
+	id: 'stock.magnetometer-boom',
+	title: 'OrbitX SI-B "Kompas Medan"',
+	mass: kg(25),
+	cost: partCost(25, 'command'),
+	impactTolerance: 6,
+	shape: box(1.4, 0.12, 0.12),
+	visual: { kind: 'boom', palette: WHITE },
+	attach: radialAt(0.7),
+	modules: [[ModuleExperiment, { experiment: ExperimentMagnetometer.id, label: 'Scan the field' }]]
+});
+
+export const PartSuppliesRadial = definePart({
+	id: 'stock.life-support-radial',
+	title: 'OrbitX LS-1 "Bekal"',
+	mass: kg(40),
+	cost: partCost(40, 'command'),
+	impactTolerance: 8,
+	shape: box(0.3, 0.6, 0.3),
+	visual: { kind: 'container', palette: WHITE, params: { kind: 'supplies' } },
+	attach: radialAt(0.15),
+	modules: [
+		[
+			ModuleResourceContainer,
+			{
+				contents: {
+					[Supplies.id]: { capacity: 6 },
+					[Oxygen.id]: { capacity: 6 },
+					[Water.id]: { capacity: 6 },
+					[Food.id]: { capacity: 6 }
+				}
+			}
+		]
+	]
+});
+export const PartScrubberRadial = definePart({
+	id: 'stock.scrubber-radial',
+	title: 'OrbitX LS-2 "Saring"',
+	mass: kg(30),
+	cost: partCost(30, 'command'),
+	impactTolerance: 8,
+	shape: box(0.2, 0.4, 0.3),
+	visual: { kind: 'container', palette: WHITE, params: { kind: 'scrubber' } },
+	attach: radialAt(0.1),
+	modules: [[ModuleScrubber, { crew: 3, charge: 10 }]]
+});
+export const PartDataRadial = definePart({
+	id: 'stock.data-drive-radial',
+	title: 'OrbitX NA-D "Arsip"',
+	mass: kg(20),
+	cost: partCost(20, 'command'),
+	impactTolerance: 8,
+	shape: box(0.16, 0.3, 0.24),
+	visual: { kind: 'container', palette: WHITE, params: { kind: 'data' } },
+	attach: radialAt(0.08),
+	modules: [[ModuleDataStorage, { capacity: 64 * 1024 * 1024 }]]
+});
+
+// ---- bays and structure (plan 281, ADR 0261) ---------------------------------------------------
+
+function bay(
+	id: string,
+	title: string,
+	size: number,
+	height: number,
+	massKg: number,
+	cargo: boolean
+) {
+	const r = size / 2;
+	const inner = r * 0.9;
+	return definePart({
+		id,
+		title,
+		mass: kg(massKg),
+		cost: partCost(massKg, 'structure'),
+		impactTolerance: 8,
+		shape: cyl(r, height),
+		visual: {
+			kind: 'service-bay',
+			palette: WHITE,
+			params: { doors: cargo ? 2 : 4, cargo },
+			deploy: { module: ModuleBay.id, flag: 'open', seconds: cargo ? 6 : 2 }
+		},
+		attach: stackNodes(height, size),
+		modules: [
+			[
+				ModuleBay,
+				{
+					profile: [
+						{ y: -height / 2 + 0.05, r: inner },
+						{ y: height / 2 - 0.05, r: inner }
+					]
+				}
+			]
+		]
+	});
+}
+export const PartServiceBay = bay(
+	'stock.service-bay',
+	'OrbitX RS-SB12 "Ruang"',
+	1.25,
+	0.8,
+	120,
+	false
+);
+export const PartServiceBayWide = bay(
+	'stock.service-bay-wide',
+	'OrbitX RS-SB25 "Ruang"',
+	2.5,
+	1.2,
+	400,
+	false
+);
+export const PartCargoBay = bay('stock.cargo-bay', 'OrbitX RS-CB25 "Palka"', 2.5, 4, 1_500, true);
+
+export const PartPayloadPetals = definePart({
+	id: 'stock.payload-petals',
+	title: 'OrbitX RS-PL "Kelopak"',
+	mass: kg(1_200),
+	cost: partCost(1_200, 'structure'),
+	impactTolerance: 8,
+	shape: cyl(1.875, 3.5),
+	visual: {
+		kind: 'petals',
+		palette: WHITE,
+		params: { top: 1.25 },
+		deploy: { module: ModuleBay.id, flag: 'open', seconds: 3 }
+	},
+	attach: stackNodes(3.5, 2.5, 3.75),
+	modules: [
+		[
+			ModuleBay,
+			{
+				profile: [
+					{ y: -1.7, r: 1.7 },
+					{ y: 1.7, r: 1.15 }
+				],
+				stageable: true
+			}
+		]
+	]
+});
+
+function couplerPart(ways: 2 | 3 | 4) {
+	const h = 0.6;
+	const child = 1.25;
+	const off = ways === 2 ? 0.625 : 0.72;
+	const nodes: Record<string, { pos: Vec3Tuple; dir: Vec3Tuple; size: number }> = {
+		top: { pos: [0, h / 2, 0], dir: [0, 1, 0], size: 2.5 }
+	};
+	for (let i = 0; i < ways; i++) {
+		const a = (i / ways) * Math.PI * 2 + (ways === 2 ? Math.PI / 2 : 0);
+		nodes[i === 0 ? 'bottom' : `bottom${i + 1}`] = {
+			pos: [
+				Math.round(Math.sin(a) * off * 1e6) / 1e6,
+				-h / 2,
+				Math.round(Math.cos(a) * off * 1e6) / 1e6
+			],
+			dir: [0, -1, 0],
+			size: child
+		};
+	}
+	return definePart({
+		id: `stock.coupler-${ways}`,
+		title: `OrbitX RS-C${ways} "Cabang"`,
+		mass: kg(100 * ways),
+		cost: partCost(100 * ways, 'structure'),
+		impactTolerance: 8,
+		shape: cyl(Math.max(1.25, off + child / 2), h),
+		visual: {
+			kind: 'coupler',
+			palette: WHITE,
+			params: { ways, child: child / 2, offset: off, top: 1.25 }
+		},
+		attach: nodes
+	});
+}
+export const PartCoupler2 = couplerPart(2);
+export const PartCoupler3 = couplerPart(3);
+export const PartCoupler4 = couplerPart(4);
+
+export const PartTruss = definePart({
+	id: 'stock.truss',
+	title: 'OrbitX RS-T "Rangka"',
+	mass: kg(150),
+	cost: partCost(150, 'structure'),
+	impactTolerance: 10,
+	shape: box(1, 2, 1),
+	visual: {
+		kind: 'truss',
+		palette: { primary: '#d5d8dc', secondary: '#2a2e35', accent: '#e3a61f' }
+	},
+	attach: {
+		top: { pos: [0, 1, 0], dir: [0, 1, 0] },
+		bottom: { pos: [0, -1, 0], dir: [0, -1, 0] }
+	}
+});
+
+export const PartHub = definePart({
+	id: 'stock.hub',
+	title: 'OrbitX RS-H6 "Simpul"',
+	mass: kg(400),
+	cost: partCost(400, 'structure'),
+	impactTolerance: 10,
+	shape: cyl(1.5, 1.6),
+	visual: { kind: 'hub', palette: WHITE, params: { port: 0.625 } },
+	attach: {
+		...stackNodes(1.6),
+		east: { pos: [1.35, 0, 0], dir: [1, 0, 0], size: 1.25 },
+		west: { pos: [-1.35, 0, 0], dir: [-1, 0, 0], size: 1.25 },
+		north: { pos: [0, 0, 1.35], dir: [0, 0, 1], size: 1.25 },
+		south: { pos: [0, 0, -1.35], dir: [0, 0, -1], size: 1.25 }
+	}
+});
+
+export const PartLatticeInterstage = definePart({
+	id: 'stock.lattice-interstage',
+	title: 'OrbitX RS-LI "Kisi"',
+	mass: kg(200),
+	cost: partCost(200, 'structure'),
+	impactTolerance: 8,
+	shape: cyl(1.25, 1.2),
+	visual: {
+		kind: 'lattice',
+		palette: { primary: '#d5d8dc', secondary: '#2a2e35', accent: '#e3a61f' }
+	},
+	attach: stackNodes(1.2, 2.5),
+	// an open lattice: the stage below can fire through it, and fuel does not pass
+	crossfeed: false
+});
+
+// ---- crew and command (plans 297, 300) --------------------------------------------------------
+
+const pod = (opts: {
+	id: string;
+	title: string;
+	massKg: number;
+	crew: number;
+	shape: { kind: 'cylinder'; radius: number; height: number };
+	kind: string;
+	params?: Record<string, number | string | boolean>;
+	attach: Record<string, { pos: Vec3Tuple; dir: Vec3Tuple; size?: number }>;
+	command?: boolean;
+	chutes?: number;
+	heat?: boolean;
+}) =>
+	definePart({
+		id: opts.id,
+		title: opts.title,
+		mass: kg(opts.massKg),
+		crewCapacity: opts.crew,
+		cost: partCost(opts.massKg, 'command'),
+		impactTolerance: 10,
+		maxTemperature: opts.heat ? 2_400 : 1_400,
+		shape: opts.shape,
+		...(opts.heat
+			? { centerOfMass: [0, -opts.shape.height * 0.12, 0] as Vec3Tuple, bluntBase: 0.35 }
+			: {}),
+		visual: {
+			kind: opts.kind,
+			palette: WHITE,
+			...(opts.params ? { params: opts.params } : {}),
+			...(opts.chutes
+				? { deploy: { module: ModuleParachute.id, flag: 'canopy', seconds: 1.5 } }
+				: {})
+		},
+		attach: opts.attach,
+		hatch: { pos: [0, 0, opts.shape.radius * 0.98], dir: [0, 0, 1] },
+		modules: [
+			...(opts.command === false ? [] : [[ModuleCommand, {}] as const]),
+			[
+				ModuleResourceContainer,
+				{
+					contents: {
+						[ElectricCharge.id]: { capacity: 50 * opts.crew + 50 },
+						[Monopropellant.id]: { capacity: 10 * opts.crew, amount: 0 }
+					}
+				}
+			],
+			...(opts.chutes
+				? [
+						[
+							ModuleParachute,
+							{
+								semiDragArea: 10 * opts.chutes,
+								fullDragArea: opts.chutes,
+								anchor: [0, opts.shape.height / 2, 0] as [number, number, number]
+							}
+						] as const
+					]
+				: [])
+		],
+		stagingIcon: opts.chutes ? 'parachute' : 'command'
+	});
+
+export const PartPod3 = pod({
+	id: 'stock.pod-3',
+	title: 'OrbitX PC-3 "Lonceng"',
+	massKg: 2_700,
+	crew: 3,
+	shape: cyl(1.25, 1.7),
+	kind: 'capsule',
+	params: { collarRadius: 0.625, collarHeight: 0.14, drumTop: -0.35, chutes: true, canopy: 16 },
+	attach: stackNodes(1.7, 1.25, 2.5),
+	chutes: 1_400,
+	heat: true
+});
+export const PartDescentModule = pod({
+	id: 'stock.descent-module',
+	title: 'OrbitX PC-D "Lentera"',
+	massKg: 2_200,
+	crew: 3,
+	shape: cyl(0.9375, 1.5),
+	kind: 'headlight',
+	params: { top: 0.3125 },
+	attach: stackNodes(1.5, 0.625, 1.875),
+	heat: true
+});
+export const PartOrbitalModule = pod({
+	id: 'stock.orbital-module',
+	title: 'OrbitX PC-O "Bola"',
+	massKg: 900,
+	crew: 2,
+	shape: cyl(0.75, 1.5),
+	kind: 'sphere-capsule',
+	params: { bottom: 0.3125, top: 0.3125 },
+	attach: stackNodes(1.5, 0.625),
+	command: false
+});
+export const PartSphereCapsule = pod({
+	id: 'stock.capsule-sphere',
+	title: 'OrbitX PC-1S "Timur"',
+	massKg: 1_300,
+	crew: 1,
+	shape: cyl(0.625, 1.25),
+	kind: 'sphere-capsule',
+	params: { bottom: 0.3125, top: 0.3125 },
+	attach: stackNodes(1.25, 0.625),
+	heat: true
+});
+export const PartConeCapsule = pod({
+	id: 'stock.capsule-cone',
+	title: 'OrbitX PC-1K "Merkuri"',
+	massKg: 1_000,
+	crew: 1,
+	shape: cyl(0.625, 1.4),
+	kind: 'cone-capsule',
+	params: { top: 0.3125 },
+	attach: stackNodes(1.4, 0.625, 1.25),
+	heat: true
+});
+export const PartLanderCan = pod({
+	id: 'stock.lander-can',
+	title: 'OrbitX PC-L1 "Kaleng"',
+	massKg: 600,
+	crew: 1,
+	shape: cyl(0.625, 1.0),
+	kind: 'crew-can',
+	params: { kind: 'lander' },
+	attach: stackNodes(1.0)
+});
+export const PartCrewCabin = pod({
+	id: 'stock.crew-cabin',
+	title: 'OrbitX PC-K2 "Kabin"',
+	massKg: 1_000,
+	crew: 2,
+	shape: cyl(0.625, 1.6),
+	kind: 'crew-can',
+	params: { kind: 'cabin' },
+	attach: stackNodes(1.6),
+	command: false
+});
+export const PartHabModule = pod({
+	id: 'stock.hab-module',
+	title: 'OrbitX ST-H "Rumah"',
+	massKg: 6_000,
+	crew: 4,
+	shape: cyl(1.25, 4),
+	kind: 'crew-can',
+	params: { kind: 'hab' },
+	attach: stackNodes(4, 2.5),
+	command: false
+});
+export const PartLabModule = pod({
+	id: 'stock.lab-module',
+	title: 'OrbitX ST-L "Bengkel"',
+	massKg: 7_000,
+	crew: 2,
+	shape: cyl(1.25, 4),
+	kind: 'crew-can',
+	params: { kind: 'lab' },
+	attach: stackNodes(4, 2.5),
+	command: false
+});
+export const PartAirlock = pod({
+	id: 'stock.airlock',
+	title: 'OrbitX ST-A "Pintu"',
+	massKg: 500,
+	crew: 1,
+	shape: cyl(0.625, 1.0),
+	kind: 'crew-can',
+	params: { kind: 'cabin', top: 0.3125 },
+	attach: stackNodes(1.0, 0.625, 1.25),
+	command: false
+});
+export const PartCupola = pod({
+	id: 'stock.cupola',
+	title: 'OrbitX ST-C "Jendela"',
+	massKg: 1_000,
+	crew: 1,
+	shape: cyl(0.625, 0.9),
+	kind: 'cupola',
+	attach: bottomOnly(0.9, 1.25)
+});
+export const PartRoverCab = pod({
+	id: 'stock.rover-cab',
+	title: 'OrbitX RV-2 "Jelajah"',
+	massKg: 700,
+	crew: 2,
+	shape: cyl(0.625, 1.0),
+	kind: 'crew-can',
+	params: { kind: 'lander' },
+	attach: stackNodes(1.0)
+});
+
+export const PartRadiator = definePart({
+	id: 'stock.radiator',
+	title: 'OrbitX TH-R "Kipas"',
+	mass: kg(50),
+	cost: partCost(50, 'structure'),
+	impactTolerance: 6,
+	shape: box(0.6, 1.4, 0.1),
+	visual: { kind: 'radiator', palette: WHITE },
+	attach: radialAt(0.3)
+});
+
+// ---- satellites (plan 298) ---------------------------------------------------------------------
+
+export const PartSatelliteBus = definePart({
+	id: 'stock.satellite-bus',
+	title: 'OrbitX NA-S "Wahana"',
+	mass: kg(400),
+	cost: partCost(400, 'command'),
+	impactTolerance: 8,
+	shape: cyl(0.9, 1.2),
+	visual: { kind: 'satellite-bus', palette: WHITE, params: { node: 1.25 } },
+	attach: stackNodes(1.2, 1.25),
+	modules: [
+		[ModuleCommand, {}],
+		[ModuleProbeComputer, {}],
+		[ModuleReactionWheel, { torque: 5_000, chargeRate: 0.6 }],
+		[ModuleResourceContainer, { contents: { [ElectricCharge.id]: { capacity: 400 } } }]
+	],
+	stagingIcon: 'command'
+});
+
+export const PartTelescope = definePart({
+	id: 'stock.telescope',
+	title: 'OrbitX SI-X "Teropong"',
+	mass: kg(2_000),
+	cost: partCost(2_000, 'command'),
+	impactTolerance: 6,
+	shape: cyl(1.25, 5),
+	visual: {
+		kind: 'telescope',
+		palette: WHITE,
+		params: { node: 2.5 },
+		deploy: { module: ModuleAnimate.id, flag: 'open', seconds: 4 }
+	},
+	attach: bottomOnly(5, 2.5),
+	modules: [
+		[ModuleExperiment, { experiment: ExperimentObservation.id, label: 'Observe' }],
+		[ModuleAnimate, { label: 'Aperture door' }]
+	]
+});
+
+// ---- lunar lander (plan 296) -------------------------------------------------------------------
+
+export const PartLanderDescent = definePart({
+	id: 'stock.lander-descent',
+	title: 'OrbitX LD-1 "Tapak"',
+	mass: kg(2_000),
+	cost: partCost(2_000, 'engine'),
+	impactTolerance: 8,
+	shape: cyl(1.25, 1.6),
+	visual: {
+		kind: 'descent-stage',
+		palette: WHITE,
+		params: { top: 0.625 },
+		plume: {
+			module: ModuleEngine.id,
+			nozzle: [0, -0.8, 0],
+			exitRadius: 0.44,
+			length: 3,
+			exitPressure: 20_000
+		}
+	},
+	attach: { top: { pos: [0, 0.8, 0], dir: [0, 1, 0], size: 1.25 } },
+	modules: [
+		[
+			ModuleEngine,
+			{
+				thrust: 45_000,
+				ispVacuum: 311,
+				ispSeaLevel: 120,
+				propellants: lfox,
+				gimbal: { range: 3, rate: 10 }
+			}
+		],
+		[ModuleResourceContainer, { contents: LFOX(900) }]
+	],
+	stagingIcon: 'engine'
+});
+
+export const PartLanderAscent = definePart({
+	id: 'stock.lander-ascent',
+	title: 'OrbitX LD-2 "Lompat"',
+	mass: kg(1_800),
+	crewCapacity: 2,
+	cost: partCost(1_800, 'command'),
+	impactTolerance: 8,
+	shape: cyl(1.0, 1.6),
+	visual: {
+		kind: 'ascent-cabin',
+		palette: WHITE,
+		params: { top: 0.3125, bottom: 0.625 },
+		plume: {
+			module: ModuleEngine.id,
+			nozzle: [0, -0.8, 0],
+			exitRadius: 0.2,
+			length: 2,
+			exitPressure: 20_000
+		}
+	},
+	attach: stackNodes(1.6, 0.625, 1.25),
+	hatch: { pos: [0, -0.3, 0.95], dir: [0, 0, 1] },
+	modules: [
+		[ModuleCommand, {}],
+		[ModuleEngine, { thrust: 16_000, ispVacuum: 311, ispSeaLevel: 120, propellants: lfox }],
+		[
+			ModuleResourceContainer,
+			{
+				contents: {
+					...LFOX(250),
+					[ElectricCharge.id]: { capacity: 150 },
+					[Monopropellant.id]: { capacity: 40 }
+				}
+			}
+		]
+	],
+	stagingIcon: 'engine'
+});
+
+export const PartSingleLeg = definePart({
+	id: 'stock.landing-leg-single',
+	title: 'OrbitX LD-K "Kaki"',
+	mass: kg(60),
+	cost: partCost(60, 'gear'),
+	impactTolerance: 14,
+	shape: box(0.2, 0.5, 0.2),
+	visual: {
+		kind: 'single-leg',
+		palette: WHITE,
+		params: { spread: 1.0, drop: 1.0, footSize: 0.35 },
+		deploy: { module: ModuleLandingLeg.id, flag: 'deployed', seconds: 1.5 }
+	},
+	attach: radialAt(0.1),
+	modules: [[ModuleLandingLeg, { spread: 1.0, drop: 1.0, footSize: 0.35, layout: 'single' }]],
+	stagingIcon: 'legs'
+});
+
+// ---- engines (plan 276) ------------------------------------------------------------------------
+
+/** Bell exit centres of a cluster plate: one on the axis when `centre`, the rest on a ring (the renderer's `clusterLayout`). */
+export function plateNozzles(count: number, ring: number, y: number, centre: boolean): Vec3Tuple[] {
+	const out: Vec3Tuple[] = centre ? [[0, y, 0]] : [];
+	const n = centre ? count - 1 : count;
+	for (let k = 0; k < n; k++) {
+		const a = Math.PI / n + (2 * Math.PI * k) / n;
+		out.push([
+			Math.round(ring * Math.cos(a) * 1e6) / 1e6,
+			y,
+			Math.round(ring * Math.sin(a) * 1e6) / 1e6
+		]);
+	}
+	return out;
+}
+
+function enginePlate(opts: {
+	id: string;
+	title: string;
+	size: number;
+	height: number;
+	bells: number;
+	ring: number;
+	exit: number;
+	thrust: number;
+	massKg: number;
+	centre: boolean;
+}) {
+	const h2 = opts.height / 2;
+	return definePart({
+		id: opts.id,
+		title: opts.title,
+		mass: kg(opts.massKg),
+		cost: partCost(opts.massKg, 'engine'),
+		impactTolerance: 4,
+		shape: cyl(opts.size / 2, opts.height),
+		visual: {
+			kind: 'engine-cluster',
+			palette: { primary: '#2d3138', secondary: '#9aa1aa', accent: '#b0642e' },
+			params: { bells: opts.bells, ring: opts.ring, bellExit: opts.exit, centre: opts.centre },
+			plume: {
+				module: ModuleEngine.id,
+				nozzle: [0, -h2, 0],
+				nozzles: plateNozzles(opts.bells, opts.ring, -h2, opts.centre),
+				exitRadius: opts.exit,
+				length: opts.height * 5,
+				exitPressure: 90_000
+			},
+			articulation: { module: ModuleEngine.id, field: 'gimbal', mode: 'gimbal' }
+		},
+		attach: stackNodes(opts.height, opts.size),
+		crossfeed: false,
+		modules: [
+			[
+				ModuleEngine,
+				{
+					thrust: opts.thrust,
+					ispVacuum: 304,
+					ispSeaLevel: 265,
+					propellants: lfox,
+					gimbal: { range: 2, rate: 10 }
+				}
+			]
+		],
+		stagingIcon: 'engine'
+	});
+}
+export const PartEnginePlate5 = enginePlate({
+	id: 'stock.engine-plate-5',
+	title: 'OrbitX GP-F5 "Raksasa"',
+	size: 5,
+	height: 3,
+	bells: 5,
+	ring: 1.45,
+	exit: 0.75,
+	thrust: 7_000_000,
+	massKg: 16_000,
+	centre: true
+});
+export const PartEnginePlate9 = enginePlate({
+	id: 'stock.engine-plate-9',
+	title: 'OrbitX GP-M9 "Rajawali"',
+	size: 3.75,
+	height: 2.2,
+	bells: 9,
+	ring: 1.15,
+	exit: 0.42,
+	thrust: 4_000_000,
+	massKg: 9_000,
+	centre: true
+});
+export const PartEnginePlate8 = enginePlate({
+	id: 'stock.engine-plate-8',
+	title: 'OrbitX GP-R8 "Delapan"',
+	size: 3.75,
+	height: 2.2,
+	bells: 8,
+	ring: 1.25,
+	exit: 0.4,
+	thrust: 3_200_000,
+	massKg: 8_000,
+	centre: false
+});
+
+export const PartEngineVacuumXl = definePart({
+	id: 'stock.engine-vacuum-xl',
+	title: 'OrbitX GP-J2 "Hampa"',
+	mass: kg(2_500),
+	cost: partCost(2_500, 'engine'),
+	impactTolerance: 4,
+	shape: cyl(1.25, 2.6),
+	visual: {
+		kind: 'engine',
+		palette: { primary: '#2d3138', secondary: '#9aa1aa', accent: '#b0642e' },
+		params: { bellExit: 1.0, throat: 0.25 },
+		plume: {
+			module: ModuleEngine.id,
+			nozzle: [0, -1.3, 0],
+			exitRadius: 1.0,
+			length: 10,
+			exitPressure: 10_000
+		},
+		articulation: { module: ModuleEngine.id, field: 'gimbal', mode: 'gimbal' }
+	},
+	attach: stackNodes(2.6, 2.5),
+	crossfeed: false,
+	modules: [
+		[
+			ModuleEngine,
+			{
+				thrust: 1_000_000,
+				ispVacuum: 420,
+				ispSeaLevel: 200,
+				propellants: lfox,
+				gimbal: { range: 3, rate: 10 }
+			}
+		]
+	],
+	stagingIcon: 'engine'
+});
+
+/** The launch escape tower (plan 276): a solid motor on a lattice that carries the pod away and separates from it. */
+export const PartEscapeTower = definePart({
+	id: 'stock.escape-tower',
+	title: 'OrbitX PS-LES "Penyelamat"',
+	mass: kg(900),
+	cost: partCost(900, 'engine'),
+	impactTolerance: 6,
+	shape: cyl(0.65, 3.2),
+	visual: {
+		kind: 'escape-tower',
+		palette: { primary: '#e9ebee', secondary: '#2a2e35', accent: '#d9552b' },
+		params: { base: 0.625 },
+		plume: {
+			module: ModuleEngine.id,
+			nozzle: [0, -0.2, 0],
+			exitRadius: 0.1,
+			length: 3,
+			exitPressure: 90_000
+		}
+	},
+	attach: bottomOnly(3.2, 1.25),
+	crossfeed: false,
+	modules: [
+		[
+			ModuleEngine,
+			{
+				thrust: 750_000,
+				ispVacuum: 180,
+				ispSeaLevel: 160,
+				propellants: [{ resource: SolidFuel.id, ratio: 1 }],
+				solid: true
+			}
+		],
+		[ModuleResourceContainer, { contents: { [SolidFuel.id]: { capacity: 40 } } }],
+		[ModuleDecoupler, { separates: 'bottom', ejectionImpulse: 3_000 }]
+	],
+	stagingIcon: 'engine'
+});
+
+// ---- shuttle (plan 295) ------------------------------------------------------------------------
+
+export const PartOrbiterNose = definePart({
+	id: 'stock.orbiter-nose',
+	title: 'OrbitX UA-1 "Paruh"',
+	mass: kg(9_000),
+	crewCapacity: 4,
+	cost: partCost(9_000, 'command'),
+	impactTolerance: 8,
+	maxTemperature: 2_200,
+	shape: cyl(1.25, 3),
+	visual: { kind: 'orbiter-nose', palette: WHITE },
+	attach: bottomOnly(3, 2.5),
+	hatch: { pos: [1.2, -0.6, 0], dir: [1, 0, 0] },
+	modules: [
+		[ModuleCommand, {}],
+		[ModuleReactionWheel, { torque: 30_000, chargeRate: 1.2 }],
+		[
+			ModuleResourceContainer,
+			{
+				contents: {
+					[ElectricCharge.id]: { capacity: 1_000 },
+					[Monopropellant.id]: { capacity: 300 }
+				}
+			}
+		]
+	],
+	stagingIcon: 'command'
+});
+
+export const PartOrbiterAft = definePart({
+	id: 'stock.orbiter-aft',
+	title: 'OrbitX UA-3 "Ekor"',
+	mass: kg(8_000),
+	cost: partCost(8_000, 'engine'),
+	impactTolerance: 6,
+	maxTemperature: 2_000,
+	shape: cyl(1.8, 3.5),
+	visual: {
+		kind: 'orbiter-aft',
+		palette: WHITE,
+		params: { body: 1.25 },
+		plume: {
+			module: ModuleEngine.id,
+			nozzle: [0, -1.75, 0],
+			nozzles: [
+				[0, -1.75, 0.375],
+				[-0.45, -1.75, -0.25],
+				[0.45, -1.75, -0.25]
+			],
+			exitRadius: 0.35,
+			length: 9,
+			exitPressure: 30_000
+		}
+	},
+	attach: { top: { pos: [0, 1.75, 0], dir: [0, 1, 0], size: 2.5 } },
+	modules: [
+		[
+			ModuleEngine,
+			{
+				thrust: 2_100_000,
+				ispVacuum: 450,
+				ispSeaLevel: 366,
+				propellants: lfox,
+				gimbal: { range: 6, rate: 12 }
+			}
+		]
+	],
+	stagingIcon: 'engine'
+});
+
+export const PartDeltaWing = definePart({
+	id: 'stock.wing-delta',
+	title: 'OrbitX UA-2 "Sayap Delta"',
+	mass: kg(2_500),
+	cost: partCost(2_500, 'structure'),
+	impactTolerance: 4,
+	dragCoefficient: 0.05,
+	maxTemperature: 2_000,
+	shape: box(4, 6, 0.3),
+	visual: { kind: 'delta-wing', palette: WHITE },
+	attach: radialAt(2),
+	crossfeed: false,
+	modules: [[ModuleWing, { area: 14, aspectRatio: 2.2, centre: [0, -0.8, 0] }]],
+	stagingIcon: 'fin'
+});
+
+export const PartExternalTank = definePart({
+	id: 'stock.external-tank',
+	title: 'OrbitX UA-T "Tong Raksasa"',
+	mass: kg(24_000),
+	cost: partCost(24_000, 'tank'),
+	impactTolerance: 5,
+	shape: cyl(1.875, 20),
+	visual: { kind: 'external-tank', palette: WHITE, params: { node: 3.75 } },
+	attach: bottomOnly(20, 3.75),
+	modules: [[ModuleResourceContainer, { contents: LFOX(17_280) }]],
+	stagingIcon: 'tank'
+});
+
+export const PartSrbXl = definePart({
+	id: 'stock.srb-xl',
+	title: 'OrbitX PS-XL "Pilar"',
+	mass: kg(9_000),
+	cost: partCost(9_000, 'engine'),
+	impactTolerance: 5,
+	shape: cyl(0.9375, 16),
+	visual: {
+		kind: 'booster',
+		palette: { primary: '#ecebe6', secondary: '#23272d', accent: '#d9552b' },
+		params: { bellExit: 0.8, livery: 'bands' },
+		plume: {
+			module: ModuleEngine.id,
+			nozzle: [0, -8, 0],
+			exitRadius: 0.8,
+			length: 14,
+			exitPressure: 90_000
+		}
+	},
+	attach: {
+		top: { pos: [0, 8, 0], dir: [0, 1, 0], size: 1.875 },
+		radial: { pos: [-0.9375, 0, 0], dir: [-1, 0, 0] }
+	},
+	crossfeed: false,
+	modules: [
+		[
+			ModuleEngine,
+			{
+				thrust: 3_000_000,
+				ispVacuum: 268,
+				ispSeaLevel: 242,
+				propellants: [{ resource: SolidFuel.id, ratio: 1 }],
+				solid: true
+			}
+		],
+		[ModuleResourceContainer, { contents: { [SolidFuel.id]: { capacity: 9_000 } } }]
+	],
+	stagingIcon: 'engine'
+});
+
+/** Every part of this file, in registration order. */
+export const STOCK_MISSION_PARTS = [
+	PartSolarFlat,
+	PartSolarFold,
+	PartSolarArrayXl,
+	PartSolarWings,
+	PartBatteryRadial,
+	PartRtgRadial,
+	PartFuelCell,
+	PartWhipRadial,
+	PartDishFold,
+	PartRelayDish,
+	PartThermometerRadial,
+	PartBarometerRadial,
+	PartSeismometerRadial,
+	PartAtmosphereRadial,
+	PartSurfaceRadial,
+	PartGooRadial,
+	PartMaterialsRadial,
+	PartMagnetometer,
+	PartSuppliesRadial,
+	PartScrubberRadial,
+	PartDataRadial,
+	PartServiceBay,
+	PartServiceBayWide,
+	PartCargoBay,
+	PartPayloadPetals,
+	PartCoupler2,
+	PartCoupler3,
+	PartCoupler4,
+	PartTruss,
+	PartHub,
+	PartLatticeInterstage,
+	PartPod3,
+	PartDescentModule,
+	PartOrbitalModule,
+	PartSphereCapsule,
+	PartConeCapsule,
+	PartLanderCan,
+	PartCrewCabin,
+	PartHabModule,
+	PartLabModule,
+	PartAirlock,
+	PartCupola,
+	PartRoverCab,
+	PartRadiator,
+	PartSatelliteBus,
+	PartTelescope,
+	PartLanderDescent,
+	PartLanderAscent,
+	PartSingleLeg,
+	PartEnginePlate5,
+	PartEnginePlate9,
+	PartEnginePlate8,
+	PartEngineVacuumXl,
+	PartEscapeTower,
+	PartOrbiterNose,
+	PartOrbiterAft,
+	PartDeltaWing,
+	PartExternalTank,
+	PartSrbXl
+] as const;

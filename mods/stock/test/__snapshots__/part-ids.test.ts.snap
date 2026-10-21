@@ -2003,5 +2003,1201 @@ exports[`stock part ids, masses, costs and modules match the snapshot 1`] = `
       ],
     ],
   },
+  {
+    "cost": 100,
+    "id": "stock.solar-flat",
+    "mass": 10,
+    "modules": [
+      [
+        "stock.solar-panel",
+        {
+          "deployable": false,
+          "normal": [
+            1,
+            0,
+            0,
+          ],
+          "rate": 0.35,
+        },
+      ],
+    ],
+  },
+  {
+    "cost": 250,
+    "id": "stock.solar-fold",
+    "mass": 25,
+    "modules": [
+      [
+        "stock.solar-panel",
+        {
+          "normal": [
+            1,
+            0,
+            0,
+          ],
+          "rate": 1.6,
+        },
+      ],
+    ],
+  },
+  {
+    "cost": 3000,
+    "id": "stock.solar-array-xl",
+    "mass": 300,
+    "modules": [
+      [
+        "stock.solar-panel",
+        {
+          "mode": "track",
+          "rate": 8.25,
+        },
+      ],
+    ],
+  },
+  {
+    "cost": 1200,
+    "id": "stock.solar-wings",
+    "mass": 120,
+    "modules": [
+      [
+        "stock.solar-panel",
+        {
+          "normal": [
+            0,
+            0,
+            1,
+          ],
+          "rate": 3,
+          "stageable": true,
+        },
+      ],
+    ],
+  },
+  {
+    "cost": 50,
+    "id": "stock.battery-radial",
+    "mass": 5,
+    "modules": [
+      [
+        "stock.resource-container",
+        {
+          "contents": {
+            "stock.electric-charge": {
+              "capacity": 100,
+            },
+          },
+        },
+      ],
+    ],
+  },
+  {
+    "cost": 480,
+    "id": "stock.rtg-radial",
+    "mass": 80,
+    "modules": [
+      [
+        "stock.rtg",
+        {},
+      ],
+    ],
+  },
+  {
+    "cost": 500,
+    "id": "stock.fuel-cell",
+    "mass": 50,
+    "modules": [
+      [
+        "stock.fuel-cell",
+        {
+          "rate": 1.5,
+        },
+      ],
+    ],
+  },
+  {
+    "cost": 50,
+    "id": "stock.antenna-whip-radial",
+    "mass": 5,
+    "modules": [
+      [
+        "stock.antenna",
+        {
+          "antenna": "stock.whip",
+        },
+      ],
+    ],
+  },
+  {
+    "cost": 600,
+    "id": "stock.antenna-dish-fold",
+    "mass": 60,
+    "modules": [
+      [
+        "stock.antenna",
+        {
+          "antenna": "stock.dish",
+        },
+      ],
+    ],
+  },
+  {
+    "cost": 2000,
+    "id": "stock.antenna-relay",
+    "mass": 200,
+    "modules": [
+      [
+        "stock.antenna",
+        {
+          "antenna": "stock.dish",
+        },
+      ],
+    ],
+  },
+  {
+    "cost": 100,
+    "id": "stock.thermometer-radial",
+    "mass": 10,
+    "modules": [
+      [
+        "stock.experiment",
+        {
+          "experiment": "stock.temperature",
+          "label": "Log temperature",
+        },
+      ],
+    ],
+  },
+  {
+    "cost": 100,
+    "id": "stock.barometer-radial",
+    "mass": 10,
+    "modules": [
+      [
+        "stock.experiment",
+        {
+          "experiment": "stock.pressure",
+          "label": "Log pressure",
+        },
+      ],
+    ],
+  },
+  {
+    "cost": 200,
+    "id": "stock.seismometer-radial",
+    "mass": 20,
+    "modules": [
+      [
+        "stock.experiment",
+        {
+          "experiment": "stock.seismic",
+          "label": "Log seismic activity",
+        },
+      ],
+    ],
+  },
+  {
+    "cost": 150,
+    "id": "stock.atmosphere-radial",
+    "mass": 15,
+    "modules": [
+      [
+        "stock.experiment",
+        {
+          "experiment": "stock.atmosphere-sample",
+          "label": "Take air sample",
+        },
+      ],
+    ],
+  },
+  {
+    "cost": 300,
+    "id": "stock.surface-sampler-radial",
+    "mass": 30,
+    "modules": [
+      [
+        "stock.experiment",
+        {
+          "experiment": "stock.surface-sample",
+          "label": "Take surface sample",
+        },
+      ],
+    ],
+  },
+  {
+    "cost": 500,
+    "id": "stock.goo-radial",
+    "mass": 50,
+    "modules": [
+      [
+        "stock.experiment",
+        {
+          "experiment": "stock.goo",
+          "held": true,
+          "label": "Observe goo",
+        },
+      ],
+      [
+        "stock.animate",
+        {
+          "label": "Doors",
+        },
+      ],
+    ],
+  },
+  {
+    "cost": 2000,
+    "id": "stock.materials-radial",
+    "mass": 200,
+    "modules": [
+      [
+        "stock.experiment",
+        {
+          "experiment": "stock.materials",
+          "held": true,
+          "label": "Study materials",
+        },
+      ],
+      [
+        "stock.animate",
+        {
+          "label": "Doors",
+        },
+      ],
+    ],
+  },
+  {
+    "cost": 250,
+    "id": "stock.magnetometer-boom",
+    "mass": 25,
+    "modules": [
+      [
+        "stock.experiment",
+        {
+          "experiment": "stock.magnetometer",
+          "label": "Scan the field",
+        },
+      ],
+    ],
+  },
+  {
+    "cost": 400,
+    "id": "stock.life-support-radial",
+    "mass": 40,
+    "modules": [
+      [
+        "stock.resource-container",
+        {
+          "contents": {
+            "stock.food": {
+              "capacity": 6,
+            },
+            "stock.oxygen": {
+              "capacity": 6,
+            },
+            "stock.supplies": {
+              "capacity": 6,
+            },
+            "stock.water": {
+              "capacity": 6,
+            },
+          },
+        },
+      ],
+    ],
+  },
+  {
+    "cost": 300,
+    "id": "stock.scrubber-radial",
+    "mass": 30,
+    "modules": [
+      [
+        "stock.scrubber",
+        {
+          "charge": 10,
+          "crew": 3,
+        },
+      ],
+    ],
+  },
+  {
+    "cost": 200,
+    "id": "stock.data-drive-radial",
+    "mass": 20,
+    "modules": [
+      [
+        "stock.data-storage",
+        {
+          "capacity": 67108864,
+        },
+      ],
+    ],
+  },
+  {
+    "cost": 240,
+    "id": "stock.service-bay",
+    "mass": 120,
+    "modules": [
+      [
+        "stock.bay",
+        {
+          "profile": [
+            {
+              "r": 0.5625,
+              "y": -0.35000000000000003,
+            },
+            {
+              "r": 0.5625,
+              "y": 0.35000000000000003,
+            },
+          ],
+        },
+      ],
+    ],
+  },
+  {
+    "cost": 800,
+    "id": "stock.service-bay-wide",
+    "mass": 400,
+    "modules": [
+      [
+        "stock.bay",
+        {
+          "profile": [
+            {
+              "r": 1.125,
+              "y": -0.5499999999999999,
+            },
+            {
+              "r": 1.125,
+              "y": 0.5499999999999999,
+            },
+          ],
+        },
+      ],
+    ],
+  },
+  {
+    "cost": 3000,
+    "id": "stock.cargo-bay",
+    "mass": 1500,
+    "modules": [
+      [
+        "stock.bay",
+        {
+          "profile": [
+            {
+              "r": 1.125,
+              "y": -1.95,
+            },
+            {
+              "r": 1.125,
+              "y": 1.95,
+            },
+          ],
+        },
+      ],
+    ],
+  },
+  {
+    "cost": 2400,
+    "id": "stock.payload-petals",
+    "mass": 1200,
+    "modules": [
+      [
+        "stock.bay",
+        {
+          "profile": [
+            {
+              "r": 1.7,
+              "y": -1.7,
+            },
+            {
+              "r": 1.15,
+              "y": 1.7,
+            },
+          ],
+          "stageable": true,
+        },
+      ],
+    ],
+  },
+  {
+    "cost": 400,
+    "id": "stock.coupler-2",
+    "mass": 200,
+    "modules": [],
+  },
+  {
+    "cost": 600,
+    "id": "stock.coupler-3",
+    "mass": 300,
+    "modules": [],
+  },
+  {
+    "cost": 800,
+    "id": "stock.coupler-4",
+    "mass": 400,
+    "modules": [],
+  },
+  {
+    "cost": 300,
+    "id": "stock.truss",
+    "mass": 150,
+    "modules": [],
+  },
+  {
+    "cost": 800,
+    "id": "stock.hub",
+    "mass": 400,
+    "modules": [],
+  },
+  {
+    "cost": 400,
+    "id": "stock.lattice-interstage",
+    "mass": 200,
+    "modules": [],
+  },
+  {
+    "cost": 27000,
+    "id": "stock.pod-3",
+    "mass": 2700,
+    "modules": [
+      [
+        "stock.command",
+        {},
+      ],
+      [
+        "stock.resource-container",
+        {
+          "contents": {
+            "stock.electric-charge": {
+              "capacity": 200,
+            },
+            "stock.monopropellant": {
+              "amount": 0,
+              "capacity": 30,
+            },
+          },
+        },
+      ],
+      [
+        "stock.parachute",
+        {
+          "anchor": [
+            0,
+            0.85,
+            0,
+          ],
+          "fullDragArea": 1400,
+          "semiDragArea": 14000,
+        },
+      ],
+    ],
+  },
+  {
+    "cost": 22000,
+    "id": "stock.descent-module",
+    "mass": 2200,
+    "modules": [
+      [
+        "stock.command",
+        {},
+      ],
+      [
+        "stock.resource-container",
+        {
+          "contents": {
+            "stock.electric-charge": {
+              "capacity": 200,
+            },
+            "stock.monopropellant": {
+              "amount": 0,
+              "capacity": 30,
+            },
+          },
+        },
+      ],
+    ],
+  },
+  {
+    "cost": 9000,
+    "id": "stock.orbital-module",
+    "mass": 900,
+    "modules": [
+      [
+        "stock.resource-container",
+        {
+          "contents": {
+            "stock.electric-charge": {
+              "capacity": 150,
+            },
+            "stock.monopropellant": {
+              "amount": 0,
+              "capacity": 20,
+            },
+          },
+        },
+      ],
+    ],
+  },
+  {
+    "cost": 13000,
+    "id": "stock.capsule-sphere",
+    "mass": 1300,
+    "modules": [
+      [
+        "stock.command",
+        {},
+      ],
+      [
+        "stock.resource-container",
+        {
+          "contents": {
+            "stock.electric-charge": {
+              "capacity": 100,
+            },
+            "stock.monopropellant": {
+              "amount": 0,
+              "capacity": 10,
+            },
+          },
+        },
+      ],
+    ],
+  },
+  {
+    "cost": 10000,
+    "id": "stock.capsule-cone",
+    "mass": 1000,
+    "modules": [
+      [
+        "stock.command",
+        {},
+      ],
+      [
+        "stock.resource-container",
+        {
+          "contents": {
+            "stock.electric-charge": {
+              "capacity": 100,
+            },
+            "stock.monopropellant": {
+              "amount": 0,
+              "capacity": 10,
+            },
+          },
+        },
+      ],
+    ],
+  },
+  {
+    "cost": 6000,
+    "id": "stock.lander-can",
+    "mass": 600,
+    "modules": [
+      [
+        "stock.command",
+        {},
+      ],
+      [
+        "stock.resource-container",
+        {
+          "contents": {
+            "stock.electric-charge": {
+              "capacity": 100,
+            },
+            "stock.monopropellant": {
+              "amount": 0,
+              "capacity": 10,
+            },
+          },
+        },
+      ],
+    ],
+  },
+  {
+    "cost": 10000,
+    "id": "stock.crew-cabin",
+    "mass": 1000,
+    "modules": [
+      [
+        "stock.resource-container",
+        {
+          "contents": {
+            "stock.electric-charge": {
+              "capacity": 150,
+            },
+            "stock.monopropellant": {
+              "amount": 0,
+              "capacity": 20,
+            },
+          },
+        },
+      ],
+    ],
+  },
+  {
+    "cost": 60000,
+    "id": "stock.hab-module",
+    "mass": 6000,
+    "modules": [
+      [
+        "stock.resource-container",
+        {
+          "contents": {
+            "stock.electric-charge": {
+              "capacity": 250,
+            },
+            "stock.monopropellant": {
+              "amount": 0,
+              "capacity": 40,
+            },
+          },
+        },
+      ],
+    ],
+  },
+  {
+    "cost": 70000,
+    "id": "stock.lab-module",
+    "mass": 7000,
+    "modules": [
+      [
+        "stock.resource-container",
+        {
+          "contents": {
+            "stock.electric-charge": {
+              "capacity": 150,
+            },
+            "stock.monopropellant": {
+              "amount": 0,
+              "capacity": 20,
+            },
+          },
+        },
+      ],
+    ],
+  },
+  {
+    "cost": 5000,
+    "id": "stock.airlock",
+    "mass": 500,
+    "modules": [
+      [
+        "stock.resource-container",
+        {
+          "contents": {
+            "stock.electric-charge": {
+              "capacity": 100,
+            },
+            "stock.monopropellant": {
+              "amount": 0,
+              "capacity": 10,
+            },
+          },
+        },
+      ],
+    ],
+  },
+  {
+    "cost": 10000,
+    "id": "stock.cupola",
+    "mass": 1000,
+    "modules": [
+      [
+        "stock.command",
+        {},
+      ],
+      [
+        "stock.resource-container",
+        {
+          "contents": {
+            "stock.electric-charge": {
+              "capacity": 100,
+            },
+            "stock.monopropellant": {
+              "amount": 0,
+              "capacity": 10,
+            },
+          },
+        },
+      ],
+    ],
+  },
+  {
+    "cost": 7000,
+    "id": "stock.rover-cab",
+    "mass": 700,
+    "modules": [
+      [
+        "stock.command",
+        {},
+      ],
+      [
+        "stock.resource-container",
+        {
+          "contents": {
+            "stock.electric-charge": {
+              "capacity": 150,
+            },
+            "stock.monopropellant": {
+              "amount": 0,
+              "capacity": 20,
+            },
+          },
+        },
+      ],
+    ],
+  },
+  {
+    "cost": 100,
+    "id": "stock.radiator",
+    "mass": 50,
+    "modules": [],
+  },
+  {
+    "cost": 4000,
+    "id": "stock.satellite-bus",
+    "mass": 400,
+    "modules": [
+      [
+        "stock.command",
+        {},
+      ],
+      [
+        "stock.probe-computer",
+        {},
+      ],
+      [
+        "stock.reaction-wheel",
+        {
+          "chargeRate": 0.6,
+          "torque": 5000,
+        },
+      ],
+      [
+        "stock.resource-container",
+        {
+          "contents": {
+            "stock.electric-charge": {
+              "capacity": 400,
+            },
+          },
+        },
+      ],
+    ],
+  },
+  {
+    "cost": 20000,
+    "id": "stock.telescope",
+    "mass": 2000,
+    "modules": [
+      [
+        "stock.experiment",
+        {
+          "experiment": "stock.observation",
+          "label": "Observe",
+        },
+      ],
+      [
+        "stock.animate",
+        {
+          "label": "Aperture door",
+        },
+      ],
+    ],
+  },
+  {
+    "cost": 12000,
+    "id": "stock.lander-descent",
+    "mass": 2000,
+    "modules": [
+      [
+        "stock.engine",
+        {
+          "gimbal": {
+            "range": 3,
+            "rate": 10,
+          },
+          "ispSeaLevel": 120,
+          "ispVacuum": 311,
+          "propellants": [
+            {
+              "ratio": 0.9,
+              "resource": "stock.liquid-fuel",
+            },
+            {
+              "ratio": 1.1,
+              "resource": "stock.oxidizer",
+            },
+          ],
+          "thrust": 45000,
+        },
+      ],
+      [
+        "stock.resource-container",
+        {
+          "contents": {
+            "stock.liquid-fuel": {
+              "capacity": 900,
+            },
+            "stock.oxidizer": {
+              "capacity": 1100,
+            },
+          },
+        },
+      ],
+    ],
+  },
+  {
+    "cost": 18000,
+    "id": "stock.lander-ascent",
+    "mass": 1800,
+    "modules": [
+      [
+        "stock.command",
+        {},
+      ],
+      [
+        "stock.engine",
+        {
+          "ispSeaLevel": 120,
+          "ispVacuum": 311,
+          "propellants": [
+            {
+              "ratio": 0.9,
+              "resource": "stock.liquid-fuel",
+            },
+            {
+              "ratio": 1.1,
+              "resource": "stock.oxidizer",
+            },
+          ],
+          "thrust": 16000,
+        },
+      ],
+      [
+        "stock.resource-container",
+        {
+          "contents": {
+            "stock.electric-charge": {
+              "capacity": 150,
+            },
+            "stock.liquid-fuel": {
+              "capacity": 250,
+            },
+            "stock.monopropellant": {
+              "capacity": 40,
+            },
+            "stock.oxidizer": {
+              "capacity": 306,
+            },
+          },
+        },
+      ],
+    ],
+  },
+  {
+    "cost": 240,
+    "id": "stock.landing-leg-single",
+    "mass": 60,
+    "modules": [
+      [
+        "stock.landing-leg",
+        {
+          "drop": 1,
+          "footSize": 0.35,
+          "layout": "single",
+          "spread": 1,
+        },
+      ],
+    ],
+  },
+  {
+    "cost": 96000,
+    "id": "stock.engine-plate-5",
+    "mass": 16000,
+    "modules": [
+      [
+        "stock.engine",
+        {
+          "gimbal": {
+            "range": 2,
+            "rate": 10,
+          },
+          "ispSeaLevel": 265,
+          "ispVacuum": 304,
+          "propellants": [
+            {
+              "ratio": 0.9,
+              "resource": "stock.liquid-fuel",
+            },
+            {
+              "ratio": 1.1,
+              "resource": "stock.oxidizer",
+            },
+          ],
+          "thrust": 7000000,
+        },
+      ],
+    ],
+  },
+  {
+    "cost": 54000,
+    "id": "stock.engine-plate-9",
+    "mass": 9000,
+    "modules": [
+      [
+        "stock.engine",
+        {
+          "gimbal": {
+            "range": 2,
+            "rate": 10,
+          },
+          "ispSeaLevel": 265,
+          "ispVacuum": 304,
+          "propellants": [
+            {
+              "ratio": 0.9,
+              "resource": "stock.liquid-fuel",
+            },
+            {
+              "ratio": 1.1,
+              "resource": "stock.oxidizer",
+            },
+          ],
+          "thrust": 4000000,
+        },
+      ],
+    ],
+  },
+  {
+    "cost": 48000,
+    "id": "stock.engine-plate-8",
+    "mass": 8000,
+    "modules": [
+      [
+        "stock.engine",
+        {
+          "gimbal": {
+            "range": 2,
+            "rate": 10,
+          },
+          "ispSeaLevel": 265,
+          "ispVacuum": 304,
+          "propellants": [
+            {
+              "ratio": 0.9,
+              "resource": "stock.liquid-fuel",
+            },
+            {
+              "ratio": 1.1,
+              "resource": "stock.oxidizer",
+            },
+          ],
+          "thrust": 3200000,
+        },
+      ],
+    ],
+  },
+  {
+    "cost": 15000,
+    "id": "stock.engine-vacuum-xl",
+    "mass": 2500,
+    "modules": [
+      [
+        "stock.engine",
+        {
+          "gimbal": {
+            "range": 3,
+            "rate": 10,
+          },
+          "ispSeaLevel": 200,
+          "ispVacuum": 420,
+          "propellants": [
+            {
+              "ratio": 0.9,
+              "resource": "stock.liquid-fuel",
+            },
+            {
+              "ratio": 1.1,
+              "resource": "stock.oxidizer",
+            },
+          ],
+          "thrust": 1000000,
+        },
+      ],
+    ],
+  },
+  {
+    "cost": 5400,
+    "id": "stock.escape-tower",
+    "mass": 900,
+    "modules": [
+      [
+        "stock.engine",
+        {
+          "ispSeaLevel": 160,
+          "ispVacuum": 180,
+          "propellants": [
+            {
+              "ratio": 1,
+              "resource": "stock.solid-fuel",
+            },
+          ],
+          "solid": true,
+          "thrust": 750000,
+        },
+      ],
+      [
+        "stock.resource-container",
+        {
+          "contents": {
+            "stock.solid-fuel": {
+              "capacity": 40,
+            },
+          },
+        },
+      ],
+      [
+        "stock.decoupler",
+        {
+          "ejectionImpulse": 3000,
+          "separates": "bottom",
+        },
+      ],
+    ],
+  },
+  {
+    "cost": 90000,
+    "id": "stock.orbiter-nose",
+    "mass": 9000,
+    "modules": [
+      [
+        "stock.command",
+        {},
+      ],
+      [
+        "stock.reaction-wheel",
+        {
+          "chargeRate": 1.2,
+          "torque": 30000,
+        },
+      ],
+      [
+        "stock.resource-container",
+        {
+          "contents": {
+            "stock.electric-charge": {
+              "capacity": 1000,
+            },
+            "stock.monopropellant": {
+              "capacity": 300,
+            },
+          },
+        },
+      ],
+    ],
+  },
+  {
+    "cost": 48000,
+    "id": "stock.orbiter-aft",
+    "mass": 8000,
+    "modules": [
+      [
+        "stock.engine",
+        {
+          "gimbal": {
+            "range": 6,
+            "rate": 12,
+          },
+          "ispSeaLevel": 366,
+          "ispVacuum": 450,
+          "propellants": [
+            {
+              "ratio": 0.9,
+              "resource": "stock.liquid-fuel",
+            },
+            {
+              "ratio": 1.1,
+              "resource": "stock.oxidizer",
+            },
+          ],
+          "thrust": 2100000,
+        },
+      ],
+    ],
+  },
+  {
+    "cost": 5000,
+    "id": "stock.wing-delta",
+    "mass": 2500,
+    "modules": [
+      [
+        "stock.wing",
+        {
+          "area": 14,
+          "aspectRatio": 2.2,
+          "centre": [
+            0,
+            -0.8,
+            0,
+          ],
+        },
+      ],
+    ],
+  },
+  {
+    "cost": 36000,
+    "id": "stock.external-tank",
+    "mass": 24000,
+    "modules": [
+      [
+        "stock.resource-container",
+        {
+          "contents": {
+            "stock.liquid-fuel": {
+              "capacity": 17280,
+            },
+            "stock.oxidizer": {
+              "capacity": 21120,
+            },
+          },
+        },
+      ],
+    ],
+  },
+  {
+    "cost": 54000,
+    "id": "stock.srb-xl",
+    "mass": 9000,
+    "modules": [
+      [
+        "stock.engine",
+        {
+          "ispSeaLevel": 242,
+          "ispVacuum": 268,
+          "propellants": [
+            {
+              "ratio": 1,
+              "resource": "stock.solid-fuel",
+            },
+          ],
+          "solid": true,
+          "thrust": 3000000,
+        },
+      ],
+      [
+        "stock.resource-container",
+        {
+          "contents": {
+            "stock.solid-fuel": {
+              "capacity": 9000,
+            },
+          },
+        },
+      ],
+    ],
+  },
 ]
 `;

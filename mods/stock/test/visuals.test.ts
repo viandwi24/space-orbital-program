@@ -39,7 +39,43 @@ const KINDS = [
 	// plan 242
 	'light',
 	// plan 278
-	'probe'
+	'probe',
+	// plans 276, 280, 281, 295–300
+	'solar-flat',
+	'solar-fold',
+	'solar-array',
+	'solar-wings',
+	'battery',
+	'rtg',
+	'fuel-cell',
+	'antenna-whip',
+	'antenna-dish',
+	'antenna-relay',
+	'instrument',
+	'container',
+	'service-bay',
+	'petals',
+	'coupler',
+	'truss',
+	'hub',
+	'lattice',
+	'headlight',
+	'sphere-capsule',
+	'cone-capsule',
+	'crew-can',
+	'cupola',
+	'radiator',
+	'satellite-bus',
+	'telescope',
+	'boom',
+	'descent-stage',
+	'ascent-cabin',
+	'single-leg',
+	'orbiter-nose',
+	'orbiter-aft',
+	'delta-wing',
+	'external-tank',
+	'escape-tower'
 ];
 
 const parts = () => loadPlugins([Stock]).registries.parts.list();

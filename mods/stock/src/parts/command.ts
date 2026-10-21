@@ -64,6 +64,8 @@ export const PartReactionWheel = definePart({
 export const PartDataDrive = definePart({
 	id: 'stock.data-drive',
 	title: 'Data Drive',
+	// a stack part from before plan 280: kept for old designs, its surface-mounted successor is in the catalogue (ADR 0259)
+	catalog: { hidden: true },
 	mass: kg(20),
 	cost: partCost(20, 'command'),
 	impactTolerance: 8,

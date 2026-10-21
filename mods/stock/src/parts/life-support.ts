@@ -10,6 +10,8 @@ import { cylinder, stackNodes } from './shared.ts';
 export const PartLifeSupportPack = definePart({
 	id: 'stock.life-support-pack',
 	title: 'Life Support Pack',
+	// a stack part from before plan 280: kept for old designs, its surface-mounted successor is in the catalogue (ADR 0259)
+	catalog: { hidden: true },
 	mass: kg(60),
 	cost: partCost(60, 'tank'),
 	impactTolerance: 6,
@@ -39,6 +41,8 @@ export const PartLifeSupportPack = definePart({
 export const PartScrubber = definePart({
 	id: 'stock.scrubber',
 	title: 'CO2 Scrubber',
+	// a stack part from before plan 280: kept for old designs, its surface-mounted successor is in the catalogue (ADR 0259)
+	catalog: { hidden: true },
 	mass: kg(40),
 	cost: partCost(40, 'command'),
 	impactTolerance: 6,

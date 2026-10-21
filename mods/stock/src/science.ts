@@ -172,6 +172,34 @@ export const ExperimentMaterials = defineExperiment({
 	transmitFactor: 0.35
 });
 
+/** Plan 298: a space telescope's observation: from orbit only, with its aperture door open. */
+export const ExperimentObservation = defineExperiment({
+	id: 'stock.observation',
+	label: 'Telescope observation',
+	kind: 'data',
+	// from high orbit only: a telescope pays off beyond the first flights (keeps the tech pacing)
+	situations: ['stock.space-high'],
+	baseValue: 8,
+	repeatFactor: 0.4,
+	duration: 30,
+	power: 0.5,
+	bits: 256 * KBIT,
+	transmitFactor: 0.8
+});
+/** Plan 298: a magnetometer on a boom: the field around a body, from high orbit. */
+export const ExperimentMagnetometer = defineExperiment({
+	id: 'stock.magnetometer',
+	label: 'Magnetic field scan',
+	kind: 'data',
+	situations: ['stock.space-high'],
+	baseValue: 4,
+	repeatFactor: 0.5,
+	duration: 15,
+	power: 0.1,
+	bits: 32 * KBIT,
+	transmitFactor: 0.7
+});
+
 export const STOCK_EXPERIMENTS = [
 	ExperimentTemperature,
 	ExperimentPressure,
@@ -179,7 +207,9 @@ export const STOCK_EXPERIMENTS = [
 	ExperimentSurfaceSample,
 	ExperimentAtmosphereSample,
 	ExperimentGoo,
-	ExperimentMaterials
+	ExperimentMaterials,
+	ExperimentObservation,
+	ExperimentMagnetometer
 ] as const;
 
 // ---- the experiment module (ADR 0178 point 5) ----
