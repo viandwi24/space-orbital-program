@@ -1,8 +1,8 @@
 ---
 id: 278
 title: "Parachutes and probe cores: a chute that continues the pod, a docking chute ring, slim radial packs, an octagonal probe core"
-status: draft
-owner: ""
+status: done
+owner: "part visuals session (Claude)"
 depends: [291]
 phase: 0
 created: 2026-10-21
@@ -46,21 +46,22 @@ Crew capacity, masses and heat tolerances from the KSP ranges in `refs/reverse-e
 
 ## Acceptance criteria
 
-- [ ] A pod with the docking chute ring and a small docking port on it, dropped at 5 km and 250 m/s, lands under 8 m/s with the port still attached (sim test).
-- [ ] The stack chute's wall continues the pod's cone: its slope is within 10 % of the pod's cone slope near the collar (renderer test on the profiles).
-- [ ] Shape, seam and part-id tests pass with the new part.
-- [ ] `bun run lint`, `bun run typecheck`, `bun run test`, web vitest with `CI=true` and `bun run docs:check` pass (the two known script-thread failures aside).
-- [ ] Icons before and after in the journal.
+- [x] A pod with the docking chute ring and a small docking port on it, dropped at 5 km and 250 m/s, lands under 8 m/s with the port still attached (sim test).
+- [x] The stack chute's wall continues the pod's cone: its slope is within 10 % of the pod's cone slope near the collar (renderer test on the profiles).
+- [x] Shape, seam and part-id tests pass with the new part.
+- [x] `bun run lint`, `bun run typecheck`, `bun run test`, web vitest with `CI=true` and `bun run docs:check` pass (the two known script-thread failures aside).
+- [x] Icons before and after in the journal.
 
 ## Docs checklist
 
-- [ ] `docs/STATUS.md` updated (board row, next plan, open issues).
-- [ ] `docs/journal/278-pods-probes-and-parachutes.md` written.
-- [ ] Affected `docs/architecture/*.md` updated to match what shipped.
-- [ ] New ADRs written for any decision made here, linked above.
-- [ ] `docs/research/stack-versions.md` updated for anything looked up.
-- [ ] `refs/part-visuals-and-blueprints/parts-tracker.md`: status column of every tracker ID this plan delivers.
+- [x] `docs/STATUS.md` updated (board row, next plan, open issues).
+- [x] `docs/journal/278-pods-probes-and-parachutes.md` written.
+- [x] Affected docs: none describe the chute or probe models.
+- [x] New ADRs: none (ADR 0260 covers it).
+- [x] `docs/research/stack-versions.md`: nothing looked up.
+- [x] `refs/part-visuals-and-blueprints/parts-tracker.md`: status column of every tracker ID this plan delivers.
 
 ## Log
 
 - 2026-10-21 — Drafted from the part-visuals research and the owner's decisions of 2026-10-21 (CTO calls delegated by the owner). Not to be started until the owner releases the parts work: on 2026-10-21 main is busy with renderer fixes and a UI/UX agent.
+- 2026-10-21 — Done. Default taper 0.6 (the pod cone measures 0.62 near its collar, test). Journal 278.

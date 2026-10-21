@@ -106,7 +106,7 @@ Nama roket di blueprint juga tiruan (§9). Owner sudah setuju dengan prinsip ini
 | CMD-08 | Cupola | PPD-12 Cupola | stack | kubah berjendela banyak untuk stasiun | P, EVA | 🆕 | P3 |
 | CMD-09 | Kabin penumpang | Mk1 Crew Cabin, Hitchhiker | stack | silinder dengan jendela samping, tanpa kendali | EVA | 🆕 | P2 |
 | CMD-10 | Kursi luar | EAS-1 External Command Seat | radial | kursi terbuka (rover) | EVA | 🆕 | P3 |
-| PRB-01 | Probe core (`probe-core`) | OKTO / HECS | stack | **oktagon** dengan panel foil, lampu status, antena kecil | P (hibernasi) | 🎨 (sekarang tabung) | P1 |
+| PRB-01 ✅ 278 | Probe core (`probe-core`) | OKTO / HECS | stack | **oktagon** dengan panel foil, lampu status, antena kecil | P (hibernasi) | 🎨 (sekarang tabung) | P1 |
 | PRB-02 | Probe bola mini | Stayputnik | stack | bola kecil dengan 4 batang antena (Sputnik) | — | 🆕 | P2 |
 | PRB-03 | Probe kubus | QBE | stack/radial | kubus kecil berpanel | — | 🆕 | P3 |
 | PRB-04 | Probe 2,5 m | RC-L01 | stack | cincin lebar bersirip elektronik | — | 🆕 | P2 |
@@ -199,10 +199,10 @@ Logika sim RCS sudah ada (`ModuleRcs`, plan 211). Konfigurasinya per nozzle (`no
 | AER-02 | Fin, control surface, wing | fins, elevons, wings | sudah benar | E, P | ✅ | — |
 | AER-03 | Grid fin | GRFN-125/250 [KSP2] | kisi persegi yang melipat | P, A, AG | 🆕 | P2 (gaya Falcon, LES Soyuz) |
 | AER-04 | Airbrake | Airbrake | panel yang membuka | P, AG, A | 🆕 | P3 |
-| REC-01 | **Parasut puncak pod** (`parachute`) | Mk16 Parachute | **kerucut terpotong yang meneruskan kemiringan pod** (bukan kaleng tegak), tutup dua warna di puncak, alas pas dengan collar 0,625 m. Sekarang tabung tegak 0,32 m di atas collar, sehingga tampak seperti kotak (§5.1) | S, P (deploy, cut, set ketinggian/tekanan), A (kanopi) | 🎨 besar | P1 |
+| REC-01 ✅ 278 | **Parasut puncak pod** (`parachute`) | Mk16 Parachute | **kerucut terpotong yang meneruskan kemiringan pod** (bukan kaleng tegak), tutup dua warna di puncak, alas pas dengan collar 0,625 m. Sekarang tabung tegak 0,32 m di atas collar, sehingga tampak seperti kotak (§5.1) | S, P (deploy, cut, set ketinggian/tekanan), A (kanopi) | 🎨 besar | P1 |
 | REC-02 | Parasut puncak besar | Mk16-XL | sama untuk collar 1,25 m (pod 3 kursi) | S, P, A | 🆕 | P1 |
-| REC-03 | Drogue (`drogue-chute`) | Mk25 / Mk12-R | kerucut kecil berujung runcing; radial: kotak ramping | S, P, A | 🎨 | P1 |
-| REC-04 | Parasut radial (`radial-parachute`) | Mk2-R / Mk16-R [KSP2] | kotak memanjang **melengkung mengikuti dinding** dengan tutup | S, P, A | 🎨 | P1 |
+| REC-03 ✅ 278 | Drogue (`drogue-chute`) | Mk25 / Mk12-R | kerucut kecil berujung runcing; radial: kotak ramping | S, P, A | 🎨 | P1 |
+| REC-04 ✅ 278 | Parasut radial (`radial-parachute`) | Mk2-R / Mk16-R [KSP2] | kotak memanjang **melengkung mengikuti dinding** dengan tutup | S, P, A | 🎨 | P1 |
 | REC-05 | Parasut tertanam di pod | (Apollo: 3 parasut di bawah tutup pod) | ruang di puncak pod 3 kursi, tutup terlontar | ikut pod | 🆕 | P2 |
 | REC-06 | Flotation collar (`flotation-collar`) | — | cincin karet menggembung | P, A | 🎨 | P3 |
 | THR-01 | Heat shield (`heat-shield*`) | heat shields 0,625–3,75 m | piring ablatif dengan tepi logam, bisa dilepas | S, P (lepas) | 🎨 kecil; 1,875/3,75/5 m ✅ (plan 289) | P1 |

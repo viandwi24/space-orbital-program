@@ -223,7 +223,7 @@
 | 275 | [Size classes, part two: new tank shapes, size filter](plans/275-size-classes-to-7-5-m.md) | draft | — | ADR 0256; after 289. |
 | 276 | [Engines, engine plates 5/8/9, segmented SRBs, escape tower](plans/276-engines-plates-srbs-and-escape-tower.md) | draft | — | ADR 0257. |
 | 277 | [RCS family: 4-way remodel, 5-way, linear, corner, bipropellant, axis toggles](plans/277-rcs-family.md) | done | part visuals session | RCS remodel after the RV-105 reference; new 5-way block, pair and linear port; bells drawn at the module\'s nozzles. Journal 277.
-| 278 | [Parachutes and probe cores (chute continues the pod, docking chute ring)](plans/278-pods-probes-and-parachutes.md) | draft | — | ADR 0260. |
+| 278 | [Parachutes and probe cores (chute continues the pod, docking chute ring)](plans/278-pods-probes-and-parachutes.md) | done | part visuals session | Chutes continue the pod's slope; docking chute ring (port on top, three canopies); slim radial pack; octagonal probe core. Journal 278.
 | 279 | [Hangar free placement: move/rotate gizmos, offset (format 4), docking ports anywhere](plans/279-hangar-free-placement-and-surface-mount.md) | draft | — | ADR 0258. |
 | 280 | [Power, comms, science, life support: surface-mount shapes, deploy, fuel cell](plans/280-power-comms-science-life-support.md) | draft | — | ADR 0259. |
 | 281 | [Payload bays with doors, petals, multi-couplers, trusses, lattice interstage](plans/281-payload-bays-couplers-and-structure.md) | draft | — | ADR 0261. |
@@ -313,6 +313,7 @@ Existing drafts realigned on 2026-10-17: 063 (runway building), 065, 066, 067, 0
 
 ## Recent journal entries
 
+- [278 — Parachutes that continue the pod, a docking chute ring, an octagonal probe core](journal/278-pods-probes-and-parachutes.md)
 - [277 — The RCS family](journal/277-rcs-family.md)
 - [291 — Part detail kit, liveries and honest catalogue icons](journal/291-part-detail-kit-livery-and-icons.md)
 - [294 — A compact performance overlay](journal/294-performance-overlay.md)
