@@ -67,13 +67,16 @@ export interface NodeMemory {
 	stagedAt: number;
 	/** Stage when the engines run dry during the burn. */
 	autoStage: boolean;
+	/** The node's delta-v when it was first seen, m/s (-1 before): the burn's progress (plan 332). */
+	first?: number;
 }
 
 export const newNodeMemory = (autoStageOn = true): NodeMemory => ({
 	phase: 'align',
 	last: -1,
 	stagedAt: -1e9,
-	autoStage: autoStageOn
+	autoStage: autoStageOn,
+	first: -1
 });
 
 /** One step of a node burn: point along it, light at half the burn before the node, tail off. */
@@ -94,6 +97,7 @@ export function stepNode(pilot: VesselPilot, memory: NodeMemory): AutopilotStep 
 			? { phase: memory.phase, abort: 'the node is not on the predicted path' }
 			: { phase: memory.phase, status: 'Waiting for the node prediction' };
 	}
+	if (!(memory.first !== undefined && memory.first > 0)) memory.first = Math.max(node.dv, 0.01);
 	const direction = unit(node.vector);
 	pilot.pointAt(direction);
 	const error = angleBetween(noseOf(pilot), direction);
@@ -106,7 +110,8 @@ export function stepNode(pilot: VesselPilot, memory: NodeMemory): AutopilotStep 
 	const readouts = {
 		'Delta-v left': Math.round(node.dv * 10) / 10,
 		'Burn time': Math.round(burn * 10) / 10,
-		'Pointing error': Math.round((error / DEG) * 10) / 10
+		'Pointing error': Math.round((error / DEG) * 10) / 10,
+		'Burn done': Math.round(clamp(1 - node.dv / memory.first, 0, 1) * 100) / 100
 	};
 	if (memory.phase === 'align') {
 		const lead = node.time - burn / 2 - pilot.time;
@@ -198,16 +203,32 @@ export interface AscentMemory extends NodeMemory {
 	turnEnd: number;
 	/** Turn shape: 0.4 turns early and flat, 1 is linear. */
 	shape: number;
+	/** Wanted orbit inclination, rad (plan 332); 0 flies due east. Absent in older saves. */
+	inclination?: number;
 	planned: boolean;
 }
 
-/** Up and east at the vessel, inertial axes. */
-function localAxes(pilot: VesselPilot): { up: Vec3; east: Vec3 } {
+/**
+ * Up and the launch heading at the vessel, inertial axes: due east, or turned toward north for an
+ * orbit of inclination `inclination` (rad; the launch azimuth `sin az = cos i / cos latitude`, the
+ * nearest one the latitude allows).
+ */
+function localAxes(pilot: VesselPilot, inclination = 0, correction = 0): { up: Vec3; east: Vec3 } {
 	const up = unit(pilot.vessel.position);
 	const spin = pilot.body && length(pilot.body.angularVelocity) > 0 ? pilot.body.angularVelocity : { x: 0, y: 1, z: 0 };
 	let east = unit(cross(unit(spin), up));
 	if (length(east) < 0.5) east = unit(cross({ x: 1, y: 0, z: 0 }, up)); // at a pole
-	return { up, east };
+	if (!inclination) return { up, east };
+	const north = cross(up, east);
+	const coslat = Math.sqrt(Math.max(1e-9, 1 - dot(up, unit(spin)) ** 2));
+	// from north, plus the closed-loop correction (more east lowers the inclination)
+	const az = Math.asin(clamp(Math.cos(inclination) / coslat, -1, 1)) + correction;
+	const heading = unit({
+		x: north.x * Math.cos(az) + east.x * Math.sin(az),
+		y: north.y * Math.cos(az) + east.y * Math.sin(az),
+		z: north.z * Math.cos(az) + east.z * Math.sin(az)
+	});
+	return { up, east: heading };
 }
 
 export const Ascent = defineAutopilot<AscentMemory>({
@@ -217,7 +238,7 @@ export const Ascent = defineAutopilot<AscentMemory>({
 	start(pilot, params) {
 		const f = facts(pilot);
 		if (typeof f === 'string') throw new Error(f);
-		const p = (params ?? {}) as { altitude?: number; shape?: number };
+		const p = (params ?? {}) as { altitude?: number; shape?: number; inclination?: number };
 		const air = pilot.body?.atmosphereHeight ?? 0;
 		const altitude = p.altitude ?? Math.max(80_000, air + 10_000);
 		if (!(altitude > air)) throw new Error(`the orbit must be above the atmosphere (${air / 1000} km)`);
@@ -226,7 +247,8 @@ export const Ascent = defineAutopilot<AscentMemory>({
 			stage: 'launch',
 			altitude,
 			turnEnd: air > 0 ? 0.75 * air : Math.min(altitude, 15_000),
-			shape: clamp(p.shape ?? 0.5, 0.2, 1),
+			shape: clamp(Number(p.shape ?? 0.5) || 0.5, 0.2, 1),
+			inclination: (clamp(Number(p.inclination ?? 0) || 0, 0, 180) * Math.PI) / 180,
 			planned: false
 		};
 	},
@@ -241,7 +263,8 @@ export const Ascent = defineAutopilot<AscentMemory>({
 		const readouts = {
 			Altitude: Math.round(altitude),
 			Apoapsis: Number.isFinite(apo) ? Math.round(apo) : 'open',
-			Periapsis: Math.round(o.periapsis - f.radius)
+			Periapsis: Math.round(o.periapsis - f.radius),
+			Target: memory.altitude
 		};
 		if (memory.stage === 'launch') {
 			pilot.throttle(1);
@@ -255,7 +278,15 @@ export const Ascent = defineAutopilot<AscentMemory>({
 		}
 		if (memory.stage === 'ascent') {
 			autoStage(pilot, memory);
-			const { up, east } = localAxes(pilot);
+			// steer out the inclination error once the vessel moves fast enough to have a plane
+			const want = memory.inclination ?? 0;
+			let correction = 0;
+			if (want && pilot.body && length(pilot.vessel.velocity) > 800) {
+				const h = cross(r, pilot.vessel.velocity);
+				const now = angleBetween(h, pilot.body.angularVelocity);
+				correction = clamp(2 * (now - want), -20 * DEG, 20 * DEG);
+			}
+			const { up, east } = localAxes(pilot, want, correction);
 			const done = clamp((altitude - 500) / (memory.turnEnd - 500), 0, 1);
 			const pitch = (Math.PI / 2) * (1 - Math.pow(done, memory.shape));
 			pilot.pointAt(unit({
@@ -298,6 +329,8 @@ export const Ascent = defineAutopilot<AscentMemory>({
 export interface LandMemory {
 	stage: 'deorbit' | 'coast' | 'brake' | 'touchdown';
 	stagedAt: number;
+	/** Touchdown speed, m/s (plan 332 setting); absent in older saves. */
+	touchdown?: number;
 }
 
 /** Touchdown speed the final descent aims for, m/s. */
@@ -308,17 +341,24 @@ export const Land = defineAutopilot<LandMemory>({
 	title: 'Land',
 	description: 'Lowers the periapsis into the ground, then a suicide burn and a slow vertical touchdown.',
 	rate: 20,
-	start(pilot) {
+	start(pilot, params) {
 		const f = facts(pilot);
 		if (typeof f === 'string') throw new Error(f);
+		if (pilot.vessel.surface === true) throw new Error('the vessel is on the ground');
 		if (pilot.maxThrust <= 0) throw new Error('no engine is burning: stage first');
-		return { stage: 'deorbit', stagedAt: -1e9 };
+		const p = (params ?? {}) as { touchdown?: number };
+		return {
+			stage: 'deorbit',
+			stagedAt: -1e9,
+			touchdown: clamp(Number(p.touchdown ?? TOUCHDOWN_SPEED) || TOUCHDOWN_SPEED, 0.5, 3)
+		};
 	},
 	step(pilot, memory) {
 		const f = facts(pilot);
 		if (typeof f === 'string') return { phase: memory.stage, abort: f };
 		const thrust = pilot.maxThrust;
 		if (thrust <= 0) return { phase: memory.stage, abort: 'the engines are out' };
+		const td = memory.touchdown ?? TOUCHDOWN_SPEED;
 		const r = pilot.vessel.position;
 		const spin = pilot.body?.angularVelocity ?? { x: 0, y: 0, z: 0 };
 		const surface = sub(pilot.vessel.velocity, cross(spin, r)); // over the ground
@@ -363,8 +403,8 @@ export const Land = defineAutopilot<LandMemory>({
 			// linearly over the last metres
 			const h = Math.max(0, height);
 			const wanted = Math.max(
-				TOUCHDOWN_SPEED,
-				Math.min(Math.sqrt(2 * 0.5 * (accel - g) * h), TOUCHDOWN_SPEED + 0.4 * h)
+				td,
+				Math.min(Math.sqrt(2 * 0.5 * (accel - g) * h), td + 0.4 * h)
 			);
 			pilot.pointAt(speed > 3 ? unit(scale(surface, -1)) : up);
 			const tilt = angleBetween(noseOf(pilot), up);
@@ -375,7 +415,7 @@ export const Land = defineAutopilot<LandMemory>({
 		}
 		// touchdown: hold the touchdown speed straight down until the ground holds the vessel
 		pilot.pointAt(up);
-		const need = g + 3 * (-climb - TOUCHDOWN_SPEED);
+		const need = g + 3 * (-climb - td);
 		pilot.throttle(clamp((need * f.mass) / thrust, 0, 1));
 		if (pilot.vessel.surface === true || (height < 0.5 && speed < 0.3)) {
 			pilot.throttle(0);
