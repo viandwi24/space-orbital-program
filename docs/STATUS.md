@@ -269,6 +269,7 @@
 | 322 | [Several scripts at once; Switch to from the programs list](plans/322-several-scripts-and-programs-list-switch.md) | draft | | One script session per vessel in the host. |
 | 330 | [Docking blueprints, Auto Dock fly-around, logs, options and mod panel UI](plans/330-docking-blueprints-auto-dock-fly-around-and-panels.md) | done | auto dock session | ADR 0285. Blueprint audit and fixes, docked ports snap face to face, Auto Dock flies round to the axis with options, a log and an alignment display; mod panels get `select` and their own UI in a sandboxed frame. Journal 330. Local commits dee491dc and 09462b18 say "plan 321": the number was taken while they were written. |
 | 331 | [Rendezvous autopilot](plans/331-rendezvous-autopilot.md) | in-progress | rendezvous session | ADR 0286. `guidance.rendezvous` flies to 100–200 m of a target (plane, transfer, match, close, hold) and can hand over to Auto Dock. |
+| 341 | [Stylised crew character](plans/341-stylised-crew-character.md) | in-progress | crew character session | ADR 0291. The NOVA chibi astronaut for every person (EVA, Hangar, Space Center), outfits as data, 1.7 m tall, portraits, `/dev/crew`. |
 
 Statuses: `draft` (needs refinement before an agent takes it) · `ready` · `in-progress` · `done` · `blocked`.
 
