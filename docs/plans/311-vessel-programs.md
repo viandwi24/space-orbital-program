@@ -3,7 +3,7 @@ id: 311
 title: "Vessel programs: the player wins per channel, saved scripts that resume, the programs list, built-in mods on the Mods page"
 status: in-progress
 owner: "vessel programs session (Claude)"
-depends: [232, 042]
+depends: [239, 042]
 phase: 0
 created: 2026-10-21
 updated: 2026-10-21
