@@ -9,6 +9,7 @@ import { setFlowLock } from './resources.ts';
 import { moduleAction } from './actions.ts';
 import { addAlarm, removeAlarm } from './alarms.ts';
 import {
+	clearDebris,
 	nameLaunched,
 	renameVessel,
 	setDebrisCap,
@@ -633,6 +634,8 @@ export function dispatch(
 			return terminateVessel(core, command.vessel);
 		case 'set-debris-cap':
 			return setDebrisCap(core, command.cap);
+		case 'clear-debris':
+			return clearDebris(core, command.site);
 		case 'remove-alarm':
 			return removeAlarm(core, command.id);
 		case 'node-set': {

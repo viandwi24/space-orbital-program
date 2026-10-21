@@ -239,6 +239,7 @@ export const commandSchema: z.ZodType<Command> = z.discriminatedUnion('type', [
 	}),
 	z.object({ type: z.literal('terminate-vessel'), vessel: entity }),
 	z.object({ type: z.literal('set-debris-cap'), cap: z.int().min(0).max(10_000) }),
+	z.object({ type: z.literal('clear-debris'), site: z.string().min(1).optional() }),
 	z.object({ type: z.literal('node-remove'), vessel: entity, id: index.optional() }),
 	z.object({ type: z.literal('target-set'), vessel: entity, target: targetRefSchema.nullable() }),
 	z.object({

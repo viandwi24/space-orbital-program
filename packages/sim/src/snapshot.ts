@@ -8,7 +8,7 @@ import { milestonesSnapshot } from './milestones.ts';
 import { rangeSnapshot } from './range.ts';
 import { reliabilitySnapshot } from './reliability.ts';
 import { alarmsSnapshot } from './alarms.ts';
-import { vesselTypeOf } from './fleet.ts';
+import { siteSpotOf, vesselTypeOf } from './fleet.ts';
 import {
 	bodyId,
 	partId,
@@ -184,6 +184,8 @@ export function vesselSnapshot(core: SimCore, id: EntityId): VesselSnapshot {
 		snapshot.target = port ? { ...target, port } : target;
 	}
 	if (recoveryBlocker(core, id) === undefined) snapshot.recovery = quoteRecovery(core, id);
+	const atSite = siteSpotOf(core, id);
+	if (atSite) snapshot.atSite = atSite;
 	const uncontrolled = controlProblem(core, vessel);
 	if (uncontrolled) snapshot.uncontrolled = uncontrolled;
 	if (vessel.rcs) snapshot.rcs = true;

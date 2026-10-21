@@ -5,7 +5,11 @@
  */
 import {
 	DEFAULT_DEBRIS_CAP,
+	PAD_CLEAR_HEIGHT,
+	sitesOf,
 	uniqueVesselName,
+	type Site,
+	type Vec3,
 	type CommandResult,
 	type EntityId,
 	type VesselType
@@ -22,6 +26,10 @@ import {
 } from './core.ts';
 import { VESSEL, type VesselState } from './state.ts';
 import { destroyVessel } from './vessel.ts';
+import { bodyOfVessel, rotationAt } from './bodies.ts';
+import { qConj, qRotate } from './math.ts';
+import { motionOf } from './orbit.ts';
+import { terrainBelow } from './terrain.ts';
 
 const refuse = (reason: string): CommandResult => ({ ok: false, reason });
 
@@ -123,4 +131,79 @@ export function enforceDebrisCap(core: SimCore): void {
 	for (const id of debris.slice(0, Math.max(0, debris.length - cap))) {
 		destroyVessel(core, id, 'debris over the cap');
 	}
+}
+
+/** A latitude and longitude as a body-fixed unit vector (+Y north, longitude 0 on +X). */
+const unitAt = (latitude: number, longitude: number): Vec3 => ({
+	x: Math.cos(latitude) * Math.cos(longitude),
+	y: Math.sin(latitude),
+	z: -Math.cos(latitude) * Math.sin(longitude)
+});
+
+/** The vessel's centre of mass in its body's fixed frame, and that body's id. */
+function bodyFixed(core: SimCore, vessel: VesselState): { body: string; r: Vec3 } {
+	const body = bodyOfVessel(core, vessel);
+	const r = motionOf(core, vessel).r;
+	return { body: body.def.id, r: qRotate(qConj(rotationAt(body, core.t)), r) };
+}
+
+/** Metres along the ground from the body-fixed point `r` to the unit direction `at`, on a body of `radius`. */
+function arcTo(r: Vec3, at: Vec3, radius: number): number {
+	const n = Math.hypot(r.x, r.y, r.z);
+	const c = (r.x * at.x + r.y * at.y + r.z * at.z) / n;
+	return Math.acos(Math.max(-1, Math.min(1, c))) * radius;
+}
+
+/**
+ * Where a vessel stands at a site (plan 318, ADR 0274): metres east and north of the site centre
+ * (the inverse of `padLatLon`), while its centre of mass is within the site's flat radius and below
+ * `PAD_CLEAR_HEIGHT` above the ground.
+ */
+export function siteSpotOf(
+	core: SimCore,
+	id: EntityId
+): { site: string; east: number; north: number } | undefined {
+	const vessel = vesselOf(core, id);
+	const body = bodyOfVessel(core, vessel);
+	const sites = sitesOf(core.info).filter((s) => s.body === body.def.id);
+	if (sites.length === 0) return undefined;
+	const { r } = bodyFixed(core, vessel);
+	const radius = body.def.radius;
+	const n = Math.hypot(r.x, r.y, r.z);
+	const ground = terrainBelow(core, body, motionOf(core, vessel).r) ?? 0;
+	if (n - radius - ground > PAD_CLEAR_HEIGHT) return undefined;
+	const site = sites.find((s) => arcTo(r, unitAt(s.latitude, s.longitude), radius) < s.flatRadius);
+	if (!site) return undefined;
+	const latitude = Math.asin(Math.max(-1, Math.min(1, r.y / n)));
+	let dLon = Math.atan2(-r.z, r.x) - site.longitude;
+	dLon = Math.atan2(Math.sin(dLon), Math.cos(dLon));
+	return {
+		site: site.id,
+		east: dLon * radius * Math.max(Math.cos(site.latitude), 1e-6),
+		north: (latitude - site.latitude) * radius
+	};
+}
+
+/** Whether the vessel is on the site's body within the site's flat radius of its centre. */
+function nearSite(core: SimCore, vessel: VesselState, site: Site): boolean {
+	const { body, r } = bodyFixed(core, vessel);
+	if (body !== site.body) return false;
+	const radius = bodyOfVessel(core, vessel).def.radius;
+	return arcTo(r, unitAt(site.latitude, site.longitude), radius) < site.flatRadius;
+}
+
+/**
+ * `clear-debris` (plan 318, ADR 0274): terminate every debris vessel of the player, or with `site`
+ * only those near it. Refused for an unknown site; nothing to clear is not a refusal.
+ */
+export function clearDebris(core: SimCore, siteId?: string): CommandResult {
+	const site = siteId === undefined ? undefined : sitesOf(core.info).find((s) => s.id === siteId);
+	if (siteId !== undefined && !site) return refuse(`unknown site "${siteId}"`);
+	for (const id of vesselIds(core)) {
+		const v = vesselOf(core, id);
+		if (!isDebris(core, v)) continue;
+		if (site && !nearSite(core, v, site)) continue;
+		destroyVessel(core, id, 'terminated');
+	}
+	return { ok: true };
 }

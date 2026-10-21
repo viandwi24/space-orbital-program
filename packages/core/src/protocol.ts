@@ -107,6 +107,11 @@ export type VesselType = (typeof VESSEL_TYPES)[number];
 /** Debris kept in a world by default (plan 223; KSP's default). */
 export const DEFAULT_DEBRIS_CAP = 250;
 
+/** A vessel within this many metres of a launch spot along the ground occupies it (plan 318, ADR 0274). */
+export const PAD_CLEAR_RADIUS = 40;
+/** ... and with its centre of mass below this height above the ground, m. */
+export const PAD_CLEAR_HEIGHT = 100;
+
 /** What an alarm waits for (plan 224, ADR 0223): its time is worked out once, when it is set. */
 export type AlarmKind = 'time' | 'apoapsis' | 'periapsis' | 'soi' | 'node' | 'transfer';
 
@@ -301,6 +306,13 @@ export interface VesselSnapshot {
 	surface?: boolean;
 	/** Held still during rails warp (plan 206, ADR 0202 point 7): no orbit while it lasts. */
 	frozen?: boolean;
+	/**
+	 * Where the vessel stands at a site (plan 318, ADR 0274): metres east and north of the site
+	 * centre on its tangent plane (as `SitePad`), while its centre of mass is within the site's flat
+	 * radius and below `PAD_CLEAR_HEIGHT` above the ground. A launch spot within `PAD_CLEAR_RADIUS`
+	 * of it is occupied. Absent elsewhere.
+	 */
+	atSite?: { site: string; east: number; north: number };
 	/** Sim time of liftoff (plan 200); absent while it waits on the pad (the "pre-launch" situation). */
 	launchedAt?: number;
 	/** Resting on water (plan 246): a splashdown, not a landing; absent otherwise. */
@@ -881,6 +893,11 @@ export type Command =
 	 * removes debris at once. Not saved: the page sends it at the start of a session.
 	 */
 	| { type: 'set-debris-cap'; cap: number }
+	/**
+	 * Terminate every debris vessel of the player (plan 318, ADR 0274), or with `site` only the
+	 * debris on that site's body within its flat radius of its centre.
+	 */
+	| { type: 'clear-debris'; site?: string }
 	/** Remove one node, or all of the vessel's nodes without an `id`. */
 	| { type: 'node-remove'; vessel: EntityId; id?: number }
 	/** Select (or with `null` clear) the vessel's target (plan 035, ADR 0064). */
