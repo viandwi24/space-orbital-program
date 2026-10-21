@@ -103,13 +103,20 @@ export interface VabScene {
 /** Applies the part's turn: its full rotation when tilted, else its yaw about the vertical. */
 export function applyPartTurn(
 	target: {
-		rotation: { y: number };
+		rotation: { x: number; y: number; z: number };
 		quaternion: { set(x: number, y: number, z: number, w: number): unknown };
 	},
 	part: Pick<VabPart, 'yaw' | 'rotation'>
 ): void {
-	if (part.rotation) target.quaternion.set(...part.rotation);
-	else target.rotation.y = part.yaw ?? 0;
+	if (part.rotation) {
+		target.quaternion.set(...part.rotation);
+		return;
+	}
+	// a whole turn, not only the yaw: a part whose tilt went back to none must lose the old tilt
+	// (plan 279: the Rotate tool's reset left the model tilted)
+	target.rotation.x = 0;
+	target.rotation.y = part.yaw ?? 0;
+	target.rotation.z = 0;
 }
 
 export const EMPTY_SCENE: VabScene = { parts: [], groups: [], nodes: [] };

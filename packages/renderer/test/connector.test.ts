@@ -257,4 +257,13 @@ describe('connectors and tilted parts in the VAB layer', () => {
 		applyPartTurn(b, { yaw: 0.5, rotation: [0, 0, 0, 1] });
 		expect(b.quaternion.w).toBe(1);
 	});
+
+	test('applyPartTurn: a part whose tilt is reset loses the old tilt (plan 279)', () => {
+		const a = new Object3D();
+		applyPartTurn(a, { yaw: 0, rotation: [Math.sin(0.4), 0, 0, Math.cos(0.4)] });
+		applyPartTurn(a, { yaw: 0.3 });
+		expect(a.rotation.x).toBe(0);
+		expect(a.rotation.z).toBe(0);
+		expect(a.rotation.y).toBeCloseTo(0.3, 12);
+	});
 });
