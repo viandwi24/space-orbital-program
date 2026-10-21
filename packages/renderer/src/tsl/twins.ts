@@ -12,6 +12,7 @@
  */
 import {
 	Color,
+	DoubleSide,
 	InstancedInterleavedBuffer,
 	Vector2,
 	type InstancedBufferAttribute,
@@ -435,6 +436,8 @@ const line = (
 	}
 ): Twin => {
 	const twin = new MeshBasicNodeMaterial();
+	// a segment's quad winds either way (its side follows the segment's screen direction): both drawn
+	twin.side = DoubleSide;
 	const uColor = uniform(new Color().copy(m.color));
 	const uWidth = uniform(m.linewidth);
 	const uRes = uniform(new Vector2(m.resolution.x, m.resolution.y));
@@ -451,18 +454,22 @@ const line = (
 	sync();
 	const start = modelViewMatrix.mul(vec4(attribute('instanceStart', 'vec3'), 1.0)).toVar();
 	const end = modelViewMatrix.mul(vec4(attribute('instanceEnd', 'vec3'), 1.0)).toVar();
+	// the view depth of the drawn (trimmed) end, for the logarithmic depth
+	const viewZ = T.varyingProperty('float', 'vLineViewZ');
 	const clip = Fn(() => {
-		// a segment through the camera plane is trimmed to it (LineMaterial's trimSegment)
+		// a segment through the camera plane is trimmed to it (LineMaterial's trimSegment), at the plane
+		// three's Line2NodeMaterial estimates for WebGPU's 0..1 clip depth: the WebGL formula put it
+		// behind the camera, and the trimmed end then drew as a long stray line across the view
 		const near = cameraProjectionMatrix
 			.element(3)
 			.element(2)
-			.negate()
-			.div(cameraProjectionMatrix.element(2).element(2).sub(1.0).negate());
+			.mul(-0.5)
+			.div(cameraProjectionMatrix.element(2).element(2));
 		If(start.z.lessThan(0.0).and(end.z.greaterThan(0.0)), () => {
-			const a = near.negate().sub(start.z).div(end.z.sub(start.z));
+			const a = near.sub(start.z).div(end.z.sub(start.z));
 			end.assign(vec4(mix(start.xyz, end.xyz, a), end.w));
 		}).ElseIf(end.z.lessThan(0.0).and(start.z.greaterThanEqual(0.0)), () => {
-			const a = near.negate().sub(end.z).div(start.z.sub(end.z));
+			const a = near.sub(end.z).div(start.z.sub(end.z));
 			start.assign(vec4(mix(end.xyz, start.xyz, a), start.w));
 		});
 		const cs = cameraProjectionMatrix.mul(start);
@@ -481,10 +488,14 @@ const line = (
 		});
 		const c = select(positionGeometry.y.lessThan(0.5), cs, ce).toVar();
 		const o = offset.mul(uWidth).div(uRes.y).mul(c.w);
-		return vec4(c.xy.add(o), c.z, c.w);
+		// mid-range clip depth: the depth written is the logarithmic one (depthNode); a far orbit's own
+		// z/w rounds past 1 in float32 against a 1e13 m far plane, and the rasterizer clipped those
+		// fragments before any depth test, which drew the orbit as dashes
+		viewZ.assign(c.w.negate());
+		return vec4(c.xy.add(o), c.w.mul(0.5), c.w);
 	})();
 	twin.vertexNode = clip;
-	twin.depthNode = logDepth(varying(select(positionGeometry.y.lessThan(0.5), start.z, end.z)));
+	twin.depthNode = logDepth(viewZ);
 	twin.colorNode = vec4(uColor, uOpacity);
 	return { material: twin, sync };
 };

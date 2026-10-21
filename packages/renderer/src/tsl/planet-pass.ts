@@ -505,15 +505,6 @@ export class PlanetPassTSL {
 		this.builtTerrain = this.terrain?.version ?? -1;
 		this.builtShadow = this.shadowMap() ?? this.builtShadow;
 		this.needsBuild = false;
-		console.warn(
-			JSON.stringify({
-				key: PlanetPassTSL.variantKey(this.settings),
-				map: this.builtMap?.uuid?.slice(0, 6),
-				terrain: this.builtTerrain,
-				shadow: (this.builtShadow as { uuid?: string } | null)?.uuid?.slice(0, 6),
-				cached: this.variants.size
-			})
-		);
 		// the map and the terrain targets are read through swapped nodes; only a new shadow map changes the shaders
 		const context = `${(this.builtShadow as { uuid?: string } | null)?.uuid}`;
 		if (context !== this.variantContext) {
