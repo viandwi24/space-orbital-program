@@ -220,7 +220,23 @@
 | 272 | [Flight v3: one dock with the vessel panel inside, the compact navball module with status chips, staging on the right](plans/272-flight-v3-one-dock-navball-module-staging-right.md) | in-progress | ui-v3 session | Owner's v3 design package (`refs/space-orbital-program-ui-v3`); ADR 0253; diff of v3 against the app in the plan. |
 | 273 | [Space Center v3: Overview, Build and Focus modes with a context bar](plans/273-space-center-v3-modes.md) | in-progress | ui-v3 session | ADR 0254. |
 | 274 | [v3 design leftovers: toasts, the chip flash, the Orbit panel, the demolish tint, the shell's Overview hook](plans/274-v3-design-leftovers.md) | draft | — | Left by 272 and 273. |
+| 275 | [Size classes, part two: new tank shapes, size filter](plans/275-size-classes-to-7-5-m.md) | draft | — | ADR 0256; after 289. |
+| 276 | [Engines, engine plates 5/8/9, segmented SRBs, escape tower](plans/276-engines-plates-srbs-and-escape-tower.md) | draft | — | ADR 0257. |
+| 277 | [RCS family: 4-way remodel, 5-way, linear, corner, bipropellant, axis toggles](plans/277-rcs-family.md) | draft | — | ADR 0257; owner's RV-105 reference. |
+| 278 | [Pods, probes and parachutes (chute continues the pod, docking chute ring)](plans/278-pods-probes-and-parachutes.md) | draft | — | ADR 0260. |
+| 279 | [Hangar free placement: move/rotate gizmos, offset (format 4), docking ports anywhere](plans/279-hangar-free-placement-and-surface-mount.md) | draft | — | ADR 0258. |
+| 280 | [Power, comms, science, life support: surface-mount shapes, deploy, fuel cell](plans/280-power-comms-science-life-support.md) | draft | — | ADR 0259. |
+| 281 | [Payload bays with doors, petals, multi-couplers, trusses, lattice interstage](plans/281-payload-bays-couplers-and-structure.md) | draft | — | ADR 0261. |
+| 282 | [Robotics: rigid groups and motored joints](plans/282-robotics-articulated-vessels.md) | draft | — | ADR 0262 (gated by a spike). |
+| 283 | [Rovers: suspension, wheels, cab, seat, scanning arms, drill](plans/283-rover-and-arms.md) | draft | — | ADRs 0262, 0264. |
+| 284 | [EVA inventory and deployed science stations](plans/284-eva-inventory-and-deployed-science.md) | draft | — | ADR 0264. |
+| 285 | [Blueprint Library: cards, filters, labels, defineBlueprint](plans/285-blueprint-library.md) | draft | — | ADR 0263. |
+| 286 | [Real-rocket blueprints wave 1 (Kronos V, Semyorka-S, Rajawali 9, Hermes-R)](plans/286-real-rocket-blueprints-wave-1.md) | draft | — | ADRs 0263, 0255. |
+| 287 | [Real-rocket blueprints waves 2 and 3](plans/287-real-rocket-blueprints-waves-2-and-3.md) | draft | — | ADRs 0263, 0255. |
+| 288 | [Robotics joint spike (benchmark and research only)](plans/288-robotics-joint-spike.md) | ready | — | Split from 282 for the Linux worker (Agent 3): Rapier 0.21 motored joints, determinism, 6-joint chain, cost. Gate of ADR 0262. |
+| 289 | [Size classes 1.875–7.5 m with the existing generators](plans/289-size-classes-with-existing-generators.md) | ready | — | Split from 275 for the Linux worker (Agent 3). ADR 0256. Headless; no UI. |
 | 290 | [A folded part row in the vessel panel does not open when its summary is clicked](plans/290-folded-part-rows-open-on-click.md) | done | part-row fold session | Found by plan 272's e2e. The row's `open` shared a Svelte effect with its summary text, rewritten every tick, so the native toggle was undone before its `toggle` event stored it; a summary click now flips the stored state. |
+| 291 | [Part detail kit, liveries, bronze material and honest catalogue icons](plans/291-part-detail-kit-livery-and-icons.md) | draft | — | ADRs 0255, 0257. Owner research 2026-10-21 (refs/part-visuals-and-blueprints). Waits until the owner releases the parts work (main busy with renderer and UI/UX fixes). |
 
 Statuses: `draft` (needs refinement before an agent takes it) · `ready` · `in-progress` · `done` · `blocked`.
 

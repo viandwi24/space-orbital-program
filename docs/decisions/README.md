@@ -251,3 +251,13 @@ An ADR records one decision, its context, and its consequences. ADRs are **appen
 | 0252 | [Vessel names are distinct: a number for a repeat, one "debris" suffix](0252-distinct-vessel-names.md) | accepted | 2026-10-21 |
 | 0253 | [Flight v3: one dock that holds the vessel panel, staging on the right, a status strip under the navball](0253-flight-v3-one-dock-staging-right-status-strip.md) | accepted | 2026-10-21 |
 | 0254 | [Space Center: Overview, Build and Focus modes with one context bar](0254-space-center-modes-and-context-bar.md) | accepted | 2026-10-21 |
+| 0255 | [Parts are OrbitX products; we copy KSP's kinds and shapes, never its names or art](0255-orbitx-names-and-what-we-copy-from-ksp.md) | accepted | 2026-10-21 |
+| 0256 | [Seven stack size classes, 0.625 m to 7.5 m](0256-seven-size-classes-up-to-7-5-m.md) | accepted | 2026-10-21 |
+| 0257 | [Stock parts stay procedural, built from a shared detail kit, with liveries](0257-procedural-parts-detail-kit-and-livery.md) | accepted | 2026-10-21 |
+| 0258 | [Hangar free placement: offset and rotate gizmos, design format 4](0258-hangar-free-placement-offset-and-rotate.md) | accepted | 2026-10-21 |
+| 0259 | [Functional parts mount on surfaces; stack versions stay as hidden legacy parts](0259-functional-parts-mount-on-surfaces.md) | accepted | 2026-10-21 |
+| 0260 | [The pod's apex: a chute that continues the slope, a docking chute ring, or radial chutes](0260-pod-apex-parachute-and-docking.md) | accepted | 2026-10-21 |
+| 0261 | [Service bays, cargo bays and payload petals shield their contents while closed](0261-payload-bays-shield-while-closed.md) | accepted | 2026-10-21 |
+| 0262 | [Robotics: rigid groups joined by motored Rapier joints](0262-robotics-articulated-vessels.md) | accepted | 2026-10-21 |
+| 0263 | [Blueprints are mod content, shown in one Library](0263-blueprints-are-mod-content-in-one-library.md) | accepted | 2026-10-21 |
+| 0264 | [EVA inventory and deployed science stations](0264-eva-inventory-and-deployed-science.md) | accepted | 2026-10-21 |
