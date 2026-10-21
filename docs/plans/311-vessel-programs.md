@@ -63,7 +63,7 @@ A script or a mod autopilot is a *program* attached to one vessel. It keeps flyi
 - 2026-10-21 — Verification:
   - `bun test packages/sim/test/programs.test.ts`: 8 pass; `packages/scripting/test/memory.test.ts`: 4 pass; web vitest `builtin-list`, `programs-model`, `sim-host-script`, `script-api`, `keybindings`: pass.
   - `bun run typecheck`: 0 errors (1 old warning). `bun run build`: done. `bun run docs:check`: OK.
-  - `bun run test`: 2151 pass, 4 fail under load (two benchmarks, the 3 600-day career bot, the 1 000-staging reliability run); the two benchmarks pass alone (2 pass, 2 pass).
+  - `bun run test`: 2151 pass, 4 fail under load (two benchmarks, the 3 600-day career bot, the 1 000-staging reliability run); all four pass when run alone (benchmarks 2 + 2 pass, career bot and reliability 2 pass).
   - Web vitest with `CI=true`: 1420 pass, 3 fail before the help row fix (keybindings, now passing) and the two real-thread tests of `sim-host-script-worker.test.ts`, which fail on `main` too on this machine (Node 26 has no `--experimental-transform-types`).
   - Browser: Mods page "Built in"; a script resumed after reload (`resumed true runs 2`); Delete stopped it with a toast.
 
