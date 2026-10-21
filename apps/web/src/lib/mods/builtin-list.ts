@@ -1,5 +1,5 @@
 /**
- * Rows for the built-in mods on the Mods page (plan 311): every plugin the game ships with is a mod
+ * Rows for the built-in mods on the Mods page (plan 315): every plugin the game ships with is a mod
  * like an installed one (ADR 0005), so the page lists them too, always on and not removable.
  */
 import type { Plugin } from '@orbital/core';

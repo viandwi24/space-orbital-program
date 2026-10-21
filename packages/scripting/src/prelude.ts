@@ -229,7 +229,7 @@ export const PRELUDE = String.raw`(function (host, seed, bodiesJson, debugOn, me
 		}));
 	}
 	fixed('print', (...args) => host.print(args.map(text).join(' ')));
-	// Saved state (plan 311, ADR 0272 point 6): the object is the script's to change; the binding is fixed.
+	// Saved state (plan 315, ADR 0273 point 6): the object is the script's to change; the binding is fixed.
 	const memory = JSON.parse(memoryJson);
 	fixed('memory', memory);
 	fixed('resumed', resumedOn === true);

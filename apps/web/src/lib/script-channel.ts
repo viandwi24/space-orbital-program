@@ -29,7 +29,7 @@ export interface ScriptSessionOptions {
 	/** Deterministic work budget per tick, interrupt polls; omitted: wall clock only. */
 	fuelPolls?: number;
 	env: ScriptEnvironment;
-	/** The script's saved memory and whether this run resumes it (plan 311, ADR 0272). */
+	/** The script's saved memory and whether this run resumes it (plan 315, ADR 0273). */
 	memory?: Record<string, unknown>;
 	resumed?: boolean;
 	watchdogMs?: number;

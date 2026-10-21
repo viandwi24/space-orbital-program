@@ -28,7 +28,7 @@ export type ToScriptWorker =
 			/** Deterministic work budget per tick, interrupt polls (plan 032); absent: wall clock only. */
 			fuelPolls?: number;
 			env: ScriptEnvironment;
-			/** The script's saved memory and whether this run resumes it (plan 311, ADR 0272). */
+			/** The script's saved memory and whether this run resumes it (plan 315, ADR 0273). */
 			memory?: Record<string, unknown>;
 			resumed?: boolean;
 	  }
@@ -56,7 +56,7 @@ export type FromScriptWorker =
 			elapsedMs: number;
 			/** `print()` lines produced during this tick. */
 			lines: string[];
-			/** The script's `memory` when it changed this tick (plan 311, ADR 0272). */
+			/** The script's `memory` when it changed this tick (plan 315, ADR 0273). */
 			memory?: Record<string, unknown>;
 	  };
 

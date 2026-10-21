@@ -64,7 +64,7 @@
 		savedAt: number | null;
 		mods: number;
 		bell: BellFeed;
-		/** Stop every program on a vessel, from the status bar's programs list (plan 311). */
+		/** Stop every program on a vessel, from the status bar's programs list (plan 315). */
 		onstopprogram?: (vessel: number) => void;
 		onsettings: () => void;
 		/** World settings during play (plan 230). */

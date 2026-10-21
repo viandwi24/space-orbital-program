@@ -299,11 +299,11 @@ export interface VesselSnapshot {
 	/** The trim on each axis, -1..1 (plan 245); absent while all three are zero. */
 	trim?: { pitch: number; yaw: number; roll: number };
 	/**
-	 * Channels the player holds against a program right now (plan 311, ADR 0272 point 4); absent
+	 * Channels the player holds against a program right now (plan 315, ADR 0273 point 4); absent
 	 * when none, or when the vessel has no program.
 	 */
 	override?: ControlChannel[];
-	/** The player script running on this vessel (ADR 0272 point 6); absent when none. */
+	/** The player script running on this vessel (ADR 0273 point 6); absent when none. */
 	script?: ScriptProgramView;
 	/** Stages fired so far (plan 221): the HUD of a vessel it switched to starts from it. */
 	nextStage?: number;
@@ -1032,11 +1032,11 @@ export type Command =
 	 */
 	| { type: 'set-control-part'; vessel: EntityId; part: EntityId | null }
 	/**
-	 * Stop every program on `vessel` (plan 311, ADR 0272 point 5): disengage its autopilot and end
+	 * Stop every program on `vessel` (plan 315, ADR 0273 point 5): disengage its autopilot and end
 	 * its script. The Delete key and Abort send it for the active vessel.
 	 */
 	| { type: 'program-stop'; vessel: EntityId; reason?: string }
-	/** Record the script now running on `vessel` (ADR 0272 point 6); replaces one already there. */
+	/** Record the script now running on `vessel` (ADR 0273 point 6); replaces one already there. */
 	| { type: 'script-attach'; vessel: EntityId; name: string; source: string; resumed?: boolean }
 	/** Commit the script's `memory` (a plain JSON object, at most `SCRIPT_MEMORY_MAX` as JSON). */
 	| { type: 'script-memory'; vessel: EntityId; memory: Record<string, unknown> }
@@ -1108,7 +1108,7 @@ export type CommandResult =
 			alarm?: string;
 			/** Sim time a delayed command applies (signal delay, plan 117, ADR 0188 point 6). */
 			queued?: number;
-			/** Channels of a program's command dropped because the player holds them (ADR 0272 point 3). */
+			/** Channels of a program's command dropped because the player holds them (ADR 0273 point 3). */
 			overridden?: ControlChannel[];
 			/** `warp` and `warp-to` (plan 206): the level granted, and why when it is below the ask. */
 			granted?: number;

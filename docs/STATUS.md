@@ -255,9 +255,9 @@
 | 307 | [Rover: wheels in three sizes, chassis, drive mode, blueprint](plans/307-rover-wheels-and-drive-mode.md) | in-progress | part visuals session | First slice of plan 283: wheel throttle, rover wheels, drive mode, Trailblazer Rover. |
 | 308 | [Attach to sideways nodes (a hub's side ports)](plans/308-sideways-node-attach.md) | done | part visuals session | The editor turns a part onto a node at right angles (as a fallback, never a flip); the resolver accepts the tilt; Horizon Station gets an airlock and a cupola on the hub's sides. Journal 308. |
 | 310 | [Vessel menu in Flight, docking-port targets, a vessel-control API and the Auto Dock mod](plans/310-vessel-menu-port-targets-control-api-and-auto-dock.md) | in-progress | auto dock session | ADRs 0270, 0271 |
-| 311 | [Vessel programs: the player wins per channel, saved scripts, the programs list](plans/311-vessel-programs.md) | done | vessel programs session | ADR 0272, research `vessel-programs.md`: the player takes any control channel from a script or autopilot and gets it back 1 s after letting go; scripts are saved with their `memory` and resume; "N programs" in the status bar; Delete and Abort stop programs; built-in mods on the Mods page; the replay recorder kept no command source (fixed). Journal 311. |
-| 312 | [Guidance Computer: MechJeb-style autopilots mod](plans/312-guidance-computer-autopilots-mod.md) | draft | | Node executor, circularize, ascent, landing as ADR 0271 autopilots; waits for plan 310 Part 3. |
-| 313 | [Several scripts at once; Switch to from the programs list](plans/313-several-scripts-and-programs-list-switch.md) | draft | | One script session per vessel in the host. |
+| 315 | [Vessel programs: the player wins per channel, saved scripts, the programs list](plans/315-vessel-programs.md) | done | vessel programs session | ADR 0273, research `vessel-programs.md`: the player takes any control channel from a script or autopilot and gets it back 1 s after letting go; scripts are saved with their `memory` and resume; "N programs" in the status bar; Delete and Abort stop programs; built-in mods on the Mods page; the replay recorder kept no command source (fixed). Journal 315. |
+| 316 | [Guidance Computer: MechJeb-style autopilots mod](plans/316-guidance-computer-autopilots-mod.md) | draft | | Node executor, circularize, ascent, landing as ADR 0271 autopilots; waits for plan 310 Part 3. |
+| 317 | [Several scripts at once; Switch to from the programs list](plans/317-several-scripts-and-programs-list-switch.md) | draft | | One script session per vessel in the host. |
 
 Statuses: `draft` (needs refinement before an agent takes it) · `ready` · `in-progress` · `done` · `blocked`.
 
@@ -325,7 +325,7 @@ Existing drafts realigned on 2026-10-17: 063 (runway building), 065, 066, 067, 0
 
 ## Recent journal entries
 
-- [311 — Vessel programs](journal/311-vessel-programs.md)
+- [315 — Vessel programs](journal/315-vessel-programs.md)
 - [308 — Attach to sideways nodes](journal/308-sideways-node-attach.md)
 - [306 — Robotics: kinematic joints](journal/306-robotics-kinematic-joints.md)
 - [305 — English in-game text](journal/305-english-in-game-text.md)

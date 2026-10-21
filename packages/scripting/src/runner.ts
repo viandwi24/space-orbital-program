@@ -75,7 +75,7 @@ export interface ScriptRunnerOptions extends ScriptEnvironment {
 	/** Receives each `print()` line (also kept in `runner.logs`). */
 	onPrint?: (line: string) => void;
 	/**
-	 * The script's saved `memory` (plan 311, ADR 0272 point 6): a plain JSON object. Default `{}`.
+	 * The script's saved `memory` (plan 315, ADR 0273 point 6): a plain JSON object. Default `{}`.
 	 */
 	memory?: Record<string, unknown>;
 	/** The script was restarted from a save: the guest's `resumed`. Default false. */
@@ -106,7 +106,7 @@ export interface TickResult {
 	status: ScriptStatus;
 	/** Wall time spent in the guest during this tick, ms. */
 	elapsedMs: number;
-	/** The guest's `memory` when it changed during this tick and is still savable (ADR 0272). */
+	/** The guest's `memory` when it changed during this tick and is still savable (ADR 0273). */
 	memory?: Record<string, unknown>;
 }
 
@@ -632,7 +632,7 @@ export async function createScriptRunnerIn(
 			polls = 0;
 			pending = [];
 			pendingSeqs = [];
-			// The player held a channel (ADR 0272 point 3) and let go: the script's setpoints, dropped
+			// The player held a channel (ADR 0273 point 3) and let go: the script's setpoints, dropped
 			// meanwhile, are sent again (the script set them once and does not know).
 			const held = snapshot.vessels.find((v) => Number(v.id) === options.vessel)?.override;
 			if (hadOverride && held === undefined) {

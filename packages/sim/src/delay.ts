@@ -12,7 +12,7 @@ import { ruleOf } from './economy.ts';
 
 /**
  * Who sent a command: the player, the script runner (the host says so), or an autopilot the sim
- * runs (ADR 0271). `script` and `autopilot` are programs (plan 311, ADR 0272 point 2).
+ * runs (ADR 0271). `script` and `autopilot` are programs (plan 315, ADR 0273 point 2).
  */
 export type CommandSource = 'player' | 'script' | 'autopilot';
 
@@ -28,7 +28,7 @@ export function delayOf(core: SimCore, command: Command, source: CommandSource):
 	return link && link.to !== null && link.latency !== null ? link.latency : 0;
 }
 
-/** Queue a command to apply at `at`; a program's command keeps its source (ADR 0272 point 2). */
+/** Queue a command to apply at `at`; a program's command keeps its source (ADR 0273 point 2). */
 export function enqueue(
 	core: SimCore,
 	command: Command,

@@ -570,7 +570,7 @@ export function startFlight(options: FlightOptions): Flight {
 		const now = client.latest?.vessels.find((x) => Number(x.id) === id) ?? v;
 		design = { ...record.design, name: now.name ?? record.design.name };
 		vessel = entityId(id);
-		// the script stays with the vessel it flies (plan 311, ADR 0272): switching does not stop it
+		// the script stays with the vessel it flies (plan 315, ADR 0273): switching does not stop it
 		throttle = sentThrottle = 0;
 		padThrottle = false;
 		hudCtl = makeHud(catalog, recordOf(now));
@@ -685,7 +685,7 @@ export function startFlight(options: FlightOptions): Flight {
 	 */
 	function abort(): void {
 		if (vessel === null) return;
-		// an abort is the player's: the vessel's programs stop first (plan 311, ADR 0272 point 5)
+		// an abort is the player's: the vessel's programs stop first (plan 315, ADR 0273 point 5)
 		void send({ type: 'program-stop', vessel, reason: 'Abort' });
 		throttle = sentThrottle = 0;
 		void send({ type: 'throttle', vessel, value: 0 });
@@ -990,7 +990,7 @@ export function startFlight(options: FlightOptions): Flight {
 				break;
 			case 'programStop':
 				// in the map a selected node goes first (Delete removes it, ADR 0061); otherwise the
-				// kill switch (plan 311, ADR 0272 point 5): every program of the flown vessel stops
+				// kill switch (plan 315, ADR 0273 point 5): every program of the flown vessel stops
 				if (renderer?.isMapView && maneuverCtl?.key('nodeDelete', {})) e.preventDefault();
 				else if (vessel !== null)
 					void send({ type: 'program-stop', vessel, reason: 'Delete key' });
@@ -2074,7 +2074,7 @@ export function startFlight(options: FlightOptions): Flight {
 			sandbox.open().then(
 				(port) => {
 					if (run === scriptRun && !disposed) {
-						// the programs list names the script after its vessel (plan 311)
+						// the programs list names the script after its vessel (plan 315)
 						const name = client.latest?.vessels.find((v) => Number(v.id) === target)?.name;
 						client.startScript(source, target, port, name ? `${name} script` : undefined);
 					}

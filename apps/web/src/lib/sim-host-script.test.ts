@@ -34,7 +34,7 @@ async function setup(
 			});
 			const dispatch = sim.dispatch.bind(sim);
 			sim.dispatch = (command, options) => {
-				// the host's own bookkeeping of the running script (plan 311) is not a script command
+				// the host's own bookkeeping of the running script (plan 315) is not a script command
 				const type = (command as { type?: string }).type ?? '';
 				if (!type.startsWith('script-')) dispatched.push(command as Command);
 				return dispatch(command, options);

@@ -1,5 +1,5 @@
 /**
- * Vessel programs (plan 311, ADR 0272): who wins a control channel when the player and a program
+ * Vessel programs (plan 315, ADR 0273): who wins a control channel when the player and a program
  * (an engaged autopilot or a running script) both write it, and the script record that is saved
  * with the vessel.
  *
@@ -17,7 +17,7 @@ import type { SimCore } from './core.ts';
 import type { CommandSource } from './delay.ts';
 import { VESSEL, type VesselState } from './state.ts';
 
-/** Sources that are programs (ADR 0272 point 2). */
+/** Sources that are programs (ADR 0273 point 2). */
 export const isProgramSource = (source: CommandSource): boolean =>
 	source === 'script' || source === 'autopilot';
 
@@ -101,7 +101,7 @@ export function detachScript(core: SimCore, vessel: EntityId, v: VesselState, re
 /**
  * Disengage the vessel's autopilot (ADR 0271) for `program-stop`: the autopilot record goes, with
  * the RCS translation it left (ADR 0271 point 5). Plan 310's runner owns the `autopilot:ended`
- * event; once it lands this calls its disengage instead (plan 311 log).
+ * event; once it lands this calls its disengage instead (plan 315 log).
  */
 export function stopAutopilot(_core: SimCore, _vessel: EntityId, v: VesselState): void {
 	const record = v as { autopilot?: unknown };
@@ -110,7 +110,7 @@ export function stopAutopilot(_core: SimCore, _vessel: EntityId, v: VesselState)
 	delete v.translate;
 }
 
-/** The scripts saved on vessels, for the host to restart when a world opens (ADR 0272 point 6). */
+/** The scripts saved on vessels, for the host to restart when a world opens (ADR 0273 point 6). */
 export function savedScripts(core: SimCore): Array<{
 	vessel: EntityId;
 	name: string;

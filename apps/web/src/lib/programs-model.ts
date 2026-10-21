@@ -1,5 +1,5 @@
 /**
- * The programs list (plan 311, ADR 0272 point 8): every vessel that an engaged autopilot (ADR
+ * The programs list (plan 315, ADR 0273 point 8): every vessel that an engaged autopilot (ADR
  * 0271) or a player script flies, from the snapshot, for the status bar. Pure.
  */
 import type { Snapshot } from '@orbital/core';

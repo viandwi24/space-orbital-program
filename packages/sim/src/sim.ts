@@ -186,7 +186,7 @@ export interface SimOptions {
 
 /**
  * Who sent a command (plan 117, ADR 0188 point 6): `script` for the script runner's commands,
- * `autopilot` for an autopilot's (plan 311, ADR 0272 point 2).
+ * `autopilot` for an autopilot's (plan 315, ADR 0273 point 2).
  */
 export interface DispatchOptions {
 	source?: CommandSource;
@@ -203,7 +203,7 @@ export interface Sim {
 	dispatch(command: Command, options?: DispatchOptions): CommandResult;
 	dispatch(command: unknown, options?: DispatchOptions): CommandResult;
 	/**
-	 * The scripts saved on vessels, with source and memory (plan 311, ADR 0272 point 6): what the
+	 * The scripts saved on vessels, with source and memory (plan 315, ADR 0273 point 6): what the
 	 * host restarts when a world opens.
 	 */
 	scripts(): Array<{ vessel: EntityId; name: string; source: string; memory: Record<string, unknown> }>;
@@ -597,7 +597,7 @@ export async function createSim(options: SimOptions): Promise<Sim> {
 			holdWarpLimit(core);
 			thawFrozen(core);
 			if (core.paused) return; // the clock is paused (plan 205): nothing advances
-			stepOverrides(core); // the player's let-go channels return to their programs (plan 311)
+			stepOverrides(core); // the player's let-go channels return to their programs (plan 315)
 			takeEvaluations(); // this frame's budget counts from here (ADR 0122 point 5)
 			core.accumulator += warpedDelta(core, wallDelta);
 			let flightSteps = 0;

@@ -1,6 +1,6 @@
-# 311 — Vessel programs
+# 315 — Vessel programs
 
-**Plan:** [plans/311-vessel-programs.md](../plans/311-vessel-programs.md) · **Session:** vessel programs session (Claude), 2026-10-21 · **ADR:** 0272 · **Research:** `research/vessel-programs.md`
+**Plan:** [plans/315-vessel-programs.md](../plans/315-vessel-programs.md) · **Session:** vessel programs session (Claude), 2026-10-21 · **ADR:** 0273 · **Research:** `research/vessel-programs.md`
 
 ## What was done
 
@@ -27,6 +27,6 @@ See the plan's Log for the final command output. Browser (dev server on the work
 
 ## Open questions
 
-- Several scripts at once (draft 313) and the MechJeb-style autopilots (draft 312, waits for plan 310 Part 3).
+- Several scripts at once (draft 317) and the MechJeb-style autopilots (draft 316, waits for plan 310 Part 3).
 - `stopAutopilot` is a placeholder until plan 310's runner lands; the auto dock session was told to wire its disengage there.
 - The HUD's throttle gauge shows the page's throttle, not the sim's: a script's throttle is not reflected (as before this plan).

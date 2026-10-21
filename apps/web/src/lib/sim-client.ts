@@ -45,7 +45,7 @@ export interface SimClient {
 	 */
 	startScript(source: string, vessel: number, port: MessagePort, name?: string): void;
 	/**
-	 * Run the script saved on `vessel` again, with its memory (plan 311, ADR 0272 point 6): what a
+	 * Run the script saved on `vessel` again, with its memory (plan 315, ADR 0273 point 6): what a
 	 * world that opens does for `savedScripts`.
 	 */
 	resumeScript(vessel: number, port: MessagePort): void;

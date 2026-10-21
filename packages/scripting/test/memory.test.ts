@@ -1,4 +1,4 @@
-/** Plan 311 (ADR 0272 point 6): a script's `memory` is saved by the host and given back with `resumed`. */
+/** Plan 315 (ADR 0273 point 6): a script's `memory` is saved by the host and given back with `resumed`. */
 import { expect, test } from 'bun:test';
 import { entityId } from '@orbital/core';
 import { newRig } from './helpers.ts';

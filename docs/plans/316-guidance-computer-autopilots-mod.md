@@ -1,26 +1,26 @@
 ---
-id: 312
+id: 316
 title: "Guidance Computer: a built-in mod with MechJeb-style autopilots (node executor, circularize, ascent, landing)"
 status: draft
 owner: ""
-depends: [310, 311]
+depends: [310, 315]
 phase: 0
 created: 2026-10-21
 updated: 2026-10-21
 ---
 
-# 312 — Guidance Computer
+# 316 — Guidance Computer
 
 ## Goal
 
-A built-in mod, `@orbital/mod-guidance` ("Guidance Computer"), ships the autopilots players know from MechJeb 2 as programs: execute the next maneuver node, circularize at apoapsis or periapsis, fly an ascent to a chosen orbit, and land (suicide burn, then a soft touchdown). Each is an ADR 0271 autopilot that uses only the public SDK (`defineAutopilot`, `VesselControl`) and a `definePanel` panel. The player takes any channel back by touching it and stops them with Delete (ADR 0272); the Mods page lists the mod under Built in.
+A built-in mod, `@orbital/mod-guidance` ("Guidance Computer"), ships the autopilots players know from MechJeb 2 as programs: execute the next maneuver node, circularize at apoapsis or periapsis, fly an ascent to a chosen orbit, and land (suicide burn, then a soft touchdown). Each is an ADR 0271 autopilot that uses only the public SDK (`defineAutopilot`, `VesselControl`) and a `definePanel` panel. The player takes any channel back by touching it and stops them with Delete (ADR 0273); the Mods page lists the mod under Built in.
 
 ## Context
 
 - Owner's request (2026-10-21): "mods like auto docking, and several of the well-known MechJeb 2 features, in our game as mods; built-in mods appear in the Mods menu".
 - Research: `research/vessel-programs.md` (MechJeb's per-axis yield and PID reset, kRPC's AutoPilot refusing SAS).
-- ADRs: 0271 (autopilots), 0272 (arbitration, saved state), 0056 (maneuver nodes), 0049 (SAS).
-- Depends on plan 310 Part 3 (`defineAutopilot`, `autopilot-engage`/`-disengage`, snapshot `autopilot`) and plan 311.
+- ADRs: 0271 (autopilots), 0273 (arbitration, saved state), 0056 (maneuver nodes), 0049 (SAS).
+- Depends on plan 310 Part 3 (`defineAutopilot`, `autopilot-engage`/`-disengage`, snapshot `autopilot`) and plan 315.
 
 ## Scope
 
@@ -54,9 +54,9 @@ A built-in mod, `@orbital/mod-guidance` ("Guidance Computer"), ships the autopil
 ## Docs checklist
 
 - [ ] `docs/STATUS.md` updated (board row).
-- [ ] `docs/journal/312-guidance-computer-autopilots-mod.md` written.
+- [ ] `docs/journal/316-guidance-computer-autopilots-mod.md` written.
 - [ ] `docs/guides/` section on the Guidance Computer.
 
 ## Log
 
-- 2026-10-21 — Drafted by the vessel programs session (plan 311) from the owner's request; waits for plan 310 Part 3.
+- 2026-10-21 — Drafted by the vessel programs session (plan 315) from the owner's request; waits for plan 310 Part 3.

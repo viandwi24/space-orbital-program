@@ -1,5 +1,5 @@
 ---
-id: 311
+id: 315
 title: "Vessel programs: the player wins per channel, saved scripts that resume, the programs list, built-in mods on the Mods page"
 status: done
 owner: "vessel programs session (Claude)"
@@ -9,7 +9,7 @@ created: 2026-10-21
 updated: 2026-10-21
 ---
 
-# 311 — Vessel programs
+# 315 — Vessel programs
 
 ## Goal
 
@@ -17,23 +17,23 @@ A script or a mod autopilot is a *program* attached to one vessel. It keeps flyi
 
 ## Context
 
-- Owner's requests (2026-10-21): scripts run per vessel even when it is not flown; foundation for mods that control ships; program state survives closing the world; a list of running programs in the status bar footer; research how KSP, KSP 2 and others decide who wins; MechJeb-style mods (plan 312); built-in mods in the Mods menu.
-- Research: `research/vessel-programs.md`. ADRs: **0272** (this plan), 0271 (autopilots, plan 310), 0232, 0201 point 9, 0049 point 5, 0039 (warp hold), 0179 (signal refusal).
+- Owner's requests (2026-10-21): scripts run per vessel even when it is not flown; foundation for mods that control ships; program state survives closing the world; a list of running programs in the status bar footer; research how KSP, KSP 2 and others decide who wins; MechJeb-style mods (plan 316); built-in mods in the Mods menu.
+- Research: `research/vessel-programs.md`. ADRs: **0273** (this plan), 0271 (autopilots, plan 310), 0232, 0201 point 9, 0049 point 5, 0039 (warp hold), 0179 (signal refusal).
 - Code: `packages/sim/src/commands.ts`, `delay.ts` (`CommandSource`), `state.ts`, `save.ts`; `packages/core/src/protocol.ts`, `save.ts`; `packages/scripting/src/runner.ts`, `prelude.ts`; `apps/web/src/lib/sim-host.ts`, `world-session`, `flight-loop.ts`, `hud/StatusStrip.svelte`, `hud/status-chips.ts`, `routes/(world)/mods/+page.svelte`.
 
 ## Scope
 
 **In:**
 - Part A: built-in mods on the Mods page.
-- Part B: command sources and per-channel override in the sim (ADR 0272 points 2 to 5), snapshot `override`, events, `program-stop`, Delete key, Abort stops programs.
+- Part B: command sources and per-channel override in the sim (ADR 0273 points 2 to 5), snapshot `override`, events, `program-stop`, Delete key, Abort stops programs.
 - Part C: saved scripts (`script-attach`/`-detach`/`-memory`, `memory`/`resumed` in the script API, resume on world open, one script per vessel), save version bump.
 - Part D: the programs chip and list in the status strip, Manual badge in the HUD.
 
-**Out:** the MechJeb-style autopilots (plan 312); porting the dev autopilot; e2e; quickjs-wasi snapshots.
+**Out:** the MechJeb-style autopilots (plan 316); porting the dev autopilot; e2e; quickjs-wasi snapshots.
 
 ## Steps
 
-1. Plan, ADR 0272, research. Part A, commit.
+1. Plan, ADR 0273, research. Part A, commit.
 2. Part B with sim tests, commit.
 3. Part C with scripting, sim and web tests, commit.
 4. Part D with web tests, commit.
@@ -51,15 +51,15 @@ A script or a mod autopilot is a *program* attached to one vessel. It keeps flyi
 ## Docs checklist
 
 - [x] `docs/STATUS.md` updated (board row).
-- [x] `docs/journal/311-vessel-programs.md` written.
+- [x] `docs/journal/315-vessel-programs.md` written.
 - [x] `docs/architecture/scripting.md` and `docs/guides/scripting.md` describe programs, sources, override, `memory`/`resumed`.
-- [x] ADR 0272 linked above and in the ADR index.
+- [x] ADR 0273 linked above and in the ADR index.
 - [x] `docs/research/vessel-programs.md` written.
 
 ## Log
 
 - 2026-10-21 — Created and started by the vessel programs session after the research; split with the auto dock session (plan 310 owns the autopilot runner, this plan builds on it). Part A done first because it does not depend on 310.
-- 2026-10-21 — Parts A to D done. One script per world kept (ADR 0272 point 7 says so; several at once is draft 313). Found and fixed: the replay recorder dropped the command source. Merged origin/main (plan 310 Part 2): held channels compared in the control part's axes. `stopAutopilot` waits for plan 310's `endAutopilot` (agreed with the auto dock session). Drafts 312 (Guidance Computer) and 313 (several scripts) written.
+- 2026-10-21 — Parts A to D done. One script per world kept (ADR 0273 point 7 says so; several at once is draft 317). Found and fixed: the replay recorder dropped the command source. Merged origin/main (plan 310 Part 2): held channels compared in the control part's axes. `stopAutopilot` waits for plan 310's `endAutopilot` (agreed with the auto dock session). Drafts 316 (Guidance Computer) and 317 (several scripts) written.
 - 2026-10-21 — Verification:
   - `bun test packages/sim/test/programs.test.ts`: 8 pass; `packages/scripting/test/memory.test.ts`: 4 pass; web vitest `builtin-list`, `programs-model`, `sim-host-script`, `script-api`, `keybindings`: pass.
   - `bun run typecheck`: 0 errors (1 old warning). `bun run build`: done. `bun run docs:check`: OK.

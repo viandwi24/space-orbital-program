@@ -367,7 +367,7 @@ export function dispatch(
 	source: CommandSource | 'queued' = 'player',
 	queuedFrom: CommandSource = 'player'
 ): CommandResult {
-	// who sent it, also for a command coming off the delay queue (plan 311, ADR 0272 point 2)
+	// who sent it, also for a command coming off the delay queue (plan 315, ADR 0273 point 2)
 	const from: CommandSource = source === 'queued' ? queuedFrom : source;
 	const program = isProgramSource(from);
 	const parsed = commandSchema.safeParse(raw);
@@ -406,7 +406,7 @@ export function dispatch(
 			if (typeof v === 'string') return refuse(v);
 			const noSignal = signalRefusal(core, command.vessel, 'throttle');
 			if (noSignal) return refuse(noSignal);
-			// the player holds the throttle: a program's write is dropped (ADR 0272 point 3)
+			// the player holds the throttle: a program's write is dropped (ADR 0273 point 3)
 			if (program && isOverridden(core, v, 'throttle')) return { ok: true, overridden: ['throttle'] };
 			if (command.value > 0 && v.mode === 'on-rails') {
 				dropForThrust(core, command.vessel); // rails warp falls to physics warp (ADR 0202 point 5)
@@ -444,7 +444,7 @@ export function dispatch(
 			if (asked && ![asked.x, asked.y, asked.z].every((n) => Number.isFinite(n) && Math.abs(n) <= 1))
 				return refuse('translate must be three numbers in -1..1');
 			// The input is in the control part's axes (ADR 0270 point 4). A program keeps the channels
-			// the player holds as they are (plan 311, ADR 0272 point 3): the vessel's present demand,
+			// the player holds as they are (plan 315, ADR 0273 point 3): the vessel's present demand,
 			// turned back into those axes, stands in for them.
 			const turn = controlTurn(core, v);
 			const back = turn && qConj(turn);

@@ -1,4 +1,4 @@
-# Vessel programs: control arbitration and persistence (plan 311)
+# Vessel programs: control arbitration and persistence (plan 315)
 
 **Checked:** 2026-10-21 · Questions: (1) when an autopilot or script flies a vessel and the player touches the controls too, who wins, and how is that shown; (2) how do programs keep running on a vessel nobody is flying; (3) how does a running program survive closing and reopening the world.
 

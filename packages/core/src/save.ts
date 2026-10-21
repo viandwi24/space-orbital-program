@@ -136,7 +136,7 @@ export interface SaveComms {
 	/** Vessels whose route is not Auto. */
 	routes: Array<{ vessel: number; mode: RouteMode }>;
 	/** Commands waiting for their light time under `enforced` or `flight-computer`. */
-	/** `source`: a program's command keeps who sent it (plan 311, ADR 0272 point 2); absent is the player. */
+	/** `source`: a program's command keeps who sent it (plan 315, ADR 0273 point 2); absent is the player. */
 	queue: Array<{
 		at: number;
 		seq: number;

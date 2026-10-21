@@ -31,11 +31,11 @@
 		savedAt: number | null;
 		mods: number;
 		bell: BellFeed;
-		/** Stop every program on a vessel (plan 311, ADR 0272 point 5). */
+		/** Stop every program on a vessel (plan 315, ADR 0273 point 5). */
 		onstopprogram?: (vessel: number) => void;
 	} = $props();
 
-	// the programs flying vessels right now (plan 311, ADR 0272 point 8)
+	// the programs flying vessels right now (plan 315, ADR 0273 point 8)
 	const programs = $derived(programRows(snapshot));
 	let programsOpen = $state(false);
 	$effect(() => {
