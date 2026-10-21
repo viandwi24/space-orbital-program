@@ -83,6 +83,12 @@ export type SimEvent =
 	  }
 	| { type: 'mode-changed'; vessel: number; mode: 'flight' | 'on-rails'; reason: string }
 	| { type: 'vessel-destroyed'; vessel: number; reason: string }
+	/** The player took channels from the vessel's program (plan 311, ADR 0272 point 4). */
+	| { type: 'program-override'; vessel: number; channels: string[] }
+	/** The player let go: the program flies the vessel again. */
+	| { type: 'program-resumed'; vessel: number }
+	/** `program-stop` ended the vessel's programs. */
+	| { type: 'program-stopped'; vessel: number; reason: string }
 	/** A vessel crossed into another body's sphere of influence (plan 044); `from` and `to` are body ids. */
 	| { type: 'soi-changed'; vessel: number; from: string; to: string }
 	/** A first of the world (plan 102, ADR 0147). */
@@ -149,12 +155,25 @@ export type ClientMessage =
 	| { kind: 'pause'; paused: boolean }
 	/** Wall seconds a hidden tab that kept the world running owes it (plan 205). */
 	| { kind: 'catch-up'; seconds: number }
-	| { kind: 'script-start'; source: string; vessel: number; port?: ScriptPortLike }
-	| { kind: 'script-stop' }
+	/**
+	 * Run `source` on `vessel` (`name` for the programs list). With `resume` the host runs the script
+	 * saved on the vessel instead, with its memory (plan 311, ADR 0272 point 6); `source` is ignored.
+	 */
+	| {
+			kind: 'script-start';
+			source: string;
+			vessel: number;
+			port?: ScriptPortLike;
+			name?: string;
+			resume?: boolean;
+	  }
+	/** `keep`: the world is closing; the script stays saved on its vessel to resume later. */
+	| { kind: 'script-stop'; keep?: boolean }
 	| { kind: 'dispose' };
 
 export type WorkerMessage =
-	| ({ kind: 'ready' } & Catalog)
+	/** `savedScripts`: vessels with a saved script to resume (plan 311, ADR 0272 point 6). */
+	| ({ kind: 'ready'; savedScripts?: Array<{ vessel: number; name: string }> } & Catalog)
 	/** `warp` is the sim's own time warp, which it changes itself (SOI change, warp-to); optional for old fixtures. */
 	/** `stepMs`: wall time of the sim step behind it (plan 203's Info tab). */
 	| { kind: 'snapshot'; snapshot: Snapshot; warp?: number; stepMs?: number }
@@ -206,7 +225,10 @@ const SIM_EVENT_TYPES: readonly unknown[] = [
 	'docked',
 	'undocked',
 	'parachute-deployed',
-	'parachute-torn'
+	'parachute-torn',
+	'program-override',
+	'program-resumed',
+	'program-stopped'
 ];
 
 const isRecord = (v: unknown): v is Record<string, unknown> => typeof v === 'object' && v !== null;
@@ -322,7 +344,8 @@ export function parseClientMessage(data: unknown): ClientMessage | null {
 		return { kind: 'replay', id: data.id, name: data.name };
 	if (data.kind === 'design' && typeof data.id === 'number' && typeof data.vessel === 'number')
 		return { kind: 'design', id: data.id, vessel: data.vessel };
-	if (data.kind === 'script-stop') return { kind: 'script-stop' };
+	if (data.kind === 'script-stop')
+		return data.keep === true ? { kind: 'script-stop', keep: true } : { kind: 'script-stop' };
 	if (data.kind === 'pause' && typeof data.paused === 'boolean') {
 		return { kind: 'pause', paused: data.paused };
 	}
@@ -338,8 +361,12 @@ export function parseClientMessage(data: unknown): ClientMessage | null {
 		typeof data.source === 'string' &&
 		typeof data.vessel === 'number'
 	) {
+		const extra = {
+			...(typeof data.name === 'string' && data.name.length > 0 ? { name: data.name } : {}),
+			...(data.resume === true ? { resume: true } : {})
+		};
 		if (data.port === undefined) {
-			return { kind: 'script-start', source: data.source, vessel: data.vessel };
+			return { kind: 'script-start', source: data.source, vessel: data.vessel, ...extra };
 		}
 		if (
 			isRecord(data.port) &&
@@ -350,7 +377,8 @@ export function parseClientMessage(data: unknown): ClientMessage | null {
 				kind: 'script-start',
 				source: data.source,
 				vessel: data.vessel,
-				port: data.port as unknown as ScriptPortLike
+				port: data.port as unknown as ScriptPortLike,
+				...extra
 			};
 		}
 		return null;

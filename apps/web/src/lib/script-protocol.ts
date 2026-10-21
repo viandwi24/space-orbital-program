@@ -28,6 +28,9 @@ export type ToScriptWorker =
 			/** Deterministic work budget per tick, interrupt polls (plan 032); absent: wall clock only. */
 			fuelPolls?: number;
 			env: ScriptEnvironment;
+			/** The script's saved memory and whether this run resumes it (plan 311, ADR 0272). */
+			memory?: Record<string, unknown>;
+			resumed?: boolean;
 	  }
 	| {
 			kind: 'tick';
@@ -53,6 +56,8 @@ export type FromScriptWorker =
 			elapsedMs: number;
 			/** `print()` lines produced during this tick. */
 			lines: string[];
+			/** The script's `memory` when it changed this tick (plan 311, ADR 0272). */
+			memory?: Record<string, unknown>;
 	  };
 
 /** The slice of `Worker` the script channel uses (a double in tests). */
@@ -107,6 +112,7 @@ export function parseFromScriptWorker(data: unknown): FromScriptWorker | null {
 				data.seqs.length === data.commands.length &&
 				data.seqs.every((q) => typeof q === 'number' && Number.isInteger(q)))) &&
 		(data.error === undefined || typeof data.error === 'string') &&
+		(data.memory === undefined || isRecord(data.memory)) &&
 		(data.errorLine === undefined ||
 			(typeof data.errorLine === 'number' &&
 				Number.isInteger(data.errorLine) &&
@@ -136,6 +142,8 @@ export function parseToScriptWorker(data: unknown): ToScriptWorker | null {
 		typeof data.budgetMs === 'number' &&
 		typeof data.firstTickBudgetMs === 'number' &&
 		(data.fuelPolls === undefined || typeof data.fuelPolls === 'number') &&
+		(data.memory === undefined || isRecord(data.memory)) &&
+		(data.resumed === undefined || typeof data.resumed === 'boolean') &&
 		isRecord(data.env) &&
 		Array.isArray(data.env.bodies) &&
 		Array.isArray(data.env.parts) &&

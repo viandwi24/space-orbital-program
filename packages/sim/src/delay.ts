@@ -10,34 +10,50 @@ import { commsOn, isProbe } from './comms.ts';
 import type { SimCore } from './core.ts';
 import { ruleOf } from './economy.ts';
 
-/** Who sent a command: the player, or the script runner (the host says so). */
-export type CommandSource = 'player' | 'script';
+/**
+ * Who sent a command: the player, the script runner (the host says so), or an autopilot the sim
+ * runs (ADR 0271). `script` and `autopilot` are programs (plan 311, ADR 0272 point 2).
+ */
+export type CommandSource = 'player' | 'script' | 'autopilot';
 
 /** Seconds `command` from `source` must wait, or 0 (ADR 0188 point 6). */
 export function delayOf(core: SimCore, command: Command, source: CommandSource): number {
 	if (!DELAYED_COMMANDS.has(command.type) || !commsOn(core)) return 0;
 	const rule = ruleOf(core, COMMS_RULES.signalDelay);
 	if (rule !== 'enforced' && rule !== 'flight-computer') return 0;
-	if (rule === 'flight-computer' && source === 'script') return 0;
+	if (rule === 'flight-computer' && source !== 'player') return 0;
 	const vessel = (command as { vessel: EntityId }).vessel;
 	if (!isProbe(core, vessel)) return 0;
 	const link = core.comms.links.get(vessel);
 	return link && link.to !== null && link.latency !== null ? link.latency : 0;
 }
 
-/** Queue a command to apply at `at`. */
-export function enqueue(core: SimCore, command: Command, at: number): void {
+/** Queue a command to apply at `at`; a program's command keeps its source (ADR 0272 point 2). */
+export function enqueue(
+	core: SimCore,
+	command: Command,
+	at: number,
+	source: CommandSource = 'player'
+): void {
 	const s = core.commsState;
-	s.queue.push({ at, seq: s.seq++, command: command as unknown as Record<string, unknown> });
+	s.queue.push({
+		at,
+		seq: s.seq++,
+		command: command as unknown as Record<string, unknown>,
+		...(source !== 'player' ? { source } : {})
+	});
 	s.queue.sort((a, b) => a.at - b.at || a.seq - b.seq);
 }
 
 /** Apply every queued command whose time has come, in order, through `apply` (no second delay). */
-export function drainQueue(core: SimCore, apply: (command: Command) => unknown): void {
+export function drainQueue(
+	core: SimCore,
+	apply: (command: Command, source: CommandSource) => unknown
+): void {
 	const s = core.commsState;
 	while (s.queue.length > 0 && s.queue[0]!.at <= core.t + 1e-9) {
 		const entry = s.queue.shift()!;
-		apply(entry.command as unknown as Command);
+		apply(entry.command as unknown as Command, entry.source ?? 'player');
 	}
 }
 

@@ -7,6 +7,7 @@ import {
 	defineComponent,
 	type BodyHandle,
 	type ComponentType,
+	type ControlChannel,
 	type EntityId,
 	type PhysicsBackend,
 	type Quat,
@@ -192,6 +193,22 @@ export interface VesselState {
 	transfers?: Array<{ resource: string; from: EntityId[]; to: EntityId[]; rate: number }>;
 	/** Samples brought aboard by boarding crew (plan 109): credited at recovery. */
 	samples?: Array<{ subject: string; value: number }>;
+	/**
+	 * The player script flying this vessel (plan 311, ADR 0272 point 6): saved, and restarted with
+	 * `memory` when the world opens.
+	 */
+	script?: {
+		name: string;
+		source: string;
+		memory: Record<string, unknown>;
+		resumed: boolean;
+		startedAt: number;
+	};
+	/**
+	 * Channels the player took from the vessel's program (ADR 0272 point 3): `held` while the
+	 * player's value is non-zero, else the sim time the program may write the channel again.
+	 */
+	override?: Partial<Record<ControlChannel, 'held' | number>>;
 }
 
 /**

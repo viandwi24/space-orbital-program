@@ -7,6 +7,7 @@
 import {
 	GRAVITATIONAL_CONSTANT,
 	commandSchema,
+	scriptMemoryProblem,
 	entityId,
 	type Command,
 	type Snapshot,
@@ -73,6 +74,12 @@ export interface ScriptRunnerOptions extends ScriptEnvironment {
 	now?: () => number;
 	/** Receives each `print()` line (also kept in `runner.logs`). */
 	onPrint?: (line: string) => void;
+	/**
+	 * The script's saved `memory` (plan 311, ADR 0272 point 6): a plain JSON object. Default `{}`.
+	 */
+	memory?: Record<string, unknown>;
+	/** The script was restarted from a save: the guest's `resumed`. Default false. */
+	resumed?: boolean;
 }
 
 /**
@@ -99,6 +106,8 @@ export interface TickResult {
 	status: ScriptStatus;
 	/** Wall time spent in the guest during this tick, ms. */
 	elapsedMs: number;
+	/** The guest's `memory` when it changed during this tick and is still savable (ADR 0272). */
+	memory?: Record<string, unknown>;
 }
 
 export interface ScriptRunner {
@@ -241,6 +250,8 @@ export async function createScriptRunnerIn(
 	let lastThrottle: number | undefined;
 	let lastAttitude: string | undefined;
 	let lastSas: string | undefined;
+	let lastThrottleCommand: Command | undefined;
+	let lastAttitudeCommand: Command | undefined;
 	const logs: string[] = [];
 	const handles: QuickJSHandle[] = [];
 
@@ -401,10 +412,12 @@ export async function createScriptRunnerIn(
 		if (command.type === 'throttle') {
 			if (command.value === lastThrottle) return NOT_SENT;
 			lastThrottle = command.value;
+			lastThrottleCommand = command;
 		} else if (command.type === 'attitude') {
 			const key = `${command.pitch},${command.yaw},${command.roll}`;
 			if (key === lastAttitude) return NOT_SENT;
 			lastAttitude = key;
+			lastAttitudeCommand = command;
 		} else if (command.type === 'sas') {
 			if (command.mode === lastSas) return NOT_SENT;
 			lastSas = command.mode;
@@ -509,19 +522,44 @@ export async function createScriptRunnerIn(
 	const seed = context.newNumber(options.seed ?? 1);
 	const bodiesJson = context.newString(JSON.stringify(bodiesOf(options)));
 	const debugOn = options.debug === true ? context.true : context.false;
+	let memoryText = JSON.stringify(options.memory ?? {});
+	const memoryJson = context.newString(memoryText);
+	const resumedOn = options.resumed === true ? context.true : context.false;
 	const apiResult = context.callFunction(
 		prelude,
 		context.undefined,
 		host,
 		seed,
 		bodiesJson,
-		debugOn
+		debugOn,
+		memoryJson,
+		resumedOn
 	);
 	seed.dispose();
 	bodiesJson.dispose();
+	memoryJson.dispose();
+	let memoryWarned = false;
+	let hadOverride = false;
 	const api = own(context.unwrapResult(apiResult));
 	const update = own(context.getProp(api, 'update'));
 	const start = own(context.getProp(api, 'start'));
+	const readMemory = own(context.getProp(api, 'memoryText'));
+
+	/** The guest's memory if it changed since the last report and can be saved, else undefined. */
+	function changedMemory(): Record<string, unknown> | undefined {
+		const text = call(readMemory);
+		if (typeof text !== 'string' || text === memoryText) return undefined;
+		memoryText = text;
+		const value = text === '' ? null : (JSON.parse(text) as unknown);
+		const problem = scriptMemoryProblem(value);
+		if (problem) {
+			if (!memoryWarned) print(`! memory is not saved: ${problem}`);
+			memoryWarned = true;
+			return undefined;
+		}
+		memoryWarned = false;
+		return value as Record<string, unknown>;
+	}
 
 	function dispose(): void {
 		if (disposed) return;
@@ -594,8 +632,21 @@ export async function createScriptRunnerIn(
 			polls = 0;
 			pending = [];
 			pendingSeqs = [];
+			// The player held a channel (ADR 0272 point 3) and let go: the script's setpoints, dropped
+			// meanwhile, are sent again (the script set them once and does not know).
+			const held = snapshot.vessels.find((v) => Number(v.id) === options.vessel)?.override;
+			if (hadOverride && held === undefined) {
+				for (const command of [lastThrottleCommand, lastAttitudeCommand]) {
+					if (!command) continue;
+					pending.push(command);
+					pendingSeqs.push(nextSeq++);
+				}
+			}
+			hadOverride = held !== undefined;
+			let memory: Record<string, unknown> | undefined;
 			try {
 				runTick(snapshot, verdicts);
+				memory = changedMemory();
 			} catch (e) {
 				if (e instanceof GuestError) {
 					settle(e);
@@ -612,7 +663,7 @@ export async function createScriptRunnerIn(
 			const seqs = pendingSeqs;
 			pending = [];
 			pendingSeqs = [];
-			return { commands, seqs, status: current(), elapsedMs };
+			return { commands, seqs, status: current(), elapsedMs, ...(memory ? { memory } : {}) };
 		},
 		dispose
 	};

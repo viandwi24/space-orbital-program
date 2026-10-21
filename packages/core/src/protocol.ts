@@ -2,6 +2,7 @@
  * Sim <-> host protocol (simulation.md). Plain data only, so it works in-process and over
  * `postMessage`. Hosts read `Snapshot`s and send `Command`s; they never mutate sim state.
  */
+import type { ControlChannel, ScriptProgramView } from './programs.ts';
 import type { LinkBudget, RouteMode } from './comms.ts';
 import type { ContractsSnapshot } from './contracts.ts';
 import type { MilestoneRecord } from './milestones.ts';
@@ -297,6 +298,13 @@ export interface VesselSnapshot {
 	splashed?: boolean;
 	/** The trim on each axis, -1..1 (plan 245); absent while all three are zero. */
 	trim?: { pitch: number; yaw: number; roll: number };
+	/**
+	 * Channels the player holds against a program right now (plan 311, ADR 0272 point 4); absent
+	 * when none, or when the vessel has no program.
+	 */
+	override?: ControlChannel[];
+	/** The player script running on this vessel (ADR 0272 point 6); absent when none. */
+	script?: ScriptProgramView;
 	/** Stages fired so far (plan 221): the HUD of a vessel it switched to starts from it. */
 	nextStage?: number;
 	/** "Control from here" (plan 221): the part SAS and the navball follow; absent for the root. */
@@ -1023,6 +1031,17 @@ export type Command =
 	 * axes; `null` goes back to the root. The part must be a control source of the vessel.
 	 */
 	| { type: 'set-control-part'; vessel: EntityId; part: EntityId | null }
+	/**
+	 * Stop every program on `vessel` (plan 311, ADR 0272 point 5): disengage its autopilot and end
+	 * its script. The Delete key and Abort send it for the active vessel.
+	 */
+	| { type: 'program-stop'; vessel: EntityId; reason?: string }
+	/** Record the script now running on `vessel` (ADR 0272 point 6); replaces one already there. */
+	| { type: 'script-attach'; vessel: EntityId; name: string; source: string; resumed?: boolean }
+	/** Commit the script's `memory` (a plain JSON object, at most `SCRIPT_MEMORY_MAX` as JSON). */
+	| { type: 'script-memory'; vessel: EntityId; memory: Record<string, unknown> }
+	/** The script on `vessel` ended (Stop, finish, failure): it is no longer saved. */
+	| { type: 'script-detach'; vessel: EntityId; reason?: string }
 	/** Turn Debug mode on or off in an `opt-in` world (plan 203, ADR 0213); on marks the world "used cheats". */
 	| { type: 'debug-mode'; on: boolean }
 	/** Switch one cheat (ADR 0200 point 2). */
@@ -1089,6 +1108,8 @@ export type CommandResult =
 			alarm?: string;
 			/** Sim time a delayed command applies (signal delay, plan 117, ADR 0188 point 6). */
 			queued?: number;
+			/** Channels of a program's command dropped because the player holds them (ADR 0272 point 3). */
+			overridden?: ControlChannel[];
 			/** `warp` and `warp-to` (plan 206): the level granted, and why when it is below the ask. */
 			granted?: number;
 			limit?: string;

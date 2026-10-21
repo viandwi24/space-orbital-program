@@ -570,7 +570,7 @@ export function startFlight(options: FlightOptions): Flight {
 		const now = client.latest?.vessels.find((x) => Number(x.id) === id) ?? v;
 		design = { ...record.design, name: now.name ?? record.design.name };
 		vessel = entityId(id);
-		client.stopScript();
+		// the script stays with the vessel it flies (plan 311, ADR 0272): switching does not stop it
 		throttle = sentThrottle = 0;
 		padThrottle = false;
 		hudCtl = makeHud(catalog, recordOf(now));
@@ -2064,7 +2064,11 @@ export function startFlight(options: FlightOptions): Flight {
 			show('starting');
 			sandbox.open().then(
 				(port) => {
-					if (run === scriptRun && !disposed) client.startScript(source, target, port);
+					if (run === scriptRun && !disposed) {
+						// the programs list names the script after its vessel (plan 311)
+						const name = client.latest?.vessels.find((v) => Number(v.id) === target)?.name;
+						client.startScript(source, target, port, name ? `${name} script` : undefined);
+					}
 					else port.close();
 				},
 				(error: unknown) => {

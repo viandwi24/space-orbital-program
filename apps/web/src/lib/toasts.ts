@@ -155,6 +155,24 @@ export function toastForSimEvent(event: SimEvent, ctx: ToastContext): Toast | nu
 			return ctx.isActiveVessel(event.vessel)
 				? { kind: 'danger', title: 'Vessel lost', detail: event.reason }
 				: null;
+		// who flies is never silent (plan 311, ADR 0272 point 4)
+		case 'program-override':
+			return ctx.isActiveVessel(event.vessel)
+				? {
+						kind: 'warning',
+						title: 'Manual override',
+						detail: `You hold ${event.channels.join(', ')}; the program resumes 1 s after you let go`,
+						key: 'program'
+					}
+				: null;
+		case 'program-resumed':
+			return ctx.isActiveVessel(event.vessel)
+				? { kind: 'info', title: 'Program resumed', key: 'program' }
+				: null;
+		case 'program-stopped':
+			return ctx.isActiveVessel(event.vessel)
+				? { kind: 'warning', title: 'Programs stopped', detail: event.reason, key: 'program' }
+				: null;
 	}
 }
 

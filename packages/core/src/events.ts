@@ -8,6 +8,7 @@ import type { MilestoneKind } from './milestones.ts';
 import type { NewDataItem } from './data.ts';
 import type { EntityId } from './ids.ts';
 import type { VesselMode } from './protocol.ts';
+import type { ControlChannel } from './programs.ts';
 
 export interface EventMap {
 	'world:entity-added': { id: EntityId };
@@ -34,6 +35,16 @@ export interface EventMap {
 	'vessel:maneuver-complete': { vessel: EntityId; node: number };
 	/** The vessel's target no longer exists (it was destroyed or removed); the target is cleared (plan 035). */
 	'vessel:target-lost': { vessel: EntityId; target: number };
+	/** The player took control channels from the vessel's program (plan 311, ADR 0272 point 4). */
+	'program:override': { vessel: EntityId; channels: ControlChannel[] };
+	/** The player let go of every channel; the program flies the vessel again. */
+	'program:resumed': { vessel: EntityId };
+	/** `program-stop` ended the vessel's programs (`reason` from the command, or `stopped`). */
+	'program:stopped': { vessel: EntityId; reason: string };
+	/** A player script was attached to a vessel, or resumed from a save. */
+	'script:attached': { vessel: EntityId; name: string; resumed: boolean };
+	/** A vessel's script ended. */
+	'script:detached': { vessel: EntityId; name: string; reason: string };
 	/** A world rule changed by `set-rule` (plan 078); `time` is the sim time of the change. */
 	'world:rule-changed': {
 		rule: string;
