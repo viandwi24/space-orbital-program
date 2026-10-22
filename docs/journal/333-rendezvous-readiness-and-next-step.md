@@ -29,3 +29,7 @@ sim: engage at 40 km circular → { ok: false, reason: "Reach a stable orbit fir
 ## Follow-up: phasing low over the air (same day)
 
 The owner hit "No phasing orbit stays clear of the ground." `phasingBurn` only caught up from behind (a lower, faster orbit), and a vessel just above the floor (top of the air + 10 km) has no room to drop. It now also tries the other way (a higher, slower orbit for k turns while the target laps round: period `(2π(k+1) − lead) / (k·nT)`), k up to 20 within 10 days, and takes the first cheap one, else the cheapest. When nothing fits (the vessel itself below the floor) the abort says "Too low to phase: raise your orbit above X km first (Orbit tab)" and the Rendezvous tab offers "Open Orbit". Tests: 1 km above the floor with the target 30° ahead raises; 5 km above stays above the floor; 30° behind raises; below the floor, the words. `bun test mods/guidance`: 29 pass.
+
+## Follow-up: the warp ends 5 s before a burn (same day)
+
+The owner saw the warp to a correction burn stop about 45 s early. The first warp still ends 45 s before the burn (the vessel wakes from rails and turns); once it points within 2° of the burn and more than 15 s are left, a second `warpTo` takes it to 5 s before. Test: in the 20 km same-orbit case the last warp stop before the correction burn is under 8 s from it. `bun test mods/guidance`: 30 pass.

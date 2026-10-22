@@ -241,6 +241,28 @@ describe('Rendezvous autopilot (plan 331)', () => {
 		sim.dispose();
 	}, 240_000);
 
+	test('the warp to a burn ends about 5 s before it, once the vessel points along it', async () => {
+		const { sim, a } = await scene(100_000, 20_000 / 700_000, 0);
+		expect(sim.dispatch({ type: 'autopilot-engage', vessel: a, autopilot: 'guidance.rendezvous' }).ok).toBe(true);
+		const stops: number[] = [];
+		const off = sim.events.on('warp:stopped', () => stops.push(sim.time));
+		const start = sim.time;
+		let burnAt = -1;
+		while (sim.time - start < 3_000) {
+			sim.step(0.1);
+			const ap = vesselOf(sim, a).autopilot;
+			if (ap?.phase === 'correct' && ap.status.includes('Burning')) {
+				burnAt = sim.time;
+				break;
+			}
+		}
+		off();
+		expect(burnAt).toBeGreaterThan(0);
+		const last = stops.filter((t) => t <= burnAt).at(-1)!;
+		expect(burnAt - last).toBeLessThan(8);
+		sim.dispose();
+	}, 240_000);
+
 	test('50 km higher and 2° inclined: ends within 200 m at under 0.5 m/s', async () => {
 		const { sim, a } = await scene(150_000, 1.2, (2 * Math.PI) / 180);
 		expect(sim.dispatch({ type: 'autopilot-engage', vessel: a, autopilot: 'guidance.rendezvous' }).ok).toBe(true);

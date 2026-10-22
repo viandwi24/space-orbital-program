@@ -62,6 +62,14 @@ const LEAD = 60;
 /** A coast longer than this is warped through, s; the warp ends this long before the burn. */
 const WARP_MIN = 120;
 const WARP_WAKE = 45;
+/**
+ * Once the vessel points along the burn, the rest of the wait is warped through too, to this
+ * long before the burn, s; only when more than `NEAR_WARP_MIN` s are left.
+ */
+export const WARP_NEAR = 5;
+const NEAR_WARP_MIN = 15;
+/** Aligned enough to warp the last stretch, rad. */
+const NEAR_WARP_ALIGN = 2 * DEG;
 /** Transfer plans before it gives up. */
 const MAX_PLANS = 4;
 /** Mid-course corrections per transfer. */
@@ -101,6 +109,8 @@ export interface RendezvousMemory extends NodeMemory {
 	planeTries: number;
 	/** The node time the coast was warped for, -1 for none. */
 	warpedFor: number;
+	/** The node time the short warp after aligning was made for, -1 for none (absent in older saves). */
+	nearWarpFor?: number;
 	warp: boolean;
 	dock: boolean;
 	standoff: number;
@@ -414,6 +424,7 @@ export function newRendezvousMemory(pilot: VesselPilot, params: RendezvousParams
 		corrections: 0,
 		planeTries: 0,
 		warpedFor: -1,
+		nearWarpFor: -1,
 		warp: flag(params.warp, true),
 		dock: flag(params.dock, false),
 		standoff,
@@ -512,11 +523,22 @@ export function stepRendezvous(pilot: VesselPilot, m: RendezvousMemory, dt: numb
 /** A far-phase burn: the node executor, warping through the coast to it. */
 function burn(pilot: VesselPilot, m: RendezvousMemory, mass: number): AutopilotStep {
 	const node = pilot.vessel.nodes?.[0];
-	if (node?.vector && m.phase === 'align' && m.warp && m.warpedFor !== node.time) {
+	if (node?.vector && m.phase === 'align' && m.warp) {
 		const start = node.time - burnTime(node.dv, mass, pilot.maxThrust, exhaustVelocity(pilot)) / 2;
-		if (start - pilot.time > WARP_MIN) {
+		const left = start - pilot.time;
+		if (m.warpedFor !== node.time && left > WARP_MIN) {
+			// the long coast: warp to WARP_WAKE s before the burn, time to wake up and turn
 			m.warpedFor = node.time;
 			pilot.warpTo(start - WARP_WAKE);
+		} else if (
+			m.nearWarpFor !== node.time &&
+			left > NEAR_WARP_MIN &&
+			left <= WARP_WAKE + 5 &&
+			angleBetween(noseOf(pilot), unit(node.vector)) < NEAR_WARP_ALIGN
+		) {
+			// turned and steady: warp the rest, to WARP_NEAR s before the burn
+			m.nearWarpFor = node.time;
+			pilot.warpTo(start - WARP_NEAR);
 		}
 	}
 	const step = stepNode(pilot, m);
@@ -527,7 +549,7 @@ function burn(pilot: VesselPilot, m: RendezvousMemory, mass: number): AutopilotS
 	}
 	if (m.phase === 'burn') m.pushed = true;
 	if (step.done) {
-		Object.assign(m, newNodeMemory(false), { warpedFor: -1 });
+		Object.assign(m, newNodeMemory(false), { warpedFor: -1, nearWarpFor: -1 });
 		return toStage(m, m.next, `${m.stage} burn done`);
 	}
 	// the node's own delta-v is the burn's; "Delta-v left" stays the vessel's
@@ -586,7 +608,7 @@ function plan(
 	const turn = period(oOwn.a, mu);
 	const floor = radius + Math.max(10_000, (pilot.body?.atmosphereHeight ?? 0) + 10_000);
 	const planned = (stage: RendezvousStage, next: RendezvousStage, line: string): AutopilotStep => {
-		Object.assign(m, newNodeMemory(false), { warpedFor: -1 });
+		Object.assign(m, newNodeMemory(false), { warpedFor: -1, nearWarpFor: -1 });
 		m.next = next;
 		return toStage(m, stage, line);
 	};
