@@ -2,6 +2,7 @@
 import { describe, expect, test } from 'bun:test';
 import {
 	DEFAULT_GOVERNOR,
+	PRESET_FLOOR_SCALE,
 	QualityGovernor,
 	governorLadder,
 	levelCost,
@@ -75,18 +76,16 @@ const over = (run: Run, ms: number, afterSeconds = 0): number => {
 };
 
 describe('governorLadder', () => {
-	test('resolution first, then the half-resolution planet pass, then the next preset, ending at low', () => {
+	test('resolution first down to 0.85, then the half-resolution planet pass, then the next preset; only low goes lower', () => {
 		const name = (l: GovernorLevel): string =>
 			`${l.preset}@${l.scale}${l.planetScale < 1 ? '+half' : ''}`;
 		expect(governorLadder('high').map(name)).toEqual([
 			'high@1',
 			'high@0.85',
 			'high@1+half',
-			'high@0.7+half',
 			'medium@1',
 			'medium@0.85',
 			'medium@1+half',
-			'medium@0.7+half',
 			'low@1',
 			'low@0.85',
 			'low@1+half',
@@ -325,7 +324,7 @@ describe('QualityGovernor: rules on synthetic frame series (plan 253)', () => {
 	test('disabled: always the ceiling at full resolution, every rAF drawn', () => {
 		const g = new QualityGovernor('high');
 		play(g, 30, retina(40));
-		expect(g.level.scale).toBeLessThan(1);
+		expect(g.level).not.toEqual({ preset: 'high', scale: 1, planetScale: 1 });
 		expect(g.setEnabled(false)).toEqual({ preset: 'high', scale: 1, planetScale: 1 });
 		const run = play(g, 60, retina(80));
 		expect(run.changes).toEqual([]);
@@ -410,5 +409,123 @@ describe('the pixel budget shapes the rungs (plan 253 with plan 252)', () => {
 		g.setBudgetedPlanetScale(0.55);
 		expect(g.ladderLength).toBe(governorLadder('high', true, 0.55).length);
 		expect(g.level).toEqual({ preset: 'high', scale: 1, planetScale: 1 });
+	});
+});
+
+describe('plan 362 (ADR 0304): presets before deep resolution, a learned start, the frame-rate limit', () => {
+	test('no rung below 0.85 of the side until the last preset', () => {
+		for (const half of [true, false]) {
+			const ladder = governorLadder('high', half);
+			for (const l of ladder)
+				if (l.preset !== 'low') expect(l.scale).toBeGreaterThanOrEqual(PRESET_FLOOR_SCALE);
+			expect(ladder.at(-1)!.preset).toBe('low');
+		}
+	});
+
+	test("the owner's M5 in orbit: high costs 40 ms at any scale, medium 10: the governor ends on medium, not high at 55 %", () => {
+		const g = new QualityGovernor('high');
+		const run = play(g, 60, (l) => (l.preset === 'high' ? 40 : 10));
+		expect(g.level.preset).toBe('medium');
+		expect(g.isLockedTo30).toBe(false);
+		// within a few seconds, and held at 60 afterwards
+		const firstMedium = run.changes.find((c) => c.level.preset === 'medium')!;
+		expect(firstMedium.t).toBeLessThan(6);
+		expect(over(run, 1000 / 60 + 1, 10)).toBeLessThan(0.02);
+	});
+
+	test('startAt begins at the learned rung; above it only evidence raises the level', () => {
+		const g = new QualityGovernor('high');
+		expect(g.startAt({ preset: 'medium', scale: 0.85 })).toEqual({
+			preset: 'medium',
+			scale: 0.85,
+			planetScale: 1
+		});
+		// a learned scale between rungs takes the rung at or under it
+		const h = new QualityGovernor('high');
+		expect(h.startAt({ preset: 'medium', scale: 0.9 }).scale).toBe(0.85);
+		// a preset not on the ladder (above the ceiling) leaves the start at the ceiling
+		const m = new QualityGovernor('medium');
+		expect(m.startAt({ preset: 'high', scale: 1 })).toEqual(governorLadder('medium')[0]!);
+		// disabled: always the ceiling
+		const d = new QualityGovernor('high');
+		d.setEnabled(false);
+		expect(d.startAt({ preset: 'low', scale: 1 }).preset).toBe('high');
+	});
+
+	test('the frame-rate limit: Display draws every rAF on 120 Hz, 60 every second, 30 every fourth', () => {
+		const drawnShare = (cap: number | null, enabled = true): number => {
+			const g = new QualityGovernor('high');
+			g.setEnabled(enabled);
+			g.setFrameCap(cap);
+			const run = play(g, 20, () => 4, { hz: 120 });
+			return run.drawn.length / 20;
+		};
+		expect(drawnShare(null)).toBeGreaterThan(110);
+		expect(drawnShare(60)).toBeGreaterThan(55);
+		expect(drawnShare(60)).toBeLessThan(65);
+		expect(drawnShare(30)).toBeLessThan(33);
+		// the limit paces the drawing with the governor off too
+		expect(drawnShare(30, false)).toBeLessThan(33);
+		expect(drawnShare(null, false)).toBeGreaterThan(110);
+	});
+
+	test('at Display rate on 120 Hz a frame of 12 ms holds the level (the target stays 60)', () => {
+		const g = new QualityGovernor('high');
+		g.setFrameCap(null);
+		const run = play(g, 60, () => 12, { hz: 120 });
+		expect(run.changes).toEqual([]);
+		expect(g.targetFps).toBe(60);
+	});
+
+	test('a 30 cap judges against 30: 25 ms frames keep the ceiling', () => {
+		const g = new QualityGovernor('high');
+		g.setFrameCap(30);
+		const run = play(g, 60, () => 25);
+		expect(run.changes).toEqual([]);
+		expect(g.budgetMs).toBeCloseTo(1000 / 30, 5);
+	});
+
+	test('work time that under-reads by 3x (Apple timestamps) does not raise the level after a drop', () => {
+		const g = new QualityGovernor('high');
+		// the frame at high 100 % costs 33 ms, the work time says 9; lower rungs hold 60 with 6 ms "measured"
+		const cost = (l: GovernorLevel) => (l.preset === 'high' && l.scale === 1 && l.planetScale === 1 ? 33 : 12);
+		const work = (l: GovernorLevel) => (cost(l) === 33 ? 9 : 4);
+		const run = play(g, 300, cost, { work });
+		expect(run.changes.filter((c) => c.reason === 'measured headroom')).toEqual([]);
+	});
+
+	test('a steady judder (one frame in four misses vsync, 50 fps) drops a rung; one in twenty does not', () => {
+		let n = 0;
+		const judder = (every: number) => (l: GovernorLevel) =>
+			l.preset === 'high' && l.scale === 1 ? (++n % every === 0 ? 30 : 12) : 10;
+		const g = new QualityGovernor('high');
+		play(g, 20, judder(4));
+		expect(g.level).not.toEqual(governorLadder('high')[0]!);
+		expect(g.history[0]!.reason).toContain('for 5 s');
+		const h = new QualityGovernor('high');
+		const run = play(h, 20, judder(20));
+		expect(run.changes).toEqual([]);
+	});
+
+	test('a stutter no level fixes (one frame in five slow at every level) stops after one judder drop, no 30 lock', () => {
+		let n = 0;
+		const g = new QualityGovernor('high');
+		const run = play(g, 120, () => (++n % 5 === 0 ? 30 : 8));
+		const judders = run.changes.filter((c) => c.reason.includes('for 5 s'));
+		// one resolution step, one preset step, then it holds
+		expect(judders.length).toBeLessThanOrEqual(2);
+		expect(g.level.preset).not.toBe('low');
+		expect(g.isLockedTo30).toBe(false);
+		expect(g.history.some((h) => h.reason.includes('not the graphics'))).toBe(true);
+	});
+
+	test('a judder the resolution does not fix but the next preset does: high 85 % then medium', () => {
+		let n = 0;
+		// high misses one frame in eight at any scale (its shadow map and part detail), medium none
+		const g = new QualityGovernor('high');
+		const run = play(g, 60, (l) => (l.preset === 'high' ? (++n % 8 === 0 ? 30 : 12) : 10));
+		expect(g.level.preset).toBe('medium');
+		expect(run.changes.some((c) => c.reason.includes('the resolution did not help'))).toBe(true);
+		expect(g.history.some((h) => h.reason.includes('not the graphics'))).toBe(false);
 	});
 });

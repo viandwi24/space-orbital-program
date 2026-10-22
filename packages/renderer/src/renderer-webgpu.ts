@@ -234,13 +234,16 @@ export function createWebGPURenderer(
 		framesSinceResolve++;
 		if (resolving || framesSinceResolve < 30) return;
 		resolving = true;
+		// the frames the pool holds are the ones drawn before this read; those drawn while it resolves
+		// belong to the next (counting them here under-read the time per frame, plan 362)
+		const frames = framesSinceResolve;
+		framesSinceResolve = 0;
 		r.resolveTimestampsAsync('render')
 			.then((ms) => {
-				if (typeof ms === 'number' && ms > 0) gpuMs = ms / framesSinceResolve;
+				if (typeof ms === 'number' && ms > 0) gpuMs = ms / frames;
 			})
 			.catch(() => {})
 			.finally(() => {
-				framesSinceResolve = 0;
 				resolving = false;
 			});
 	};
@@ -320,6 +323,29 @@ export function createWebGPURenderer(
 		});
 
 	let variants: Scene[] = [];
+	/** How long each other preset's warm-up frames took at load, ms (plan 362; Debug, the measure script). */
+	const presetWarmMs: Partial<Record<GraphicsPreset, number>> = {};
+	/**
+	 * Draws with a warm scene's part models in the flight scene, unculled, then gives them back: their
+	 * pipelines are built for the scene's own targets (\`compileAsync\` into other targets does not carry over).
+	 */
+	const withParts = (parts: Scene, draw: () => void): void => {
+		const kids = [...parts.children];
+		const culled: { o: { frustumCulled: boolean }; was: boolean }[] = [];
+		for (const k of kids) {
+			k.traverse((o) => {
+				culled.push({ o, was: o.frustumCulled });
+				o.frustumCulled = false;
+			});
+			model.scene.add(k);
+		}
+		try {
+			draw();
+		} finally {
+			for (const k of kids) parts.add(k);
+			for (const c of culled) c.o.frustumCulled = c.was;
+		}
+	};
 	const tracker = new PrecompileTracker();
 	let precompiling: Promise<void> | null = null;
 	const precompile = (onProgress?: (p: PrecompileProgress) => void): Promise<void> => {
@@ -340,10 +366,12 @@ export function createWebGPURenderer(
 			};
 			const jobs: Promise<unknown>[] = [compile(model.scene, model.camera, model.scene)];
 			// the vessel's part materials at the other presets' detail
+			const others: { name: GraphicsPreset; parts: Scene }[] = [];
 			for (const name of GRAPHICS_PRESETS) {
 				if (name === preset) continue;
 				const parts = model.warmPartScene(name);
 				variants.push(parts);
+				others.push({ name, parts });
 				jobs.push(compile(parts, model.camera, model.scene));
 			}
 			await Promise.all(jobs);
@@ -351,8 +379,7 @@ export function createWebGPURenderer(
 			// so a move of the governor's resolution or the pixel budget finds both shaders built.
 			// three's WebGPU renderer builds a shader per object and render target the first time it
 			// draws them, 1 to 4 s for the planet pass, and \`compileAsync\` into other targets did not
-			// carry over. Only the player's preset: on WebGPU the governor changes resolution, never the
-			// preset (\`governorPresetSteps\`). Done while the compile badge is up.
+			// carry over. Done while the compile badge is up.
 			for (let i = 0; i < 200 && !planet.built; i++) await idle();
 			tracker.expect(1);
 			await idle();
@@ -367,6 +394,37 @@ export function createWebGPURenderer(
 				}
 			}
 			tracker.finish();
+			// plan 362 (ADR 0304): the same frames at the neighbouring presets, with that preset's part models in
+			// view, so the governor's preset steps (and the player's) find the planet variant, the post
+			// chain of its sample count and the parts' pipelines for its targets already built
+			// only the presets the host names (`warmPresets`): each costs 3 to 6 s of load on the M2, and
+			// the governor moves one preset at a time, 30 s apart; any other move builds once, inside the
+			// governor's settle time
+			const own = preset;
+			const near = others.filter((o) => config.warmPresets?.includes(o.name));
+			for (const other of near) {
+				tracker.expect(1);
+				await idle();
+				if (!gpu || preset !== own) {
+					tracker.finish();
+					continue;
+				}
+				const t0 = performance.now();
+				try {
+					applyPreset(other.name);
+					withParts(other.parts, () => {
+						for (const s of [1, HALF_PLANET_SCALE]) {
+							planet.forceScale = s;
+							drawFrame(0);
+						}
+					});
+				} finally {
+					planet.forceScale = null;
+					applyPreset(own);
+				}
+				presetWarmMs[other.name] = Math.round(performance.now() - t0);
+				tracker.finish();
+			}
 			// plan 340 (ADR 0290): one frame of each view the world moves between (flight with its
 			// effects, map in vessel and system scope, the site), so no switch builds a pipeline later
 			tracker.setStage('warm');
@@ -463,7 +521,9 @@ export function createWebGPURenderer(
 				triangles: drawn.triangles,
 				pixelRatio,
 				size: [width, height] as [number, number],
-				gpu: gpuName()
+				gpu: gpuName(),
+				presetWarmMs: { ...presetWarmMs },
+				renderScale
 			})
 		},
 		debugFacade(model)
@@ -522,7 +582,8 @@ export function createWebGPURenderer(
 			get halfPlanetAvailable() {
 				return true;
 			},
-			governorPresetSteps: false,
+			// every preset's frames are drawn at load (plan 362, ADR 0304): a step costs no shader build
+			governorPresetSteps: true,
 			get gpuFrameMs() {
 				return gpuMs;
 			},

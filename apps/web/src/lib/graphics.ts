@@ -76,6 +76,37 @@ export function saveAutoQuality(on: boolean): void {
 	}
 }
 
+/**
+ * The frame-rate limit (plan 362, ADR 0304): `display` draws at the display's rate (the default, as a
+ * fixed preset always did), `60` and `30` pace the drawing down to save battery and heat.
+ */
+export type FrameCapChoice = 'display' | '60' | '30';
+const FPS_KEY = 'orbital.graphics.fps';
+
+export const parseFrameCap = (value: unknown): FrameCapChoice =>
+	value === '60' || value === '30' ? value : 'display';
+
+/** The cap as the governor takes it: null for the display's rate. */
+export const frameCapFps = (choice: FrameCapChoice): number | null =>
+	choice === 'display' ? null : Number(choice);
+
+export function loadFrameCap(): FrameCapChoice {
+	try {
+		return parseFrameCap(localStorage.getItem(FPS_KEY));
+	} catch {
+		return 'display';
+	}
+}
+
+export function saveFrameCap(choice: FrameCapChoice): void {
+	try {
+		if (choice === 'display') localStorage.removeItem(FPS_KEY);
+		else localStorage.setItem(FPS_KEY, choice);
+	} catch {
+		// private mode or quota: the choice applies for this session only
+	}
+}
+
 /** Reads GPU facts from a throwaway WebGL2 context; returns conservative values when WebGL is missing. */
 export function probeCapabilities(): DeviceCapabilities {
 	const nav = globalThis.navigator as (Navigator & { deviceMemory?: number }) | undefined;
@@ -116,9 +147,116 @@ export function resolvePreset(
 	return saved ?? selectPreset(caps);
 }
 
-/** The preset the flight view should start with. */
-export const initialGraphicsPreset = (): GraphicsPreset =>
-	resolvePreset(loadGraphicsPreset(), probeCapabilities());
+/**
+ * The level the governor last settled at on this device and backend (plan 362, ADR 0304): Automatic
+ * starts there instead of at a guess from the GPU's name. Saved whenever the governor moves.
+ */
+const LEARNED_KEY = 'orbital.graphics.learned';
+
+export interface LearnedLevel {
+	preset: GraphicsPreset;
+	scale: number;
+}
+
+/** A stored learned level for `backend`, or null when absent or not valid. Pure (tested). */
+export function parseLearnedLevel(value: unknown, backend: string): LearnedLevel | null {
+	if (typeof value !== 'string') return null;
+	try {
+		const all = JSON.parse(value) as Record<string, { preset?: unknown; scale?: unknown }>;
+		const entry = all?.[backend];
+		const preset = parsePreset(entry?.preset);
+		const scale = Number(entry?.scale);
+		if (!preset || !Number.isFinite(scale) || scale <= 0 || scale > 1) return null;
+		return { preset, scale };
+	} catch {
+		return null;
+	}
+}
+
+export function loadLearnedLevel(backend: string): LearnedLevel | null {
+	try {
+		return parseLearnedLevel(localStorage.getItem(LEARNED_KEY), backend);
+	} catch {
+		return null;
+	}
+}
+
+export function saveLearnedLevel(backend: string, level: LearnedLevel): void {
+	try {
+		let all: Record<string, LearnedLevel> = {};
+		try {
+			all = JSON.parse(localStorage.getItem(LEARNED_KEY) ?? '{}') ?? {};
+		} catch {
+			all = {};
+		}
+		all[backend] = { preset: level.preset, scale: Math.round(level.scale * 100) / 100 };
+		localStorage.setItem(LEARNED_KEY, JSON.stringify(all));
+	} catch {
+		// private mode or quota: the next session guesses again
+	}
+}
+
+/**
+ * The preset a view starts with: the player's choice, else (Automatic) the level the governor learned
+ * on this backend, else the device default. Pure given its inputs (tested).
+ */
+export function startPreset(
+	saved: GraphicsPreset | null,
+	learned: LearnedLevel | null,
+	caps: DeviceCapabilities
+): GraphicsPreset {
+	return saved ?? learned?.preset ?? selectPreset(caps);
+}
+
+/**
+ * The governor's ceiling (plan 362): the player's choice, else, Automatic with "Adjust quality while
+ * playing" on, the top preset: the governor finds what this machine holds by measuring, not by the
+ * GPU's name. Automatic with it off keeps the start preset.
+ */
+export function governorCeiling(
+	saved: GraphicsPreset | null,
+	adjust: boolean,
+	start: GraphicsPreset
+): GraphicsPreset {
+	return saved ?? (adjust ? 'high' : start);
+}
+
+/**
+ * The preset the governor would move to first, drawn at load so the move builds no shader in flight
+ * (plan 362, ADR 0304): none while it may not adjust; else the one below the start, or, at the bottom,
+ * the one above it when the ceiling allows. Pure (tested).
+ */
+export function warmPresetsFor(
+	start: GraphicsPreset,
+	adjust: boolean,
+	ceiling: GraphicsPreset
+): GraphicsPreset[] {
+	if (!adjust) return [];
+	const order: readonly GraphicsPreset[] = ['low', 'medium', 'high'];
+	const at = order.indexOf(start);
+	if (at > 0) return [order[at - 1]!];
+	const above = order[at + 1];
+	return above && order.indexOf(above) <= order.indexOf(ceiling) ? [above] : [];
+}
+
+/** What a view's renderer starts with: the preset and the presets to warm at load (plan 362). */
+export function graphicsStart(backend: string): {
+	preset: GraphicsPreset;
+	warmPresets: GraphicsPreset[];
+} {
+	const saved = loadGraphicsPreset();
+	const preset = startPreset(saved, saved ? null : loadLearnedLevel(backend), probeCapabilities());
+	const adjust = loadAutoQuality();
+	return { preset, warmPresets: warmPresetsFor(preset, adjust, governorCeiling(saved, adjust, preset)) };
+}
+
+/** The preset the flight view should start with (`backend`: the learned level's key). */
+export const initialGraphicsPreset = (backend?: string): GraphicsPreset =>
+	startPreset(
+		loadGraphicsPreset(),
+		backend ? loadLearnedLevel(backend) : null,
+		probeCapabilities()
+	);
 
 /**
  * The renderer (plan 261, ADR 0249): Automatic (the default) draws with the newest the browser can

@@ -48,6 +48,12 @@ export { MIN_RENDER_SCALE } from './renderer-facade.ts';
 export type { RendererBackend } from './backend.ts';
 
 export interface RendererConfig extends SceneConfig {
+	/**
+	 * WebGPU: presets whose frames are drawn at load besides the start preset (plan 362, ADR 0304), so a
+	 * governor move to them builds no shader mid-flight. Each costs 3 to 6 s of load on an M2; the host
+	 * names only where its governor goes first. Default none.
+	 */
+	warmPresets?: readonly GraphicsPreset[];
 	canvas: HTMLCanvasElement;
 	/** Defaults to `window.devicePixelRatio`, capped by the preset. */
 	pixelRatio?: number;
@@ -147,6 +153,10 @@ export interface RendererDebug {
 		pixelRatio: number;
 		size: [number, number];
 		gpu: string;
+		/** WebGPU: how long each other preset's warm-up frames took at load, ms (plan 362). */
+		presetWarmMs?: Partial<Record<GraphicsPreset, number>>;
+		/** The render scale drawn at (the governor's). */
+		renderScale?: number;
 	};
 }
 

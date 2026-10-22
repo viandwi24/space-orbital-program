@@ -40,17 +40,26 @@ export const GOVERNOR_FLOOR_STEPS: readonly { scale: number; planetScale: number
 ];
 
 /**
- * The rungs from the player's preset down: resolution first (cheap, no recompile), then the next
- * preset at full resolution. The player's choice is the ceiling; the governor never goes above it.
- * `halfPlanet: false` (no float render targets) leaves out the rungs that need the half-resolution pass.
+ * The lowest render scale a preset above the last one is drawn at (plan 362, ADR 0304): below it the
+ * next preset down comes first. A preset's costs that do not follow the pixels (the shadow map, part
+ * detail, the march steps, the vegetation) stay at any scale, so `high` at 55 % could read 25 fps where
+ * `medium` at full size read 100 (the owner's M5 in orbit).
+ */
+export const PRESET_FLOOR_SCALE = 0.85;
+
+/**
+ * The rungs from the player's preset down: resolution first down to `PRESET_FLOOR_SCALE` (cheap, no
+ * recompile), then the next preset at full resolution; only the last preset goes lower. The player's
+ * choice is the ceiling; the governor never goes above it. `halfPlanet: false` (no float render
+ * targets) leaves out the rungs that need the half-resolution pass.
  */
 export function governorLadder(
 	ceiling: GraphicsPreset,
 	halfPlanet = true,
 	budgetedPlanet = 1,
 	/**
-	 * false: resolution only, never a lower preset (WebGPU, plan 261): there the frame's cost follows
-	 * its pixels, not the preset (ADR 0248), and a preset change rebuilds shaders for seconds.
+	 * false: resolution only, never a lower preset (plan 261's WebGPU, before its presets were warmed
+	 * at load; plan 362 turned preset steps back on there). Kept for tests and a backend that cannot warm.
 	 */
 	presetSteps = true
 ): GovernorLevel[] {
@@ -63,6 +72,7 @@ export function governorLadder(
 	presets.forEach((preset, i) => {
 		const last = i === presets.length - 1;
 		for (const step of last ? GOVERNOR_FLOOR_STEPS : GOVERNOR_STEPS) {
+			if (!last && step.scale < PRESET_FLOOR_SCALE) continue;
 			if (halfPlanet || step.planetScale === 1) out.push({ preset, ...step });
 		}
 	});
@@ -115,6 +125,13 @@ export interface GovernorConfig {
 	dropWindowSeconds: number;
 	/** The share of frames in the drop window that must be over. */
 	dropShare: number;
+	/**
+	 * A steady judder drops one rung too (plan 362): this share of frames over budget across
+	 * `sustainedSeconds`. One frame in ten missing vsync is a visible stutter (54 fps), which the
+	 * half-of-a-second rule never saw (the M2 sat at `high` drawing 50 to 54 fps where `medium` held 60).
+	 */
+	sustainedShare: number;
+	sustainedSeconds: number;
 	/** A p95 interval above this many budgets drops two rungs. */
 	heavyFactor: number;
 	/** Frames are ignored this long after a rung change inside a preset (buffer reallocation), s. */
@@ -144,6 +161,8 @@ export const DEFAULT_GOVERNOR: GovernorConfig = {
 	overFactor: 1.15,
 	dropWindowSeconds: 1,
 	dropShare: 0.5,
+	sustainedShare: 0.1,
+	sustainedSeconds: 5,
 	heavyFactor: 2,
 	settleSeconds: 1,
 	presetSettleSeconds: 2,
@@ -258,9 +277,32 @@ export class QualityGovernor {
 		return this.enabled;
 	}
 
-	/** The frame rate held: 60 (or the display's lower rate), or 30 when locked. */
+	/**
+	 * The highest drawing rate (plan 362, ADR 0304): null draws at the display's rate (as with the
+	 * governor off), 60 or 30 pace the drawing down to it. The quality target stays 60, or the cap below it.
+	 */
+	private cap: number | null = 60;
+
+	/** The player's frame-rate limit: null (the display's rate), 60 or 30. */
+	setFrameCap(fps: number | null): void {
+		this.cap = fps !== null && Number.isFinite(fps) && fps > 0 ? fps : null;
+	}
+
+	get frameCap(): number | null {
+		return this.cap;
+	}
+
+	/** The frame rate held: 60 (or the cap below it), or 30 when locked. */
 	get targetFps(): number {
-		return this.locked30 || this.throttled30 ? 30 : 60;
+		if (this.locked30 || this.throttled30) return 30;
+		return this.cap !== null && this.cap < 60 ? this.cap : 60;
+	}
+
+	/** The rate frames are drawn at: the cap (the display's rate when none), or the target when locked below it. */
+	get paceFps(): number {
+		const target = this.targetFps;
+		if (target < 60) return target;
+		return Math.min(this.cap ?? this.displayHz, this.displayHz);
 	}
 
 	/** The estimated display rate, Hz. */
@@ -275,7 +317,7 @@ export class QualityGovernor {
 
 	/** Draw every Nth rAF: 2 on a 120 Hz display at 60, or on a 60 Hz display locked to 30. */
 	get renderEvery(): number {
-		return Math.max(1, Math.round(this.displayHz / this.targetFps));
+		return Math.max(1, Math.round(this.displayHz / this.paceFps));
 	}
 
 	get isLockedTo30(): boolean {
@@ -302,6 +344,22 @@ export class QualityGovernor {
 		return this.level;
 	}
 
+	/**
+	 * Start at the highest rung of `level`'s preset at or under its scale (plan 362): the level this
+	 * device settled at last time, so a session does not begin with drops. Above it, the rungs are
+	 * tried again only with evidence, as after any drop. Returns the level to draw.
+	 */
+	startAt(level: Pick<GovernorLevel, 'preset' | 'scale'>): GovernorLevel {
+		if (!this.enabled) return this.level;
+		const at = this.ladder.findIndex(
+			(l) => l.preset === level.preset && l.scale <= level.scale + 1e-6
+		);
+		if (at <= 0) return this.level;
+		for (let i = 0; i < at; i++) this.leftIn.set(i, this.scene);
+		this.index = at;
+		return this.level;
+	}
+
 	/** The scene changed or not (altitude band, view, body): see `sceneKeyOf`. */
 	setScene(key: string): void {
 		this.scene = key;
@@ -321,6 +379,9 @@ export class QualityGovernor {
 		this.noEffect = null;
 		this.slowAtFloor = 0;
 		this.sinceRender = 0;
+		this.workScale = 1;
+		this.judder = null;
+		this.judderFutile = null;
 	}
 
 	/** The display rate from the fastest quarter of the rAF intervals of the last seconds. */
@@ -353,17 +414,17 @@ export class QualityGovernor {
 	 * `workMs` is the GPU time per frame where the renderer measures it (WebGPU, plan 261), else omitted.
 	 */
 	tick(rafMs: number, workMs?: number): GovernorTick {
-		if (!this.enabled || !Number.isFinite(rafMs) || rafMs <= 0)
-			return { render: true, level: null };
+		if (!Number.isFinite(rafMs) || rafMs <= 0) return { render: true, level: null };
 		if (rafMs <= this.config.ignoreOverMs) this.estimateCadence(rafMs);
 		this.sinceRender += rafMs;
-		const period = 1000 / this.targetFps;
+		// the frame-rate limit paces the drawing with the governor off as well (plan 362)
+		const period = 1000 / this.paceFps;
 		if (this.sinceRender < 0.9 * period && this.sinceRender <= this.config.ignoreOverMs) {
 			return { render: false, level: null };
 		}
 		const interval = this.sinceRender;
 		this.sinceRender = 0;
-		return { render: true, level: this.frame(interval, workMs) };
+		return { render: true, level: this.enabled ? this.frame(interval, workMs) : null };
 	}
 
 	/**
@@ -408,6 +469,43 @@ export class QualityGovernor {
 				return this.drop(heavy ? 2 : 1, heavy ? `p95 ${p95.toFixed(0)} ms, ${text}` : text);
 			}
 		}
+		const steady = this.window(this.config.sustainedSeconds);
+		if (steady.span >= this.config.sustainedSeconds * 0.9 && this.judderFutile !== this.scene) {
+			const share = steady.samples.filter((x) => x.ms > overMs).length / steady.samples.length;
+			if (share >= this.config.sustainedShare) {
+				const text = `${Math.round(share * 100)}% of frames over ${overMs.toFixed(1)} ms for ${this.config.sustainedSeconds} s`;
+				// the last judder drop did not cut the missed frames by a quarter (plan 362): after a
+				// resolution step, the preset's own costs are the suspects, so the next preset comes
+				// next; after a preset step, the stutter is not the graphics' (another process, the
+				// browser), and the governor stops lowering for it in this scene
+				const last = this.judder;
+				if (last && last.scene === this.scene && share >= last.share * 0.75) {
+					const next = this.ladder.findIndex(
+						(l, i) => i > this.index && l.preset !== this.level.preset
+					);
+					if (last.samePreset && next > 0) {
+						const level = this.jump(next, `${text}; the resolution did not help`);
+						if (level) {
+							this.judder = { share, scene: this.scene, samePreset: false };
+							return level;
+						}
+						return null;
+					}
+					this.judderFutile = this.scene;
+					this.judder = null;
+					this.record(
+						this.level,
+						`${Math.round(share * 100)}% of frames still over after the last drop: not the graphics, holding`
+					);
+					return null;
+				}
+				const from = this.level.preset;
+				const level = this.drop(1, text);
+				if (level)
+					this.judder = { share, scene: this.scene, samePreset: level.preset === from };
+				return level;
+			}
+		}
 		return this.consider(budget);
 	}
 
@@ -423,7 +521,12 @@ export class QualityGovernor {
 	}
 
 	private trim(): void {
-		const keep = Math.max(this.config.headroomSeconds, this.config.dropWindowSeconds) + 1;
+		const keep =
+			Math.max(
+				this.config.headroomSeconds,
+				this.config.dropWindowSeconds,
+				this.config.sustainedSeconds
+			) + 1;
 		let span = 0;
 		let from = this.samples.length;
 		while (from > 0 && span < keep) {
@@ -456,10 +559,11 @@ export class QualityGovernor {
 		if (works.every((w): w is number => w !== null)) {
 			const ratio = levelCost(this.ladder[up]!) / levelCost(this.level);
 			const fraction = crossing ? this.config.presetUpFraction : this.config.upFraction;
-			if (quantile(works, 0.95) * ratio <= fraction * budget) {
+			if (quantile(works, 0.95) * this.workScale * ratio <= fraction * budget) {
 				return this.raise(up, 'measured headroom');
 			}
-			return null;
+			// not enough by the (calibrated) work time: the scene-change trial below still applies, so a
+			// calibration learned in a heavy scene does not hold the level down everywhere (plan 362)
 		}
 		// no work time: one trial per rung and scene, once the scene is not the one it was left in
 		const left = this.leftIn.get(up);
@@ -500,7 +604,34 @@ export class QualityGovernor {
 		return this.changed(from, 'the display runs at 30 Hz: quality stays, 30 is the target');
 	}
 
+	/**
+	 * How much the measured work time under-reads the frame (plan 362): the drawn interval over the
+	 * work time when frames ran over budget, at least 1. Apple GPUs' timestamps leave out the frame's end
+	 * (the M2 in orbit: 9 ms measured, 33 ms drawn), and an uncorrected reading raised the level straight
+	 * back into the stall after every drop.
+	 */
+	private workScale = 1;
+
+	/** The missed-frame share of the last judder drop, its scene and whether it kept the preset (plan 362). */
+	private judder: { share: number; scene: string; samePreset: boolean } | null = null;
+	/** The scene in which judder drops stopped helping: none until the scene changes. */
+	private judderFutile: string | null = null;
+
+	/** Learns `workScale` from the slow frames that caused a drop. */
+	private calibrateWork(): void {
+		const recent = this.window(this.config.dropWindowSeconds).samples;
+		const works = recent.map((x) => x.work).filter((w): w is number => w !== null && w > 0);
+		if (works.length < recent.length / 2 || works.length === 0) return;
+		const ratio =
+			quantile(
+				recent.map((x) => x.ms),
+				0.5
+			) / quantile(works, 0.5);
+		if (Number.isFinite(ratio)) this.workScale = Math.max(this.workScale, ratio, 1);
+	}
+
 	private drop(rungs: number, reason: string): GovernorLevel | null {
+		this.calibrateWork();
 		if (!this.throttled30 && !this.locked30 && this.index < this.ladder.length - 1) {
 			const restored = this.throttleCheck();
 			if (restored) return restored;
@@ -550,6 +681,16 @@ export class QualityGovernor {
 		return this.changed(from, moved === 2 && rungs === 2 ? `${reason}: dropped two rungs` : reason);
 	}
 
+	/** Down to rung `to` at once (another preset), within the preset dwell; null when the dwell holds it. */
+	private jump(to: number, reason: string): GovernorLevel | null {
+		if (this.sincePreset < this.config.presetDwellSeconds) return null;
+		const from = this.level.preset;
+		for (let i = this.index; i < to; i++) this.leftIn.set(i, this.scene);
+		this.index = to;
+		this.trial = null;
+		return this.changed(from, reason);
+	}
+
 	private raise(up: number, reason: string): GovernorLevel {
 		const from = this.level.preset;
 		this.index = up;
@@ -564,6 +705,7 @@ export class QualityGovernor {
 		this.settle = preset ? this.config.presetSettleSeconds : this.config.settleSeconds;
 		this.samples = [];
 		this.slowAtFloor = 0;
+		this.judder = null;
 		this.record(this.level, reason);
 		return this.level;
 	}

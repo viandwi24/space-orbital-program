@@ -2244,6 +2244,7 @@
 			}}
 			onpreset={(choice) => flight?.setGraphicsPreset(choice)}
 			onautoquality={(on) => flight?.setAutoQuality(on)}
+			onframecap={(choice) => flight?.setFrameCap(choice)}
 		/>
 	{/if}
 </div>

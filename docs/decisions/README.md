@@ -289,3 +289,4 @@ An ADR records one decision, its context, and its consequences. ADRs are **appen
 | 0300 | [Pre-docked ports: a docking face node, built pairs start docked](0300-pre-docked-ports.md) | accepted | 2026-10-22 |
 | 0301 | [Symmetry about the parent or the vessel axis; re-rooting rewrites each link from the other side](0301-symmetry-pivot-and-reroot-through-side-links.md) | accepted | 2026-10-22 |
 | 0302 | [The programs list is a modal popover with Open panel, Vessel and Stop](0302-programs-popover.md) | accepted | 2026-10-22 |
+| 0304 | [Automatic quality steps presets on WebGPU, starts where it settled, and draws at the display's rate](0304-auto-quality-steps-presets-on-webgpu.md) | accepted | 2026-10-22 |

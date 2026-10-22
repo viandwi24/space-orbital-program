@@ -17,7 +17,7 @@ import {
 } from '@orbital/renderer';
 import type { PrecompileProgress } from '@orbital/renderer/precompile-progress';
 import { partShapesOf } from './catalog';
-import { initialGraphicsPreset, rendererBackend } from './graphics';
+import { graphicsStart, rendererBackend } from './graphics';
 import type { Catalog } from './messages';
 import { modelProviders } from './mods/asset-models';
 import type { SimClient } from './sim-client';
@@ -72,7 +72,8 @@ function configOf(c: Catalog, canvas: HTMLCanvasElement, backend: RendererBacken
 		partVisuals: new Map(c.parts.flatMap((p) => (p.visual ? [[p.id, p.visual] as const] : []))),
 		partAttach: new Map(c.parts.flatMap((p) => (p.attach ? [[p.id, p.attach] as const] : []))),
 		partProviders: modelProviders(),
-		preset: initialGraphicsPreset(),
+		// the start preset and the one the governor would move to first, warmed at load (plan 362)
+		...graphicsStart(backend),
 		// the world's terrain and Space Center (plan 084, ADR 0142)
 		...(c.terrain ? { terrain: c.terrain } : {}),
 		...(c.launchSite ? { launchSite: c.launchSite } : {}),

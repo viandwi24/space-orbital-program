@@ -13,6 +13,9 @@
 	import {
 		clearGraphicsPreset,
 		loadAutoQuality,
+		loadFrameCap,
+		saveFrameCap,
+		type FrameCapChoice,
 		presetChoice,
 		loadRendererChoice,
 		saveRendererChoice,
@@ -33,13 +36,16 @@
 		open,
 		onclose,
 		onpreset,
-		onautoquality
+		onautoquality,
+		onframecap
 	}: {
 		open: boolean;
 		onclose: () => void;
 		/** A running flight applies the preset now (`Flight.setGraphicsPreset`); the dialog saves it either way. */
 		onpreset?: (choice: PresetChoice) => void;
 		onautoquality?: (on: boolean) => void;
+		/** A running flight paces its drawing now (`Flight.setFrameCap`, plan 362); the dialog saves it either way. */
+		onframecap?: (choice: FrameCapChoice) => void;
 	} = $props();
 
 	type Tab = 'graphics' | 'interface' | 'game' | 'time' | 'controls' | 'audio' | 'saves';
@@ -55,6 +61,7 @@
 	});
 	let preset = $state<PresetChoice>('auto');
 	let auto = $state(true);
+	let frameCap = $state<FrameCapChoice>('display');
 	let rendererChoice = $state<RendererChoice>('auto');
 
 	// Read the stored choices each time the dialog opens, so two pages never disagree.
@@ -62,6 +69,7 @@
 		if (!open) return;
 		preset = presetChoice();
 		auto = loadAutoQuality();
+		frameCap = loadFrameCap();
 		rendererChoice = loadRendererChoice();
 	});
 
@@ -74,6 +82,11 @@
 	function chooseRenderer(choice: RendererChoice): void {
 		rendererChoice = choice;
 		saveRendererChoice(choice);
+	}
+	function chooseFrameCap(choice: FrameCapChoice): void {
+		frameCap = choice;
+		saveFrameCap(choice);
+		onframecap?.(choice);
 	}
 	function chooseAuto(on: boolean): void {
 		auto = on;
@@ -91,10 +104,15 @@
 		{ id: 'saves', label: 'Saves' }
 	];
 	const presetOptions = [
-		{ value: 'auto', label: 'Automatic', hint: 'Chosen from your graphics hardware' },
+		{ value: 'auto', label: 'Automatic', hint: 'Measured on this device while you play' },
 		{ value: 'low', label: 'Low', hint: 'Fewest effects, fastest' },
 		{ value: 'medium', label: 'Medium', hint: 'Shadows and denser terrain' },
 		{ value: 'high', label: 'High', hint: 'Everything on' }
+	] as const;
+	const frameCapOptions = [
+		{ value: 'display', label: 'Display', hint: 'As fast as the screen refreshes' },
+		{ value: '60', label: '60', hint: 'Steady 60 frames per second' },
+		{ value: '30', label: '30', hint: 'Saves the most battery' }
 	] as const;
 	const rendererOptions = [
 		{ value: 'auto', label: 'Automatic', hint: 'The newest your browser runs: WebGPU, else WebGL' },
@@ -160,7 +178,8 @@
 				<div class="what">
 					<h3>Quality</h3>
 					<p>
-						Automatic picks a preset for your graphics hardware. Changes apply at once in flight.
+						Automatic finds the best preset this device holds at 60 frames per second and starts
+						there next time. Changes apply at once in flight.
 					</p>
 				</div>
 				<Segmented
@@ -186,12 +205,27 @@
 					testid="setting-renderer"
 				/>
 			</div>
+			<div class="row">
+				<div class="what">
+					<h3>Frame rate limit</h3>
+					<p>
+						Display draws as fast as your screen refreshes. 60 or 30 save battery and heat.
+					</p>
+				</div>
+				<Segmented
+					label="Frame rate limit"
+					value={frameCap}
+					options={frameCapOptions}
+					onchange={chooseFrameCap}
+					testid="setting-frame-cap"
+				/>
+			</div>
 			<label class="row check">
 				<div class="what">
 					<h3>Adjust quality while playing</h3>
 					<p>
-						Lowers the resolution, then the preset, if the view runs under about 55 frames per
-						second.
+						Lowers the resolution a little, then the preset, if the view runs under about 55 frames
+						per second, and raises them again when there is room.
 					</p>
 				</div>
 				<input

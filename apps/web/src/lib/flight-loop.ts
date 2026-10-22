@@ -61,12 +61,21 @@ import { worldRenderer } from './world-renderer.svelte';
 import { pinchZoomFactor } from './touch/touch-model';
 import {
 	clearGraphicsPreset,
+	frameCapFps,
+	governorCeiling,
 	initialGraphicsPreset,
 	loadAutoQuality,
+	loadFrameCap,
+	loadGraphicsPreset,
+	loadLearnedLevel,
 	probeCapabilities,
-	resolvePreset,
 	saveAutoQuality,
-	saveGraphicsPreset
+	saveFrameCap,
+	saveGraphicsPreset,
+	saveLearnedLevel,
+	startPreset,
+	type FrameCapChoice,
+	type LearnedLevel
 } from './graphics';
 import { heatMarks } from './hud/heat-marks';
 import { modeForAction } from './hud/sas-model';
@@ -290,6 +299,8 @@ export interface Flight {
 	setGraphicsPreset(preset: GraphicsPreset | 'auto'): void;
 	/** Whether the quality governor may lower resolution and preset when the view runs slow (plan 039, ADR 0053). */
 	readonly autoQuality: boolean;
+	/** The frame-rate limit (plan 362): remembered, applied at once. */
+	setFrameCap(choice: FrameCapChoice): void;
 	/** Turn the governor on or off and remember it; off restores the player's preset at full resolution. */
 	setAutoQuality(on: boolean): void;
 	/** Fire the next stage (the button next to the stage stack). */
@@ -1516,6 +1527,33 @@ export function startFlight(options: FlightOptions): Flight {
 		setGlassFallback(document.documentElement, solid);
 	}
 
+	/**
+	 * Where the governor starts (plan 362, ADR 0304): the player's preset, else (Automatic) the level it
+	 * settled at last time on this backend, else the device default; its ceiling is the player's preset,
+	 * else the top one while it may adjust.
+	 */
+	function governorPlan(): {
+		saved: GraphicsPreset | null;
+		learned: LearnedLevel | null;
+		start: GraphicsPreset;
+		ceiling: GraphicsPreset;
+	} {
+		const saved = loadGraphicsPreset();
+		const learned = saved || !renderer ? null : loadLearnedLevel(renderer.debug.counters().renderer);
+		const start = startPreset(saved, learned, probeCapabilities());
+		return { saved, learned, start, ceiling: governorCeiling(saved, autoQuality, start) };
+	}
+
+	/** A fresh governor run from `governorPlan`: the level to draw. */
+	function startGovernor(g: QualityGovernor): GovernorLevel {
+		const plan = governorPlan();
+		g.setCeiling(plan.ceiling);
+		g.setEnabled(autoQuality);
+		return plan.saved
+			? g.level
+			: g.startAt({ preset: plan.start, scale: plan.learned?.scale ?? 1 });
+	}
+
 	/** Draws at the governor's level and, when it moved by itself, tells the player once (plan 039). */
 	function applyLevel(level: GovernorLevel, announce: boolean, reason?: string): void {
 		if (!renderer) return;
@@ -1523,6 +1561,9 @@ export function startFlight(options: FlightOptions): Flight {
 		syncGlass();
 		renderer.setRenderScale(level.scale);
 		renderer.setPlanetScale(level.planetScale);
+		// Automatic starts the next session where this one settled (plan 362)
+		if (announce && loadGraphicsPreset() === null)
+			saveLearnedLevel(renderer.debug.counters().renderer, level);
 		if (announce) {
 			const percent = Math.round(level.scale * 100);
 			logBuffer.add(
@@ -1848,13 +1889,14 @@ export function startFlight(options: FlightOptions): Flight {
 				size: () => ({ width: canvas.clientWidth, height: canvas.clientHeight, insets: viewInsets })
 			});
 			governor = new QualityGovernor(
-				renderer.preset,
+				governorPlan().ceiling,
 				undefined,
 				renderer.halfPlanetAvailable,
 				renderer.governorPresetSteps
 			);
-			governor.setEnabled(autoQuality);
-			syncGlass();
+			governor.setFrameCap(frameCapFps(loadFrameCap()));
+			// the shared renderer may still be at a level an earlier flight's governor chose: start afresh
+			applyLevel(startGovernor(governor), false);
 			// Measurement (plan 251): the switches named in localStorage `orbital.graphics.features` go down
 			// before the programs are compiled, so a switch that changes a shader define is measured on a
 			// program compiled at load (one compiled later reads 2 to 3 times slow, journal 050).
@@ -1965,6 +2007,16 @@ export function startFlight(options: FlightOptions): Flight {
 			frameStats: () => frameStats.summary(performance.now()),
 			resetFrameStats: () => frameStats.reset(),
 			level: () => ({ preset: renderer?.preset ?? null, scale: governor?.level.scale ?? 1 }),
+			// the governor's changes and pacing, for `scripts/measure-auto-quality.ts` (plan 362)
+			governor: () =>
+				governor && {
+					history: governor.history.map(
+						(c) => `${c.at.toFixed(1)}s ${c.level.preset} ${Math.round(c.level.scale * 100)}%${c.level.planetScale < 1 ? ' half' : ''} — ${c.reason}`
+					),
+					targetFps: governor.targetFps,
+					displayHz: governor.displayRate,
+					renderEvery: governor.renderEvery
+				},
 			hud: () => ({ ...hud }),
 			hudStats: () => ({
 				paintAvgMs: stats.total.paint / Math.max(1, stats.n.paint),
@@ -2201,21 +2253,25 @@ export function startFlight(options: FlightOptions): Flight {
 			// `auto` forgets the saved choice and takes the device default again (plan 023)
 			if (choice === 'auto') clearGraphicsPreset();
 			else saveGraphicsPreset(choice);
-			const preset = choice === 'auto' ? resolvePreset(null, probeCapabilities()) : choice;
-			// the player's choice is the governor's ceiling and starts it again at full resolution
-			if (governor) applyLevel(governor.setCeiling(preset), false);
+			// the player's choice is the governor's ceiling and starts it again at full resolution;
+			// Automatic starts where it settled last time (plan 362)
+			if (governor) applyLevel(startGovernor(governor), false);
 			else {
-				renderer?.setPreset(preset);
+				renderer?.setPreset(choice === 'auto' ? initialGraphicsPreset() : choice);
 				syncGlass();
 			}
 		},
 		get autoQuality() {
 			return autoQuality;
 		},
+		setFrameCap(choice) {
+			saveFrameCap(choice);
+			governor?.setFrameCap(frameCapFps(choice));
+		},
 		setAutoQuality(on) {
 			autoQuality = on;
 			saveAutoQuality(on);
-			if (governor) applyLevel(governor.setEnabled(on), false);
+			if (governor) applyLevel(startGovernor(governor), false);
 		},
 		stepWarp(delta) {
 			setWarp(warpIndex + delta);
