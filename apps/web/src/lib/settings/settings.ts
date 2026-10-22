@@ -156,7 +156,9 @@ const settingsV4 = settingsV3.extend({
 	modKeys: z
 		.record(z.string().min(1).max(200), z.array(z.string().min(1).max(32)).max(2))
 		.catch({})
-		.default({})
+		.default({}),
+	/** Mod overlays (plan 347): additive in format 4, the defaults when absent. */
+	overlays: z.record(z.string().min(1).max(200), z.boolean()).catch({}).default({})
 });
 
 /** Format 1 (plan 023): units and tutorial only; migrated by taking the new fields' defaults. */
@@ -190,6 +192,8 @@ export interface Settings {
 	lessons: Record<string, LessonProgress>;
 	/** Mod keybindings the player changed (plan 343, ADR 0292 point 6): keybinding id to key ids. */
 	modKeys: Record<string, string[]>;
+	/** Mod overlays the player turned on or off (plan 347, ADR 0296 point 5); absent ids take their default. */
+	overlays: Record<string, boolean>;
 }
 export type TutorialProgress = Settings['tutorial'];
 export interface LessonProgress {
@@ -213,7 +217,8 @@ export const defaultSettings = (): Settings => ({
 	keyProfile: DEFAULT_KEY_PROFILE,
 	keyNotice: false,
 	lessons: {},
-	modKeys: {}
+	modKeys: {},
+	overlays: {}
 });
 
 /**
@@ -249,7 +254,8 @@ export function parseSettings(text: string | null): Settings {
 			...profile,
 			bindings: repairBindings(v3.data.bindings, profile.keyProfile),
 			lessons: {},
-			modKeys: {}
+			modKeys: {},
+			overlays: {}
 		};
 	}
 	const v2 = settingsV2.safeParse(raw);
@@ -265,7 +271,8 @@ export function parseSettings(text: string | null): Settings {
 			debug: false,
 			time: defaultTime(),
 			lessons: {},
-			modKeys: {}
+			modKeys: {},
+			overlays: {}
 		};
 	}
 	const v1 = settingsV1.safeParse(raw);

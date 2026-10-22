@@ -14,6 +14,7 @@ import { designStats } from './editor/stats';
 import type { ReplayFile } from '@orbital/core';
 import { panelInputOf } from './dock/panel-input';
 import { modKeyCommand, modKeyFor, type ModKeyRow } from './mod-keys';
+import { createOverlayHost, type OverlayHost, type OverlayToggles } from './mod-overlays';
 import { createAchievementTracker, type AchievementTracker } from './achievements/tracker';
 import type { ProfileStore } from './achievements/store';
 import {
@@ -36,7 +37,8 @@ import {
 	type BodyDefinition,
 	type CommandResult,
 	type WarpLimitSnapshot,
-	type PanelInput
+	type PanelInput,
+	type OverlayDefinition
 } from '@orbital/core';
 import {
 	CAMERA_MODE_LABEL,
@@ -215,6 +217,8 @@ export interface FlightOptions {
 	keymap?: () => Keymap;
 	/** Mod keybindings with the player's keys (plan 343, ADR 0292 point 6); read on every key event. */
 	modKeys?: () => readonly ModKeyRow[];
+	/** Mod overlays and the player's toggles (plan 347, ADR 0296). */
+	overlays?: () => { defs: readonly OverlayDefinition[]; toggles: OverlayToggles };
 	/** Esc (pause menu), help, quicksave and quickload were pressed (by their keys now in force). */
 	onKey?(
 		key: 'escape' | 'help' | 'quicksave' | 'quickload' | 'debug' | 'hideUi' | 'screenshot'
@@ -876,6 +880,19 @@ export function startFlight(options: FlightOptions): Flight {
 	/** Typing in the script panel must not fly the vessel (Space stages, WASD steers). */
 	const typingInField = (e: KeyboardEvent): boolean =>
 		e.target instanceof HTMLElement && isTypingTarget(e.target);
+
+	/** Mod overlays (plan 347, ADR 0296), refreshed 20 times a second at most. */
+	let overlayHost: OverlayHost | null = null;
+	let overlaysAt = -Infinity;
+	function updateOverlays(now: number): void {
+		if (!renderer || !snap || !options.overlays || now - overlaysAt < 50) return;
+		overlaysAt = now;
+		const o = options.overlays();
+		overlayHost ??= createOverlayHost(o.defs, (id, message) =>
+			logBuffer.add('warn', 'mod', `overlay ${id}: ${message}`)
+		);
+		renderer.setOverlays(overlayHost.layers(now, snap, currentPanelInput, vessel, o.toggles));
+	}
 
 	/** What panels and mod keys read now (ADR 0149 point 2), or null before the first snapshot. */
 	function currentPanelInput(): PanelInput | null {
@@ -1556,6 +1573,7 @@ export function startFlight(options: FlightOptions): Flight {
 			dirty = false;
 		} else if (renderer && snap && mapLayersDirty) applyMapLayers(snap);
 		updateMapPath(now);
+		updateOverlays(now);
 		targetView?.update(now);
 		renderer?.render();
 		if (hudCtl) {

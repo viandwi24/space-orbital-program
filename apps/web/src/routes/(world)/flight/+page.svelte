@@ -165,7 +165,7 @@
 	import type { PrecompileProgress } from '@orbital/renderer/precompile-progress';
 	import { loadContent, partLookup } from '../../../lib/catalog';
 	import { modKeyRows } from '../../../lib/mod-keys';
-	import type { KeybindingDefinition } from '@orbital/core';
+	import type { KeybindingDefinition, OverlayDefinition } from '@orbital/core';
 	import type { SimSave, VesselDesign, VesselPlacement } from '@orbital/core';
 	import { parseDesign } from '../../../lib/design';
 	import { startFlight, type Flight, type FlightHud } from '../../../lib/flight-loop';
@@ -789,6 +789,7 @@
 			content,
 			panels,
 			keybindings,
+			overlays,
 			missions,
 			objectiveLabels,
 			actionGroups,
@@ -796,6 +797,7 @@
 			world: worldContent
 		} = loadContent();
 		modKeybindings = keybindings;
+		modOverlays = overlays;
 		siteBuildings = worldContent.buildings;
 		vesselContent = {
 			parts: content.parts,
@@ -848,6 +850,8 @@
 	let siteBuildings: ReturnType<typeof loadContent>['world']['buildings'] | undefined;
 	/** Mod keybindings of the loaded content (plan 343). */
 	let modKeybindings: KeybindingDefinition[] = [];
+	/** Mod overlays of the loaded content (plan 347). */
+	let modOverlays: OverlayDefinition[] = [];
 
 	async function startFlightOf(
 		loadId: string | null,
@@ -1069,6 +1073,8 @@
 					: settings.keymap,
 			// mod keys with the player's overrides (plan 343, ADR 0292 point 6)
 			modKeys: () => modKeyRows(modKeybindings, settings.modKeys, settings.keymap),
+			// mod overlays and the player's toggles (plan 347, ADR 0296)
+			overlays: () => ({ defs: modOverlays, toggles: settings.overlays }),
 			cameraMode: loadCameraMode(),
 			...(start
 				? {}

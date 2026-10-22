@@ -4,6 +4,7 @@
  * exercised by the manual runs in the journals, not by Bun tests. `?renderer=webgpu` hands the
  * same facade to three's `WebGPURenderer` instead (`renderer-webgpu.ts`, plan 261, ADR 0249).
  */
+import type { OverlayInput } from './overlay-layer.ts';
 import type { SiteBuildingView } from './site-list.ts';
 import type { EntityId, RegionWorld, Snapshot } from '@orbital/core';
 import type { RegionBody } from './region-overlay.ts';
@@ -188,6 +189,11 @@ export interface Renderer {
 		/** Wireframe spheres of influence (default off, plan 293). */
 		spheres?: boolean;
 	}): void;
+	/**
+	 * Mod overlays (plan 347, ADR 0296): world-space polylines, markers and labels, drawn in Flight
+	 * and the map; `[]` clears them. The renderer owns the meshes; the shapes are plain data.
+	 */
+	setOverlays(layers: readonly OverlayInput[]): void;
 	/** Map view: tint these bodies by their science regions, `null` none (plan 192). */
 	setRegionOverlay(
 		bodies: ReadonlyArray<{ id: string; body: RegionBody; world?: RegionWorld }> | null

@@ -450,6 +450,7 @@ const line = (
 		twin.transparent = m.transparent;
 		twin.depthTest = m.depthTest;
 		twin.depthWrite = m.depthWrite;
+		twin.toneMapped = m.toneMapped; // mod overlays keep their colour (plan 347)
 	};
 	sync();
 	const start = modelViewMatrix.mul(vec4(attribute('instanceStart', 'vec3'), 1.0)).toVar();

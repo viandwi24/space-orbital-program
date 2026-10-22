@@ -13,6 +13,7 @@ export * from './scene.ts';
 export * from './map.ts';
 export * from './map-style.ts';
 export * from './region-overlay.ts';
+export * from './overlay-layer.ts';
 export * from './renderer.ts';
 export * from './presets.ts';
 export * from './quality-governor.ts';

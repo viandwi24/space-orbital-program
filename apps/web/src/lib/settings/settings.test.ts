@@ -45,7 +45,8 @@ describe('settings parsing', () => {
 				landing: { status: 'done' as const, step: 4 },
 				nodes: { status: 'active' as const, step: 2 }
 			},
-			modKeys: { 'ex.ping': ['Alt+KeyP'] }
+			modKeys: { 'ex.ping': ['Alt+KeyP'] },
+			overlays: { 'ex.path': false }
 		};
 		expect(parseSettings(serialiseSettings(s))).toEqual(s);
 		// a format 4 value from before the lessons (plan 229) reads with none started
@@ -97,7 +98,8 @@ describe('settings parsing', () => {
 			keyNotice: true,
 			// no lesson started yet (plan 229)
 			lessons: {},
-			modKeys: {}
+			modKeys: {},
+			overlays: {}
 		});
 	});
 	it('format 3 migrates to 4 (plan 216): overrides keep classic, nothing changed gets ksp', () => {

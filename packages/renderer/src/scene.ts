@@ -88,6 +88,7 @@ import {
 	SHADOW_STEPS,
 	terrainSunVisibility
 } from './terrain-shadow.ts';
+import { OverlayLayer, type OverlayInput } from './overlay-layer.ts';
 import { DEFAULT_ORIGIN_THRESHOLD, ZERO, toRenderSpace, updateOrigin } from './origin.ts';
 import { PRESETS, detailOf, type GraphicsPreset } from './presets.ts';
 import { projectWorldPoint, type ScreenPoint } from './project.ts';
@@ -218,6 +219,8 @@ export const INSET_EASE_SECONDS = 0.25;
 
 export class SceneModel {
 	readonly scene = new Scene();
+	/** Mod overlays (plan 347, ADR 0296): body-fixed shapes hang under their body's holder. */
+	private readonly overlays = new OverlayLayer(this.scene, (id) => this.bodies.get(id)?.holder);
 	readonly camera = new PerspectiveCamera(50, 1, CAMERA_NEAR, CAMERA_FAR);
 
 	private readonly bodies = new Map<
@@ -292,6 +295,8 @@ export class SceneModel {
 	private fxEvents: FxEvent[] = [];
 	private fxVesselsNow: EffectsFrame['vessels'] = [];
 	private sinceSync = Number.POSITIVE_INFINITY;
+	/** Body positions of the last sync, for overlays set between syncs. */
+	private lastBodyWorld: ReadonlyMap<string, Vec3> = new Map();
 	private simTime = Number.NEGATIVE_INFINITY;
 	private simAdvancing = false;
 	private effectsTime = 0;
@@ -836,6 +841,18 @@ export class SceneModel {
 	 * texture is built once per call from `regionAt`; the sphere sits 1.5 % above the body's radius
 	 * in its body-fixed frame and shows in map view only.
 	 */
+	/** Mod overlays (plan 347, ADR 0296): the shapes to draw now; `[]` clears them. */
+	setOverlays(layers: readonly OverlayInput[]): void {
+		this.overlays.setResolution(this.viewport.width, this.viewport.height);
+		this.overlays.set(layers);
+		if (this.lastView) this.overlays.place(this.lastBodyWorld, this.origin, this.map);
+	}
+
+	/** Shapes of mod overlays drawn now (tests, Debug → Info). */
+	get overlayCount(): number {
+		return this.overlays.count;
+	}
+
 	setRegionOverlay(
 		bodies: ReadonlyArray<{ id: string; body: RegionBody; world?: RegionWorld }> | null
 	): void {
@@ -984,6 +1001,7 @@ export class SceneModel {
 		for (const v of this.vessels.values()) v.line.setResolution(width, height);
 		for (const m of this.bodyMarks.values()) m.orbit.setResolution(width, height);
 		for (const l of this.pathLines) l.setResolution(width, height);
+		this.overlays.setResolution(width, height);
 	}
 
 	/**
@@ -1198,6 +1216,8 @@ export class SceneModel {
 		}
 
 		this.placeBodyMarks(bodyWorld);
+		this.lastBodyWorld = bodyWorld;
+		this.overlays.place(bodyWorld, this.origin, this.map);
 		const seen = new Set<number>();
 		for (const v of vessels) {
 			const id = v.id;
@@ -1351,6 +1371,7 @@ export class SceneModel {
 		// divides this out in its own shader, ADR 0068).
 		if (this.moonSunScale < 1) this.environment.sunLight.intensity *= this.moonSunScale;
 		this.updateEffects(dt, force);
+		this.overlays.frame(this.camera, this.viewport.height);
 		const reveal = this.revealEffects;
 		if (reveal) {
 			this.effects.root.traverse((o) => {
@@ -1659,6 +1680,7 @@ export class SceneModel {
 		this.setMapLayers({ orbits: true });
 		this.setMapPath(null);
 		this.setRegionOverlay(null);
+		this.setOverlays([]);
 		this.environment.site.setGhost(null);
 		this.highlightPart(null);
 		this.focusId = null;
