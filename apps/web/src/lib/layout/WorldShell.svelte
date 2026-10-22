@@ -30,7 +30,7 @@
 		savedAt,
 		mods,
 		bell,
-		onstopprogram,
+		programs,
 		onsettings,
 		onworldsettings,
 		onhome,
@@ -64,8 +64,8 @@
 		savedAt: number | null;
 		mods: number;
 		bell: BellFeed;
-		/** Stop every program on a vessel, from the status bar's programs list (plan 320). */
-		onstopprogram?: (vessel: number) => void;
+		/** The status bar's programs popover actions (plan 359). */
+		programs?: import('../programs-model').ProgramActions;
 		onsettings: () => void;
 		/** World settings during play (plan 230). */
 		onworldsettings?: () => void;
@@ -123,25 +123,25 @@
 
 <!-- the time bar and, right of it, the page's own row (ADR 0295 point 1: the Hangar's name) -->
 <div class="topleft">
-<TimeBar
-	t={snapshot?.t ?? 0}
-	{paused}
-	{pauseLocked}
-	{onpause}
-	steps={time?.steps ?? warpSteps}
-	{index}
-	limit={time ? time.limit : pageLimit}
-	reason={time ? time.reason : pageReason}
-	time={elapsedText(time?.elapsed ?? snapshot?.t ?? 0, calendar.day, calendar.year)}
-	date={time?.date ?? date}
-	met={time !== null}
-	chip={clockChip}
-	{onchip}
-	onpick={time ? time.onpick : onwarp ? (i) => onwarp(warpSteps[i] ?? 1) : undefined}
-	catchUp={time?.catchUp}
-	oncatchup={time?.oncatchup}
-/>
-{#if pageShell.beside}{@render pageShell.beside()}{/if}
+	<TimeBar
+		t={snapshot?.t ?? 0}
+		{paused}
+		{pauseLocked}
+		{onpause}
+		steps={time?.steps ?? warpSteps}
+		{index}
+		limit={time ? time.limit : pageLimit}
+		reason={time ? time.reason : pageReason}
+		time={elapsedText(time?.elapsed ?? snapshot?.t ?? 0, calendar.day, calendar.year)}
+		date={time?.date ?? date}
+		met={time !== null}
+		chip={clockChip}
+		{onchip}
+		onpick={time ? time.onpick : onwarp ? (i) => onwarp(warpSteps[i] ?? 1) : undefined}
+		catchUp={time?.catchUp}
+		oncatchup={time?.oncatchup}
+	/>
+	{#if pageShell.beside}{@render pageShell.beside()}{/if}
 </div>
 <MenuBar
 	actions={pageShell.actions}
@@ -218,7 +218,7 @@
 		>
 	</div>
 {/if}
-<StatusBar {snapshot} {focus} {world} {system} {location} {savedAt} {mods} {bell} {onstopprogram} />
+<StatusBar {snapshot} {focus} {world} {system} {location} {savedAt} {mods} {bell} {programs} />
 
 <style>
 	.topleft {

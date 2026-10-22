@@ -419,6 +419,18 @@
 		settings.setDock(addPanel(settings.dock, id));
 		panelInput = flight?.panelInput() ?? null;
 	}
+	// the programs popover acts here: the vessel menu's Control and the dock (plan 359, ADR 0302)
+	$effect(() => {
+		pageShell.flight = {
+			active: () => flight?.panelInput()?.vessel?.id ?? null,
+			switchTo: async (vessel) => {
+				const r = await flight?.switchVessel(vessel);
+				if (r && !r.ok) notice = r.reason;
+			},
+			openPanel
+		};
+		return () => (pageShell.flight = null);
+	});
 	/** A status chip's fix (V3 §2.2): open the dock panel that holds the cure. */
 	const fixChip = (fix: ChipFix): void => openPanel(fix.panel);
 	function toggleScript(): void {
@@ -806,6 +818,12 @@
 		};
 		vesselCategories = categoriesOf(categories);
 		modPanels = panels;
+		// `?panel=` from the programs popover on another page (plan 359): open it once here
+		const wanted = new URLSearchParams(location.search).get('panel');
+		if (wanted) {
+			history.replaceState(history.state, '', location.pathname);
+			openPanel(wanted);
+		}
 		missionDefs = missions;
 		objectiveNames = objectiveLabels;
 		const timer = setInterval(() => {

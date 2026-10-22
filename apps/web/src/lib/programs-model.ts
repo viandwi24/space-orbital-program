@@ -2,12 +2,14 @@
  * The programs list (plan 320, ADR 0276 point 8): every vessel that an engaged autopilot (ADR
  * 0271) or a player script flies, from the snapshot, for the status bar. Pure.
  */
-import type { Snapshot } from '@orbital/core';
+import { entityId, type Command, type Snapshot } from '@orbital/core';
 
 export interface ProgramRow {
 	vessel: number;
 	vesselName: string;
 	kind: 'autopilot' | 'script';
+	/** The autopilot's id (`guidance.rendezvous`), or null for a script (plan 359). */
+	autopilot: string | null;
 	/** The autopilot's title or the script's name. */
 	title: string;
 	/** The autopilot's phase and status, or the script's "resumed" note. */
@@ -53,6 +55,7 @@ export function programRows(snapshot: Snapshot | null): ProgramRow[] {
 				vessel,
 				vesselName,
 				kind: 'autopilot',
+				autopilot: autopilot.id ?? null,
 				title: autopilot.title ?? autopilot.id ?? 'Autopilot',
 				detail: [autopilot.phase, autopilot.status].filter(Boolean).join(' · '),
 				manual
@@ -63,6 +66,7 @@ export function programRows(snapshot: Snapshot | null): ProgramRow[] {
 				vessel,
 				vesselName,
 				kind: 'script',
+				autopilot: null,
 				title: v.script.name,
 				detail: v.script.resumed ? 'resumed from a save' : 'running',
 				manual
@@ -75,3 +79,84 @@ export function programRows(snapshot: Snapshot | null): ProgramRow[] {
 
 /** "1 program", "3 programs". */
 export const programsLabel = (n: number): string => `${n} program${n === 1 ? '' : 's'}`;
+
+// ---- the programs popover (plan 359, ADR 0302) --------------------------------------------------
+
+/** A dock panel as the popover needs it: its id and the places it shows. */
+export interface ProgramPanel {
+	id: string;
+	title: string;
+	contexts: readonly string[];
+}
+
+/**
+ * The dock panel that shows a program: the Script panel for a script; for an autopilot, the first
+ * Flight panel of the mod that registered it (`guidance.rendezvous` -> `guidance.panel`, the
+ * Guidance Computer, which opens the engaged program's tab by itself). Null when the mod has none.
+ */
+export function panelOf(row: ProgramRow, panels: readonly ProgramPanel[]): ProgramPanel | null {
+	if (row.kind === 'script') return { id: 'host.script', title: 'Script', contexts: ['flight'] };
+	const plugin = row.autopilot?.split('.')[0];
+	if (!plugin) return null;
+	return panels.find((p) => p.id.startsWith(`${plugin}.`) && p.contexts.includes('flight')) ?? null;
+}
+
+/** What a row's Stop sends: an autopilot disengages alone; a script stops the vessel's programs. */
+export function stopCommand(row: ProgramRow): Command {
+	return row.kind === 'autopilot'
+		? { type: 'autopilot-disengage', vessel: entityId(row.vessel) }
+		: {
+				type: 'program-stop',
+				vessel: entityId(row.vessel),
+				reason: 'stopped from the programs list'
+			};
+}
+
+export interface ProgramGroup {
+	vessel: number;
+	vesselName: string;
+	/** The vessel flown now: its group comes first and has no Vessel button. */
+	active: boolean;
+	rows: (ProgramRow & { panel: ProgramPanel | null })[];
+}
+
+/** The rows by vessel, the active vessel first, then by name; each row with its panel. */
+export function programGroups(
+	rows: readonly ProgramRow[],
+	active: number | null,
+	panels: readonly ProgramPanel[]
+): ProgramGroup[] {
+	const groups = new Map<number, ProgramGroup>();
+	for (const r of rows) {
+		const g = groups.get(r.vessel) ?? {
+			vessel: r.vessel,
+			vesselName: r.vesselName,
+			active: r.vessel === active,
+			rows: []
+		};
+		g.rows.push({ ...r, panel: panelOf(r, panels) });
+		groups.set(r.vessel, g);
+	}
+	return [...groups.values()].sort(
+		(a, b) => Number(b.active) - Number(a.active) || a.vesselName.localeCompare(b.vesselName)
+	);
+}
+
+/**
+ * Where a popover action goes (ADR 0302 point 3). In Flight it acts there: switch the focus, open
+ * the panel. Elsewhere it goes to Flight with the vessel as the focus, and the panel opened there.
+ */
+export function flightHref(panel: string | null): string {
+	return panel ? `/flight?panel=${encodeURIComponent(panel)}` : '/flight';
+}
+
+/** What the programs popover's buttons do (plan 359, ADR 0302); the world layout supplies them. */
+export interface ProgramActions {
+	/** The dock panels a program can open. */
+	panels: () => readonly ProgramPanel[];
+	/** The vessel flown in Flight, or null on the other pages (there, Vessel goes to Flight). */
+	active: () => number | null;
+	panel: (row: ProgramGroup['rows'][number]) => void;
+	vessel: (vessel: number) => void;
+	stop: (row: ProgramGroup['rows'][number]) => void;
+}

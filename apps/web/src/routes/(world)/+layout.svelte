@@ -11,7 +11,6 @@
 	import {
 		calendarOf,
 		formatDate,
-		entityId,
 		homeBodyOf,
 		type Epoch,
 		type RuleValue,
@@ -24,7 +23,14 @@
 	import LoadDialog from '../../lib/save/LoadDialog.svelte';
 	import { listEntries, withFallback } from '../../lib/vab/library';
 	import { indexedDbStore } from '../../lib/vab/library-idb';
-	import { partLookup } from '../../lib/catalog';
+	import { loadContent, partLookup } from '../../lib/catalog';
+	import { pageShell } from '../../lib/layout/page-actions.svelte';
+	import {
+		flightHref,
+		stopCommand,
+		type ProgramActions,
+		type ProgramPanel
+	} from '../../lib/programs-model';
 	import WorldShell from '../../lib/layout/WorldShell.svelte';
 	import SettingsDialog from '../../lib/ui/SettingsDialog.svelte';
 	import Button from '../../lib/ui/Button.svelte';
@@ -574,6 +580,40 @@
 		if (lockState !== 'held') return;
 		if (worldSession.client === null) void bootWorld(worldSession, worldId).catch(() => {});
 	});
+
+	// the status bar's programs popover (plan 359, ADR 0302)
+	let programPanels: ProgramPanel[] | null = null;
+	/** To the program's vessel (and panel): in Flight there, elsewhere Flight with it as the focus. */
+	async function toProgram(vessel: number, panel: string | null): Promise<void> {
+		const here = pageShell.flight;
+		if (here) {
+			if (here.active() !== vessel) await here.switchTo(vessel);
+			if (panel) here.openPanel(panel);
+			return;
+		}
+		const record = await worldSession.client?.designOf(vessel);
+		if (record) {
+			const name = worldSession.snapshot?.vessels.find((v) => Number(v.id) === vessel)?.name;
+			worldSession.focus = {
+				vessel,
+				design: { ...record.design, name: name ?? record.design.name }
+			};
+		}
+		const href = flightHref(panel);
+		void goto(`${resolve('/(world)/flight')}${href.slice('/flight'.length)}`);
+	}
+	const programActions: ProgramActions = {
+		panels: () =>
+			(programPanels ??= loadContent().panels.map((p) => ({
+				id: p.id,
+				title: p.title,
+				contexts: p.contexts
+			}))),
+		active: () => pageShell.flight?.active() ?? null,
+		panel: (row) => void toProgram(row.vessel, row.panel?.id ?? null),
+		vessel: (vessel) => void toProgram(vessel, null),
+		stop: (row) => void worldSession.client?.dispatch(stopCommand(row))
+	};
 </script>
 
 {#if lockState === 'blocked'}
@@ -602,12 +642,7 @@
 		{savedAt}
 		mods={activePlugins().length}
 		{bell}
-		onstopprogram={(vessel) =>
-			void worldSession.client?.dispatch({
-				type: 'program-stop',
-				vessel: entityId(vessel),
-				reason: 'stopped from the programs list'
-			})}
+		programs={programActions}
 		onsettings={() => (settingsOpen = true)}
 		onworldsettings={openWorldSettings}
 		onhome={() => void goto(resolve('/'))}
@@ -641,7 +676,10 @@
 	{#if local(page.url.pathname) !== '/flight' && runningLesson()}
 		<!-- the lesson's card off Flight (plan 344, ADR 0293 point 2) -->
 		<LessonOverlay
-			place={local(page.url.pathname).split('/').filter((p) => p !== '').at(-1) ?? ''}
+			place={local(page.url.pathname)
+				.split('/')
+				.filter((p) => p !== '')
+				.at(-1) ?? ''}
 			{snapshot}
 			keymap={settings.keymap}
 			onleave={() => {

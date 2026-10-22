@@ -8,7 +8,13 @@
 	import { SHELL_ICONS } from './shell-model';
 	import { connection, savedAgo, statusItems, type BellFeed } from './status-bar';
 	import type { PageLocation } from './page-actions.svelte';
-	import { manualText, programRows, programsLabel } from '../programs-model';
+	import {
+		programGroups,
+		programRows,
+		programsLabel,
+		type ProgramActions
+	} from '../programs-model';
+	import ProgramsPopover from './ProgramsPopover.svelte';
 
 	let {
 		snapshot,
@@ -19,7 +25,7 @@
 		savedAt,
 		mods,
 		bell,
-		onstopprogram
+		programs: actions
 	}: {
 		snapshot: Snapshot | null;
 		/** The vessel in focus, for its link. */
@@ -31,16 +37,30 @@
 		savedAt: number | null;
 		mods: number;
 		bell: BellFeed;
-		/** Stop every program on a vessel (plan 320, ADR 0276 point 5). */
-		onstopprogram?: (vessel: number) => void;
+		/** The programs popover's actions (plan 359); without them the chip only lists. */
+		programs?: ProgramActions;
 	} = $props();
 
 	// the programs flying vessels right now (plan 320, ADR 0276 point 8)
 	const programs = $derived(programRows(snapshot));
 	let programsOpen = $state(false);
+	let chip = $state<HTMLElement>();
 	$effect(() => {
 		if (programs.length === 0) programsOpen = false;
 	});
+	// grouped by vessel, the one flown first (plan 359); the panels are read when it opens
+	const groups = $derived(
+		programsOpen
+			? programGroups(programs, actions ? actions.active() : focus, actions?.panels() ?? [])
+			: []
+	);
+	/** An action closes the popover first, so the page it leads to is not behind a veil. */
+	const then =
+		<T,>(run: ((x: T) => void) | undefined) =>
+		(x: T): void => {
+			programsOpen = false;
+			run?.(x);
+		};
 
 	const items = $derived(statusItems(snapshot));
 	const link = $derived(connection(snapshot, focus));
@@ -118,6 +138,8 @@
 			class="programs"
 			class:manual={programs.some((p) => p.manual.length > 0)}
 			data-testid="status-programs"
+			bind:this={chip}
+			aria-haspopup="dialog"
 			aria-expanded={programsOpen}
 			data-tip="Programs flying your vessels"
 			onclick={() => (programsOpen = !programsOpen)}
@@ -168,35 +190,15 @@
 			{#if unread > 0}<span class="badge" aria-hidden="true">{unread}</span>{/if}
 		</button>
 	</div>
-	{#if programsOpen && programs.length > 0}
-		<div class="feed list" role="region" aria-label="Running programs" data-testid="programs-list">
-			<p class="head">
-				Programs keep flying when you look away. Touch a control to take it; the program resumes 1 s
-				after you let go. Delete stops the programs of the vessel you fly.
-			</p>
-			{#each programs as p (`${p.vessel}-${p.kind}`)}
-				<div class="row">
-					<div class="what">
-						<b>{p.title}</b>
-						<span
-							>{p.vesselName} · {p.kind === 'autopilot' ? 'Autopilot' : 'Script'}{p.detail
-								? ` · ${p.detail}`
-								: ''}</span
-						>
-						{#if p.manual.length > 0}<span class="held">Manual: {manualText(p.manual)}</span>{/if}
-					</div>
-					{#if onstopprogram}
-						<button
-							type="button"
-							class="stop"
-							aria-label="Stop the programs of {p.vesselName}"
-							onclick={() => onstopprogram(p.vessel)}>Stop</button
-						>
-					{/if}
-				</div>
-			{/each}
-		</div>
-	{/if}
+	<ProgramsPopover
+		open={programsOpen && programs.length > 0}
+		anchor={chip}
+		{groups}
+		onclose={() => (programsOpen = false)}
+		onpanel={then(actions?.panel)}
+		onvessel={then(actions?.vessel)}
+		onstop={(row) => actions?.stop(row)}
+	/>
 	{#if bellOpen}
 		<div class="feed" role="log" aria-label="Notifications" data-testid="bell-feed">
 			{#each entries as e (e.id)}
@@ -376,48 +378,6 @@
 	}
 	.programs.manual .pulse {
 		background: #f5a524;
-	}
-	.list {
-		right: auto;
-		left: 50%;
-		transform: translateX(-50%);
-		width: min(26rem, calc(100vw - 2rem));
-	}
-	.list .head {
-		color: var(--text-dim);
-	}
-	.row {
-		display: flex;
-		align-items: center;
-		justify-content: space-between;
-		gap: var(--s-3);
-		padding: var(--s-2) 0;
-		border-top: 1px solid var(--border-subtle);
-	}
-	.what {
-		display: grid;
-		gap: 2px;
-		min-width: 0;
-	}
-	.what span {
-		color: var(--text-dim);
-		overflow-wrap: anywhere;
-	}
-	.what .held {
-		color: #f5a524;
-	}
-	.stop {
-		flex: none;
-		padding: 0.25rem 0.625rem;
-		border: 1px solid var(--border-strong);
-		border-radius: var(--radius-row);
-		background: transparent;
-		color: var(--text-primary);
-		font: inherit;
-		cursor: pointer;
-	}
-	.stop:hover {
-		background: rgb(255 255 255 / 0.06);
 	}
 	.feed .unread {
 		color: var(--text-primary);

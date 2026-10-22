@@ -66,6 +66,15 @@ class PageShell {
 	home = $state.raw<(() => void) | null>(null);
 	/** The page's own row right of the time bar (ADR 0295 point 1: the Hangar's name and kind). */
 	beside = $state.raw<Snippet | null>(null);
+	/**
+	 * Flight's own way to the programs popover's actions (plan 359, ADR 0302 point 3): the vessel
+	 * flown, a switch like the vessel menu's Control, and a dock panel. Null on the other pages.
+	 */
+	flight = $state.raw<{
+		active: () => number | null;
+		switchTo: (vessel: number) => Promise<void>;
+		openPanel: (id: string) => void;
+	} | null>(null);
 
 	reset(): void {
 		this.actions = [];
@@ -75,6 +84,7 @@ class PageShell {
 		this.menu = null;
 		this.home = null;
 		this.beside = null;
+		this.flight = null;
 	}
 }
 
