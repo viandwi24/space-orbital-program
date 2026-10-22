@@ -529,7 +529,7 @@ ctx.panels.register(definePanel({
 ```
 
 - The input (`PanelInput`) holds the snapshot, the vessel the player flies, its altitude and speed relative to its body, the sim time, the body and delta-v (ADR 0288) and `world`, the World Query (plan 343). Selectors run ten times a second; keep them cheap.
-- Nodes: `section` (`columns` 1 or 2), `readout` (a value or `null` for `[—]`), `meter` (0 to 1), `switch`, `button` (`tone` `primary` or `danger`), `select`, `list`, `sparkline` (the game keeps the last `samples`, default 60), and (plan 332, ADR 0287) `tabs`, `progress`, `number` and `notice`; see `guides/vessel-pilot-api.md`, "Mod panel UIs".
+- Nodes: `section` (`columns` 1 or 2), `readout` (a value or `null` for `[—]`), `meter` (0 to 1), `switch`, `button` (`tone` `primary` or `danger`), `pick` (plan 366: a button that arms a map pick; `command(input, { body, direction })` runs with the next map click on a body), `select`, `list`, `sparkline` (the game keeps the last `samples`, default 60), and (plan 332, ADR 0287) `tabs`, `progress`, `number` and `notice`; see `guides/vessel-pilot-api.md`, "Mod panel UIs".
 - `canvas.draw` gets a `PanelCanvas` (clear, fill and stroke styles, paths, arcs, rectangles, text). It runs only while the panel is open. Mods import only `@orbital/sdk`: no DOM.
 - A panel that throws shows "This panel stopped" with the message; the game and the other panels go on.
 - The player adds and removes panels with the Panel library (the plus at the foot of the dock); `examples/mod-sample` has a complete panel.
@@ -639,7 +639,7 @@ ctx.systems.register(defineSystem({
 | Group | Events |
 |---|---|
 | vessel | `vessel:created`, `vessel:split`, `vessel:destroyed` (crash, burn-up, terminate, recovery: `reason`), `vessel:docked`, `vessel:undocked`, `vessel:mode-changed`, `vessel:soi-changed`, `vessel:situation-changed` (landing, splashdown, lift-off, orbit, escape), `vessel:maneuver-complete`, `vessel:target-lost`, `vessel:power-depleted`, `vessel:frozen`, `vessel:thawed` |
-| flight | `stage:activated`, `part:damaged` (impact or heat), `part:failed`, `stock:engine-flameout`, `stock:parachute-deployed`, `stock:parachute-torn`, `range:violation` |
+| flight | `stage:activated`, `part:damaged` (impact or heat), `part:failed`, `stock:engine-flameout`, `stock:parachute-deployed`, `stock:parachute-torn`, `range:violation`, `tether:attached`, `tether:released`, `tether:snapped` |
 | program | `autopilot:ended`, `program:override`, `program:resumed`, `program:stopped`, `script:attached`, `script:detached` |
 | world | `world:tick`, `world:rule-changed`, `world:entity-added`, `world:entity-removed`, `warp:limited`, `warp:stopped`, `warp:clamped`, `alarm:fired`, `building:ready`, `site:founded`, `site:joined`, `site:left`, `route:delivered` |
 | career | `objective:completed`, `objective:failed`, `milestone:reached`, `economy:entry`, `discovery:reviewed` |
@@ -661,6 +661,8 @@ ctx.keybindings.register(defineKeybinding({
 	command: (i) => (i.vessel ? { type: 'stage', vessel: i.vessel.id } : null)
 }));
 ctx.notify('Touchdown on the Mun', { tone: 'success', vessel: id, detail: '3.2 m/s' });
+// a panel's own key (plan 366): `hidden: true` keeps it out of Controls → Mods; its command may
+// carry `data` (up to 16 numbers, strings or booleans), which `mod:key` passes on
 ```
 
 - The player rebinds mod keys under Settings → Controls → Mods. The game's own keys win: a mod key that is also a game key (or another mod's) is marked and does nothing until rebound. Most plain letters are taken; prefer an `Alt+` chord.
@@ -701,10 +703,11 @@ Facts for physics mods: `ctx.world.atmosphere(body, altitude)` (the sim's own ai
 The built-in Trajectories mod is the reference example, about 300 lines:
 
 1. **`predict.ts`** is pure: RK4 for a point mass under gravity and drag, with drag on the velocity relative to the turning air (`v − Ω × r`), step length half the time to fall the current height, until the ground (`groundHeight` below 12 km), the SOI edge or 30 minutes. Each point is turned back into the body's axes at the time it is reached, so the arc lies on the ground the vessel will reach. It has its own tests, one against the range-safety conic in vacuum.
-2. **The system** (`trajectories.predictor`, post-physics) runs five times a second of sim time: `ctx.world.vessels({ situation: ['flying', 'sub-orbital'], owner: 'player', noDebris: true })`, a prediction for each (four at most), and `ctx.overlays.set` with the arc (green), a cross-hair and a label at the impact, all `body-fixed` and tagged with the vessel, plus `meta` (`time:<id>`, `distance:<id>`, `speed:<id>`, `error:<id>`).
-3. **The landing target** is a store (`trajectories.target`, latitude and longitude). The panel's buttons send `mod-key` with two keybindings (unbound by default); the system's `on: { 'mod:key' }` sets the target at the current predicted impact or clears it. The overlay then draws an amber target, a dashed line from the impact and the error.
-4. **The panel** reads the published `meta` through `input.world.overlay(...)`: impact in, distance, speed at impact, target error.
-5. **When it draws** is a store too (`trajectories.show`, set by the panel's "Show the path" choice through three more keybindings). In `auto`, the default, a vessel's path is drawn only once it comes down (falling faster than 2 m/s), while the landing autopilot (`guidance.land`) flies it, or with a landing target set. A climbing rocket's coast prediction falls straight back to the pad, which only got in the way. `always` draws it whenever the vessel is in the air; `off` never. In every mode, nothing is drawn within 25 m of the ground (`shows`, pure and tested).
+2. **The system** (`trajectories.predictor`, post-physics) runs five times a second of sim time: `ctx.world.vessels({ situation: ['flying', 'sub-orbital'], owner: 'player', noDebris: true })` (two at most), a prediction for each, and `ctx.overlays.set` with the arc, a cross-hair and a "time · distance" label at the impact, all `body-fixed` and tagged with the vessel, plus `meta` (`time:<id>`, `distance:<id>`, `speed:<id>`, `error:<id>`).
+3. **When it shows** (plan 366, ADR 0307; `visibility`, pure and tested): never on the ground, the pad or splashed, on a stable orbit or escaping, or when the path does not reach the ground. In Flight the arc fades in between 1 and 2 km above the ground; the map shows it whenever it comes down to the ground. Shapes carry `views`, so one prediction draws differently in each.
+4. **How it looks** (`arcPieces`): a 2 px, 80 % arc in at most ten pieces, each coloured by its hottest point's √ρ·v³ (green, yellow, orange, red), nothing within 30 m of the vessel and faint over the first 600 m, so it never runs through the camera.
+5. **Settings and the landing target** are stores (`trajectories.settings` `{ show: 'off' | 'map' | 'both', descendingOnly }`, `trajectories.target`). The panel's select, switch and buttons send `mod-key` with `data` (ADR 0307 point 4) through keybindings; the internal ones are `hidden`, so they stay out of Controls → Mods. The system's `on: { 'mod:key' }` applies them.
+6. **The map pick**: the panel's `pick` node "Pick target on the map" arms a pick and opens the map; the player's next click on a body gives its command `{ body, direction }` (body-fixed), which sends `mod-key` with that point; the system stores it as latitude and longitude.
 
 It predicts a coast: engines are not in it (the panel says so). A tumbling vessel's drag area swings with its attitude, so its prediction settles once it holds an attitude (SAS) or after a few seconds of the average.
 

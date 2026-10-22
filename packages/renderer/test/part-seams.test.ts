@@ -176,7 +176,9 @@ describe('part seams', () => {
 					'orbiter-bay',
 					// boxes and cylinders (plan 313)
 					'winch',
-					'tether-socket'
+					'tether-socket',
+					// boxes and cylinders (plan 361)
+					'orbiter-gear'
 				].includes(visual.kind)
 			)
 				continue;

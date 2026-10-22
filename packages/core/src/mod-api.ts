@@ -89,6 +89,11 @@ export interface KeybindingDefinition {
 	 * The command to send, from the panel input at the key press; null sends nothing. Without it
 	 * the page sends `mod-key { key: id, vessel }` and the sim emits `mod:key` for systems.
 	 */
+	/**
+	 * Not listed under Controls → Mods (plan 366): a key the mod's own panel sends, which a player
+	 * would not bind (a map pick, a setting). The sim accepts its `mod-key` like any other.
+	 */
+	hidden?: boolean;
 	command?(input: PanelInput): Command | null;
 }
 
@@ -98,6 +103,7 @@ export const keybindingDefinitionSchema = z.object({
 		.regex(DEFINITION_ID_PATTERN, 'expected "<plugin>.<name>" in lower-case kebab-case'),
 	label: z.string().min(1),
 	defaults: z.array(z.string().min(1)).max(2),
+	hidden: z.boolean().optional(),
 	mode: z.enum(['flight', 'map']).optional(),
 	command: z
 		.custom<(...args: never[]) => unknown>((v) => typeof v === 'function', 'expected a function')

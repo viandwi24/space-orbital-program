@@ -75,6 +75,13 @@ export interface SasState {
 	accel?: number;
 	/** Mode `direction` (plan 310, ADR 0271 point 2): where the control part's nose points, inertial unit vector. */
 	direction?: Vec3;
+	/**
+	 * The roll a pointing mode keeps (plan 361, ADR 0303): the control part's top (+Z) from local up,
+	 * about the nose, rad, as it was when the mode took over. Cleared by a mode change and by the
+	 * player's keys, so the roll they leave is the one kept. Relative to local up, it turns with the
+	 * orbit: a vessel holding prograde round it keeps the same roll without rolling.
+	 */
+	roll?: number;
 }
 
 /** An engaged autopilot (plan 310, ADR 0271 points 4 to 6). */

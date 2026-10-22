@@ -34,6 +34,8 @@ interface Drawn {
 	object: Object3D;
 	/** Sprites: their pixel size and the material to dispose. */
 	px?: number;
+	/** The point the shape is at, in its parent's axes (a label is drawn offset from it). */
+	base: Vector3;
 	dispose(): void;
 }
 
@@ -179,6 +181,7 @@ export class OverlayLayer {
 			drawn = {
 				shape,
 				object: line,
+				base: new Vector3(),
 				dispose: () => {
 					geometry.dispose();
 					material.dispose();
@@ -198,12 +201,14 @@ export class OverlayLayer {
 			const sprite = new Sprite(material);
 			if (label) {
 				// the text sits above and right of the point, clear of a marker there
-				sprite.center.set(-0.04, -0.6);
+				// placed above and right of its point each frame (`frame`): WebGPU's sprites ignore `center`
 				sprite.userData.aspect = label.aspect;
+				sprite.userData.label = true;
 			}
 			drawn = {
 				shape,
 				object: sprite,
+				base: new Vector3(),
 				px: shape.kind === 'label' ? 18 : (shape.size ?? 20),
 				dispose: () => {
 					if (label?.texture) label.texture.dispose();
@@ -213,6 +218,7 @@ export class OverlayLayer {
 		}
 		drawn.object.renderOrder = onTop ? ON_TOP_ORDER : 0;
 		drawn.object.position.set(anchor.x, anchor.y, anchor.z);
+		drawn.base.set(anchor.x, anchor.y, anchor.z);
 		const parent = shape.frame === 'body-fixed' ? this.holderOf(shape.body) : this.inertial;
 		if (!parent) return; // a body the scene does not draw: nothing to hang it on
 		parent.add(drawn.object);
@@ -230,6 +236,7 @@ export class OverlayLayer {
 			const a = anchorOf(d.shape);
 			const p = toRenderSpace({ x: centre.x + a.x, y: centre.y + a.y, z: centre.z + a.z }, origin);
 			d.object.position.set(p.x, p.y, p.z);
+			d.base.set(p.x, p.y, p.z);
 		}
 	}
 
@@ -238,11 +245,21 @@ export class OverlayLayer {
 		const k = (2 * Math.tan((camera.fov * Math.PI) / 360)) / Math.max(1, viewportHeight);
 		for (const d of this.drawn) {
 			if (d.px === undefined || !d.object.visible) continue;
-			const w = d.object.getWorldPosition(scratch);
+			const parent = d.object.parent;
+			const w = scratch.copy(d.base);
+			if (parent) parent.localToWorld(w);
 			const dist = w.distanceTo(camera.position);
 			const h = d.px * k * dist;
 			const aspect = (d.object.userData.aspect as number | undefined) ?? 1;
 			d.object.scale.set(h * aspect, h, 1);
+			if (d.object.userData.label) {
+				// above and right of the point, clear of a marker there, in the camera's screen axes
+				const right = axisX.set(1, 0, 0).applyQuaternion(camera.quaternion);
+				const up = axisY.set(0, 1, 0).applyQuaternion(camera.quaternion);
+				w.addScaledVector(right, (h * aspect) / 2 + h * 0.5).addScaledVector(up, h * 0.7);
+				if (parent) parent.worldToLocal(w);
+				d.object.position.copy(w);
+			}
 		}
 	}
 
@@ -274,3 +291,5 @@ export class OverlayLayer {
 }
 
 const scratch = new Vector3();
+const axisX = new Vector3();
+const axisY = new Vector3();

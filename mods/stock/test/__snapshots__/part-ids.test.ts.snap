@@ -3881,6 +3881,79 @@ exports[`stock part ids, masses, costs and modules match the snapshot 1`] = `
     ],
   },
   {
+    "cost": 1600,
+    "id": "stock.orbiter-gear",
+    "mass": 400,
+    "modules": [
+      [
+        "stock.wheel",
+        {
+          "deploySpeed": 150,
+          "deployed": false,
+          "grip": 0.9,
+          "offset": [
+            1.1,
+            0,
+            0,
+          ],
+          "radius": 0.45,
+          "retractable": true,
+          "steer": 0,
+          "width": 0.6,
+        },
+      ],
+    ],
+  },
+  {
+    "cost": 800,
+    "id": "stock.orbiter-gear-nose",
+    "mass": 200,
+    "modules": [
+      [
+        "stock.wheel",
+        {
+          "deploySpeed": 150,
+          "deployed": false,
+          "grip": 0.9,
+          "offset": [
+            1.1,
+            0,
+            0,
+          ],
+          "radius": 0.35,
+          "retractable": true,
+          "steer": 12,
+          "width": 0.6,
+        },
+      ],
+    ],
+  },
+  {
+    "cost": 480,
+    "id": "stock.drag-chute",
+    "mass": 120,
+    "modules": [
+      [
+        "stock.parachute",
+        {
+          "anchor": [
+            0,
+            0.3,
+            0,
+          ],
+          "deployHeight": 100,
+          "fullDragArea": 90,
+          "fullSeconds": 1.5,
+          "minPressure": 0.3,
+          "riskySpeed": 100,
+          "semiDragArea": 12,
+          "semiSeconds": 0.5,
+          "unsafeSpeed": 120,
+        },
+      ],
+    ],
+  },
+  {
     "cost": 700,
     "id": "stock.rover-chassis",
     "mass": 350,

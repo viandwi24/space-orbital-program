@@ -92,3 +92,52 @@ export const PartLaunchClamp = definePart({
 	modules: [[ModuleLaunchClamp, {}]],
 	stagingIcon: 'decoupler'
 });
+
+/**
+ * The orbiter's landing gear (plan 361): retractable wheels under the belly, stowed behind black
+ * tile doors and lowered with the Landing gear group (G) below 150 m/s. The main gear has twin
+ * wheels and brakes; the nose gear steers.
+ */
+const orbiterGear = (id: string, title: string, massKg: number, steer: number, radius: number) =>
+	definePart({
+		id,
+		title,
+		mass: kg(massKg),
+		cost: partCost(massKg, 'gear'),
+		impactTolerance: 14,
+		maxTemperature: 2_000,
+		shape: { kind: 'box', size: [0.26, 1.3, 0.7] },
+		visual: {
+			kind: 'orbiter-gear',
+			palette: { primary: '#2b2f36', secondary: '#c9ccd1', accent: '#d9552b' },
+			params: { offset: 1.1, radius, twin: true },
+			deploy: { module: ModuleWheel.id, flag: 'deployed', seconds: 2.5 }
+		},
+		attach: { radial: { pos: [-0.13, 0, 0], dir: [-1, 0, 0] } },
+		crossfeed: false,
+		modules: [
+			[
+				ModuleWheel,
+				{
+					radius,
+					width: 0.6,
+					offset: [1.1, 0, 0],
+					steer,
+					grip: 0.9,
+					retractable: true,
+					deployed: false,
+					deploySpeed: 150
+				}
+			]
+		],
+		stagingIcon: 'legs'
+	});
+
+export const PartOrbiterGear = orbiterGear('stock.orbiter-gear', 'OrbitX UA-G "Stilt"', 400, 0, 0.45);
+export const PartOrbiterNoseGear = orbiterGear(
+	'stock.orbiter-gear-nose',
+	'OrbitX UA-GN "Stilt" nose gear',
+	200,
+	12,
+	0.35
+);

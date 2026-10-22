@@ -37,7 +37,9 @@ describe('buttons', () => {
 			'target',
 			'anti-target',
 			// plan 063: wings level, nose on the horizon
-			'level'
+			'level',
+			// plan 361: belly first, 40° nose up
+			'reentry'
 		]);
 		expect(new Set(SAS_BUTTONS.map((b) => b.action)).size).toBe(SAS_BUTTONS.length);
 	});

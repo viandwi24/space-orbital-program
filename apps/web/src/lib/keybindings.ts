@@ -143,6 +143,8 @@ export const ACTIONS = [
 	flight('Stability assist (SAS)', 'sasTarget', 'Point at the target', 'Digit9'),
 	flight('Stability assist (SAS)', 'sasAntiTarget', 'Point away from the target', 'Digit0'),
 	flight('Stability assist (SAS)', 'sasLevel', 'Level wings (aircraft)', ';'),
+	// plan 361: belly first, 40° nose up, wings level
+	flight('Stability assist (SAS)', 'sasReentry', 'Re-entry: belly first, 40° nose up', 'Alt+KeyR'),
 	// Aircraft (plan 063, ADR 0161): pitch trim and the wheels' brakes
 	// classic keeps `[`/`]` for the trim; the KSP profile switches vessels on them (plans 216, 221)
 	flight('Aircraft', 'trimUp', 'Trim nose up', ']'),
@@ -675,7 +677,8 @@ export const BINDING_GROUPS: readonly BindingGroup[] = [
 			},
 			{ actions: ['sasManeuver'], text: 'Point at the maneuver node' },
 			{ actions: ['sasTarget', 'sasAntiTarget'], text: 'Point at the target, away from it' },
-			{ actions: ['sasLevel'], text: 'Level wings (aircraft)' }
+			{ actions: ['sasLevel'], text: 'Level wings (aircraft)' },
+			{ actions: ['sasReentry'], text: 'Re-entry: belly first, 40° nose up' }
 		]
 	},
 	{

@@ -45,6 +45,11 @@ export interface PredictInput {
 export interface Prediction {
 	/** The arc in the body's own axes (the frame `body-fixed` overlays use), from the vessel on. */
 	path: Vec3[];
+	/**
+	 * At each point of `path`: the airspeed, m/s, and the air density, kg/m³ (plan 366: the arc is
+	 * coloured by the heating they give, √ρ·v³).
+	 */
+	samples: { speed: number; density: number }[];
 	/** Where and when it comes down, in the body's axes; null when it does not within the time. */
 	impact: { position: Vec3; time: number; speed: number } | null;
 	/** Why the prediction stopped. */
@@ -116,6 +121,16 @@ export function predict(input: PredictInput): Prediction {
 	let t = 0;
 	const maxTime = input.maxTime ?? 1_800;
 	const path: Vec3[] = [fixedAt(r, 0)];
+	/** Airspeed and density at a state (for the colour of the arc). */
+	const sampleAt = (rr: Vec3, vv: Vec3): { speed: number; density: number } => {
+		const altitude = len(rr) - radius;
+		const density =
+			input.atmosphereHeight > 0 && altitude < input.atmosphereHeight
+				? input.air(altitude).density
+				: 0;
+		return { speed: len(add(vv, cross(omega, rr), -1)), density };
+	};
+	const samples = [sampleAt(r, v)];
 	let end: Prediction['end'] = 'time';
 	let impact: Prediction['impact'] = null;
 	for (let step = 0; step < MAX_STEPS && t < maxTime; step++) {
@@ -150,6 +165,7 @@ export function predict(input: PredictInput): Prediction {
 				const ti = t + h * f;
 				const position = fixedAt(ri, ti);
 				path.push(position);
+				samples.push(sampleAt(ri, vi));
 				impact = { position, time: ti, speed: len(add(vi, cross(omega, ri), -1)) };
 				end = 'ground';
 				break;
@@ -163,14 +179,15 @@ export function predict(input: PredictInput): Prediction {
 		v = vn;
 		t = tn;
 		path.push(fixedAt(r, t));
+		samples.push(sampleAt(r, v));
 	}
-	return { path: thin(path), impact, end };
+	return { path: thin(path), samples: thin(samples), impact, end };
 }
 
 /** At most `MAX_POINTS` points, evenly picked, the first and last kept. */
-function thin(path: Vec3[]): Vec3[] {
+function thin<T>(path: T[]): T[] {
 	if (path.length <= MAX_POINTS) return path;
-	const out: Vec3[] = [];
+	const out: T[] = [];
 	const k = (path.length - 1) / (MAX_POINTS - 1);
 	for (let i = 0; i < MAX_POINTS; i++) out.push(path[Math.round(i * k)]!);
 	return out;

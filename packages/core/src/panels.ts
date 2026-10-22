@@ -34,6 +34,12 @@ export interface PanelInput {
 	world?: WorldQuery;
 }
 
+/** What a map pick gives (plan 366, ADR 0307): the body and the body-fixed unit direction clicked. */
+export interface MapPick {
+	body: string;
+	direction: { x: number; y: number; z: number };
+}
+
 /** A notice's button (ADR 0288): opens a tab of the panel's `tabs`. */
 export interface PanelNoticeAction {
 	label: string;
@@ -106,6 +112,20 @@ export type PanelNode =
 			label: string;
 			tone?: 'primary' | 'danger';
 			command(input: PanelInput): Command | null;
+	  }
+	/**
+	 * A button that arms a pick on the map (plan 366, ADR 0307): the player's next click on a body
+	 * gives `command` the body and the body-fixed unit direction of the point clicked; a click off
+	 * every body cancels. `enabled` (default true) greys the button out.
+	 */
+	| {
+			kind: 'pick';
+			label: string;
+			tone?: 'primary' | 'danger';
+			/** Said while the pick is armed, e.g. "Click the ground on the map". */
+			hint?: string;
+			enabled?(input: PanelInput): boolean;
+			command(input: PanelInput, pick: MapPick): Command | null;
 	  }
 	/** A choice among a few values (plan 330, ADR 0285 point 2), drawn as a segmented control. */
 	| {
@@ -227,6 +247,14 @@ export const panelNodeSchema: z.ZodType<PanelNode> = z.lazy(() =>
 			kind: z.literal('button'),
 			label,
 			tone: z.enum(['primary', 'danger']).optional(),
+			command: fn
+		}),
+		z.object({
+			kind: z.literal('pick'),
+			label,
+			tone: z.enum(['primary', 'danger']).optional(),
+			hint: z.string().optional(),
+			enabled: fn.optional(),
 			command: fn
 		}),
 		z.object({

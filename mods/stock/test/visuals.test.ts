@@ -21,6 +21,7 @@ const KINDS = [
 	'side-port',
 	'winch',
 	'tether-socket',
+	'orbiter-gear',
 	// plan 210
 	'launch-clamp',
 	// plan 219

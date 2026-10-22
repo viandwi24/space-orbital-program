@@ -10,7 +10,7 @@ import { createSim, type Sim } from '@orbital/sim';
 import { describe, expect, it } from 'vitest';
 import { subtreeOf } from '../design';
 import type { ContentLookups } from '../delta-v';
-import { MISSION_BLUEPRINTS } from './missions';
+import { Build, MISSION_BLUEPRINTS } from './missions';
 
 const { registries } = loadPlugins([Stock]);
 const content: ContentLookups = {
@@ -69,6 +69,73 @@ const len = (v: Vec3): number => Math.hypot(v.x, v.y, v.z);
 
 /** Home's day, s (the aeroplane test's figure). */
 const DAY = 21_600;
+
+
+/** Unit quaternion of the rotation whose columns are `x`, `y`, `z` (a right-handed basis). */
+function quatOfBasis(x: Vec3, y: Vec3, z: Vec3): Quat {
+	const m = [x.x, y.x, z.x, x.y, y.y, z.y, x.z, y.z, z.z];
+	const t = m[0]! + m[4]! + m[8]!;
+	let q: Quat;
+	if (t > 0) {
+		const s = Math.sqrt(t + 1) * 2;
+		q = { w: s / 4, x: (m[7]! - m[5]!) / s, y: (m[2]! - m[6]!) / s, z: (m[3]! - m[1]!) / s };
+	} else if (m[0]! > m[4]! && m[0]! > m[8]!) {
+		const s = Math.sqrt(1 + m[0]! - m[4]! - m[8]!) * 2;
+		q = { w: (m[7]! - m[5]!) / s, x: s / 4, y: (m[1]! + m[3]!) / s, z: (m[2]! + m[6]!) / s };
+	} else if (m[4]! > m[8]!) {
+		const s = Math.sqrt(1 + m[4]! - m[0]! - m[8]!) * 2;
+		q = { w: (m[2]! - m[6]!) / s, x: (m[1]! + m[3]!) / s, y: s / 4, z: (m[5]! + m[7]!) / s };
+	} else {
+		const s = Math.sqrt(1 + m[8]! - m[0]! - m[4]!) * 2;
+		q = { w: (m[3]! - m[1]!) / s, x: (m[2]! + m[6]!) / s, y: (m[5]! + m[7]!) / s, z: s / 4 };
+	}
+	return q;
+}
+const rot = (q: Quat, v: Vec3): Vec3 => {
+	const cx = q.y * v.z - q.z * v.y;
+	const cy = q.z * v.x - q.x * v.z;
+	const cz = q.x * v.y - q.y * v.x;
+	return {
+		x: v.x + 2 * (q.w * cx + q.y * cz - q.z * cy),
+		y: v.y + 2 * (q.w * cy + q.z * cx - q.x * cz),
+		z: v.z + 2 * (q.w * cz + q.x * cy - q.y * cx)
+	};
+};
+const dot3 = (a: Vec3, b: Vec3) => a.x * b.x + a.y * b.y + a.z * b.z;
+const unit3 = (a: Vec3): Vec3 => {
+	const l = len(a);
+	return { x: a.x / l, y: a.y / l, z: a.z / l };
+};
+const cross3 = (a: Vec3, b: Vec3): Vec3 => ({
+	x: a.y * b.z - a.z * b.y,
+	y: a.z * b.x - a.x * b.z,
+	z: a.x * b.y - a.y * b.x
+});
+
+/**
+ * The Wayfarer orbiter as it comes home: the blueprint without its tank, boosters, payload module
+ * and their decouplers (`gearDown`: the gear built lowered, for a roll-out on the ground).
+ */
+function orbiterAlone(gearDown = false): VesselDesign {
+	const full = blueprint('wayfarer-shuttle');
+	const tank = indexOf(full, 'stock.external-tank');
+	const side = indexOf(full, 'stock.docking-port-side');
+	const drop = new Set([...subtreeOf(full, tank), ...subtreeOf(full, side)]);
+	const rd = full.parts.find((p) => p.part === 'stock.radial-decoupler' && !drop.has(p.index) && full.parts.some((q) => q.parent?.index === p.index && drop.has(q.index)));
+	if (rd) drop.add(rd.index);
+	const keep = new Set(full.parts.filter((p) => !drop.has(p.index)).map((p) => p.index));
+	const aft = indexOf(full, 'stock.orbiter-aft');
+	const design = piece(full, keep, [[aft]]);
+	return {
+		...design,
+		...(gearDown ? { aircraft: true } : {}),
+		parts: design.parts.map((p) =>
+			gearDown && p.part.startsWith('stock.orbiter-gear')
+				? { ...p, settings: { ...p.settings, 'stock.wheel': { deployed: true } } }
+				: p
+		)
+	};
+}
 
 const run = (sim: Sim, seconds: number): void => {
 	for (let i = 0; i < Math.round(seconds / 0.02); i++) sim.step(0.02);
@@ -304,6 +371,180 @@ describe('mission flights (plans 307, 309)', () => {
 			sim.dispose();
 		}
 	}, 600_000);
+
+	it('SAS prograde flies the orbiter straight: wings level, no sideslip, for a minute (plan 361)', async () => {
+		const sim = await newSim();
+		try {
+			const R = registries.bodies.get('stock.home')!.radius;
+			const r = R + 20_000;
+			const up: Vec3 = { x: 1, y: 0, z: 0 };
+			// level flight east at 250 m/s over the turning ground, 20 km up, banked 20° to the left
+			const omega = DAY;
+			const ground = (2 * Math.PI * r) / omega;
+			const east: Vec3 = { x: 0, y: 0, z: -1 };
+			const bank = (20 * Math.PI) / 180;
+			const top: Vec3 = { x: Math.cos(bank), y: Math.sin(bank), z: 0 };
+			const nose = east;
+			const orientation = quatOfBasis(cross3(nose, top), nose, top);
+			const id = place(
+				sim,
+				orbiterAlone(),
+				'stock.home',
+				{ x: r, y: 0, z: 0 },
+				{ x: 0, y: 0, z: -(ground + 250) },
+				orientation
+			);
+			const at = () => sim.snapshot().vessels.find((v) => Number(v.id) === id)!;
+			expect(sim.dispatch({ type: 'sas', vessel: at().id, mode: 'prograde', reference: 'surface' } as never).ok).toBe(true);
+			let worstBank = 0;
+			let worstSlip = 0;
+			const evs: string[] = [];
+			sim.events.on('part:damaged' as never, (e: unknown) => evs.push(JSON.stringify(e)));
+			sim.events.on('vessel:destroyed' as never, (e: unknown) => evs.push(JSON.stringify(e)));
+			for (let t = 0; t < 60; t += 1) {
+				run(sim, 1);
+				expect(at(), `lost at ${t} s: ${evs.slice(0, 2).join(' | ')}`).toBeDefined();
+				const v = at();
+				const q = v.orientation;
+				const u = unit3(v.position);
+				const n = rot(q, { x: 0, y: 1, z: 0 });
+				const zt = rot(q, { x: 0, y: 0, z: 1 });
+				// the air's velocity: the vessel's minus the ground's turning with the body
+				const air = { x: v.velocity.x, y: v.velocity.y, z: v.velocity.z + (2 * Math.PI * len(v.position)) / omega };
+				const across = unit3(cross3(n, u));
+				const bankNow = Math.asin(Math.max(-1, Math.min(1, dot3(zt, across))));
+				const slip = Math.asin(Math.max(-1, Math.min(1, dot3(unit3(air), rot(q, { x: 1, y: 0, z: 0 })))));
+				if (t >= 15) {
+					worstBank = Math.max(worstBank, Math.abs(bankNow));
+					worstSlip = Math.max(worstSlip, Math.abs(slip));
+				}
+			}
+			console.log(`orbiter on prograde: worst bank ${((worstBank * 180) / Math.PI).toFixed(2)}°, sideslip ${((worstSlip * 180) / Math.PI).toFixed(2)}° (after the first 15 s)`);
+			expect((worstBank * 180) / Math.PI).toBeLessThan(3);
+			expect((worstSlip * 180) / Math.PI).toBeLessThan(2);
+		} finally {
+			sim.dispose();
+		}
+	}, 120_000);
+
+	it('the orbiter comes home belly first on SAS Re-entry: 40° held, wings level, nothing overheats (plan 361)', async () => {
+		const sim = await newSim();
+		try {
+			const R = registries.bodies.get('stock.home')!.radius;
+			const r = R + 75_000;
+			const gamma = (-1.5 * Math.PI) / 180;
+			const speed = 2250;
+			const vdir: Vec3 = { x: Math.sin(gamma), y: 0, z: -Math.cos(gamma) };
+			const up: Vec3 = { x: 1, y: 0, z: 0 };
+			const side = unit3(cross3(vdir, up));
+			const nose = vdir;
+			const top = unit3(cross3(side, nose));
+			const design = orbiterAlone();
+			const parts = design.parts.length;
+			const id = place(
+				sim,
+				design,
+				'stock.home',
+				{ x: r, y: 0, z: 0 },
+				{ x: vdir.x * speed, y: 0, z: vdir.z * speed },
+				quatOfBasis(cross3(nose, top), nose, top)
+			);
+			const at = () => sim.snapshot().vessels.find((v) => Number(v.id) === id);
+			sim.dispatch({ type: 'set-rcs', vessel: at()!.id, on: true } as never);
+			expect(sim.dispatch({ type: 'sas', vessel: at()!.id, mode: 'reentry' } as never).ok).toBe(true);
+			let peak = 0;
+			let peakPart = '';
+			let worstAoa = 0;
+			let worstRoll = 0;
+			let lowest = Infinity;
+			for (let t = 0; t < 900; t += 2) {
+				run(sim, 2);
+				const v = at();
+				expect(v, `lost at ${t} s`).toBeDefined();
+				for (const p of v!.parts)
+					if ((p.temperature ?? 0) > peak) {
+						peak = p.temperature!;
+						peakPart = p.definition;
+					}
+				const alt = len(v!.position) - R;
+				lowest = Math.min(lowest, alt);
+				const air = unit3({ x: v!.velocity.x, y: v!.velocity.y, z: v!.velocity.z + (2 * Math.PI * len(v!.position)) / DAY });
+				const n = rot(v!.orientation, { x: 0, y: 1, z: 0 });
+				const zt = rot(v!.orientation, { x: 0, y: 0, z: 1 });
+				const aoa = (Math.atan2(-dot3(air, zt), dot3(air, n)) * 180) / Math.PI;
+				const bank = (Math.asin(Math.max(-1, Math.min(1, dot3(zt, unit3(cross3(n, unit3(v!.position))))))) * 180) / Math.PI;
+				if (t >= 30) {
+					worstAoa = Math.max(worstAoa, Math.abs(aoa - 40));
+					worstRoll = Math.max(worstRoll, Math.abs(bank));
+				}
+				if (alt < 30_000) break;
+			}
+			console.log(
+				`re-entry: down to ${(lowest / 1000).toFixed(1)} km; angle of attack within ${worstAoa.toFixed(1)}° of 40°, bank within ${worstRoll.toFixed(1)}°; peak ${peak.toFixed(0)} K on ${peakPart}`
+			);
+			expect(at()!.parts.length).toBe(parts);
+			expect(worstAoa).toBeLessThan(8);
+			expect(worstRoll).toBeLessThan(3);
+			expect(peak).toBeLessThan(1_600);
+		} finally {
+			sim.dispose();
+		}
+	}, 240_000);
+
+	it('the orbiter rolls out on its gear; brakes and the drag chute stop it short (plan 361)', async () => {
+		const rollOut = async (chute: boolean) => {
+			const sim = await newSim();
+			try {
+				const r = sim.dispatch({ type: 'load-vessel', design: orbiterAlone(true) });
+				if (!r.ok || r.vessel === undefined) throw new Error(r.ok ? 'no vessel' : r.reason);
+				const id = r.vessel;
+				const at = () => sim.snapshot().vessels.find((v) => v.id === id)!;
+				const parts = at().parts.length;
+				// it stands on its three gear legs, lowered
+				const gear = at().parts.filter((p) => p.definition.startsWith('stock.orbiter-gear'));
+				expect(gear).toHaveLength(3);
+				expect(gear.every((p) => (p.modules['stock.wheel'] as { deployed?: boolean }).deployed)).toBe(true);
+				run(sim, 2);
+				const surfaceSpeed = () => {
+					const v = at();
+					const ground = (2 * Math.PI) / DAY;
+					// minus the ground's own velocity, omega × r with omega along +Y
+					const s = { x: v.velocity.x - ground * v.position.z, y: v.velocity.y, z: v.velocity.z + ground * v.position.x };
+					return len(s);
+				};
+				// the orbiter's own engines take it to 90 m/s on the ground
+				expect(sim.dispatch({ type: 'stage', vessel: id }).ok).toBe(true);
+				sim.dispatch({ type: 'throttle', vessel: id, value: 0.3 });
+				let t = 0;
+				for (; t < 30 && surfaceSpeed() < 90; t += 0.1) run(sim, 0.1);
+				sim.dispatch({ type: 'throttle', vessel: id, value: 0 });
+				const v0 = surfaceSpeed();
+				sim.dispatch({ type: 'action-group', vessel: id, group: 'stock.brakes', value: true });
+				if (chute) sim.dispatch({ type: 'action-group', vessel: id, group: 'stock.parachutes' });
+				// the distance over the ground (the planet turns under the inertial positions)
+				let distance = 0;
+				for (t = 0; t < 120 && surfaceSpeed() > 1; t += 0.1) {
+					const before = surfaceSpeed();
+					run(sim, 0.1);
+					distance += ((before + surfaceSpeed()) / 2) * 0.1;
+				}
+				const chuteState = at().parts.find((p) => p.definition === 'stock.drag-chute')!.modules['stock.parachute'] as { status: string };
+				return { v0, distance, time: t, parts: at().parts.length === parts, chute: chuteState.status };
+			} finally {
+				sim.dispose();
+			}
+		};
+		const plain = await rollOut(false);
+		const withChute = await rollOut(true);
+		console.log(
+			`roll-out from ${plain.v0.toFixed(0)} m/s: brakes alone ${plain.distance.toFixed(0)} m in ${plain.time.toFixed(0)} s; with the chute (${withChute.chute}) ${withChute.distance.toFixed(0)} m in ${withChute.time.toFixed(0)} s`
+		);
+		expect(plain.parts && withChute.parts).toBe(true);
+		expect(withChute.chute).toBe('full');
+		expect(withChute.distance).toBeLessThan(plain.distance * 0.85);
+		// a level-1 runway is 1 200 m
+		expect(withChute.distance).toBeLessThan(1_200);
+	}, 240_000);
 
 	it('the Kronos capsule comes home: a shallow entry at 2 km/s, down under its chutes', async () => {
 		const design = blueprint('kronos-selene');
