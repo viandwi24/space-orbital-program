@@ -11,6 +11,9 @@ import Trajectories, {
 	predict,
 	rotate,
 	SET_TARGET,
+	SHOW_KEYS,
+	Show,
+	shows,
 	surfaceDistance,
 	Target
 } from '../src/index.ts';
@@ -94,7 +97,46 @@ function drop(sim: Sim, alt: number, speedFactor: number): number {
 	return Number(r.vessel);
 }
 
+describe('when the path shows (owner, 2026-10-22)', () => {
+	const up = { x: R + 5_000, y: 0, z: 0 };
+	const vessel = (vx: number, extra: Record<string, unknown> = {}) =>
+		({
+			position: up,
+			velocity: { x: vx, y: 0, z: 1_000 },
+			radarAltitude: 5_000,
+			autopilot: null,
+			...extra
+		}) as never;
+	test('auto: not on the way up, but falling, landing on the autopilot or with a target', () => {
+		expect(shows('auto', vessel(150), false)).toBe(false);
+		expect(shows('auto', vessel(0), false)).toBe(false);
+		expect(shows('auto', vessel(-30), false)).toBe(true);
+		expect(shows('auto', vessel(150, { autopilot: 'guidance.land' }), false)).toBe(true);
+		expect(shows('auto', vessel(150), true)).toBe(true);
+	});
+	test('always while in the air, off never; never a stub just over the ground', () => {
+		expect(shows('always', vessel(150), false)).toBe(true);
+		expect(shows('off', vessel(-30), true)).toBe(false);
+		expect(shows('always', vessel(-30, { radarAltitude: 10 }), false)).toBe(false);
+	});
+});
+
 describe('Trajectories in a sim', () => {
+	test('the Show choice: off hides the path, auto draws it again while falling', async () => {
+		const sim = await make();
+		const id = drop(sim, 30_000, 0.5);
+		for (let i = 0; i < 10 * 50; i++) sim.step(0.02);
+		expect(sim.snapshot().overlays?.[PATH.id]).toBeDefined();
+		expect(sim.dispatch({ type: 'mod-key', key: SHOW_KEYS.off.id, vessel: id }).ok).toBe(true);
+		for (let i = 0; i < 15; i++) sim.step(0.02);
+		expect(sim.snapshot().stores?.[Show.id]).toBe('off');
+		expect(sim.snapshot().overlays?.[PATH.id]).toBeUndefined();
+		sim.dispatch({ type: 'mod-key', key: SHOW_KEYS.auto.id, vessel: id });
+		for (let i = 0; i < 15; i++) sim.step(0.02);
+		expect(sim.snapshot().overlays?.[PATH.id]).toBeDefined();
+		sim.dispose();
+	}, 120_000);
+
 	test('a probe dropped from 30 km lands near the predicted cross-hair; the target and its error', async () => {
 		const sim = await make();
 		const id = drop(sim, 30_000, 0.5);

@@ -32,6 +32,7 @@ export const PATH = defineOverlay({
 	title: 'Trajectories',
 	description:
 		'The predicted path through the air to the ground, the impact point and your landing target.',
+	// on, but in `auto` it draws only while it helps (see `Show`)
 	defaultOn: true
 });
 
@@ -53,6 +54,62 @@ export const CLEAR_TARGET = defineKeybinding({
 	label: 'Trajectories: clear the landing target',
 	defaults: []
 });
+
+/**
+ * When the path shows (owner, 2026-10-22: always on, it got in the way on every climb): `auto`
+ * only while it helps, falling back down, landing on the autopilot or aiming at a target;
+ * `always` whenever the vessel is in the air; `off` never.
+ */
+export const SHOW_MODES = ['auto', 'always', 'off'] as const;
+export type ShowMode = (typeof SHOW_MODES)[number];
+export const Show = defineStore({
+	id: 'trajectories.show',
+	schema: z.enum(SHOW_MODES),
+	initial: 'auto' as ShowMode
+});
+/** The panel's Show choice sends one of these keys (unbound by default). */
+export const SHOW_KEYS: Record<ShowMode, ReturnType<typeof defineKeybinding>> = {
+	auto: defineKeybinding({
+		id: 'trajectories.show-auto',
+		label: 'Trajectories: show the path while falling or landing',
+		defaults: []
+	}),
+	always: defineKeybinding({
+		id: 'trajectories.show-always',
+		label: 'Trajectories: always show the path',
+		defaults: []
+	}),
+	off: defineKeybinding({
+		id: 'trajectories.show-off',
+		label: 'Trajectories: hide the path',
+		defaults: []
+	})
+};
+
+/** The landing autopilot of the Guidance Computer: while it flies, the path shows in `auto`. */
+const LANDING_AUTOPILOT = 'guidance.land';
+/** Falling faster than this toward the body, m/s, counts as coming down. */
+const FALLING = 2;
+/** Closer to the ground than this, m, the path is a stub under the vessel: not drawn. */
+const NEAR_GROUND = 25;
+
+/**
+ * Whether `v`'s path is worth drawing in `mode`. In `auto`: not on the way up (the prediction
+ * leaves the engines out, so a climbing rocket's path falls straight back to the pad), but once
+ * it comes down, while the landing autopilot flies it, or with a landing target set.
+ */
+export function shows(mode: ShowMode, v: WorldVessel, targetSet: boolean): boolean {
+	if (mode === 'off') return false;
+	if (v.radarAltitude !== null && v.radarAltitude < NEAR_GROUND) return false;
+	if (mode === 'always') return true;
+	const r = Math.hypot(v.position.x, v.position.y, v.position.z);
+	const radial =
+		r > 0
+			? (v.position.x * v.velocity.x + v.position.y * v.velocity.y + v.position.z * v.velocity.z) /
+				r
+			: 0;
+	return radial < -FALLING || v.autopilot === LANDING_AUTOPILOT || targetSet;
+}
 
 /** Predictions per second of sim time, and most vessels followed at once. */
 const RATE = 5;
@@ -181,7 +238,10 @@ export const Predictor = defineSystem({
 		last.set(ctx.events, t);
 		const shapes: OverlayShape[] = [];
 		const meta: Record<string, number | string> = {};
+		const mode = ctx.store(Show).get();
+		const target = ctx.store(Target).get();
 		for (const v of candidates(ctx)) {
+			if (!shows(mode, v, target !== null && target.body === v.soi)) continue;
 			const p = predictionFor(ctx, v);
 			if (p) shapes.push(...shapesOf(ctx, v, p, meta));
 		}
@@ -191,6 +251,13 @@ export const Predictor = defineSystem({
 	on: {
 		// the panel's buttons (ADR 0292 point 6)
 		'mod:key': (e, ctx) => {
+			const show = SHOW_MODES.find((m) => SHOW_KEYS[m].id === e.key);
+			if (show) {
+				ctx.store(Show).set(show);
+				// redraw at once, not at the next prediction
+				last.delete(ctx.events);
+				return;
+			}
 			if (e.key === CLEAR_TARGET.id) {
 				ctx.store(Target).set(null);
 				ctx.notify('Landing target cleared', { tone: 'info' });
@@ -234,11 +301,38 @@ export const TrajectoriesPanel = definePanel({
 		kind: 'section',
 		children: [
 			{
+				kind: 'select',
+				label: 'Show the path',
+				options: [
+					{ value: 'auto', label: 'Falling or landing' },
+					{ value: 'always', label: 'Always' },
+					{ value: 'off', label: 'Off' }
+				],
+				value: (i) => {
+					const v = i.world?.store(Show.id);
+					return typeof v === 'string' ? v : 'auto';
+				},
+				command: (i, value) => {
+					const mode = SHOW_MODES.find((m) => m === value);
+					return mode
+						? {
+								type: 'mod-key',
+								key: SHOW_KEYS[mode].id,
+								...(i.vessel ? { vessel: i.vessel.id } : {})
+							}
+						: null;
+				}
+			},
+			{
 				kind: 'notice',
 				text: (i) =>
-					metaOf(i, 'time') === null
-						? 'The path shows while you fly in the air or fall back to it.'
-						: 'Coasting: engines are not in the prediction.',
+					metaOf(i, 'time') !== null
+						? 'Coasting: engines are not in the prediction.'
+						: i.world?.store(Show.id) === 'off'
+							? 'The path is hidden.'
+							: i.world?.store(Show.id) === 'always'
+								? 'The path shows while you fly in the air or fall back to it.'
+								: 'The path shows once you come down, on the landing autopilot, or with a landing target.',
 				tone: () => 'info'
 			},
 			{
@@ -273,8 +367,10 @@ export default definePlugin({
 	setup(ctx) {
 		ctx.overlays.register(PATH);
 		ctx.stores.register(Target);
+		ctx.stores.register(Show);
 		ctx.keybindings.register(SET_TARGET);
 		ctx.keybindings.register(CLEAR_TARGET);
+		for (const m of SHOW_MODES) ctx.keybindings.register(SHOW_KEYS[m]);
 		ctx.systems.register(Predictor);
 		ctx.panels.register(TrajectoriesPanel);
 	}
