@@ -263,6 +263,25 @@ describe('Rendezvous autopilot (plan 331)', () => {
 		sim.dispose();
 	}, 240_000);
 
+	test('stop at 10 m: same orbit, 20 km apart, it holds and creeps in to under 15 m', async () => {
+		const { sim, a } = await scene(100_000, 20_000 / 700_000, 0);
+		sim.dispatch({ type: 'autopilot-settings', vessel: a, autopilot: 'guidance.rendezvous', settings: { standoff: 10 } });
+		expect(sim.dispatch({ type: 'autopilot-engage', vessel: a, autopilot: 'guidance.rendezvous' }).ok).toBe(true);
+		const r = run(sim, a, 6 * 3_600);
+		if (r.result !== 'holding') console.log(r);
+		expect(r.result).toBe('holding');
+		expect(r.distance).toBeLessThan(20);
+		expect(r.speed).toBeLessThan(0.5);
+		// the hold creeps in to the set distance (the two probes' sizes keep it a little past 10 m)
+		for (let k = 0; k < 1_500; k++) sim.step(0.1);
+		const v = vesselOf(sim, a);
+		expect(v.autopilot?.phase).toBe('hold');
+		expect(v.target!.distance).toBeLessThan(15);
+		expect(v.target!.relativeSpeed).toBeLessThan(0.2);
+		expect(v.parts.length).toBe(12); // no part lost on the way in
+		sim.dispose();
+	}, 240_000);
+
 	test('50 km higher and 2° inclined: ends within 200 m at under 0.5 m/s', async () => {
 		const { sim, a } = await scene(150_000, 1.2, (2 * Math.PI) / 180);
 		expect(sim.dispatch({ type: 'autopilot-engage', vessel: a, autopilot: 'guidance.rendezvous' }).ok).toBe(true);

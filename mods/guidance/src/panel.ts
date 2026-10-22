@@ -14,7 +14,7 @@ import {
 	type PanelTone
 } from '@orbital/sdk';
 import { Ascent, Circularize, ExecuteNode, Land, TOUCHDOWN_SPEED } from './autopilots.ts';
-import { Rendezvous, STANDOFF, readiness, rendezvousEstimate, type Readiness } from './rendezvous.ts';
+import { HOLD_DISTANCE, MIN_STANDOFF, Rendezvous, STANDOFF, readiness, rendezvousEstimate, type Readiness } from './rendezvous.ts';
 
 /** Which tab each program lives in. */
 const TAB_OF: Record<string, string> = {
@@ -274,7 +274,7 @@ const RDV_STEPS = ['plane', 'transfer', 'match', 'close', 'hold'];
 const rdvStep = (phase: string): number =>
 	phase === 'phasing' || phase === 'correct' ? 1 : Math.max(0, RDV_STEPS.indexOf(phase));
 const rendezvousTab: PanelNode[] = [
-	status(RDV, 'Target a vessel or a docking port, then engage: it stops 100–200 m away, at rest.', (i) => {
+	status(RDV, 'Target a vessel or a docking port, then engage: it stops where you set (10–200 m), at rest.', (i) => {
 		const last = i.vessel?.autopilotLast;
 		// the last run stopped too low to phase: the Orbit tab raises it
 		if (last?.id === Rendezvous.id && last.reason.startsWith('Too low to phase'))
@@ -346,15 +346,21 @@ const rendezvousTab: PanelNode[] = [
 		]
 	},
 	{
-		kind: 'select',
-		label: 'Stop at',
-		options: [
-			{ value: '100', label: '100 m' },
-			{ value: String(STANDOFF), label: `${STANDOFF} m` },
-			{ value: '200', label: '200 m' }
-		],
-		value: (i) => String(settingsOf(i, Rendezvous.id).standoff ?? STANDOFF),
-		command: (i, v) => setting(i, Rendezvous.id, 'standoff', v)
+		kind: 'section',
+		columns: 1,
+		children: [
+			{
+				// 10 m to 200 m (plan 333 follow-up); the vessels' sizes may keep it a little farther
+				kind: 'number',
+				label: 'Stop at',
+				unit: 'm',
+				min: MIN_STANDOFF,
+				max: HOLD_DISTANCE,
+				step: 5,
+				value: (i) => Number(settingsOf(i, Rendezvous.id).standoff ?? STANDOFF),
+				command: (i, v) => setting(i, Rendezvous.id, 'standoff', v)
+			}
+		]
 	},
 	{
 		kind: 'section',

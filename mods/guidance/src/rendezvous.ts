@@ -1,5 +1,5 @@
 /**
- * The rendezvous autopilot (plan 331, ADR 0286), MechJeb style: from anywhere in orbit to 100–200 m
+ * The rendezvous autopilot (plan 331, ADR 0286), MechJeb style: from anywhere in orbit to 10–200 m
  * from the target vessel, at rest relative to it.
  *
  * 1. plane: a plane change at the nearer relative node when the planes differ by more than 0.05°;
@@ -53,6 +53,8 @@ const AIM_ABOVE = 300;
 export const STANDOFF = 150;
 /** The rendezvous is complete within this distance… */
 export const HOLD_DISTANCE = 200;
+/** The nearest standoff it flies to, m (the parts' own sizes may keep it farther). */
+export const MIN_STANDOFF = 10;
 /** …and below this relative speed, m/s. */
 export const HOLD_SPEED = 0.2;
 /** RCS flies the close phase inside this, m. */
@@ -408,12 +410,19 @@ function reach(parts: readonly { position: Vec3 }[], from: Vec3 = { x: 0, y: 0, 
 	return r;
 }
 
-/** The sphere round the target the vessel must stay out of, m from its centre. */
+/** The sphere round the target the vessel must stay out of, m from its centre: both vessels' sizes and 3 m. */
 const keepOutOf = (pilot: VesselPilot): number =>
-	reach(pilot.targetVessel?.parts ?? []) + reach(pilot.vessel.parts) + 10;
+	reach(pilot.targetVessel?.parts ?? []) + reach(pilot.vessel.parts) + 3;
+
+/** Where it stops: the setting, but never inside the keep-out sphere plus 2 m, m. */
+export const standoffFor = (pilot: VesselPilot, m: Pick<RendezvousMemory, 'standoff'>): number =>
+	Math.max(m.standoff, keepOutOf(pilot) + 2);
+
+/** Close enough to the standoff to hold there, m. */
+const arrivedWithin = (standoff: number): number => Math.min(HOLD_DISTANCE, standoff + Math.max(5, 0.3 * standoff));
 
 export function newRendezvousMemory(pilot: VesselPilot, params: RendezvousParams = {}): RendezvousMemory {
-	const standoff = clamp(Number(params.standoff ?? STANDOFF) || STANDOFF, 50, HOLD_DISTANCE);
+	const standoff = clamp(Number(params.standoff ?? STANDOFF) || STANDOFF, MIN_STANDOFF, HOLD_DISTANCE);
 	return {
 		...newNodeMemory(false),
 		stage: 'plan',
@@ -813,12 +822,12 @@ function close(pilot: VesselPilot, m: RendezvousMemory, mass: number, target: Ta
 	const crash = collision(pilot, m, mass, target);
 	if (crash) return { phase: 'close', abort: crash };
 	const speed = length(u);
-	if (d <= HOLD_DISTANCE && speed < HOLD_SPEED) {
+	const standoff = standoffFor(pilot, m);
+	if (d <= arrivedWithin(standoff) && speed < HOLD_SPEED) {
 		pilot.throttle(0);
 		pilot.translate(0, 0, 0);
 		return toStage(m, 'hold', `${Math.round(d)} m from the target at ${speed.toFixed(2)} m/s: holding`);
 	}
-	const standoff = Math.max(m.standoff, keepOutOf(pilot) + 30);
 	const dir = unit(p);
 	const useRcs = d < RCS_RANGE && rcsLeft(pilot) && !m.noRcs;
 	const accelMain = pilot.maxThrust / mass;
@@ -846,12 +855,21 @@ function close(pilot: VesselPilot, m: RendezvousMemory, mass: number, target: Ta
 /** Hold at the standoff; hand over to Auto Dock when asked. */
 function hold(pilot: VesselPilot, m: RendezvousMemory, mass: number, target: Target, dt: number): AutopilotStep {
 	const { p, u, d } = target;
-	if (d > HOLD_DISTANCE + 30) return toStage(m, 'close', `drifted to ${Math.round(d)} m: closing in again`);
+	const standoff = standoffFor(pilot, m);
+	if (d > arrivedWithin(standoff) + Math.max(10, 0.2 * standoff))
+		return toStage(m, 'close', `drifted to ${Math.round(d)} m: closing in again`);
 	const crash = collision(pilot, m, mass, target);
 	if (crash) return { phase: 'hold', abort: crash };
 	const dir = unit(p);
 	const keepOut = keepOutOf(pilot);
-	const want = d < keepOut + 10 ? scale(dir, -0.3) : { x: 0, y: 0, z: 0 };
+	// inside the keep-out: back off; else creep to the standoff (at most 0.1 m/s) and stay there
+	const gap = d - standoff;
+	const want =
+		d < keepOut
+			? scale(dir, -0.3)
+			: Math.abs(gap) > 1
+				? scale(dir, clamp(gap / 40, -0.1, 0.1))
+				: { x: 0, y: 0, z: 0 };
 	const log: string[] = [];
 	if (rcsLeft(pilot) && !m.noRcs) {
 		if (!pilot.vessel.rcs) pilot.rcs(true);
@@ -889,7 +907,7 @@ export const Rendezvous = defineAutopilot<RendezvousMemory>({
 	id: 'guidance.rendezvous',
 	title: 'Rendezvous',
 	description:
-		'Flies to the target vessel or port: matches the plane, transfers with the phase wait, matches velocity and closes in to 100–200 m, then holds (or hands over to Auto Dock).',
+		'Flies to the target vessel or port: matches the plane, transfers with the phase wait, matches velocity and closes in to the set distance (10–200 m), then holds (or hands over to Auto Dock).',
 	rate: 10,
 	start(pilot, params) {
 		const problem = rendezvousProblem(pilot);
