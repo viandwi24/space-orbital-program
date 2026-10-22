@@ -15,7 +15,7 @@
 
 <div class="pill" role="toolbar" aria-label="Build tools">
 	<div class="group" role="group" aria-label="Tool">
-		{#each [{ id: 'place', label: 'Place', key: 'toolPlace', tip: 'Place and pick parts' }, { id: 'move', label: 'Move', key: 'toolMove', tip: 'Move the selected part (offset)' }, { id: 'rotate', label: 'Rotate', key: 'toolRotate', tip: 'Rotate the selected part' }] as const as t (t.id)}
+		{#each [{ id: 'place', label: 'Place', key: 'toolPlace', tip: 'Place and pick parts' }, { id: 'move', label: 'Move', key: 'toolMove', tip: 'Move the selected part (offset)' }, { id: 'rotate', label: 'Rotate', key: 'toolRotate', tip: 'Rotate the selected part' }, { id: 'root', label: 'Root', key: 'toolRoot', tip: 'Click a part to make it the root of the vessel' }] as const as t (t.id)}
 			<button
 				type="button"
 				class="seg"
@@ -27,7 +27,7 @@
 			>
 		{/each}
 	</div>
-	{#if vab.tool !== 'place'}
+	{#if vab.tool === 'move' || vab.tool === 'rotate'}
 		<button
 			type="button"
 			class="toggle"
@@ -129,6 +129,16 @@
 		data-tip="High-contrast markers"
 		onclick={() => vab.toggleContrast()}
 		>Contrast<span class="dot" aria-hidden="true"></span></button
+	>
+	<!-- the Hangar's keys (plan 348) -->
+	<button
+		type="button"
+		class="toggle"
+		aria-pressed={vab.keysOpen}
+		aria-label="Hangar keys"
+		data-tip="Hangar keys ({settings.keymap.label('hangarHelp')})"
+		data-testid="tool-keys"
+		onclick={() => (vab.keysOpen = !vab.keysOpen)}>?</button
 	>
 	<span class="drawer-btns">
 		<IconButton

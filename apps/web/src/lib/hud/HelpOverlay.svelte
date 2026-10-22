@@ -6,15 +6,19 @@
 	import { BINDING_GROUPS, helpKeys } from '../keybindings';
 	import { settings } from '../settings/settings.svelte';
 
-	let { open, onclose }: { open: boolean; onclose: () => void } = $props();
+	let {
+		open,
+		onclose,
+		hangar = false
+	}: { open: boolean; onclose: () => void; hangar?: boolean } = $props();
 
-	// One list feeds this overlay and the settings dialog (plan 023); the VAB keys show there only.
-	const groups = BINDING_GROUPS.filter(
-		(g) => g.mode !== 'vab' && g.mode !== 'carry' && g.mode !== 'tool'
-	);
+	// One list feeds this overlay and the settings dialog (plan 023). In flight the Hangar's keys are
+	// left out; the Hangar's own overlay (plan 348) shows only those.
+	const isHangar = (mode: string): boolean => mode === 'vab' || mode === 'carry' || mode === 'tool';
+	const groups = $derived(BINDING_GROUPS.filter((g) => isHangar(g.mode) === hangar));
 </script>
 
-<Dialog {open} title="Controls" {onclose}>
+<Dialog {open} title={hangar ? 'Hangar keys' : 'Controls'} {onclose}>
 	<div class="groups">
 		{#each groups as g (g.title)}
 			<section>

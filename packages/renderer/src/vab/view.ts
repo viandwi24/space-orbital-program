@@ -98,6 +98,7 @@ import {
 	EMPTY_SCENE,
 	applyPartTurn,
 	floorShift,
+	standingLows,
 	repeatedDefinitions,
 	sameMarkers,
 	type GizmoAxis,
@@ -579,12 +580,11 @@ export class VabView {
 	/** Stands every group on the floor (the design on the platform). The base eases to its new height. */
 	private updateFloorShifts(): void {
 		for (const [id, group] of this.layer.groups) {
-			const lows: number[] = [];
-			for (const p of this.sceneModel.parts) {
-				if (p.group !== id) continue;
-				const e = this.layer.parts.get(p.key);
-				if (e) lows.push(p.position[1] + e.model.bounds.min.y);
-			}
+			const lows = standingLows(
+				this.sceneModel.parts,
+				id,
+				(key) => this.layer.parts.get(key)?.model.bounds.min.y
+			);
 			group.goalY = floorShift(lows) + (id === 'main' ? PLATFORM_TOP : 0);
 			if (group.fresh) {
 				group.y = group.goalY;
@@ -868,7 +868,7 @@ export class VabView {
 		clientY: number,
 		glowPx: number,
 		snapPx: number
-	): { glow: string[]; snap: string | null } {
+	): { glow: string[]; snap: string | null; px: Map<string, number> } {
 		const rect = this.config.canvas.getBoundingClientRect();
 		const pointer = { x: clientX - rect.left, y: clientY - rect.top };
 		const points: ScreenPoint[] = [];
@@ -877,9 +877,12 @@ export class VabView {
 			const at = this.screenPositionOfMarker(key);
 			if (at) points.push({ key, ...at });
 		}
+		const glow = withinScreen(points, pointer, glowPx);
 		return {
-			glow: withinScreen(points, pointer, glowPx).map((p) => p.key),
-			snap: nearestByScreen(points, pointer, snapPx)?.key ?? null
+			glow: glow.map((p) => p.key),
+			snap: nearestByScreen(points, pointer, snapPx)?.key ?? null,
+			// screen distances of the glowing rings, for the snap's hysteresis (plan 348)
+			px: new Map(glow.map((p) => [p.key, Math.hypot(p.x - pointer.x, p.y - pointer.y)]))
 		};
 	}
 

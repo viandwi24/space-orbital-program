@@ -280,6 +280,7 @@
 | 349 | [Space Center: the Buildings list as a strip of cards along the bottom](plans/349-space-center-buildings-strip.md) | done | ui-v3 session | ADR 0298. Owner feedback 2026-10-22. The corner panel is now a strip in the build menu's look: thumbnail, status chip, level, a progress bar while work runs; hover boxes the building, a click frames it. Journal 349. |
 | 350 | [Hangar: a "Start a vessel" modal with recommended blueprints and Build my own](plans/350-hangar-start-modal.md) | done | ui-v3 session | ADR 0299. Owner feedback 2026-10-22. An empty Hangar opens a modal: four Recommended blueprints, Open the Library, Build my own (and Esc or a click outside), which shows a coach mark at the parts list; Don't show again is remembered; not in lessons. Journal 350. |
 | 345 | [Single-use petals thrown off; Kronos V separates without a burn](plans/345-petals-jettison-and-kronos-staging.md) | done | part visuals session | Owner's reports: the payload looked flung (the service engine lit in the separation stage) and the petals should come off. `stock.bay` `jettison`: four panel debris, pushes that cancel; `deploy.gone`; the cargo bay keeps its doors. Journal 345. |
+| 348 | [Hangar placement UX](plans/348-hangar-placement-ux.md) | done | hangar placement UX session | ADR 0297. KSP editor research; the vessel no longer jumps while a part is carried (only solid parts stand it on the floor); a ring snaps only within 36 px on screen with hysteresis, else the surface or the cursor, never a default node; Root tool (4); right click lets go; Hangar keys overlay (? / F1) |
 
 Statuses: `draft` (needs refinement before an agent takes it) · `ready` · `in-progress` · `done` · `blocked`.
 
@@ -348,6 +349,7 @@ Existing drafts realigned on 2026-10-17: 063 (runway building), 065, 066, 067, 0
 ## Recent journal entries
 
 - [344 — Lessons overhaul](journal/344-lessons-overhaul.md)
+- [348 — Hangar placement UX](journal/348-hangar-placement-ux.md)
 - [350 — Start a vessel](journal/350-hangar-start-modal.md)
 - [349 — The Space Center's Buildings strip](journal/349-space-center-buildings-strip.md)
 - [346 — Hangar header, white LAUNCH, Launch page and vessel library](journal/346-hangar-header-launch-page-vessel-library.md)
