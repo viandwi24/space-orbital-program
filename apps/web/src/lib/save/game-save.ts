@@ -11,7 +11,8 @@ import {
 	vesselDesignSchema,
 	type SaveMod,
 	type SimSave,
-	type VesselDesign
+	type VesselDesign,
+	RETIRED_BUILTIN_MODS
 } from '@orbital/core';
 
 export const GAME_SAVE_FORMAT = 'orbital-game-save';
@@ -253,6 +254,8 @@ export function compareMods(
 ): ModReport {
 	const report: ModReport = { missing: [], changed: [] };
 	for (const mod of saved) {
+		// a built-in the game no longer ships (its work moved elsewhere) is not missing
+		if (RETIRED_BUILTIN_MODS.has(mod.id) && !loaded.has(mod.id)) continue;
 		const version = loaded.get(mod.id);
 		if (version === undefined) report.missing.push(mod);
 		else if (version !== mod.version)

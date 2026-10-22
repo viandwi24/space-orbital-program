@@ -108,6 +108,11 @@ describe('a save the sim refuses', () => {
 		expect(r.message).toContain('ghost.mod 2.0.0');
 	});
 
+	test('a retired built-in mod in the list does not stop the load (trajectories, plan 372)', async () => {
+		const sim = await resume(edited((s) => s.mods.push({ id: 'trajectories', version: '1.1.0' })));
+		expect(sim).toBeTruthy();
+	});
+
 	test('a part from content that is gone, named in the message', async () => {
 		const r = await reason(
 			resume(

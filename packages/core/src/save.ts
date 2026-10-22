@@ -635,3 +635,10 @@ export function parseSimSave(text: string): SimSave {
 	}
 	return readSimSave(raw);
 }
+
+/**
+ * Built-in mods the game no longer ships: a save that lists one still loads (their work moved into
+ * the game or another built-in). `trajectories`, plan 347, folded into the Guidance Landing tab by
+ * plan 372; saves made while it shipped named it (owner, 2026-10-23).
+ */
+export const RETIRED_BUILTIN_MODS: ReadonlySet<string> = new Set(['trajectories']);

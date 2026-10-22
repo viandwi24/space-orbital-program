@@ -44,7 +44,8 @@ import {
 	type RuleReader,
 	type WorldInfo,
 	sitesOf,
-	worldInfoSchema
+	worldInfoSchema,
+	RETIRED_BUILTIN_MODS
 } from '@orbital/core';
 import { buildBodies, type TerrainFactory } from './bodies.ts';
 import type { Ephemeris } from '@orbital/kepler';
@@ -217,7 +218,12 @@ export interface Sim {
 	 * The scripts saved on vessels, with source and memory (plan 320, ADR 0276 point 6): what the
 	 * host restarts when a world opens.
 	 */
-	scripts(): Array<{ vessel: EntityId; name: string; source: string; memory: Record<string, unknown> }>;
+	scripts(): Array<{
+		vessel: EntityId;
+		name: string;
+		source: string;
+		memory: Record<string, unknown>;
+	}>;
 	/** Plain-data view of the current state. */
 	snapshot(): Snapshot;
 	/**
@@ -295,7 +301,9 @@ export async function createSim(options: SimOptions): Promise<Sim> {
 	});
 
 	if (resume) {
-		const missing = resume.mods.filter((m) => !report.order.includes(m.id));
+		const missing = resume.mods.filter(
+			(m) => !report.order.includes(m.id) && !RETIRED_BUILTIN_MODS.has(m.id)
+		);
 		if (missing.length > 0) {
 			throw new SaveError(
 				'missing-mod',
@@ -446,7 +454,8 @@ export async function createSim(options: SimOptions): Promise<Sim> {
 	const runSystems = (list: SystemDefinition[], step: number): void => {
 		for (const s of list) s.update?.(core.world, step, systemContextOf(core, s, rules));
 	};
-	const runTicks = (): void => runDueTicks(core, (s, tick) => systemContextOf(core, s, rules, tick));
+	const runTicks = (): void =>
+		runDueTicks(core, (s, tick) => systemContextOf(core, s, rules, tick));
 
 	/** Rails vessels: module `updateOnRails` hooks and a conditioning rebase of their elements. */
 	// An agency's object is passive (plan 126, ADR 0190 point 3): a fixed circular orbit read from

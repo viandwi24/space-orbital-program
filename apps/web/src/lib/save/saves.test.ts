@@ -303,6 +303,17 @@ describe('mods', () => {
 		expect(report.missing).toEqual([{ id: 'ghost', version: '1.0.0' }]);
 		expect(report.changed).toEqual([{ id: 'tweaks', saved: '2.0.0', loaded: '2.1.0' }]);
 	});
+
+	it('a retired built-in (trajectories, plan 372) is not missing', () => {
+		const report = compareMods(
+			[
+				{ id: 'stock', version: '0.1.0' },
+				{ id: 'trajectories', version: '1.1.0' }
+			],
+			new Map([['stock', '0.1.0']])
+		);
+		expect(report.missing).toEqual([]);
+	});
 });
 
 describe('slots per world (plan 087, ADR 0143)', () => {
