@@ -276,6 +276,7 @@
 | 342 | [The first map toggle and the last hitch after loading](plans/342-first-map-toggle-and-post-load-hitch.md) | draft | | Plan 340's leftovers: about 150 ms on the first Flight → Map, one 567 ms frame on WebGPU after the loading screen. |
 | 343 | [Mod World API](plans/343-mod-world-api.md) | done | mod world API session | ADR 0292. One read-only World Query for systems, autopilots and panels (vessels by type, situation, SOI, distance; parts, resources, crew, orbit, comms; bodies, sites, roster, economy); commands with the program source, spawn and terminate only with debug tools; `defineStore` saved with the world; `SIM_EVENTS` and `vessel:situation-changed`; `defineKeybinding` under Controls → Mods; `ctx.notify` toasts; `examples/mod-world-api` (API 0.1.106). Journal 343. |
 | 344 | [Lessons overhaul](plans/344-lessons-overhaul.md) | in-progress | lessons session | ADR 0293. Lessons by level (Basics, Flight, Advanced), a start place, a wider observation, step targets checked by a test; lesson rockets from today's stock parts flown headless; new lessons from first launch to Auto Dock |
+| 348 | [Hangar placement UX](plans/348-hangar-placement-ux.md) | done | hangar placement UX session | ADR 0297. KSP editor research; the vessel no longer jumps while a part is carried (only solid parts stand it on the floor); a ring snaps only within 36 px on screen with hysteresis, else the surface or the cursor, never a default node; Root tool (4); right click lets go; Hangar keys overlay (? / F1) |
 
 Statuses: `draft` (needs refinement before an agent takes it) · `ready` · `in-progress` · `done` · `blocked`.
 
@@ -343,6 +344,7 @@ Existing drafts realigned on 2026-10-17: 063 (runway building), 065, 066, 067, 0
 
 ## Recent journal entries
 
+- [348 — Hangar placement UX](journal/348-hangar-placement-ux.md)
 - [333 — Rendezvous readiness and the next step](journal/333-rendezvous-readiness-and-next-step.md)
 - [332 — Guidance Computer panel with tabs](journal/332-guidance-panel-tabs.md)
 - [340 — One renderer for the world, warm-up and a loading screen](journal/340-world-renderer-warm-up-and-loading-screen.md)

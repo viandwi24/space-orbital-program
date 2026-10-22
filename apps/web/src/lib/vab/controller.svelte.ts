@@ -80,6 +80,7 @@ import {
 	copyOf,
 	canRedo,
 	canUndo,
+	commitDesign,
 	createEditor,
 	connectable,
 	deleteSubtree,
@@ -144,6 +145,8 @@ import {
 } from './library';
 import { indexedDbStore, requestPersistence } from './library-idb';
 import { MOVE_FINE, MOVE_STEP, ROTATE_FINE, ROTATE_STEP, snapTo, toolKeyEffect } from './tool-keys';
+import { nextPlacement, SNAP_PX } from './placement-pick';
+import { reroot } from '../editor/reroot';
 
 export type Armed =
 	| { kind: 'new'; part: string }
@@ -160,7 +163,6 @@ const SLOPE_NORMAL_Y = 0.25;
 const GLOW_PX = 80;
 /** How close (CSS pixels) a press must be to grab a fairing handle (plan 243). */
 const HANDLE_PX = 28;
-const SNAP_PX = 36;
 
 /** Rotation steps of a carried part (plan 217, ADR 0207 point 3), rad. */
 const TURN_STEP = Math.PI / 2;
@@ -245,6 +247,11 @@ export class VabController {
 		null
 	);
 	keyboardRadial = $state(false);
+	/**
+	 * The pointer moved since the part was taken or the keyboard last stepped (plan 348): the ghost
+	 * shows only what the pointer chose, never the keyboard's default target.
+	 */
+	pointerDriven = $state(false);
 	flagged = $state.raw<number[]>([]);
 	environment = $state<Environment>('sea-level');
 	/** Δv and TWR are for this body (plan 218): the home body until the picker chooses another. */
@@ -281,7 +288,9 @@ export class VabController {
 	/** Group operations (move, delete, turn) apply to the selected part alone. */
 	onlyThis = $state(false);
 	/** The Hangar tool (plan 279, ADR 0258 point 3): place and pick, move (offset) or rotate the selected part. */
-	tool = $state<'place' | 'move' | 'rotate'>('place');
+	tool = $state<'place' | 'move' | 'rotate' | 'root'>('place');
+	/** The Hangar's keys overlay (plan 348): `?` or F1, or the tool pill's button. */
+	keysOpen = $state(false);
 	/** Axes of the Move and Rotate tools: the part's own (`local`) or the vessel's (`absolute`). */
 	toolFrame = $state<'local' | 'absolute'>('absolute');
 	/** Snap to nodes (plan 279): off, a held part goes on any surface at the cursor and rings are ignored. */
@@ -517,7 +526,8 @@ export class VabController {
 			parts: this.lookup,
 			held: this.held,
 			targets: this.targets,
-			cursor: this.held ? this.active : null,
+			// the keyboard's target shows only while the keyboard drives (plan 348, ADR 0297 point 2)
+			cursor: this.held ? (this.pointerDriven ? this.hoverNode : this.active) : null,
 			pointer: this.pointerTarget,
 			handles: this.handlesNow(),
 			free: this.armed?.kind === 'connect' ? null : this.freePoint,
@@ -633,12 +643,14 @@ export class VabController {
 	readonly freePlacement = $derived(this.editor.design.freePlacement === true);
 	/** The part the Move and Rotate tools act on: the selected part of the design, not its root. */
 	readonly toolTarget = $derived(
-		this.tool === 'place' || this.armed || this.selectedTilt === null ? null : this.selected
+		(this.tool !== 'move' && this.tool !== 'rotate') || this.armed || this.selectedTilt === null
+			? null
+			: this.selected
 	);
 	/** The gizmo at the tool's part (plan 279): arrows for Move, rings for Rotate, in the tool's axes. */
 	readonly gizmo = $derived.by((): VabGizmo | null => {
 		const sel = this.toolTarget;
-		if (sel === null || this.tool === 'place') return null;
+		if (sel === null || (this.tool !== 'move' && this.tool !== 'rotate')) return null;
 		const at = layoutOf(this.current.design, this.lookup)?.get(sel);
 		if (!at) return null;
 		const m = mat3OfQuat(at.rotation);
@@ -1113,6 +1125,7 @@ export class VabController {
 		this.turn = NO_TILT;
 		this.selected = null;
 		this.hoverNode = null;
+		this.pointerDriven = false;
 		if (this.armed && connect) {
 			this.say(
 				`${text} Click the part it hangs on, then the part it ends on; or select a part and press Enter.`
@@ -1373,6 +1386,7 @@ export class VabController {
 		this.armed = { kind: 'carry', index: sel, single };
 		this.turn = tiltOf(this.editor.design, sel);
 		this.hoverNode = null;
+		this.pointerDriven = false;
 		const group = !single && this.groupSize > 1;
 		this.say(
 			`Moving ${this.titleOfPart(sel)}${group ? ` and its ${this.groupSize - 1} copies` : ''}. Click a highlighted ring or a spot on a tank to attach it, Escape to put it back.`
@@ -1435,7 +1449,7 @@ export class VabController {
 	// --- move and rotate tools (plan 279, ADR 0258) -----------------------------------------------------------
 
 	/** Picks the Place, Move or Rotate tool; Move and Rotate act on the selected part. */
-	setTool(tool: 'place' | 'move' | 'rotate'): void {
+	setTool(tool: 'place' | 'move' | 'rotate' | 'root'): void {
 		this.tool = tool;
 		this.gizmoActive = null;
 		if (tool === 'place') {
@@ -1443,6 +1457,10 @@ export class VabController {
 			return;
 		}
 		if (this.armed) this.disarm();
+		if (tool === 'root') {
+			this.say('Root tool: click the part that should be the root of the vessel.');
+			return;
+		}
 		const name = tool === 'move' ? 'Move' : 'Rotate';
 		this.say(
 			this.toolTarget === null
@@ -1528,9 +1546,32 @@ export class VabController {
 			this.say(what === 'tilt' ? 'Rotation reset.' : 'Offset reset.');
 		});
 	}
+	/**
+	 * The Root tool's click (plan 348, ADR 0297 point 5): part `index` becomes the root of the vessel,
+	 * one undo step; a path through a radial or surface link, a tilt or an offset is refused.
+	 */
+	rerootAt(index: number): void {
+		if (!this.editor.design.parts.some((p) => p.index === index)) {
+			this.notice = 'Only a part of the vessel can be its root, not a loose part.';
+			return;
+		}
+		const r = reroot(this.editor.design, index);
+		if (!r.ok) {
+			this.notice =
+				r.reason === 'already'
+					? `${this.titleOfPart(index)} is already the root.`
+					: `${this.titleOfPart(index)} cannot be the root: it hangs on a side, a surface, or a moved or turned part. Only stacked parts can.`;
+			return;
+		}
+		this.attempt(() => {
+			this.editor = commitDesign(this.editor, this.editorContent, r.design);
+			this.selected = index;
+			this.say(`${this.titleOfPart(index)} is the root now.`);
+		});
+	}
 	/** A tool key (`tool` scope); true when it did something. */
 	private toolKey(action: ActionId, fine: boolean): boolean {
-		if (this.tool === 'place') return false;
+		if (this.tool !== 'move' && this.tool !== 'rotate') return false;
 		const effect = toolKeyEffect(action, this.tool, fine);
 		if (!effect) return false;
 		if (effect.kind === 'frame') this.toggleToolFrame();
@@ -2077,7 +2118,8 @@ export class VabController {
 	private pick(e: PointerEvent): ReturnType<VabView['pick']> {
 		return (
 			this.view?.pick(e.clientX, e.clientY, {
-				ignoreGhost: this.armed !== null && this.radialCapable,
+				// the pointer reaches through the ghost to the surface it slides on (plan 348)
+				ignoreGhost: this.armed !== null,
 				ignoreNodes: this.armed !== null && !this.snapNodes
 			}) ?? null
 		);
@@ -2191,28 +2233,31 @@ export class VabController {
 					: null;
 			this.view?.setHover(null);
 		} else if (this.armed) {
-			// Over the ghost itself the current target stays; elsewhere only a ring selects one.
-			this.hoverNode =
-				hit?.kind === 'node'
-					? Number(hit.key.slice(1))
-					: hit?.kind === 'ghost'
-						? this.hoverNode
-						: null;
-			// A radial part follows the pointer over the sides of cylindrical parts (Alt: no snapping).
-			this.pointerTarget = this.siteFromHit(hit, e.altKey);
-			// a ring near the pointer glows, and the nearest one in snap range wins over a face
-			// (with node snapping off, plan 279, no ring is in play)
-			const near = this.snapNodes ? this.ringsNear(e) : { glow: new Set<number>(), snap: null };
+			// the pointer picks the place (plan 348, ADR 0297): a ring only within the snap radius on
+			// screen (with hysteresis), else the surface under the pointer, else the cursor; never a
+			// default node, and over the ghost the shown place stays
+			const near = this.snapNodes
+				? this.ringsNear(e)
+				: { glow: new Set<number>(), snap: null, rings: [] };
 			this.nearTargets = near.glow;
-			if (near.snap !== null) {
-				this.hoverNode = near.snap;
-				this.pointerTarget = null;
-			}
-			this.freePoint =
-				this.pointerTarget || this.hoverNode !== null || hit?.kind === 'ghost'
-					? null
-					: (this.view?.cursorPoint(e.clientX, e.clientY) ?? null);
+			const next = nextPlacement(
+				{ node: this.hoverNode, site: this.pointerTarget, free: this.freePoint },
+				{
+					nodeHit: hit?.kind === 'node' ? Number(hit.key.slice(1)) : null,
+					rings: near.rings,
+					overGhost: hit?.kind === 'ghost',
+					// a radial part follows the pointer over the sides of cylindrical parts (Alt: no snapping)
+					site: this.siteFromHit(hit, e.altKey),
+					free: this.view?.cursorPoint(e.clientX, e.clientY) ?? null,
+					snapOn: this.snapNodes,
+					snapPx: SNAP_PX
+				}
+			);
+			this.hoverNode = next.node;
+			this.pointerTarget = next.site;
+			this.freePoint = next.free ? [next.free[0], next.free[1], next.free[2]] : null;
 			this.keyboardRadial = false;
+			this.pointerDriven = true;
 			this.view?.setHover(null);
 		} else {
 			this.view?.setHover(hit?.kind === 'part' ? hit.key : null);
@@ -2251,6 +2296,14 @@ export class VabController {
 			this.view?.focusOn(d.part);
 			return;
 		}
+		if (d && !d.moved && d.button === 2 && this.armed) {
+			// a right click (not a drag, which orbits) lets go of the part, as Escape (plan 348, KSP)
+			this.say(
+				this.armed.kind === 'carry' ? 'Put back where it was.' : 'Back to the catalogue.'
+			);
+			this.disarm();
+			return;
+		}
 		if (!d || d.moved || d.button !== 0) return;
 		if (this.fairingEdit && this.selectedFairing && !this.armed) {
 			// fairing edit mode (plan 219, 243): a click on the shell adds a section at that height
@@ -2274,12 +2327,11 @@ export class VabController {
 			if (end) this.pickConnectorEnd(end);
 			else if (hit?.kind === 'part') this.notice = 'A strut or fuel line joins two ordinary parts.';
 		} else if (this.armed) {
-			const site = this.siteFromHit(hit, e.altKey);
-			const snap = this.snapNodes ? this.ringsNear(e).snap : null;
+			// the click puts the part where the ghost shows (plan 348): the move picked it
 			if (hit?.kind === 'node') this.place(Number(hit.key.slice(1)));
-			else if (snap !== null) this.place(snap);
-			else if (site) this.placeAt(site);
-			else if (hit?.kind === 'ghost' && this.active !== null) this.place(this.active);
+			else this.placeShown();
+		} else if (hit?.kind === 'part' && this.tool === 'root') {
+			this.rerootAt(Number(hit.key));
 		} else if (hit?.kind === 'part' && d.shift) {
 			// Shift-click picks up the whole vessel (or loose assembly) the part belongs to (plan 244)
 			const at = Number(hit.key);
@@ -2319,13 +2371,32 @@ export class VabController {
 		this.hoverAt = null;
 	};
 	/** Rings within reach of the pointer: those that glow and the one a click would snap to (plan 244). */
-	private ringsNear(e: PointerEvent): { glow: Set<number>; snap: number | null } {
+	private ringsNear(e: PointerEvent): {
+		glow: Set<number>;
+		snap: number | null;
+		rings: { index: number; px: number }[];
+	} {
 		const r = this.view?.nodesNearPointer(e.clientX, e.clientY, GLOW_PX, SNAP_PX);
 		const index = (key: string): number => Number(key.slice(1));
 		return {
 			glow: new Set((r?.glow ?? []).map(index)),
-			snap: r?.snap != null ? index(r.snap) : null
+			snap: r?.snap != null ? index(r.snap) : null,
+			rings: [...(r?.px ?? new Map<string, number>())].map(([key, px]) => ({
+				index: index(key),
+				px
+			}))
 		};
+	}
+	/**
+	 * Puts the held part where its ghost is (plan 348): the ring or the surface the pointer chose, or
+	 * the keyboard's target. False when the ghost is nowhere (the part floats at the cursor).
+	 */
+	private placeShown(): boolean {
+		if (this.hoverNode !== null) this.place(this.hoverNode);
+		else if (this.pointerTarget) this.placeAt(this.pointerTarget);
+		else if (!this.pointerDriven && this.active !== null) this.place(this.active);
+		else return false;
+		return true;
 	}
 	/**
 	 * A dragged part let go (plan 217): over the catalogue it is deleted; over a ring or a side it is
@@ -2346,12 +2417,8 @@ export class VabController {
 			return;
 		}
 		const hit = this.pick(e);
-		const site = this.siteFromHit(hit, e.altKey);
-		const snap = this.snapNodes ? this.ringsNear(e).snap : null;
 		if (hit?.kind === 'node') this.place(Number(hit.key.slice(1)));
-		else if (snap !== null) this.place(snap);
-		else if (site) this.placeAt(site);
-		else if (hit?.kind === 'ghost' && this.active !== null) this.place(this.active);
+		else if (this.placeShown()) return;
 		else {
 			const index = armed.index;
 			this.disarm();
@@ -2381,6 +2448,8 @@ export class VabController {
 			if (this.targets.length === 0) return;
 			this.cursor = ((this.cursor ?? 0) + step + this.targets.length) % this.targets.length;
 			this.hoverNode = null;
+			this.pointerTarget = null;
+			this.pointerDriven = false;
 			return;
 		}
 		const all = [
@@ -2466,7 +2535,8 @@ export class VabController {
 					: settings.keymap.actionFor('vab', keyIdOf(e));
 		switch (action) {
 			case 'escape':
-				if (this.armed) this.disarm();
+				if (this.keysOpen) this.keysOpen = false;
+				else if (this.armed) this.disarm();
 				else if (this.selected !== null) this.selected = null;
 				else if (this.drawer) this.drawer = null;
 				else return;
@@ -2478,7 +2548,20 @@ export class VabController {
 			case 'toolPlace':
 			case 'toolMove':
 			case 'toolRotate':
-				this.setTool(action === 'toolMove' ? 'move' : action === 'toolRotate' ? 'rotate' : 'place');
+			case 'toolRoot':
+				this.setTool(
+					action === 'toolMove'
+						? 'move'
+						: action === 'toolRotate'
+							? 'rotate'
+							: action === 'toolRoot'
+								? 'root'
+								: 'place'
+				);
+				return;
+			case 'hangarHelp':
+				e.preventDefault();
+				this.keysOpen = !this.keysOpen;
 				return;
 			case 'snapNodes':
 				this.toggleSnapNodes();
@@ -2543,7 +2626,7 @@ export class VabController {
 					this.pickConnectorSelected();
 				} else if (onCanvas && this.armed && this.active !== null) {
 					e.preventDefault();
-					this.place(this.active);
+					this.placeShown();
 				}
 				return;
 			default:

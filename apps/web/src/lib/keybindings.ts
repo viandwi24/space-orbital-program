@@ -230,6 +230,8 @@ export const ACTIONS = [
 	vab('toolPlace', 'Tool: place and pick parts', 'Digit1'),
 	vab('toolMove', 'Tool: move the selected part (offset)', 'Digit2'),
 	vab('toolRotate', 'Tool: rotate the selected part', 'Digit3'),
+	vab('toolRoot', 'Tool: make a part the root of the vessel', 'Digit4'),
+	vab('hangarHelp', 'Show the Hangar keys', '?', 'F1'),
 	vab('snapNodes', 'Snap to nodes on or off (off: any surface at the cursor)', 'KeyH'),
 	carry('pitchUp', 'Turn the carried part: pitch up', 'KeyW'),
 	carry('pitchDown', 'Turn the carried part: pitch down', 'KeyS'),
@@ -788,7 +790,9 @@ export const BINDING_GROUPS: readonly BindingGroup[] = [
 			{ actions: ['search'], text: 'Search the catalogue' },
 			{ actions: [], fixed: ['Ctrl+Z', 'Ctrl+Y'], text: 'Undo, redo' },
 			{ actions: [], fixed: ['Ctrl+S'], text: 'Save to the library' },
-			{ actions: [], fixed: ['Esc'], text: 'Let go of the part, clear the selection' }
+			{ actions: [], fixed: ['Esc'], text: 'Let go of the part, clear the selection' },
+			{ actions: [], fixed: ['Right click'], text: 'Let go of the carried part (right drag: orbit)' },
+			{ actions: ['hangarHelp'], text: 'This list' }
 		]
 	},
 	{
@@ -808,7 +812,10 @@ export const BINDING_GROUPS: readonly BindingGroup[] = [
 		title: 'Move and rotate tools',
 		mode: 'tool',
 		rows: [
-			{ actions: ['toolPlace', 'toolMove', 'toolRotate'], text: 'Place, Move or Rotate tool' },
+			{
+				actions: ['toolPlace', 'toolMove', 'toolRotate', 'toolRoot'],
+				text: 'Place, Move, Rotate or Root tool'
+			},
 			{
 				actions: ['toolUp', 'toolDown'],
 				text: 'Move: up, down 0.1 m (Shift 0.01 m). Rotate: pitch 15 degrees (Shift 5)'

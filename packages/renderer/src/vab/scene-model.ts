@@ -178,6 +178,25 @@ export function floorShift(lows: readonly number[]): number {
 	return lows.length === 0 ? 0 : -Math.min(...lows);
 }
 
+/**
+ * The low points that stand group `group` on the floor (plan 348, ADR 0297 point 1): only solid
+ * parts count. A ghost or the cursor's free part never moves the vessel while the player carries
+ * a part; `lowOf` is the part model's lowest vertex relative to its origin (undefined: not built).
+ */
+export function standingLows(
+	parts: readonly Pick<VabPart, 'key' | 'group' | 'role' | 'position'>[],
+	group: string,
+	lowOf: (key: string) => number | undefined
+): number[] {
+	const lows: number[] = [];
+	for (const p of parts) {
+		if (p.group !== group || p.role !== 'solid') continue;
+		const low = lowOf(p.key);
+		if (low !== undefined) lows.push(p.position[1] + low);
+	}
+	return lows;
+}
+
 export interface Extent {
 	min: V3;
 	max: V3;

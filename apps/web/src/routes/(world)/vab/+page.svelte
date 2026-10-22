@@ -20,6 +20,7 @@
 	import BuildContext from '../../../lib/vab/BuildContext.svelte';
 	import { pageShell } from '../../../lib/layout/page-actions.svelte';
 	import ToolPill from '../../../lib/vab/ToolPill.svelte';
+	import HelpOverlay from '../../../lib/hud/HelpOverlay.svelte';
 	import { VabController } from '../../../lib/vab/controller.svelte';
 	import { SaveController } from '../../../lib/save/save-controller.svelte';
 	import { bootedMods, modHint } from '../../../lib/save/mods';
@@ -361,6 +362,7 @@
 
 	<LibraryDialog {vab} />
 	<BlueprintLibrary {vab} />
+	<HelpOverlay open={vab.keysOpen} hangar onclose={() => (vab.keysOpen = false)} />
 
 	<Dialog
 		open={vab.confirmOpen}

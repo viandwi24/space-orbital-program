@@ -55,10 +55,15 @@
 				>
 				to choose and <Kbd>{key('place')}</Kbd> to place.
 			{/if}
-			<Kbd>Esc</Kbd> to stop.
+			<Kbd>Esc</Kbd> or a right click to stop.
 		</span>
 	{/if}
-	{#if !vab.armed && vab.tool !== 'place'}
+	{#if !vab.armed && vab.tool === 'root'}
+		<!-- the Root tool (plan 348) -->
+		<span class="chip live" data-testid="tool-context">
+			Root: click a part of the stack to make it the root of the vessel
+		</span>
+	{:else if !vab.armed && vab.tool !== 'place'}
 		<span class="chip live" data-testid="tool-context">
 			<Icon name={vab.tool === 'move' ? 'move' : 'rotate'} size={16} />
 			{#if vab.toolTarget === null}
