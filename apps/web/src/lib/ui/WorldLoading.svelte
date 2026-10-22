@@ -56,6 +56,22 @@
 	const LOWER_AFTER_MS = 15_000;
 	/** Each picture's time on screen. */
 	const SLIDE_MS = 7_000;
+	/**
+	 * The changing line over the progress (the owner, 2026-10-23): a CSS animation steps through
+	 * them, so it keeps changing while a shader compile holds the page's thread.
+	 */
+	const PATTER = [
+		'Fuelling the tanks',
+		'Rolling out to the pad',
+		'Checking the weather',
+		'Aligning the gyroscopes',
+		'Warming up the engines',
+		'Polling the flight controllers',
+		'Charting the orbits',
+		'Counting the stars'
+	];
+	/** Seconds each line of `PATTER` shows. */
+	const PATTER_S = 2.5;
 
 	let now = $state(performance.now());
 	let slide = $state(0);
@@ -97,6 +113,7 @@
 			{/if}
 		{/each}
 		<div class="shade"></div>
+		<div class="vignette"></div>
 	</div>
 
 	<p class="name">{GAME_NAME}</p>
@@ -107,6 +124,16 @@
 	</div>
 
 	<div class="corner">
+		<p
+			class="patter"
+			aria-hidden="true"
+			style:--patter-cycle="{PATTER.length * PATTER_S}s"
+			data-testid="loading-patter"
+		>
+			{#each PATTER as line, i (line)}
+				<span style:animation-delay="{i * PATTER_S}s">{line}<i>.</i><i>.</i><i>.</i></span>
+			{/each}
+		</p>
 		<div class="row">
 			<span class="ring" class:bad={error !== null} aria-hidden="true"></span>
 			<div class="text">
@@ -114,23 +141,24 @@
 					{error ?? step}{#if stepCount > 0 && !error}<span class="count">
 							{stepIndex} / {stepCount}</span
 						>{/if}
+					<span class="elapsed" data-testid="loading-elapsed">{elapsedText}</span>
 				</p>
 				{#if detail}<p class="detail" data-testid="loading-detail">{detail}</p>{/if}
 				{#if current}<p class="current">{current}</p>{/if}
 			</div>
 		</div>
-		<div class="bar" class:fill={fraction !== null} aria-hidden="true">
-			<span style:width={fraction !== null ? `${Math.round(fraction * 100)}%` : undefined}></span>
-		</div>
-		<div class="foot">
-			<span class="elapsed" data-testid="loading-elapsed">{elapsedText}</span>
-			{#if lowered}
-				<span class="lowered">Lower quality</span>
-			{:else if onlower && elapsed > LOWER_AFTER_MS && !error}
+		{#if lowered}
+			<p class="foot"><span class="lowered">Lower quality</span></p>
+		{:else if onlower && elapsed > LOWER_AFTER_MS && !error}
+			<p class="foot">
 				<button type="button" class="lower" onclick={onlower} data-testid="loading-lower"
 					>Taking long? Continue with lower quality</button
 				>
-			{/if}
+			</p>
+		{/if}
+		<!-- the bar last, in the very corner (the owner, 2026-10-23) -->
+		<div class="bar" class:fill={fraction !== null} aria-hidden="true">
+			<span style:width={fraction !== null ? `${Math.round(fraction * 100)}%` : undefined}></span>
 		</div>
 	</div>
 </div>
@@ -145,7 +173,8 @@
 		background: radial-gradient(ellipse at 30% 20%, #16233a 0%, var(--bg-space) 70%);
 	}
 	.slides,
-	.shade {
+	.shade,
+	.vignette {
 		position: absolute;
 		inset: 0;
 	}
@@ -166,6 +195,15 @@
 		background:
 			linear-gradient(to top, rgb(0 0 0 / 0.72) 0%, rgb(0 0 0 / 0) 38%),
 			linear-gradient(to bottom, rgb(0 0 0 / 0.45) 0%, rgb(0 0 0 / 0) 22%);
+	}
+	/* the edges darkened, as a lens does: the eye goes to the middle and the corners' text reads */
+	.vignette {
+		background: radial-gradient(
+			ellipse 75% 70% at 50% 45%,
+			rgb(0 0 0 / 0) 55%,
+			rgb(0 0 0 / 0.35) 80%,
+			rgb(0 0 0 / 0.7) 100%
+		);
 	}
 	@keyframes fade {
 		to {
@@ -222,12 +260,71 @@
 	}
 	.corner {
 		position: absolute;
-		right: 2rem;
-		bottom: 1.75rem;
+		right: 1.5rem;
+		bottom: 1.25rem;
 		width: min(20rem, 70vw);
 		display: grid;
 		gap: 0.5rem;
 		text-shadow: 0 1px 6px rgb(0 0 0 / 0.7);
+	}
+	.corner > p {
+		margin: 0;
+	}
+	/* one line at a time, each in turn (12.5% is one of PATTER's eight): opacity and transform
+	   only, run by the compositor */
+	.patter {
+		position: relative;
+		height: 1.25rem;
+		overflow: hidden;
+		font-size: var(--t-small);
+		letter-spacing: 0.04em;
+		color: var(--text-body);
+	}
+	.patter span {
+		position: absolute;
+		inset: 0;
+		white-space: nowrap;
+		opacity: 0;
+		will-change: opacity, transform;
+		animation: patter var(--patter-cycle) linear infinite both;
+	}
+	@keyframes patter {
+		0% {
+			opacity: 0;
+			transform: translate3d(0, 0.5rem, 0);
+		}
+		2% {
+			opacity: 1;
+			transform: translate3d(0, 0, 0);
+		}
+		11% {
+			opacity: 1;
+			transform: translate3d(0, 0, 0);
+		}
+		12.5%,
+		100% {
+			opacity: 0;
+			transform: translate3d(0, -0.5rem, 0);
+		}
+	}
+	.patter i {
+		font-style: normal;
+		animation: dot 1.2s steps(1, end) infinite;
+	}
+	.patter i:nth-child(2) {
+		animation-delay: 0.3s;
+	}
+	.patter i:nth-child(3) {
+		animation-delay: 0.6s;
+	}
+	@keyframes dot {
+		0%,
+		100% {
+			opacity: 0.2;
+		}
+		50% {
+			opacity: 1;
+		}
 	}
 	.row {
 		display: flex;
@@ -262,6 +359,13 @@
 	.step {
 		font-size: 0.9375rem;
 		font-weight: 500;
+	}
+	.elapsed {
+		float: right;
+		margin-left: 0.75rem;
+		font-size: var(--t-small);
+		color: var(--text-muted);
+		font-variant-numeric: tabular-nums;
 	}
 	.count {
 		margin-left: 0.375rem;
@@ -310,9 +414,8 @@
 	.foot {
 		display: flex;
 		align-items: center;
-		justify-content: space-between;
+		justify-content: flex-end;
 		gap: 0.75rem;
-		min-height: 1.75rem;
 		font-size: var(--t-small);
 		color: var(--text-muted);
 		font-variant-numeric: tabular-nums;
@@ -337,6 +440,18 @@
 		}
 		.ring {
 			animation-duration: 2.4s;
+		}
+		/* still changing, without the slide */
+		@keyframes patter {
+			0%,
+			12.5%,
+			100% {
+				opacity: 0;
+			}
+			0.5%,
+			12% {
+				opacity: 1;
+			}
 		}
 	}
 	@media (max-width: 720px) {

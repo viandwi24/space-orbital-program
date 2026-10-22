@@ -19,10 +19,14 @@
   - Load logs in `localStorage` (`load-log.ts`, the last 20).
   - `/developer` on the main menu, with the part and crew viewers moved there from Mods.
   - No copy button on the loading screen.
+  - Follow-up (2026-10-23): four more shots, so the slideshow has 10 (856 KB). Each is set up through the debug hooks: `staging` (Kronos V's first stage falling away at 45 km), `sla-petals` (the petals opening round Selene in orbit), `shuttle-bay` (Wayfarer alone in orbit, bay doors open, the module inside) and `lunar-landing` (Selene on its legs on Cinder). `scripts/capture-loading-slides.ts` loads either Hangar start blueprint (a fresh browser context per blueprint, since the start cards show only in an empty Hangar), stages, opens bays and switches to the lander with `]`. Shots marked `moment` pause at once, and `SWEEP=n` shoots n camera yaws for choosing a view.
+  - The owner's follow-up the same day: a vignette over the shots; the bar moved to the bottom of the corner, with the elapsed time on the step's line; and a changing line above it ("Fuelling the tanks…", "Rolling out to the pad…"). The line is a CSS animation, so it keeps changing while a compile holds the thread.
 - While loading, three's node builds get a 50 ms budget per task, deferring objects not yet built: the longest task fell from 1.4 s to 0.54 s on the M2.
 - `apps/web/scripts/measure-shader-compile.ts` measures it. The numbers and the owner's instructions are in [research/shader-compile-windows.md](../research/shader-compile-windows.md).
 
 ## What surprised me
+
+- A capture script that waits a fixed time before pausing loses a staging: the spent stage was out of frame 2.5 s later. Pausing straight after the stage command keeps it a few metres below.
 
 - The page's thread time at load is mostly three's own node build (`NodeBuilder.build`): about 3.2 s of WGSL generation on the M2, not our code. The build budget spreads it out but does not shrink it.
 

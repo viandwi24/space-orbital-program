@@ -9,9 +9,13 @@ import type { LoadingSlide } from './ui/WorldLoading.svelte';
 /** File name in `static/loading/` and its caption, in showing order. */
 export const SLIDE_FILES: readonly { file: string; caption: string }[] = [
 	{ file: 'pad-sunset.webp', caption: 'Kronos V on the pad at sunset' },
+	{ file: 'staging.webp', caption: 'The first stage falls away, 45 km up' },
 	{ file: 'orbit-day.webp', caption: 'In orbit, 100 km above Home' },
+	{ file: 'shuttle-bay.webp', caption: 'Wayfarer in orbit, its bay doors open' },
 	{ file: 'space-center-night.webp', caption: 'The Space Center at night' },
+	{ file: 'sla-petals.webp', caption: 'The petals open round the Selene lander' },
 	{ file: 'ascent.webp', caption: 'Climbing through the upper atmosphere' },
+	{ file: 'lunar-landing.webp', caption: 'Selene down on Cinder' },
 	{ file: 'orbit-night.webp', caption: 'Dusk over the night side' },
 	{ file: 'space-center-day.webp', caption: 'The Space Center' }
 ];
