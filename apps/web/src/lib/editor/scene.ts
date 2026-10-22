@@ -280,7 +280,8 @@ export function buildScene(input: SceneInput): BuiltScene {
 						{ design, loose: [...loose], nextIndex: Math.min(...held.parts.map((p) => p.index)) },
 						held,
 						ghost,
-						symmetry
+						symmetry,
+						parts
 					)
 				: carryPreview(design, held, ghost, input.followers ?? [], parts);
 		const at = layoutOf(merged.design, parts);

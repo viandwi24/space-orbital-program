@@ -57,3 +57,8 @@ Checked 2026-10-22. Builds on `vab-editor.md` and `ksp-part-visuals-and-editor.m
 | right-click drops a carried part | **missing** (right-drag orbits) |
 | a help overlay of the keys | only in Settings → Controls and the pause help |
 | undo | yes |
+
+## Follow-up (plan 357, ADR 0301, 2026-10-22)
+
+- F while placing now switches the symmetry pivot between the parent and the vessel axis (no new lookup: the 2024 guide above).
+- The Root tool passes radial and surface links, tilts and offsets where our design can express the turned link. Unlike KSP it still refuses a decoupler that holds by its side (the sim separates by node name) and a part with no free node; draft plan 358.

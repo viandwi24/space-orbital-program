@@ -17,7 +17,14 @@ import Stock from '@orbital/mod-stock';
 import AutoDockMod from '@orbital/mod-autodock';
 import { createRapierBackend } from '@orbital/physics';
 import { createSim, type Sim } from '@orbital/sim';
-import GuidanceMod, { HOLD_DISTANCE, GuidancePanel, aimBurn, phasingBurn } from '../src/index.ts';
+import GuidanceMod, {
+	HOLD_DISTANCE,
+	GuidancePanel,
+	MAX_PHASING_WAIT,
+	aimBurn,
+	phasingBurn,
+	tooLowToPhase
+} from '../src/index.ts';
 
 type Part = VesselDesign['parts'][number];
 const link = (index: number, part: string, parent: number, parentNode = 'bottom'): Part => ({
@@ -174,6 +181,43 @@ describe('rendezvous helpers', () => {
 		expect(p.dv).toBeLessThan(0); // lower and faster
 		expect(Math.abs(p.dv)).toBeLessThan(10);
 	});
+	describe('phasing low over the air (plan 333)', () => {
+		const floor = 680_000; // 600 km radius, air to 70 km, 10 km margin
+		const at = (r: number, angle: number) => {
+			const o = onOrbit(mu, r, angle);
+			return { r: o.position, v: o.velocity };
+		};
+		/** Both apsides of the phasing orbit after the burn, m from the centre. */
+		const apsides = (r: number, dv: number) => {
+			const v = Math.sqrt(mu / r) + dv;
+			const a = 1 / (2 / r - (v * v) / mu);
+			return [r, 2 * a - r];
+		};
+		test('1 km above the floor, the target 30° ahead: it raises and lets the target come round', () => {
+			const r = floor + 1_000;
+			const p = phasingBurn(at(r, 0), at(r, Math.PI / 6), mu, r, floor)!;
+			expect(p).toBeDefined();
+			expect(p.dv).toBeGreaterThan(0);
+			expect(Math.min(...apsides(r, p.dv))).toBeGreaterThanOrEqual(floor);
+			expect(p.flight).toBeLessThanOrEqual(MAX_PHASING_WAIT);
+		});
+		test('5 km above the floor, 30° ahead: a phasing orbit that stays above the floor', () => {
+			const r = floor + 5_000;
+			const p = phasingBurn(at(r, 0), at(r, Math.PI / 6), mu, r, floor)!;
+			expect(p).toBeDefined();
+			expect(Math.min(...apsides(r, p.dv))).toBeGreaterThanOrEqual(floor - 1);
+		});
+		test('the target 30° behind: it raises', () => {
+			const r = floor + 5_000;
+			const p = phasingBurn(at(r, 0), at(r, -Math.PI / 6), mu, r, floor)!;
+			expect(p.dv).toBeGreaterThan(0);
+		});
+		test('below the floor nothing fits, and the words say how high to go', () => {
+			expect(phasingBurn(at(670_000, 0), at(670_000, 0.5), mu, 670_000, floor)).toBeUndefined();
+			expect(tooLowToPhase(80_000)).toBe('Too low to phase: raise your orbit above 100 km first (Orbit tab).');
+		});
+	});
+
 	test('the aimed burn reaches a point a quarter turn on', () => {
 		const r = 700_000;
 		const own = { r: { x: r, y: 0, z: 0 }, v: { x: 0, y: 0, z: -Math.sqrt(mu / r) } };
@@ -194,6 +238,47 @@ describe('Rendezvous autopilot (plan 331)', () => {
 		expect(r.result).toBe('holding');
 		expect(r.distance).toBeLessThan(HOLD_DISTANCE);
 		expect(r.speed).toBeLessThan(0.5);
+		sim.dispose();
+	}, 240_000);
+
+	test('the warp to a burn ends about 5 s before it, once the vessel points along it', async () => {
+		const { sim, a } = await scene(100_000, 20_000 / 700_000, 0);
+		expect(sim.dispatch({ type: 'autopilot-engage', vessel: a, autopilot: 'guidance.rendezvous' }).ok).toBe(true);
+		const stops: number[] = [];
+		const off = sim.events.on('warp:stopped', () => stops.push(sim.time));
+		const start = sim.time;
+		let burnAt = -1;
+		while (sim.time - start < 3_000) {
+			sim.step(0.1);
+			const ap = vesselOf(sim, a).autopilot;
+			if (ap?.phase === 'correct' && ap.status.includes('Burning')) {
+				burnAt = sim.time;
+				break;
+			}
+		}
+		off();
+		expect(burnAt).toBeGreaterThan(0);
+		const last = stops.filter((t) => t <= burnAt).at(-1)!;
+		expect(burnAt - last).toBeLessThan(8);
+		sim.dispose();
+	}, 240_000);
+
+	test('stop at 10 m: same orbit, 20 km apart, it holds and creeps in to under 15 m', async () => {
+		const { sim, a } = await scene(100_000, 20_000 / 700_000, 0);
+		sim.dispatch({ type: 'autopilot-settings', vessel: a, autopilot: 'guidance.rendezvous', settings: { standoff: 10 } });
+		expect(sim.dispatch({ type: 'autopilot-engage', vessel: a, autopilot: 'guidance.rendezvous' }).ok).toBe(true);
+		const r = run(sim, a, 6 * 3_600);
+		if (r.result !== 'holding') console.log(r);
+		expect(r.result).toBe('holding');
+		expect(r.distance).toBeLessThan(20);
+		expect(r.speed).toBeLessThan(0.5);
+		// the hold creeps in to the set distance (the two probes' sizes keep it a little past 10 m)
+		for (let k = 0; k < 1_500; k++) sim.step(0.1);
+		const v = vesselOf(sim, a);
+		expect(v.autopilot?.phase).toBe('hold');
+		expect(v.target!.distance).toBeLessThan(15);
+		expect(v.target!.relativeSpeed).toBeLessThan(0.2);
+		expect(v.parts.length).toBe(12); // no part lost on the way in
 		sim.dispose();
 	}, 240_000);
 

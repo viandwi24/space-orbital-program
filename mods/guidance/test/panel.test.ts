@@ -168,6 +168,21 @@ describe('Guidance Computer panel (plan 332)', () => {
 			expect(rdv(low.me, low.target).text).toBe('The target is not in a stable orbit: periapsis below the surface, needs 70 km+.');
 		});
 
+		test('a run that stopped too low to phase offers the Orbit tab (plan 333)', () => {
+			const { me, target } = scene(circ(700_000), station);
+			const last = {
+				id: 'guidance.rendezvous',
+				title: 'Rendezvous',
+				outcome: 'aborted',
+				reason: 'Too low to phase: raise your orbit above 100 km first (Orbit tab).',
+				time: 5,
+				log: []
+			};
+			const r = rdv({ ...me, autopilotLast: last } as never, target);
+			expect(r.text).toBe(`Last run aborted: ${last.reason}`);
+			expect(r.action).toEqual({ label: 'Open Orbit', tab: 'orbit' });
+		});
+
 		test('ready: the idle line, Engage, the HUD delta-v and an estimate while off', () => {
 			const { me, target } = scene(circ(700_000), station);
 			const r = rdv(me, target, 3_391.94);

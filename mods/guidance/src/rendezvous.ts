@@ -1,5 +1,5 @@
 /**
- * The rendezvous autopilot (plan 331, ADR 0286), MechJeb style: from anywhere in orbit to 100–200 m
+ * The rendezvous autopilot (plan 331, ADR 0286), MechJeb style: from anywhere in orbit to 10–200 m
  * from the target vessel, at rest relative to it.
  *
  * 1. plane: a plane change at the nearer relative node when the planes differ by more than 0.05°;
@@ -53,6 +53,8 @@ const AIM_ABOVE = 300;
 export const STANDOFF = 150;
 /** The rendezvous is complete within this distance… */
 export const HOLD_DISTANCE = 200;
+/** The nearest standoff it flies to, m (the parts' own sizes may keep it farther). */
+export const MIN_STANDOFF = 10;
 /** …and below this relative speed, m/s. */
 export const HOLD_SPEED = 0.2;
 /** RCS flies the close phase inside this, m. */
@@ -62,6 +64,14 @@ const LEAD = 60;
 /** A coast longer than this is warped through, s; the warp ends this long before the burn. */
 const WARP_MIN = 120;
 const WARP_WAKE = 45;
+/**
+ * Once the vessel points along the burn, the rest of the wait is warped through too, to this
+ * long before the burn, s; only when more than `NEAR_WARP_MIN` s are left.
+ */
+export const WARP_NEAR = 5;
+const NEAR_WARP_MIN = 15;
+/** Aligned enough to warp the last stretch, rad. */
+const NEAR_WARP_ALIGN = 2 * DEG;
 /** Transfer plans before it gives up. */
 const MAX_PLANS = 4;
 /** Mid-course corrections per transfer. */
@@ -101,6 +111,8 @@ export interface RendezvousMemory extends NodeMemory {
 	planeTries: number;
 	/** The node time the coast was warped for, -1 for none. */
 	warpedFor: number;
+	/** The node time the short warp after aligning was made for, -1 for none (absent in older saves). */
+	nearWarpFor?: number;
 	warp: boolean;
 	dock: boolean;
 	standoff: number;
@@ -319,10 +331,15 @@ export function aimBurn(
 	return { burn: dv, miss: length(m0) };
 }
 
+/** The longest phasing wait it plans, s (10 days). */
+export const MAX_PHASING_WAIT = 10 * 86_400;
+
 /**
  * A phasing orbit (both in one orbit): the prograde burn at `tb` after which, `k` turns later, the
- * vessel is back where it burnt as the target gets there. The smallest `k` whose two burns are
- * cheap; the periapsis stays above `floor`. Undefined when none fits.
+ * vessel is back where it burnt as the target gets there. Two ways round (plan 333): lower and
+ * faster to catch a target ahead, or higher and slower to let it come round from behind; each with
+ * `k` turns up to the wait limit. The first (fewest turns) whose two burns are cheap, else the
+ * cheapest; the whole orbit stays above `floor`. Undefined when none fits.
  */
 export function phasingBurn(
 	own: StateVector,
@@ -334,23 +351,36 @@ export function phasingBurn(
 	const h = unit(cross(own.r, own.v));
 	const u1 = unit(own.r);
 	const u2 = unit(target.r);
-	const theta = Math.atan2(dot(cross(u1, u2), h), dot(u1, u2)); // the target leads by theta
+	// how far the target leads, 0..2π
+	const lead = (Math.atan2(dot(cross(u1, u2), h), dot(u1, u2)) + 2 * Math.PI) % (2 * Math.PI);
 	const nT = Math.sqrt(mu / (targetA * targetA * targetA));
 	const rb = length(own.r);
 	const speed = length(own.v);
+	if (rb < floor) return undefined;
+	const cheap = Math.max(20, 0.01 * speed);
 	let best: { dv: number; turns: number; flight: number } | undefined;
-	for (let k = 1; k <= 8; k++) {
-		const tp = (2 * Math.PI * k - theta) / (k * nT);
-		const ap = Math.cbrt(mu * (tp / (2 * Math.PI)) ** 2);
-		const other = 2 * ap - rb;
-		if (other < floor || other > 3 * rb) continue;
-		const dv = visViva(mu, rb, ap) - speed;
-		const option = { dv, turns: k, flight: k * tp };
-		if (2 * Math.abs(dv) <= Math.max(20, 0.01 * speed)) return option;
-		if (!best || Math.abs(dv) < Math.abs(best.dv)) best = option;
+	for (let k = 1; k <= 20; k++) {
+		let first: { dv: number; turns: number; flight: number } | undefined;
+		// laps = k: catch up from behind (lower); laps = k + 1: let the target lap round (higher)
+		for (const laps of [k, k + 1]) {
+			const tp = (2 * Math.PI * laps - lead) / (k * nT);
+			if (!(tp > 0) || k * tp > MAX_PHASING_WAIT) continue;
+			const ap = Math.cbrt(mu * (tp / (2 * Math.PI)) ** 2);
+			const other = 2 * ap - rb;
+			if (other < floor || other > 3 * rb) continue;
+			const option = { dv: visViva(mu, rb, ap) - speed, turns: k, flight: k * tp };
+			if (!first || Math.abs(option.dv) < Math.abs(first.dv)) first = option;
+		}
+		if (!first) continue;
+		if (2 * Math.abs(first.dv) <= cheap) return first;
+		if (!best || Math.abs(first.dv) < Math.abs(best.dv)) best = first;
 	}
 	return best;
 }
+
+/** The plain words when no phasing orbit fits: raise the orbit first (the Orbit tab). */
+export const tooLowToPhase = (floorAltitude: number): string =>
+	`Too low to phase: raise your orbit above ${Math.ceil((floorAltitude + 20_000) / 1000)} km first (Orbit tab).`;
 
 /** Rough delta-v still needed from here: plane, transfer, match and the close phase, m/s. */
 function estimateNeeded(own: StateVector, target: Target, mu: number): number {
@@ -380,12 +410,19 @@ function reach(parts: readonly { position: Vec3 }[], from: Vec3 = { x: 0, y: 0, 
 	return r;
 }
 
-/** The sphere round the target the vessel must stay out of, m from its centre. */
+/** The sphere round the target the vessel must stay out of, m from its centre: both vessels' sizes and 3 m. */
 const keepOutOf = (pilot: VesselPilot): number =>
-	reach(pilot.targetVessel?.parts ?? []) + reach(pilot.vessel.parts) + 10;
+	reach(pilot.targetVessel?.parts ?? []) + reach(pilot.vessel.parts) + 3;
+
+/** Where it stops: the setting, but never inside the keep-out sphere plus 2 m, m. */
+export const standoffFor = (pilot: VesselPilot, m: Pick<RendezvousMemory, 'standoff'>): number =>
+	Math.max(m.standoff, keepOutOf(pilot) + 2);
+
+/** Close enough to the standoff to hold there, m. */
+const arrivedWithin = (standoff: number): number => Math.min(HOLD_DISTANCE, standoff + Math.max(5, 0.3 * standoff));
 
 export function newRendezvousMemory(pilot: VesselPilot, params: RendezvousParams = {}): RendezvousMemory {
-	const standoff = clamp(Number(params.standoff ?? STANDOFF) || STANDOFF, 50, HOLD_DISTANCE);
+	const standoff = clamp(Number(params.standoff ?? STANDOFF) || STANDOFF, MIN_STANDOFF, HOLD_DISTANCE);
 	return {
 		...newNodeMemory(false),
 		stage: 'plan',
@@ -396,6 +433,7 @@ export function newRendezvousMemory(pilot: VesselPilot, params: RendezvousParams
 		corrections: 0,
 		planeTries: 0,
 		warpedFor: -1,
+		nearWarpFor: -1,
 		warp: flag(params.warp, true),
 		dock: flag(params.dock, false),
 		standoff,
@@ -494,11 +532,22 @@ export function stepRendezvous(pilot: VesselPilot, m: RendezvousMemory, dt: numb
 /** A far-phase burn: the node executor, warping through the coast to it. */
 function burn(pilot: VesselPilot, m: RendezvousMemory, mass: number): AutopilotStep {
 	const node = pilot.vessel.nodes?.[0];
-	if (node?.vector && m.phase === 'align' && m.warp && m.warpedFor !== node.time) {
+	if (node?.vector && m.phase === 'align' && m.warp) {
 		const start = node.time - burnTime(node.dv, mass, pilot.maxThrust, exhaustVelocity(pilot)) / 2;
-		if (start - pilot.time > WARP_MIN) {
+		const left = start - pilot.time;
+		if (m.warpedFor !== node.time && left > WARP_MIN) {
+			// the long coast: warp to WARP_WAKE s before the burn, time to wake up and turn
 			m.warpedFor = node.time;
 			pilot.warpTo(start - WARP_WAKE);
+		} else if (
+			m.nearWarpFor !== node.time &&
+			left > NEAR_WARP_MIN &&
+			left <= WARP_WAKE + 5 &&
+			angleBetween(noseOf(pilot), unit(node.vector)) < NEAR_WARP_ALIGN
+		) {
+			// turned and steady: warp the rest, to WARP_NEAR s before the burn
+			m.nearWarpFor = node.time;
+			pilot.warpTo(start - WARP_NEAR);
 		}
 	}
 	const step = stepNode(pilot, m);
@@ -509,7 +558,7 @@ function burn(pilot: VesselPilot, m: RendezvousMemory, mass: number): AutopilotS
 	}
 	if (m.phase === 'burn') m.pushed = true;
 	if (step.done) {
-		Object.assign(m, newNodeMemory(false), { warpedFor: -1 });
+		Object.assign(m, newNodeMemory(false), { warpedFor: -1, nearWarpFor: -1 });
 		return toStage(m, m.next, `${m.stage} burn done`);
 	}
 	// the node's own delta-v is the burn's; "Delta-v left" stays the vessel's
@@ -568,7 +617,7 @@ function plan(
 	const turn = period(oOwn.a, mu);
 	const floor = radius + Math.max(10_000, (pilot.body?.atmosphereHeight ?? 0) + 10_000);
 	const planned = (stage: RendezvousStage, next: RendezvousStage, line: string): AutopilotStep => {
-		Object.assign(m, newNodeMemory(false), { warpedFor: -1 });
+		Object.assign(m, newNodeMemory(false), { warpedFor: -1, nearWarpFor: -1 });
 		m.next = next;
 		return toStage(m, stage, line);
 	};
@@ -644,7 +693,7 @@ function plan(
 	if (Math.abs(oOwn.a - oT.a) / oT.a < COORBITAL && oOwn.e < 0.01) {
 		const tb = now + LEAD;
 		const phasing = phasingBurn(ownAt(tb), targetAt(tb), mu, oT.a, floor);
-		if (!phasing) return { phase: 'plan', abort: 'No phasing orbit stays clear of the ground.' };
+		if (!phasing) return { phase: 'plan', abort: tooLowToPhase(floor - radius) };
 		pilot.addNode(tb, phasing.dv, 0, 0);
 		m.arrival = tb + phasing.flight;
 		return planned(
@@ -773,12 +822,12 @@ function close(pilot: VesselPilot, m: RendezvousMemory, mass: number, target: Ta
 	const crash = collision(pilot, m, mass, target);
 	if (crash) return { phase: 'close', abort: crash };
 	const speed = length(u);
-	if (d <= HOLD_DISTANCE && speed < HOLD_SPEED) {
+	const standoff = standoffFor(pilot, m);
+	if (d <= arrivedWithin(standoff) && speed < HOLD_SPEED) {
 		pilot.throttle(0);
 		pilot.translate(0, 0, 0);
 		return toStage(m, 'hold', `${Math.round(d)} m from the target at ${speed.toFixed(2)} m/s: holding`);
 	}
-	const standoff = Math.max(m.standoff, keepOutOf(pilot) + 30);
 	const dir = unit(p);
 	const useRcs = d < RCS_RANGE && rcsLeft(pilot) && !m.noRcs;
 	const accelMain = pilot.maxThrust / mass;
@@ -806,12 +855,21 @@ function close(pilot: VesselPilot, m: RendezvousMemory, mass: number, target: Ta
 /** Hold at the standoff; hand over to Auto Dock when asked. */
 function hold(pilot: VesselPilot, m: RendezvousMemory, mass: number, target: Target, dt: number): AutopilotStep {
 	const { p, u, d } = target;
-	if (d > HOLD_DISTANCE + 30) return toStage(m, 'close', `drifted to ${Math.round(d)} m: closing in again`);
+	const standoff = standoffFor(pilot, m);
+	if (d > arrivedWithin(standoff) + Math.max(10, 0.2 * standoff))
+		return toStage(m, 'close', `drifted to ${Math.round(d)} m: closing in again`);
 	const crash = collision(pilot, m, mass, target);
 	if (crash) return { phase: 'hold', abort: crash };
 	const dir = unit(p);
 	const keepOut = keepOutOf(pilot);
-	const want = d < keepOut + 10 ? scale(dir, -0.3) : { x: 0, y: 0, z: 0 };
+	// inside the keep-out: back off; else creep to the standoff (at most 0.1 m/s) and stay there
+	const gap = d - standoff;
+	const want =
+		d < keepOut
+			? scale(dir, -0.3)
+			: Math.abs(gap) > 1
+				? scale(dir, clamp(gap / 40, -0.1, 0.1))
+				: { x: 0, y: 0, z: 0 };
 	const log: string[] = [];
 	if (rcsLeft(pilot) && !m.noRcs) {
 		if (!pilot.vessel.rcs) pilot.rcs(true);
@@ -849,7 +907,7 @@ export const Rendezvous = defineAutopilot<RendezvousMemory>({
 	id: 'guidance.rendezvous',
 	title: 'Rendezvous',
 	description:
-		'Flies to the target vessel or port: matches the plane, transfers with the phase wait, matches velocity and closes in to 100–200 m, then holds (or hands over to Auto Dock).',
+		'Flies to the target vessel or port: matches the plane, transfers with the phase wait, matches velocity and closes in to the set distance (10–200 m), then holds (or hands over to Auto Dock).',
 	rate: 10,
 	start(pilot, params) {
 		const problem = rendezvousProblem(pilot);

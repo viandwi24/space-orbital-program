@@ -120,6 +120,7 @@ import {
 	withRootTilt,
 	NO_TILT,
 	type AttachTarget,
+	type SymmetryPivot,
 	type SymmetrySpec,
 	type ConnectorEnd,
 	type EditorState
@@ -232,6 +233,8 @@ export class VabController {
 	symmetry = $state(1);
 	/** Mirror symmetry (R, plan 217): two copies reflected across the vessel's plane. */
 	mirror = $state(false);
+	/** What symmetry copies turn about (F while placing, plan 357, ADR 0301): the parent part's axis or the vessel's. */
+	symmetryPivot = $state<SymmetryPivot>('parent');
 	/** The carried part's turn from the keys (plan 217). */
 	turn = $state.raw<DesignTilt>(NO_TILT);
 	/** Angle snap of radial sites (C, plan 217): 15 degrees, 5 with Shift held. */
@@ -409,7 +412,9 @@ export class VabController {
 	});
 	/** The symmetry setting placements use: a mirror pair, else the count. */
 	readonly symmetrySpec = $derived<SymmetrySpec>(
-		this.mirror ? { count: 1, mirror: true } : { count: this.symmetry }
+		this.mirror
+			? { count: 1, mirror: true, pivot: this.symmetryPivot }
+			: { count: this.symmetry, pivot: this.symmetryPivot }
 	);
 	readonly heldRootDef = $derived(
 		this.held ? this.defOf(this.held.parts.find((p) => p.parent === null)?.part ?? '') : undefined
@@ -1474,6 +1479,14 @@ export class VabController {
 			this.toolFrame === 'local' ? 'Local axes (the part’s).' : 'Absolute axes (the vessel’s).'
 		);
 	}
+	toggleSymmetryPivot(): void {
+		this.symmetryPivot = this.symmetryPivot === 'parent' ? 'vessel' : 'parent';
+		this.say(
+			this.symmetryPivot === 'vessel'
+				? 'Symmetry about the vessel axis.'
+				: 'Symmetry about the parent part.'
+		);
+	}
 	toggleSnapNodes(): void {
 		this.snapNodes = !this.snapNodes;
 		this.say(
@@ -1548,19 +1561,27 @@ export class VabController {
 	}
 	/**
 	 * The Root tool's click (plan 348, ADR 0297 point 5): part `index` becomes the root of the vessel,
-	 * one undo step; a path through a radial or surface link, a tilt or an offset is refused.
+	 * one undo step; since plan 357 (ADR 0301) the path may pass through radial and surface links,
+	 * tilts and offsets.
 	 */
 	rerootAt(index: number): void {
 		if (!this.editor.design.parts.some((p) => p.index === index)) {
 			this.notice = 'Only a part of the vessel can be its root, not a loose part.';
 			return;
 		}
-		const r = reroot(this.editor.design, index);
+		const r = reroot(this.editor.design, index, this.editorContent);
 		if (!r.ok) {
+			const title = this.titleOfPart(index);
 			this.notice =
 				r.reason === 'already'
-					? `${this.titleOfPart(index)} is already the root.`
-					: `${this.titleOfPart(index)} cannot be the root: it hangs on a side, a surface, or a moved or turned part. Only stacked parts can.`;
+					? `${title} is already the root.`
+					: r.reason === 'connector'
+						? `${title} cannot be the root: a strut or fuel line is on the way to the root.`
+						: r.reason === 'tipped'
+							? `${title} cannot be the root: it is tipped over, and the vessel would lie down with it.`
+							: r.reason === 'separator'
+								? `${title} cannot be the root: a decoupler on the way holds by its side and would no longer let go.`
+								: `${title} cannot be the root: a link on the way to the root cannot be turned round (no free node).`;
 			return;
 		}
 		this.attempt(() => {
@@ -2508,6 +2529,11 @@ export class VabController {
 				e.preventDefault();
 				this.turn = NO_TILT;
 				this.say('Turn reset.');
+				return;
+			}
+			if (turn === 'symmetryPivot') {
+				e.preventDefault();
+				this.toggleSymmetryPivot();
 				return;
 			}
 			if (turn === 'angleSnap') {

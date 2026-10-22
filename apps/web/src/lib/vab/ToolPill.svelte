@@ -74,6 +74,21 @@
 			>
 		{/each}
 	</div>
+	{#if vab.tool === 'place'}
+		<!-- what the copies turn about (plan 357, ADR 0301) -->
+		<button
+			type="button"
+			class="toggle"
+			aria-pressed={vab.symmetryPivot === 'vessel'}
+			data-tip="Symmetry about the parent part or the vessel axis ({settings.keymap.label(
+				'symmetryPivot'
+			)} while placing)"
+			data-testid="tool-pivot"
+			onclick={() => vab.toggleSymmetryPivot()}
+			>{vab.symmetryPivot === 'vessel' ? 'Vessel' : 'Parent'}<span class="dot" aria-hidden="true"
+			></span></button
+		>
+	{/if}
 	<span class="sep" aria-hidden="true"></span>
 	<!-- touch chips for the modifier keys (plan 217, ADR 0207 point 11), styled like CoM/CoT (Hangar.dc.html) -->
 	<button

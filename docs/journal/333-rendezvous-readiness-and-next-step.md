@@ -25,3 +25,15 @@ sim: engage at 40 km circular → { ok: false, reason: "Reach a stable orbit fir
 ## Open questions
 
 - No "engine running" hint: the snapshot carries no throttle; the time bar already says why the warp is limited.
+
+## Follow-up: phasing low over the air (same day)
+
+The owner hit "No phasing orbit stays clear of the ground." `phasingBurn` only caught up from behind (a lower, faster orbit), and a vessel just above the floor (top of the air + 10 km) has no room to drop. It now also tries the other way (a higher, slower orbit for k turns while the target laps round: period `(2π(k+1) − lead) / (k·nT)`), k up to 20 within 10 days, and takes the first cheap one, else the cheapest. When nothing fits (the vessel itself below the floor) the abort says "Too low to phase: raise your orbit above X km first (Orbit tab)" and the Rendezvous tab offers "Open Orbit". Tests: 1 km above the floor with the target 30° ahead raises; 5 km above stays above the floor; 30° behind raises; below the floor, the words. `bun test mods/guidance`: 29 pass.
+
+## Follow-up: the warp ends 5 s before a burn (same day)
+
+The owner saw the warp to a correction burn stop about 45 s early. The first warp still ends 45 s before the burn (the vessel wakes from rails and turns); once it points within 2° of the burn and more than 15 s are left, a second `warpTo` takes it to 5 s before. Test: in the 20 km same-orbit case the last warp stop before the correction burn is under 8 s from it. `bun test mods/guidance`: 30 pass.
+
+## Follow-up: stop as close as 10 m (same day)
+
+The owner asked for a standoff under 100 m, down to 10 m. **Stop at** is now a number field, 10–200 m in steps of 5 (default 150). The keep-out sphere is both vessels' sizes plus 3 m (was 10), the standoff never goes inside it plus 2 m, "arrived" is the standoff plus the larger of 5 m and 30 %, and the hold creeps to the standoff at up to 0.1 m/s. Test: 20 km apart in one orbit with Stop at 10 m, it holds and is under 15 m and 0.2 m/s two minutes later, with no part lost. `bun test mods/guidance`: 31 pass.
