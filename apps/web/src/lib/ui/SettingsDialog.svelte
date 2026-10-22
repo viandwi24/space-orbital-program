@@ -26,6 +26,7 @@
 	} from '../graphics';
 	import type { RendererChoice } from '@orbital/renderer/backend';
 	import { settings } from '../settings/settings.svelte';
+	import { fatalSave, saveAndReload } from '../fatal-error.svelte';
 	import { markActiveWorldForDebug } from '../debug/world-mark';
 	import { PLACE_PAUSE_DEFAULTS, placePauses } from '../clock-state';
 	/** Debug mode marked the active world (plan 203). */
@@ -81,9 +82,17 @@
 		onpreset?.(choice);
 		emitGraphicsChange({ kind: 'preset', choice });
 	}
+	/** The renderer is built once per page: a change saves the world and reloads, with a note meanwhile. */
+	let restarting = $state(false);
 	function chooseRenderer(choice: RendererChoice): void {
+		if (choice === rendererChoice) return;
 		rendererChoice = choice;
 		saveRendererChoice(choice);
+		// outside a world there is nothing drawn to restart (the main menu reads it on the next page)
+		if (!fatalSave.current && !document.querySelector('canvas')) return;
+		restarting = true;
+		// one frame for the note to show before the page goes
+		requestAnimationFrame(() => void saveAndReload());
 	}
 	function chooseFrameCap(choice: FrameCapChoice): void {
 		frameCap = choice;
@@ -198,8 +207,10 @@
 				<div class="what">
 					<h3>Renderer</h3>
 					<p>
-						Automatic uses the newest your browser runs. A change applies when the view next opens.
+						Automatic uses the newest your browser runs. A change saves your world and restarts the
+						graphics.
 					</p>
+					{#if restarting}<p class="restarting" role="status">Restarting the graphics…</p>{/if}
 				</div>
 				<Segmented
 					label="Renderer"
@@ -555,5 +566,9 @@
 		display: flex;
 		justify-content: flex-end;
 		margin-top: var(--s-5);
+	}
+	.restarting {
+		margin-top: 6px;
+		color: var(--accent, #7aa2ff);
 	}
 </style>

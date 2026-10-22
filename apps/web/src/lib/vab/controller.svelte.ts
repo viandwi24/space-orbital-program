@@ -32,7 +32,13 @@ import {
 } from '../reliability/reliability-model';
 import { modelProviders } from '../mods/asset-models';
 import { emptyDesign, parseDesign, serialiseDesign, starterRocket } from '../design';
-import { initialGraphicsPreset } from '../graphics';
+import {
+	initialGraphicsPreset,
+	onGraphicsChange,
+	probeCapabilities,
+	startPreset
+} from '../graphics';
+import { saveAndReload } from '../fatal-error.svelte';
 import { keyIdOf, type ActionId } from '../keybindings';
 import { pinchZoomFactor } from '../touch/touch-model';
 import { settings } from '../settings/settings.svelte';
@@ -866,7 +872,19 @@ export class VabController {
 			if (document.visibilityState === 'hidden') void this.flushSave();
 		};
 		document.addEventListener('visibilitychange', hide);
+		// the Hangar's view picks its quality once: a preset that changes it reloads (the draft is saved
+		// on every change), so the player only presses and waits (owner, 2026-10-22)
+		const tier = (): 'low' | 'high' => (initialGraphicsPreset() === 'low' ? 'low' : 'high');
+		const shownTier = tier();
+		const offGraphics = onGraphicsChange((change) => {
+			if (change.kind !== 'preset') return;
+			const next =
+				change.choice === 'auto' ? startPreset(null, null, probeCapabilities()) : change.choice;
+			if ((next === 'low' ? 'low' : 'high') !== shownTier)
+				void this.flushSave().then(() => saveAndReload());
+		});
 		return () => {
+			offGraphics();
 			document.removeEventListener('visibilitychange', hide);
 			motion.removeEventListener('change', follow);
 			ro.disconnect();
@@ -2319,9 +2337,7 @@ export class VabController {
 		}
 		if (d && !d.moved && d.button === 2 && this.armed) {
 			// a right click (not a drag, which orbits) lets go of the part, as Escape (plan 348, KSP)
-			this.say(
-				this.armed.kind === 'carry' ? 'Put back where it was.' : 'Back to the catalogue.'
-			);
+			this.say(this.armed.kind === 'carry' ? 'Put back where it was.' : 'Back to the catalogue.');
 			this.disarm();
 			return;
 		}

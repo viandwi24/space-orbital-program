@@ -22,6 +22,20 @@ export const fatal = $state<{ current: FatalError | null }>({ current: null });
  */
 export const fatalSave: { current: (() => Promise<boolean>) | null } = { current: null };
 
+/**
+ * Saves the open world (when there is one), then reloads the page: the error card's "Save and
+ * reload", and the settings that only take effect on a fresh page (the renderer). A failed save
+ * still reloads.
+ */
+export async function saveAndReload(log: LogBuffer = logBuffer): Promise<void> {
+	try {
+		await fatalSave.current?.();
+	} catch (error) {
+		log.add('error', 'save', `save before reload failed: ${describeError(error)}`);
+	}
+	location.reload();
+}
+
 /** Describes any thrown value in one line. */
 export function describeError(value: unknown): string {
 	if (value instanceof Error) return value.message || value.name;
