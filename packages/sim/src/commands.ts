@@ -898,6 +898,7 @@ export function dispatch(
 			core.events.emit('mod:key', {
 				key: command.key,
 				...(command.vessel !== undefined ? { vessel: command.vessel as EntityId } : {}),
+				...(command.data !== undefined ? { data: { ...command.data } } : {}),
 				time: core.t
 			});
 			return { ok: true };

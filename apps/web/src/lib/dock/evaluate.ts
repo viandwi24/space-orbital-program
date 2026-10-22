@@ -3,7 +3,14 @@
  * input and give a plain tree the page draws; anything that throws marks the panel as failed and
  * nothing else. Sparkline values are kept per panel between updates.
  */
-import type { Command, PanelDefinition, PanelInput, PanelNode, PanelTone } from '@orbital/core';
+import type {
+	Command,
+	MapPick,
+	PanelDefinition,
+	PanelInput,
+	PanelNode,
+	PanelTone
+} from '@orbital/core';
 
 export type ShownNode =
 	| { kind: 'section'; title?: string; columns: 1 | 2; children: ShownNode[] }
@@ -42,6 +49,8 @@ export type ShownNode =
 			enabled: boolean;
 			path: string;
 			tone: 'primary' | 'danger' | null;
+			/** A `pick` node (plan 366): pressing it arms a map pick; this is its hint. */
+			pick?: string;
 	  }
 	| {
 			kind: 'select';
@@ -160,6 +169,15 @@ function show(node: PanelNode, input: PanelInput, memory: PanelMemory, path: str
 				path,
 				tone: node.tone ?? null
 			};
+		case 'pick':
+			return {
+				kind: 'button',
+				label: node.label,
+				enabled: node.enabled ? node.enabled(input) === true : true,
+				path,
+				tone: node.tone ?? null,
+				pick: node.hint ?? 'Click a body on the map'
+			};
 		case 'select':
 			return {
 				kind: 'select',
@@ -237,6 +255,26 @@ export function clampEntry(node: { min: number; max: number; step?: number | nul
 	const stepped = node.step ? Math.round(v / node.step) * node.step : v;
 	return Math.min(node.max, Math.max(node.min, Number(stepped.toFixed(9))));
 }
+
+/** The `pick` node at `path` and the command its pick gives, or null when it is not one (plan 366). */
+export function pickCommand(
+	panel: Pick<PanelDefinition, 'view'>,
+	path: string,
+	input: PanelInput,
+	pick: MapPick
+): { command: Command | null } | { error: string } | null {
+	const node = nodeAt(panel.view, path);
+	if (node?.kind !== 'pick') return null;
+	try {
+		return { command: node.command(input, pick) };
+	} catch (e) {
+		return { error: message(e) };
+	}
+}
+
+/** Is the node at `path` a `pick` (plan 366)? */
+export const isPick = (panel: Pick<PanelDefinition, 'view'>, path: string): boolean =>
+	nodeAt(panel.view, path)?.kind === 'pick';
 
 /** The command a button or switch at `path` gives now, or an error to show in the panel. */
 export function commandOf(

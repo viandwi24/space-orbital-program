@@ -5,7 +5,15 @@
 	 */
 	import type { Command, PanelDefinition, PanelInput } from '@orbital/core';
 	import { panelCanvas } from './canvas';
-	import { commandOf, evaluatePanel, type PanelMemory } from './evaluate';
+	import {
+		commandOf,
+		evaluatePanel,
+		isPick,
+		pickCommand,
+		type PanelMemory,
+		type ShownNode
+	} from './evaluate';
+	import { pickTool } from './pick-tool.svelte';
 	import PanelView from './PanelView.svelte';
 	import ModPanelFrame from './ModPanelFrame.svelte';
 
@@ -31,9 +39,44 @@
 
 	function act(path: string, on?: boolean | string | number): void {
 		if (!input) return;
+		// a `pick` arms the map pick; its command runs with the input of the moment of the click
+		if (isPick(panel, path)) {
+			const shown = findHint(result?.ok ? result.nodes : null, path);
+			pickTool.toggle({
+				key: `${panel.id}/${path}`,
+				hint: shown ?? 'Click a body on the map',
+				run: (pick) => {
+					if (!input) return;
+					const r = pickCommand(panel, path, input, pick);
+					if (r && 'error' in r) actionError = r.error;
+					else if (r?.command) oncommand(r.command);
+				}
+			});
+			return;
+		}
 		const r = commandOf(panel, path, input, on);
 		if ('error' in r) actionError = r.error;
 		else if (r.command) oncommand(r.command);
+	}
+
+	/** The hint of the shown pick button at `path`. */
+	function findHint(node: ShownNode | null, path: string): string | null {
+		if (!node) return null;
+		if (node.kind === 'button') return node.path === path ? (node.pick ?? null) : null;
+		if (node.kind === 'section') {
+			for (const c of node.children) {
+				const h = findHint(c, path);
+				if (h) return h;
+			}
+		}
+		if (node.kind === 'tabs') {
+			for (const t of node.tabs)
+				for (const c of t.children) {
+					const h = findHint(c, path);
+					if (h) return h;
+				}
+		}
+		return null;
 	}
 
 	$effect(() => {

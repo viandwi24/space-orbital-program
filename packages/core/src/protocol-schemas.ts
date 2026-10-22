@@ -174,7 +174,14 @@ export const commandSchema: z.ZodType<Command> = z.discriminatedUnion('type', [
 	z.object({
 		type: z.literal('mod-key'),
 		key: z.string().min(1).max(200),
-		vessel: entity.optional()
+		vessel: entity.optional(),
+		data: z
+			.record(
+				z.string().min(1).max(40),
+				z.union([z.number().finite(), z.string().max(200), z.boolean()])
+			)
+			.refine((d) => Object.keys(d).length <= 16, 'at most 16 keys')
+			.optional()
 	}),
 	z.object({
 		type: z.literal('autopilot-settings'),

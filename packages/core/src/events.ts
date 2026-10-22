@@ -227,7 +227,13 @@ export interface EventMap {
 	/** A mod asked the page to fly `vessel` (ADR 0292 point 3). */
 	'mod:focus': { plugin: string; vessel: EntityId };
 	/** The player pressed a mod keybinding that has no command (ADR 0292 point 6). */
-	'mod:key': { key: string; vessel?: EntityId; time: number };
+	'mod:key': {
+		key: string;
+		vessel?: EntityId;
+		/** The command's `data` (plan 366): a map pick's point, for instance. */
+		data?: Record<string, number | string | boolean>;
+		time: number;
+	};
 }
 
 export type EventHandler<P> = (payload: P) => void;

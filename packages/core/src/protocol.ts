@@ -882,7 +882,13 @@ export type Command =
 	/** Stop the vessel's autopilot (outcome `disengaged`). */
 	| { type: 'autopilot-disengage'; vessel: EntityId }
 	/** A mod keybinding without a command was pressed (plan 343, ADR 0292 point 6): emits `mod:key`. */
-	| { type: 'mod-key'; key: string; vessel?: EntityId }
+	| {
+			type: 'mod-key';
+			key: string;
+			vessel?: EntityId;
+			/** A few numbers and strings for the mod (plan 366: a map pick's point), at most 16 keys. */
+			data?: Record<string, number | string | boolean>;
+	  }
 	| {
 			type: 'action';
 			vessel: EntityId;

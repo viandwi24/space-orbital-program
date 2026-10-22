@@ -22,6 +22,8 @@ export function modKeyRows(
 	overrides: ModKeyOverrides,
 	keymap: Keymap
 ): ModKeyRow[] {
+	// a panel's own keys (plan 366) are not the player's to bind
+	defs = defs.filter((d) => !d.hidden);
 	const keysOf = (d: KeybindingDefinition): readonly string[] =>
 		(overrides[d.id] ?? d.defaults).filter(bindableKey);
 	const owners = new Map<string, number>();
