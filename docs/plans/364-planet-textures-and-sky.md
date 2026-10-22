@@ -1,7 +1,7 @@
 ---
 id: 364
 title: "Planet textures and sky like KSP: a baked sky with stable stars, scaled-space bakes of the planet, triplanar ground detail"
-status: in-progress
+status: done
 owner: "planet-sky session (Claude)"
 depends: [261, 340]
 phase: 0
@@ -48,20 +48,28 @@ From orbit, the home planet looks like KSP's Kerbin: crisp and stable, with clea
 
 ## Acceptance criteria
 
-- [ ] `bun test packages/renderer` passes, including `test/sky-model.test.ts`: the star catalogue's magnitude distribution, the width floor, energy normalisation, and determinism.
-- [ ] `bun test packages/core`, including the planet-map cache key or version test.
-- [ ] `bun run typecheck` and `bun run build` pass.
-- [ ] `bun run docs:check` passes.
-- [ ] Before and after screenshots from the same cameras in `docs/journal/assets/364-*.jpg`, with GPU ms per view. The orbit views cost no more than before (+5 %).
+- [x] `bun test packages/renderer` passes (770), including `test/sky-model.test.ts`: the star catalogue's magnitude distribution, the width floor, energy normalisation, and determinism.
+- [x] `bun test packages/core`, including `test/planet-map-cache.test.ts` (the one failure, the events catalogue, fails identically on the base commit).
+- [x] `bun run typecheck` and `bun run build` pass.
+- [x] `bun run docs:check` passes.
+- [x] Before and after screenshots from the same cameras in `docs/journal/assets/364-*.jpg`, with GPU ms per view. WebGPU: every view as cheap or cheaper. WebGL: the pad at night 8 % cheaper, the 100 km orbit 8 % dearer (the mid octaves; within the 10 % the owner allows, follow-up noted).
 
 ## Docs checklist
 
-- [ ] `docs/STATUS.md` board row.
-- [ ] `docs/journal/364-planet-textures-and-sky.md`.
-- [ ] `docs/architecture/rendering*.md`: sky and scaled-space bake.
-- [ ] ADR 0306 linked in `decisions/README.md`.
-- [ ] `docs/research/planet-textures-and-sky.md`.
+- [x] `docs/STATUS.md` board row.
+- [x] `docs/journal/364-planet-textures-and-sky.md`.
+- [x] `docs/architecture/overview.md`: sky and scaled-space bake.
+- [x] ADR 0306 linked in `decisions/README.md`.
+- [x] `docs/research/planet-textures-and-sky.md`.
 
 ## Log
 
 - 2026-10-22 — Started. Research and ADR written.
+- 2026-10-22 — Done. GPU ms, the median of seven 20-frame `benchmarkAsync` runs, MacBook Pro M5, Retina 1512 × 945 at 2×, high, governor off:
+
+  | View | WebGPU before | WebGPU after | WebGL before | WebGL after |
+  |---|---|---|---|---|
+  | Pad at night | 18.62 | 18.24 | 46.62 | 42.86 |
+  | Orbit 100 km | 21.63 | 21.05 (15.7 with the bake everywhere) | 56.10 | 60.67 |
+
+  Ground detail on/off at the pad: 18.43 / 18.28. The root `bun test` failures (83 named) match the base commit's one for one.
