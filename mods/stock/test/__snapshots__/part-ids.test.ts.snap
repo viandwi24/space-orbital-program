@@ -402,6 +402,24 @@ exports[`stock part ids, masses, costs and modules match the snapshot 1`] = `
     "mass": 500,
     "modules": [
       [
+        "stock.paint",
+        {
+          "offers": [
+            "default",
+            "plain",
+            "stripe",
+            "bands",
+            "checker",
+            "half-black",
+            "steel",
+            "roll",
+            "top-band",
+            "aft-band",
+            "service",
+          ],
+        },
+      ],
+      [
         "stock.resource-container",
         {
           "contents": {
@@ -421,6 +439,24 @@ exports[`stock part ids, masses, costs and modules match the snapshot 1`] = `
     "id": "stock.tank-wide",
     "mass": 2000,
     "modules": [
+      [
+        "stock.paint",
+        {
+          "offers": [
+            "default",
+            "plain",
+            "stripe",
+            "bands",
+            "checker",
+            "half-black",
+            "steel",
+            "roll",
+            "top-band",
+            "aft-band",
+            "service",
+          ],
+        },
+      ],
       [
         "stock.resource-container",
         {
@@ -1642,6 +1678,24 @@ exports[`stock part ids, masses, costs and modules match the snapshot 1`] = `
     "mass": 25,
     "modules": [
       [
+        "stock.paint",
+        {
+          "offers": [
+            "default",
+            "plain",
+            "stripe",
+            "bands",
+            "checker",
+            "half-black",
+            "steel",
+            "roll",
+            "top-band",
+            "aft-band",
+            "service",
+          ],
+        },
+      ],
+      [
         "stock.resource-container",
         {
           "contents": {
@@ -1661,6 +1715,24 @@ exports[`stock part ids, masses, costs and modules match the snapshot 1`] = `
     "id": "stock.tank-1875-short",
     "mass": 570,
     "modules": [
+      [
+        "stock.paint",
+        {
+          "offers": [
+            "default",
+            "plain",
+            "stripe",
+            "bands",
+            "checker",
+            "half-black",
+            "steel",
+            "roll",
+            "top-band",
+            "aft-band",
+            "service",
+          ],
+        },
+      ],
       [
         "stock.resource-container",
         {
@@ -1682,6 +1754,24 @@ exports[`stock part ids, masses, costs and modules match the snapshot 1`] = `
     "mass": 1125,
     "modules": [
       [
+        "stock.paint",
+        {
+          "offers": [
+            "default",
+            "plain",
+            "stripe",
+            "bands",
+            "checker",
+            "half-black",
+            "steel",
+            "roll",
+            "top-band",
+            "aft-band",
+            "service",
+          ],
+        },
+      ],
+      [
         "stock.resource-container",
         {
           "contents": {
@@ -1701,6 +1791,24 @@ exports[`stock part ids, masses, costs and modules match the snapshot 1`] = `
     "id": "stock.tank-3750-short",
     "mass": 2280,
     "modules": [
+      [
+        "stock.paint",
+        {
+          "offers": [
+            "default",
+            "plain",
+            "stripe",
+            "bands",
+            "checker",
+            "half-black",
+            "steel",
+            "roll",
+            "top-band",
+            "aft-band",
+            "service",
+          ],
+        },
+      ],
       [
         "stock.resource-container",
         {
@@ -1722,6 +1830,24 @@ exports[`stock part ids, masses, costs and modules match the snapshot 1`] = `
     "mass": 4500,
     "modules": [
       [
+        "stock.paint",
+        {
+          "offers": [
+            "default",
+            "plain",
+            "stripe",
+            "bands",
+            "checker",
+            "half-black",
+            "steel",
+            "roll",
+            "top-band",
+            "aft-band",
+            "service",
+          ],
+        },
+      ],
+      [
         "stock.resource-container",
         {
           "contents": {
@@ -1741,6 +1867,24 @@ exports[`stock part ids, masses, costs and modules match the snapshot 1`] = `
     "id": "stock.tank-3750-long",
     "mass": 9000,
     "modules": [
+      [
+        "stock.paint",
+        {
+          "offers": [
+            "default",
+            "plain",
+            "stripe",
+            "bands",
+            "checker",
+            "half-black",
+            "steel",
+            "roll",
+            "top-band",
+            "aft-band",
+            "service",
+          ],
+        },
+      ],
       [
         "stock.resource-container",
         {
@@ -1762,6 +1906,24 @@ exports[`stock part ids, masses, costs and modules match the snapshot 1`] = `
     "mass": 5335,
     "modules": [
       [
+        "stock.paint",
+        {
+          "offers": [
+            "default",
+            "plain",
+            "stripe",
+            "bands",
+            "checker",
+            "half-black",
+            "steel",
+            "roll",
+            "top-band",
+            "aft-band",
+            "service",
+          ],
+        },
+      ],
+      [
         "stock.resource-container",
         {
           "contents": {
@@ -1781,6 +1943,24 @@ exports[`stock part ids, masses, costs and modules match the snapshot 1`] = `
     "id": "stock.tank-5000",
     "mass": 10665,
     "modules": [
+      [
+        "stock.paint",
+        {
+          "offers": [
+            "default",
+            "plain",
+            "stripe",
+            "bands",
+            "checker",
+            "half-black",
+            "steel",
+            "roll",
+            "top-band",
+            "aft-band",
+            "service",
+          ],
+        },
+      ],
       [
         "stock.resource-container",
         {
@@ -1802,6 +1982,24 @@ exports[`stock part ids, masses, costs and modules match the snapshot 1`] = `
     "mass": 21335,
     "modules": [
       [
+        "stock.paint",
+        {
+          "offers": [
+            "default",
+            "plain",
+            "stripe",
+            "bands",
+            "checker",
+            "half-black",
+            "steel",
+            "roll",
+            "top-band",
+            "aft-band",
+            "service",
+          ],
+        },
+      ],
+      [
         "stock.resource-container",
         {
           "contents": {
@@ -1822,6 +2020,24 @@ exports[`stock part ids, masses, costs and modules match the snapshot 1`] = `
     "mass": 36000,
     "modules": [
       [
+        "stock.paint",
+        {
+          "offers": [
+            "default",
+            "plain",
+            "stripe",
+            "bands",
+            "checker",
+            "half-black",
+            "steel",
+            "roll",
+            "top-band",
+            "aft-band",
+            "service",
+          ],
+        },
+      ],
+      [
         "stock.resource-container",
         {
           "contents": {
@@ -1841,6 +2057,24 @@ exports[`stock part ids, masses, costs and modules match the snapshot 1`] = `
     "id": "stock.tank-7500-long",
     "mass": 72000,
     "modules": [
+      [
+        "stock.paint",
+        {
+          "offers": [
+            "default",
+            "plain",
+            "stripe",
+            "bands",
+            "checker",
+            "half-black",
+            "steel",
+            "roll",
+            "top-band",
+            "aft-band",
+            "service",
+          ],
+        },
+      ],
       [
         "stock.resource-container",
         {
@@ -2569,6 +2803,15 @@ exports[`stock part ids, masses, costs and modules match the snapshot 1`] = `
     "mass": 2700,
     "modules": [
       [
+        "stock.paint",
+        {
+          "offers": [
+            "default",
+            "steel",
+          ],
+        },
+      ],
+      [
         "stock.command",
         {},
       ],
@@ -2605,6 +2848,15 @@ exports[`stock part ids, masses, costs and modules match the snapshot 1`] = `
     "mass": 2200,
     "modules": [
       [
+        "stock.paint",
+        {
+          "offers": [
+            "default",
+            "steel",
+          ],
+        },
+      ],
+      [
         "stock.command",
         {},
       ],
@@ -2629,6 +2881,15 @@ exports[`stock part ids, masses, costs and modules match the snapshot 1`] = `
     "mass": 900,
     "modules": [
       [
+        "stock.paint",
+        {
+          "offers": [
+            "default",
+            "steel",
+          ],
+        },
+      ],
+      [
         "stock.resource-container",
         {
           "contents": {
@@ -2648,6 +2909,15 @@ exports[`stock part ids, masses, costs and modules match the snapshot 1`] = `
     "id": "stock.capsule-sphere",
     "mass": 1300,
     "modules": [
+      [
+        "stock.paint",
+        {
+          "offers": [
+            "default",
+            "steel",
+          ],
+        },
+      ],
       [
         "stock.command",
         {},
@@ -2673,6 +2943,15 @@ exports[`stock part ids, masses, costs and modules match the snapshot 1`] = `
     "mass": 1000,
     "modules": [
       [
+        "stock.paint",
+        {
+          "offers": [
+            "default",
+            "steel",
+          ],
+        },
+      ],
+      [
         "stock.command",
         {},
       ],
@@ -2696,6 +2975,15 @@ exports[`stock part ids, masses, costs and modules match the snapshot 1`] = `
     "id": "stock.lander-can",
     "mass": 600,
     "modules": [
+      [
+        "stock.paint",
+        {
+          "offers": [
+            "default",
+            "steel",
+          ],
+        },
+      ],
       [
         "stock.command",
         {},
@@ -2721,6 +3009,15 @@ exports[`stock part ids, masses, costs and modules match the snapshot 1`] = `
     "mass": 1000,
     "modules": [
       [
+        "stock.paint",
+        {
+          "offers": [
+            "default",
+            "steel",
+          ],
+        },
+      ],
+      [
         "stock.resource-container",
         {
           "contents": {
@@ -2740,6 +3037,15 @@ exports[`stock part ids, masses, costs and modules match the snapshot 1`] = `
     "id": "stock.hab-module",
     "mass": 6000,
     "modules": [
+      [
+        "stock.paint",
+        {
+          "offers": [
+            "default",
+            "steel",
+          ],
+        },
+      ],
       [
         "stock.resource-container",
         {
@@ -2761,6 +3067,15 @@ exports[`stock part ids, masses, costs and modules match the snapshot 1`] = `
     "mass": 7000,
     "modules": [
       [
+        "stock.paint",
+        {
+          "offers": [
+            "default",
+            "steel",
+          ],
+        },
+      ],
+      [
         "stock.resource-container",
         {
           "contents": {
@@ -2781,6 +3096,15 @@ exports[`stock part ids, masses, costs and modules match the snapshot 1`] = `
     "mass": 500,
     "modules": [
       [
+        "stock.paint",
+        {
+          "offers": [
+            "default",
+            "steel",
+          ],
+        },
+      ],
+      [
         "stock.resource-container",
         {
           "contents": {
@@ -2800,6 +3124,15 @@ exports[`stock part ids, masses, costs and modules match the snapshot 1`] = `
     "id": "stock.cupola",
     "mass": 1000,
     "modules": [
+      [
+        "stock.paint",
+        {
+          "offers": [
+            "default",
+            "steel",
+          ],
+        },
+      ],
       [
         "stock.command",
         {},
@@ -2824,6 +3157,15 @@ exports[`stock part ids, masses, costs and modules match the snapshot 1`] = `
     "id": "stock.rover-cab",
     "mass": 700,
     "modules": [
+      [
+        "stock.paint",
+        {
+          "offers": [
+            "default",
+            "steel",
+          ],
+        },
+      ],
       [
         "stock.command",
         {},
@@ -3016,6 +3358,15 @@ exports[`stock part ids, masses, costs and modules match the snapshot 1`] = `
     "mass": 16000,
     "modules": [
       [
+        "stock.paint",
+        {
+          "offers": [
+            "default",
+            "foil-engines",
+          ],
+        },
+      ],
+      [
         "stock.engine",
         {
           "gimbal": {
@@ -3045,6 +3396,15 @@ exports[`stock part ids, masses, costs and modules match the snapshot 1`] = `
     "mass": 9000,
     "modules": [
       [
+        "stock.paint",
+        {
+          "offers": [
+            "default",
+            "foil-engines",
+          ],
+        },
+      ],
+      [
         "stock.engine",
         {
           "gimbal": {
@@ -3073,6 +3433,15 @@ exports[`stock part ids, masses, costs and modules match the snapshot 1`] = `
     "id": "stock.engine-plate-8",
     "mass": 8000,
     "modules": [
+      [
+        "stock.paint",
+        {
+          "offers": [
+            "default",
+            "foil-engines",
+          ],
+        },
+      ],
       [
         "stock.engine",
         {

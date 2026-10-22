@@ -5,6 +5,7 @@
  * fictional (ADR 0255); `inspiredBy` says which real mission they recall.
  */
 import { partId, type VesselDesign } from '@orbital/core';
+import type { Paint } from '@orbital/mod-stock';
 import {
 	attachConnector,
 	attachNew,
@@ -114,6 +115,18 @@ export class Build {
 	}
 }
 
+/** `design` with each listed part painted (plan 355: the Hangar's Paint setting, `stock.paint`). */
+function painted(paint: Readonly<Record<number, Paint>>, design: VesselDesign): VesselDesign {
+	return {
+		...design,
+		parts: design.parts.map((p) =>
+			paint[p.index]
+				? { ...p, settings: { ...p.settings, 'stock.paint': { paint: paint[p.index] } } }
+				: p
+		)
+	};
+}
+
 /**
  * A launcher under a 1.25 m payload: an upper stage (medium tank, engine) and a 2.5 m core stage
  * (adapter, wide tank, wide engine) with fins.
@@ -186,18 +199,32 @@ export const MISSION_BLUEPRINTS: readonly MissionBlueprint[] = [
 			// service engine (turn round, dock with the lander); the lander is released; the descent
 			// engine; the ascent stage leaves the descent stage; the capsule leaves the service
 			// module; the parachutes
-			return b.done([
-				[sicEngine],
-				[d1, siiEngine, tower],
-				[d2, sivbEngine],
-				[smDec, petals],
-				[smEngine],
-				[lmRelease],
-				[descent],
-				[lmStage, ascent],
-				[cmSep],
-				[pod]
-			]);
+			// the Apollo stack's paint (plan 355): the first stage's roll pattern and foil-wrapped
+			// engines, the second stage's black top, the third stage's black aft band, a silver
+			// command module on a radiator-striped service module
+			const paint: Record<number, Paint> = {
+				[sic]: 'roll',
+				[sicEngine]: 'foil-engines',
+				[sii]: 'top-band',
+				[sivb]: 'aft-band',
+				[sm]: 'service',
+				[pod]: 'steel'
+			};
+			return painted(
+				paint,
+				b.done([
+					[sicEngine],
+					[d1, siiEngine, tower],
+					[d2, sivbEngine],
+					[smDec, petals],
+					[smEngine],
+					[lmRelease],
+					[descent],
+					[lmStage, ascent],
+					[cmSep],
+					[pod]
+				])
+			);
 		}
 	},
 	{

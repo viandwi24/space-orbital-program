@@ -338,7 +338,13 @@ export const LIVERIES = [
 	'checker',
 	'half-black',
 	'foam',
-	'steel'
+	'steel',
+	// plan 355: the Apollo stack's paints
+	'roll',
+	'top-band',
+	'aft-band',
+	'service',
+	'foil-engines'
 ] as const;
 export type Livery = (typeof LIVERIES)[number];
 
@@ -346,7 +352,9 @@ export type Livery = (typeof LIVERIES)[number];
 export function liveryOf(
 	params: Readonly<Record<string, unknown>> | undefined
 ): Livery | undefined {
-	const v = params?.livery;
+	// the Hangar's Paint setting (plan 355) wins over the part's own livery, unless `default`
+	const paint = params?.paint;
+	const v = typeof paint === 'string' && paint !== 'default' ? paint : params?.livery;
 	return typeof v === 'string' && (LIVERIES as readonly string[]).includes(v)
 		? (v as Livery)
 		: undefined;
@@ -355,7 +363,7 @@ export function liveryOf(
 /** The slot a barrel is drawn in under `livery`. */
 export function barrelSlot(livery: Livery | undefined): SlotName {
 	if (livery === 'foam') return 'foam';
-	if (livery === 'steel') return 'metal';
+	if (livery === 'steel' || livery === 'service') return 'metal';
 	return 'paint-primary';
 }
 
@@ -407,6 +415,80 @@ export function paintLivery(
 		case 'half-black':
 			band(b, 'paint-secondary', r, y0, y0 + H / 2);
 			break;
+		// plan 355: the Apollo stack
+		case 'roll': {
+			// the first stage: four black panels round the foot, the roll pattern under the top
+			// (black and white eighths), a black ring at the top
+			const eighth = Math.PI / 4;
+			const seg = Math.max(2, Math.round(b.segments / 8));
+			const sectors = (ya: number, yb: number, phase: number): void => {
+				for (let i = 0; i < 4; i++)
+					b.revolve(
+						'paint-secondary',
+						[
+							{ r: r + 0.004, y: ya },
+							{ r: r + 0.004, y: yb }
+						],
+						{ segments: seg, phiStart: phase + i * 2 * eighth, phiLength: eighth }
+					);
+			};
+			sectors(y0, y0 + H * 0.22, 0);
+			sectors(y1 - H * 0.16, y1 - H * 0.04, eighth);
+			band(b, 'paint-secondary', r, y1 - H * 0.04, y1);
+			// stringers: thin ribs up the white
+			const ribs = b.segments >= 32 ? 16 : 8;
+			for (let i = 0; i < ribs; i++) {
+				const a = (i / ribs) * Math.PI * 2;
+				b.box(
+					'paint-primary',
+					[0.03, H * 0.56, 0.03],
+					[Math.sin(a) * (r - 0.009), y0 + H * 0.5, Math.cos(a) * (r - 0.009)],
+					a
+				);
+			}
+			break;
+		}
+		case 'top-band':
+			band(b, 'paint-secondary', r, y1 - Math.min(0.6, H * 0.08), y1);
+			band(b, 'paint-secondary', r, y0, y0 + Math.min(0.12, H * 0.02));
+			break;
+		case 'aft-band':
+			band(b, 'paint-secondary', r, y0, y0 + H * 0.24);
+			// two black lines up the side, as on a third stage
+			for (const a of [0, Math.PI]) {
+				b.box(
+					'paint-secondary',
+					[0.12, H * 0.76, 0.02],
+					[Math.sin(a) * (r - 0.004), y0 + H * 0.62, Math.cos(a) * (r - 0.004)],
+					a
+				);
+			}
+			break;
+		case 'service': {
+			// a bare service module: white radiator panels in two groups, a band at each end
+			const seg = Math.max(2, Math.round(b.segments / 8));
+			for (const start of [0.3, Math.PI + 0.3]) {
+				b.revolve(
+					'paint-primary',
+					[
+						{ r: r + 0.004, y: y0 + H * 0.35 },
+						{ r: r + 0.004, y: y1 - H * 0.05 }
+					],
+					{ segments: seg, phiStart: start, phiLength: 1.1 }
+				);
+				for (let k = 1; k < 6; k++) {
+					const a = start + (1.1 * k) / 6;
+					b.box(
+						'dark-metal',
+						[0.02, H * 0.58, 0.01],
+						[Math.sin(a) * (r + 0.001), y0 + H * 0.64, Math.cos(a) * (r + 0.001)],
+						a
+					);
+				}
+			}
+			band(b, 'paint-primary', r, y0, y0 + H * 0.04);
+			break;
+		}
 		default:
 			break;
 	}

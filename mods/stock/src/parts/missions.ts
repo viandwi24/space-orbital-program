@@ -5,6 +5,7 @@
  * tower. Titles follow ADR 0255 (`OrbitX <code> "<nickname>"`).
  */
 import { definePart, kg } from '@orbital/sdk';
+import { ModulePaint } from '../paint.ts';
 import { ModuleAnimate, ModuleBay, ModuleFuelCell } from '../animate.ts';
 import { AntennaDish, AntennaWhip, ModuleAntenna } from '../comms.ts';
 import { partCost } from '../costs.ts';
@@ -628,11 +629,14 @@ const pod = (opts: {
 			...(opts.params ? { params: opts.params } : {}),
 			...(opts.chutes
 				? { deploy: { module: ModuleParachute.id, flag: 'canopy', seconds: 1.5 } }
-				: {})
+				: {}),
+			// the Hangar's Paint setting (plan 355): white, or the bare metal of a command module
+			paramsFrom: ModulePaint.id
 		},
 		attach: opts.attach,
 		hatch: { pos: [0, 0, opts.shape.radius * 0.98], dir: [0, 0, 1] },
 		modules: [
+			[ModulePaint, { offers: ['default', 'steel'] }] as const,
 			...(opts.command === false ? [] : [[ModuleCommand, {}] as const]),
 			[
 				ModuleResourceContainer,
@@ -999,11 +1003,14 @@ function enginePlate(opts: {
 				length: opts.height * 5,
 				exitPressure: 90_000
 			},
-			articulation: { module: ModuleEngine.id, field: 'gimbal', mode: 'gimbal' }
+			articulation: { module: ModuleEngine.id, field: 'gimbal', mode: 'gimbal' },
+			// the Hangar's Paint setting (plan 355): bare bells or wrapped in foil blankets
+			paramsFrom: ModulePaint.id
 		},
 		attach: stackNodes(opts.height, opts.size),
 		crossfeed: false,
 		modules: [
+			[ModulePaint, { offers: ['default', 'foil-engines'] }],
 			[
 				ModuleEngine,
 				{

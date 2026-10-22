@@ -1,6 +1,7 @@
 /** Command capsule: heat shield disc, painted drum, convex cone with windows, docking collar. */
 import { Matrix4, Path, Quaternion, Shape, Vector3 } from 'three';
 import type { ProfilePoint } from '../revolve.ts';
+import { barrelSlot, liveryOf } from './kit.ts';
 import type { GenContext, GeneratedPart } from '../registry.ts';
 import { canopyDynamic } from './parachute.ts';
 
@@ -25,6 +26,8 @@ const coneRadius = (R: number, noseR: number, t: number): number =>
 	R + (noseR - R) * t - 0.045 * Math.sin(Math.PI * t) * (1 - t);
 
 export function capsule(ctx: GenContext): GeneratedPart | void {
+	// the Hangar's Paint (plan 355): `steel` is a command module's bare metal
+	const body = barrelSlot(liveryOf(ctx.visual.params));
 	const { radius: R, height: H, builder: b, detail } = ctx;
 	const h2 = H / 2;
 	// The retaining ring reaches the full radius within the joint band of the bottom face (plan 207).
@@ -51,7 +54,7 @@ export function capsule(ctx: GenContext): GeneratedPart | void {
 	]);
 
 	// Drum (white) and an accent line below the shoulder.
-	b.revolve('paint-primary', [
+	b.revolve(body, [
 		{ r: rd, y: -h2 + shieldH + 0.035 },
 		{ r: rd, y: drumTop }
 	]);
@@ -71,7 +74,7 @@ export function capsule(ctx: GenContext): GeneratedPart | void {
 			smooth: i > 0 && i < steps
 		});
 	}
-	b.revolve('paint-primary', cone);
+	b.revolve(body, cone);
 
 	// Docking collar and hatch.
 	b.revolve('dark-metal', [

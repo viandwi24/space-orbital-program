@@ -1,7 +1,23 @@
 import { definePart, kg } from '@orbital/sdk';
 import { partCost } from '../costs.ts';
 import { ModuleResourceContainer } from '../modules.ts';
+import { ModulePaint, type Paint } from '../paint.ts';
 import { LiquidFuel, Oxidizer } from '../resources.ts';
+
+/** The paints a barrel offers (plan 355). */
+const BARREL_PAINTS: Paint[] = [
+	'default',
+	'plain',
+	'stripe',
+	'bands',
+	'checker',
+	'half-black',
+	'steel',
+	'roll',
+	'top-band',
+	'aft-band',
+	'service'
+];
 import { cylinder, stackNodes } from './shared.ts';
 
 export const PartTankSmall = definePart({
@@ -82,10 +98,13 @@ function liquidTank(
 		visual: {
 			kind: 'tank',
 			palette: { primary: '#eceee9', secondary: '#23272d', accent: '#e0572b' },
-			params: { stripe: 0.5, bands: 2 }
+			params: { stripe: 0.5, bands: 2 },
+			// the Hangar's Paint setting (plan 355)
+			paramsFrom: ModulePaint.id
 		},
 		attach: stackNodes(height, size),
 		modules: [
+			[ModulePaint, { offers: BARREL_PAINTS }],
 			[
 				ModuleResourceContainer,
 				{

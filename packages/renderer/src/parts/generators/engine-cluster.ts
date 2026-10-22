@@ -6,6 +6,7 @@
 import type { ProfilePoint } from '../revolve.ts';
 import type { GenContext, GeneratedPart } from '../registry.ts';
 import { MAX_BELLS, MIN_BELLS, clusterLayout } from '../cluster.ts';
+import { liveryOf } from './kit.ts';
 
 export function engineCluster(ctx: GenContext): GeneratedPart {
 	const { radius: R, height: H, builder: b, moving: m, detail } = ctx;
@@ -52,9 +53,23 @@ export function engineCluster(ctx: GenContext): GeneratedPart {
 	// many bells share the part's triangle budget: fewer sides each past four (plan 276)
 	const bellSeg =
 		bells > 4 ? { segments: Math.max(6, Math.round((m.segments * 4) / bells)) } : undefined;
-	for (const [x, , z] of clusterLayout(bells, ring, 0, ctx.visual.params?.centre === true)) {
-		m.revolveAt('nozzle', outer, [x, 0, z], bellSeg);
+	// plan 355: big first-stage engines in foil blankets, the outer ones under conical fairings
+	const foil = liveryOf(ctx.visual.params) === 'foil-engines';
+	const layout = clusterLayout(bells, ring, 0, ctx.visual.params?.centre === true);
+	for (const [x, , z] of layout) {
+		m.revolveAt(foil ? 'dark-metal' : 'nozzle', outer, [x, 0, z], bellSeg);
 		m.revolveAt('nozzle-inner', inner, [x, 0, z], bellSeg);
+		if (foil) {
+			// the blanket: a puffy wrap over the upper bell and the turbopump above it
+			const y0 = throatY - bellLen * 0.62;
+			const wrap: ProfilePoint[] = [];
+			for (let k = 0; k <= 5; k++) {
+				const y = y0 + ((plateBottom - 0.02 - y0) * k) / 5;
+				const puff = 1 + 0.06 * Math.sin(k * 2.1);
+				wrap.push({ r: Math.max(bellR(Math.min(y, throatY)), throatR * 1.6) * puff + wall * 3, y });
+			}
+			m.revolveAt('blanket', wrap, [x, 0, z], bellSeg);
+		}
 		if (detail.extras >= 1 && bells <= 5) {
 			for (const k of [2, 4]) {
 				const y = throatY - (bellLen * k) / 6;
@@ -69,6 +84,25 @@ export function engineCluster(ctx: GenContext): GeneratedPart {
 					[x, 0, z]
 				);
 			}
+		}
+	}
+
+	if (foil) {
+		// engine fairings round the outer bells: cones from the plate down a third of the bell
+		const fair = Math.max(0.05, Math.min(exitR * 1.08, R * 0.995 - ring));
+		for (const [x, , z] of layout) {
+			if (Math.hypot(x, z) < 1e-6) continue;
+			b.revolveAt(
+				'paint-secondary',
+				[
+					{ r: fair * 0.98, y: throatY - bellLen * 0.32 },
+					{ r: fair, y: throatY - bellLen * 0.3 },
+					{ r: fair * 0.72, y: plateBottom - 0.01 },
+					{ r: 0.01, y: plateBottom }
+				],
+				[x, 0, z],
+				bellSeg
+			);
 		}
 	}
 

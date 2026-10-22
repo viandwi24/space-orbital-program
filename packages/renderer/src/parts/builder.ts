@@ -31,6 +31,9 @@ export type SlotName =
 	| 'bronze'
 	| 'foam'
 	| 'tile'
+	// plan 355: the silver insulation blankets on big engines, an adapter's tan inner skin
+	| 'blanket'
+	| 'tan'
 	// plan 341: the crew character on the EVA suit (ADR 0291)
 	| 'skin'
 	| 'hair'

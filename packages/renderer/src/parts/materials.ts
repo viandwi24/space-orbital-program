@@ -146,6 +146,22 @@ export class MaterialLibrary {
 					normalMap: t.hullNormal,
 					normalScale: new Vector2(0.9, 0.9)
 				});
+			case 'blanket':
+				return new MeshStandardMaterial({
+					color: 0xb9c2cf,
+					metalness: 1,
+					roughness: 0.3,
+					normalMap: t.foilNormal,
+					normalScale: new Vector2(1.1, 1.1)
+				});
+			case 'tan':
+				return new MeshStandardMaterial({
+					color: 0xc9a46a,
+					metalness: 0.35,
+					roughness: 0.55,
+					normalMap: t.hullNormal,
+					normalScale: new Vector2(0.4, 0.4)
+				});
 			case 'tile':
 				return new MeshStandardMaterial({
 					color: 0x1c1d20,
