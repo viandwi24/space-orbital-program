@@ -38,7 +38,8 @@
 		hovered = null,
 		onhover = () => {},
 		onframe = () => {},
-		onmark = () => {}
+		onmark = () => {},
+		picture
 	}: {
 		rows: readonly BuildingRow[];
 		/** CSS pixel of each building's label, or null when off screen. */
@@ -76,8 +77,13 @@
 		onhover?: (id: string | null) => void;
 		/** Frame the camera on a building (plan 259). */
 		onframe?: (id: string) => void;
-		/** The building the bulldozer points at, to tint in the scene, or null (V3 §1.3, plan 274). */
-		onmark?: (id: string | null) => void;
+		/**
+		 * The building to box in the scene, or null: red for the one the bulldozer points at (V3 §1.3,
+		 * plan 274), white for a hovered Buildings card (plan 349).
+		 */
+		onmark?: (id: string | null, danger: boolean) => void;
+		/** A building card's thumbnail (plan 349): a data URL once drawn, or null without a picture. */
+		picture?: (row: BuildingRow) => Promise<string> | null;
 	} = $props();
 
 	const current = $derived(rows.find((r) => r.id === selected) ?? null);
@@ -87,6 +93,31 @@
 	let buildOpen = $state(false);
 	let tool = $state<'place' | 'demolish'>('place');
 	let listOpen = $state(false);
+	/** The strip's Flows or Market line, opened from its header (plan 349). */
+	let extra = $state<'flows' | 'market' | null>(null);
+	/** The card under the pointer or focus: its building is boxed in the scene (plan 349). */
+	let cardHover = $state<string | null>(null);
+	function hoverCard(id: string | null): void {
+		cardHover = id;
+		onhover(id);
+	}
+	const STATUS_CHIP: Record<BuildingRow['status'], string> = {
+		active: 'running',
+		building: 'building',
+		upgrading: 'upgrading',
+		planned: 'planned'
+	};
+	// the strip's pictures, drawn once per session by the build menu's renderer queue (plan 349)
+	let pictures = $state<Record<string, string>>({});
+	$effect(() => {
+		if (!listOpen) return;
+		for (const row of rows) {
+			if (pictures[row.id]) continue;
+			void picture?.(row)
+				?.then((url) => (pictures = { ...pictures, [row.id]: url }))
+				.catch(() => {});
+		}
+	});
 	let confirm = $state<string | null>(null);
 	// a ghost being placed is Build mode too (the page can start one, ADR 0254 point 1)
 	const mode = $derived(modeOf(buildOpen || build !== null, selected));
@@ -123,7 +154,8 @@
 			if (tool === 'demolish') confirm = id;
 			return;
 		}
-		listOpen = false;
+		// the strip stays open, so Overview comes back to it (plan 349)
+		hoverCard(null);
 		onselect(id);
 	}
 	function demolish(id: string): void {
@@ -132,7 +164,9 @@
 	}
 	// the bulldozer tints the building it points at, or the one being confirmed (V3 §1.3)
 	const marked = $derived(demolishing ? (confirm ?? hovered) : null);
-	$effect(() => onmark(marked));
+	// a card under the pointer boxes its building in white (plan 349)
+	const lit = $derived(mode === 'overview' && listOpen ? cardHover : null);
+	$effect(() => onmark(marked ?? lit, marked !== null));
 
 	/** Back to Overview from any mode (the menu bar's Space Center icon, V3 §1.4). */
 	export function overview(): void {
@@ -163,6 +197,7 @@
 	const ICON = {
 		build: 'M14 4 L20 10 L17 13 L11 7 Z M12.5 8.5 L4 17 A1.4 1.4 0 0 0 6 19 L14.5 10.5',
 		list: 'M8 6 H20 M8 12 H20 M8 18 H20 M4 6 H4.01 M4 12 H4.01 M4 18 H4.01',
+		building: 'M4 21 V9 L12 4 L20 9 V21 Z M9 21 V14 H15 V21 M4 21 H20',
 		branch:
 			'M12 21 C12 21 5 14.5 5 9.5 A7 7 0 0 1 19 9.5 C19 14.5 12 21 12 21 Z M12 7 V12 M9.5 9.5 H14.5',
 		tag: 'M3 12 V4 H11 L21 14 L14 21 Z M7.5 8 H7.51',
@@ -243,99 +278,6 @@
 			</div>
 		</div>
 	{/if}
-
-	<!-- Overview · the Buildings list (V3 §1.1: right 24, top 80, 280 wide), toggled from the bar -->
-	<!-- mounted while closed, so its list and the attention lines keep their state -->
-	<aside
-		class="list-panel"
-		aria-label="Buildings"
-		data-testid="sc-buildings-list"
-		hidden={!(mode === 'overview' && listOpen)}
-	>
-		<div class="ph">
-			<span class="cap">Buildings</span>
-			<span class="count" class:warn={attention.length + notes.length > 0}
-				>{attention.length + notes.length > 0
-					? `${attention.length + notes.length} need attention`
-					: `${rows.length}`}</span
-			>
-		</div>
-		{#if sites.length > 1}
-			<label class="site-pick"
-				><span>Site</span>
-				<select
-					data-testid="sc-site"
-					value={siteId ?? sites[0]?.id}
-					onchange={(e) => onsite((e.currentTarget as HTMLSelectElement).value)}
-				>
-					{#each sites as s (s.id)}<option value={s.id}>{s.label}</option>{/each}
-				</select></label
-			>
-		{/if}
-		<!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
-		<ul
-			class="list"
-			role="listbox"
-			aria-label="Buildings"
-			tabindex="0"
-			onkeydown={onListKey}
-			data-testid="sc-list"
-		>
-			{#each rows as row (row.id)}
-				<li
-					role="option"
-					aria-selected={row.id === selected}
-					onpointerenter={() => onhover(row.id)}
-					onpointerleave={() => onhover(null)}
-				>
-					<ListRow
-						name={row.label}
-						sub={row.statusText}
-						selected={row.id === hovered}
-						onclick={() => clickPin(row.id)}
-						testid="sc-row-{row.id}"
-					/>
-				</li>
-			{/each}
-		</ul>
-		<span class="hr" aria-hidden="true"></span>
-		<div class="attention" data-testid="sc-attention">
-			{#if attention.length === 0 && notes.length === 0}
-				<p class="calm">Every building is running.</p>
-			{:else}
-				<ul class="warnings">
-					{#each notes as note (note)}
-						<li>{note}</li>
-					{/each}
-					{#each attention as row (row.id)}
-						<li>{row.label}: {row.statusText}</li>
-					{/each}
-				</ul>
-			{/if}
-		</div>
-		{#if flows.length > 0}
-			<span class="cap sub">Flows</span>
-			<ul class="plain" data-testid="sc-flows">
-				{#each flows as f (f)}<li>{f}</li>{/each}
-			</ul>
-		{/if}
-		{#if market.length > 0}
-			<span class="cap sub">Market</span>
-			<ul class="plain" data-testid="sc-market">
-				{#each market as m (m.id)}
-					<li>
-						<ListRow
-							name={m.label}
-							sub="{m.price}{m.trend ? ` · ${m.trend}` : ''}{m.held !== null
-								? ` · ${m.held.toLocaleString('en-US')} held`
-								: ''}"
-							testid="sc-market-{m.id}"
-						/>
-					</li>
-				{/each}
-			</ul>
-		{/if}
-	</aside>
 
 	<!-- Focus · the building's panel (V3 §1.4: right 24, top 80, 320 wide) -->
 	{#if mode === 'focus' && current}
@@ -421,6 +363,141 @@
 
 	<!-- the context bar (V3 §1): bottom centre, its content follows the mode -->
 	<div class="context">
+		<!-- Overview · the Buildings strip (plan 349, ADR 0298): cards along the bottom like the Build
+		     menu, above the bar; mounted while closed, so its list and attention lines keep their state -->
+		<section
+			class="strip"
+			aria-label="Buildings"
+			data-testid="sc-buildings-list"
+			hidden={!(mode === 'overview' && listOpen)}
+		>
+			<div class="ph">
+				<span class="cap">Buildings</span>
+				<span class="count">{rows.length}</span>
+				<span class="attention" data-testid="sc-attention">
+					{#if attention.length === 0 && notes.length === 0}
+						<span class="calm">Every building is running.</span>
+					{:else}
+						<ul class="warnings">
+							{#each notes as note (note)}
+								<li>{note}</li>
+							{/each}
+							{#each attention as row (row.id)}
+								<li>{row.label}: {row.statusText}</li>
+							{/each}
+						</ul>
+					{/if}
+				</span>
+				{#if flows.length > 0}
+					<button
+						type="button"
+						class="more"
+						aria-pressed={extra === 'flows'}
+						onclick={() => (extra = extra === 'flows' ? null : 'flows')}>Flows</button
+					>
+				{/if}
+				{#if market.length > 0}
+					<button
+						type="button"
+						class="more"
+						aria-pressed={extra === 'market'}
+						onclick={() => (extra = extra === 'market' ? null : 'market')}>Market</button
+					>
+				{/if}
+				{#if sites.length > 1}
+					<label class="site-pick"
+						><span>Site</span>
+						<select
+							data-testid="sc-site"
+							value={siteId ?? sites[0]?.id}
+							onchange={(e) => onsite((e.currentTarget as HTMLSelectElement).value)}
+						>
+							{#each sites as s (s.id)}<option value={s.id}>{s.label}</option>{/each}
+						</select></label
+					>
+				{/if}
+			</div>
+			{#if extra === 'flows' && flows.length > 0}
+				<ul class="plain" data-testid="sc-flows">
+					{#each flows as f (f)}<li>{f}</li>{/each}
+				</ul>
+			{/if}
+			{#if extra === 'market' && market.length > 0}
+				<ul class="plain market" data-testid="sc-market">
+					{#each market as m (m.id)}
+						<li>
+							<ListRow
+								name={m.label}
+								sub="{m.price}{m.trend ? ` · ${m.trend}` : ''}{m.held !== null
+									? ` · ${m.held.toLocaleString('en-US')} held`
+									: ''}"
+								testid="sc-market-{m.id}"
+							/>
+						</li>
+					{/each}
+				</ul>
+			{/if}
+			<!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
+			<ul
+				class="list"
+				role="listbox"
+				aria-label="Buildings"
+				aria-orientation="horizontal"
+				tabindex="0"
+				onkeydown={onListKey}
+				data-testid="sc-list"
+			>
+				{#each rows as row (row.id)}
+					<li
+						role="option"
+						aria-selected={row.id === selected}
+						onpointerenter={() => hoverCard(row.id)}
+						onpointerleave={() => hoverCard(null)}
+					>
+						<button
+							type="button"
+							class="bcard"
+							class:hot={row.id === hovered}
+							data-testid="sc-row-{row.id}"
+							data-tip={row.statusText}
+							onclick={() => clickPin(row.id)}
+							onfocus={() => hoverCard(row.id)}
+							onblur={() => hoverCard(null)}
+						>
+							<span class="bhead">
+								<span class="bthumb">
+									{#if pictures[row.id]}
+										<img src={pictures[row.id]} alt="" />
+									{:else}
+										<svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"
+											><path d={ICON.building} /></svg
+										>
+									{/if}
+								</span>
+								<span class="bchip {row.status}">{STATUS_CHIP[row.status]}</span>
+							</span>
+							<span class="bname">{row.label}</span>
+							<span class="bsub"
+								>{row.status === 'active'
+									? `Level ${row.level} of ${row.maxLevel}`
+									: row.statusText}</span
+							>
+							{#if row.progress !== null}
+								<span
+									class="bbar"
+									role="progressbar"
+									aria-label="{row.label} progress"
+									aria-valuemin="0"
+									aria-valuemax="100"
+									aria-valuenow={Math.round(row.progress * 100)}
+									><span style="width:{Math.round(row.progress * 100)}%"></span></span
+								>
+							{/if}
+						</button>
+					</li>
+				{/each}
+			</ul>
+		</section>
 		{#if mode === 'build'}
 			<BuildMenu
 				{menu}
@@ -658,8 +735,7 @@
 		text-transform: uppercase;
 		color: var(--text-muted);
 	}
-	/* the panels at the right (V3 §1.1 and §1.4): the bars' glass, radius 16 */
-	.list-panel,
+	/* the building panel at the right (V3 §1.4): the bars' glass, radius 16 */
 	.detail {
 		position: absolute;
 		top: calc(var(--margin-hud) + var(--capsule) + var(--panel-gap));
@@ -676,39 +752,74 @@
 		border: 1px solid var(--border-subtle);
 		border-radius: var(--radius-panel);
 	}
-	.list-panel[hidden] {
-		display: none;
+	/* the Buildings strip (plan 349, ADR 0298): the build bar's glass, width and cards */
+	.strip {
+		width: min(65rem, calc(100vw - 3rem));
+		box-sizing: border-box;
+		display: flex;
+		flex-direction: column;
+		gap: 0.5rem;
+		padding: 0.5rem;
+		border-radius: 18px;
+		background: var(--surface-glass);
+		-webkit-backdrop-filter: var(--bar-filter);
+		backdrop-filter: var(--bar-filter);
+		border: 1px solid var(--border-subtle);
 	}
-	.list-panel {
-		width: 17.5rem;
-		gap: 2px;
-		padding: 0.625rem;
+	.strip[hidden] {
+		display: none;
 	}
 	.ph {
 		display: flex;
 		align-items: center;
-		justify-content: space-between;
-		min-height: 1.5rem;
-		padding: 0 0.375rem;
+		gap: 0.625rem;
+		min-height: 2rem;
+		padding: 0 0.25rem 0 0.5rem;
 	}
 	.count {
 		font-size: var(--t-label);
 		color: var(--text-subtle);
 	}
-	.count.warn {
+	.attention {
+		flex: 1;
+		min-width: 0;
+		font-size: var(--t-label);
+		line-height: 1.3;
+		color: var(--text-muted);
+	}
+	.warnings {
+		display: flex;
+		flex-wrap: wrap;
+		gap: 0 0.75rem;
+	}
+	.warnings li {
 		color: var(--warn);
+	}
+	.more {
+		height: 1.75rem;
+		padding: 0 0.75rem;
+		border: 1px solid var(--border-subtle);
+		border-radius: var(--radius-pill);
+		background: transparent;
+		color: var(--text-secondary);
+		font: inherit;
+		font-size: var(--t-small);
+		font-weight: 600;
+		cursor: pointer;
+	}
+	.more[aria-pressed='true'] {
+		background: var(--selected-bg);
+		color: var(--selected-fg);
+		border-color: transparent;
 	}
 	.site-pick {
 		display: flex;
 		align-items: center;
 		gap: 0.5rem;
-		padding: 0.25rem 0.375rem;
 		font-size: var(--t-small);
 		color: var(--text-muted);
 	}
 	.site-pick select {
-		flex: 1;
-		min-width: 0;
 		font: inherit;
 		color: var(--text-primary);
 		background: var(--surface-tile);
@@ -723,34 +834,128 @@
 		margin: 0;
 		padding: 0;
 	}
-	.list:focus-visible {
-		outline: 2px solid var(--text-primary);
-		border-radius: 8px;
-	}
-	.hr {
-		height: 1px;
-		margin: 0.375rem;
-		background: var(--border-divider);
-	}
-	.attention {
-		padding: 0.125rem 0.375rem 0.25rem;
-		font-size: var(--t-label);
-		line-height: 1.3;
-		color: var(--text-muted);
-	}
-	.calm {
-		margin: 0;
-	}
-	.warnings li {
-		color: var(--warn);
-	}
-	.cap.sub {
-		padding: 0.5rem 0.375rem 0.25rem;
+	.plain {
+		display: flex;
+		flex-wrap: wrap;
+		gap: 0.25rem 1rem;
+		padding: 0 0.5rem;
 	}
 	.plain li {
 		font-size: var(--t-small);
 		color: var(--text-secondary);
-		padding: 0.125rem 0.375rem;
+	}
+	.plain.market li {
+		min-width: 12rem;
+	}
+	.list {
+		display: flex;
+		gap: 0.375rem;
+		overflow-x: auto;
+		scrollbar-width: thin;
+	}
+	.list:focus-visible {
+		outline: 2px solid var(--text-primary);
+		border-radius: 12px;
+	}
+	.list li {
+		flex: 1 0 11rem;
+		max-width: 15rem;
+		display: flex;
+	}
+	.bcard {
+		width: 100%;
+		min-height: 5.75rem;
+		box-sizing: border-box;
+		display: flex;
+		flex-direction: column;
+		align-items: flex-start;
+		gap: 0.4375rem;
+		padding: 0.625rem;
+		border: 1px solid transparent;
+		border-radius: 12px;
+		background: rgb(255 255 255 / 0.035);
+		color: var(--text-primary);
+		text-align: left;
+		font: inherit;
+		cursor: pointer;
+	}
+	.bcard:hover,
+	.bcard.hot {
+		border-color: rgb(255 255 255 / 0.22);
+		background: rgb(255 255 255 / 0.08);
+	}
+	.bcard:focus-visible {
+		outline: 2px solid var(--text-primary);
+		outline-offset: -2px;
+	}
+	.bhead {
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+		width: 100%;
+	}
+	.bthumb {
+		display: grid;
+		place-items: center;
+		width: 2.75rem;
+		height: 1.75rem;
+		border-radius: 7px;
+		background: var(--surface-tile);
+		color: var(--text-secondary);
+		overflow: hidden;
+	}
+	.bthumb img {
+		width: 100%;
+		height: 100%;
+		object-fit: cover;
+	}
+	.bthumb svg {
+		fill: none;
+		stroke: currentColor;
+		stroke-width: 1.7;
+		stroke-linejoin: round;
+	}
+	.bchip {
+		height: 1rem;
+		padding: 0 0.375rem;
+		display: flex;
+		align-items: center;
+		border-radius: var(--radius-pill);
+		background: color-mix(in srgb, var(--tone, var(--text-secondary)) 16%, transparent);
+		color: var(--tone, var(--text-secondary));
+		font-size: var(--t-label);
+		font-weight: 700;
+		letter-spacing: var(--tracking-chip);
+		text-transform: uppercase;
+	}
+	.bchip.active {
+		--tone: var(--ok);
+	}
+	.bchip.building,
+	.bchip.upgrading {
+		--tone: var(--warn);
+	}
+	.bname {
+		font-size: var(--t-button);
+		font-weight: 600;
+		line-height: 1;
+	}
+	.bsub {
+		font-size: var(--t-label);
+		line-height: 1.3;
+		color: var(--text-muted);
+	}
+	.bbar {
+		width: 100%;
+		height: 3px;
+		border-radius: 2px;
+		background: var(--surface-track);
+		overflow: hidden;
+	}
+	.bbar span {
+		display: block;
+		height: 100%;
+		background: var(--warn);
 	}
 	.detail {
 		width: 20rem;
@@ -1001,7 +1206,9 @@
 		bottom: calc(env(safe-area-inset-bottom, 0px) + 3.25rem);
 		transform: translateX(-50%);
 		display: flex;
-		justify-content: center;
+		flex-direction: column;
+		align-items: center;
+		gap: 0.5rem;
 	}
 	.bar {
 		display: flex;
