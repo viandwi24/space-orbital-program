@@ -173,6 +173,26 @@ const GIZMO_PX = 14;
 const AUTOSAVE_DELAY = 800;
 const THUMB = { width: 192, height: 128 };
 
+/** The Hangar's CoM/CoT marker toggles, per browser; off unless the player turned them on. */
+const MARKER_KEY = 'orbital.vab.markers';
+function markerSetting(kind: 'com' | 'cot'): boolean {
+	try {
+		const raw = globalThis.localStorage?.getItem(MARKER_KEY);
+		return raw ? JSON.parse(raw)?.[kind] === true : false;
+	} catch {
+		return false;
+	}
+}
+function saveMarkerSetting(kind: 'com' | 'cot', on: boolean): void {
+	try {
+		const raw = globalThis.localStorage?.getItem(MARKER_KEY);
+		const all = raw ? (JSON.parse(raw) as Record<string, boolean>) : {};
+		globalThis.localStorage?.setItem(MARKER_KEY, JSON.stringify({ ...all, [kind]: on }));
+	} catch {
+		// private mode or blocked storage: the toggle still works for this session
+	}
+}
+
 export class VabController {
 	// --- content ---------------------------------------------------------------------------------------------
 	readonly loaded = loadContent();
@@ -411,9 +431,26 @@ export class VabController {
 	readonly power = $derived(powerView(this.current.design, this.editorContent));
 	/** Launch cost of the design with full tanks (plan 095, ADR 0113). */
 	readonly cost = $derived(designCost(this.current.design, this.content));
-	/** The tool pill's marker toggles (plan 093, ADR 0148 point 4). */
-	showCom = $state(true);
-	showCot = $state(true);
+	/**
+	 * The tool pill's marker toggles (plan 093, ADR 0148 point 4): off by default so they don't cover
+	 * the vessel while designing (owner, 2026-10-22); the player's choice is remembered.
+	 */
+	#showCom = $state(markerSetting('com'));
+	#showCot = $state(markerSetting('cot'));
+	get showCom(): boolean {
+		return this.#showCom;
+	}
+	set showCom(on: boolean) {
+		this.#showCom = on;
+		saveMarkerSetting('com', on);
+	}
+	get showCot(): boolean {
+		return this.#showCot;
+	}
+	set showCot(on: boolean) {
+		this.#showCot = on;
+		saveMarkerSetting('cot', on);
+	}
 	/**
 	 * Centre of thrust of the first stage to fire: its engines' origins weighted by peak thrust along
 	 * the vessel axis, in the main group's frame; null without an engine in that stage.

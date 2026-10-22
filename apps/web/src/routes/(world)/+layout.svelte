@@ -63,7 +63,12 @@
 	import { clockState, placePauses } from '../../lib/clock-state';
 	import { createDebugApi, exposeDebugApi, flightDebug, type DebugHost } from '../../lib/debug/api';
 	import { fatalSave } from '../../lib/fatal-error.svelte';
-	import { lessonNotice, placeBlocked } from '../../lib/onboarding/lesson-gate.svelte';
+	import {
+		lessonNotice,
+		placeBlocked,
+		runningLesson
+	} from '../../lib/onboarding/lesson-gate.svelte';
+	import LessonOverlay from '../../lib/hud/LessonOverlay.svelte';
 	import type { LayoutProps } from './$types';
 
 	let { children }: LayoutProps = $props();
@@ -633,7 +638,18 @@
 			/>
 		</div>
 	{/if}
-	{#if lessonNotice.reason && local(page.url.pathname) !== '/flight'}
+	{#if local(page.url.pathname) !== '/flight' && runningLesson()}
+		<!-- the lesson's card off Flight (plan 344, ADR 0293 point 2) -->
+		<LessonOverlay
+			place={local(page.url.pathname).split('/').filter((p) => p !== '').at(-1) ?? ''}
+			{snapshot}
+			keymap={settings.keymap}
+			onleave={() => {
+				leaving = true;
+				void goto(resolve('/lessons'));
+			}}
+		/>
+	{:else if lessonNotice.reason && local(page.url.pathname) !== '/flight'}
 		<p class="lesson-notice" role="status" data-testid="lesson-notice">{lessonNotice.reason}</p>
 	{/if}
 	{#if local(page.url.pathname) !== '/flight'}

@@ -34,6 +34,7 @@
 	import { categoryOf } from '../../../lib/editor/categories';
 	import { settings } from '../../../lib/settings/settings.svelte';
 	import { advance, currentStep, skip, stepLabel } from '../../../lib/onboarding/tutorial';
+	import { lessonVab, runningLesson } from '../../../lib/onboarding/lesson-gate.svelte';
 
 	const vab = new VabController();
 	// the active world's tech tree flags locked parts (plan 105, ADR 0154 point 4)
@@ -76,6 +77,7 @@
 
 	// The first-flight guide watches what the design contains, by catalogue category (plan 023).
 	$effect(() => {
+		if (runningLesson()) return;
 		const categories = new Set(
 			vab.editor.design.parts.map((p) => {
 				const def = vab.defOf(p.part);
@@ -92,7 +94,32 @@
 		});
 		if (next !== settings.tutorial) settings.setTutorial(next);
 	});
-	const tutorialStep = $derived(currentStep(settings.tutorial, 'vab'));
+	// a lesson world teaches its own lesson, not the first flight (plan 229)
+	const inLesson = runningLesson() !== null;
+	const tutorialStep = $derived(inLesson ? null : currentStep(settings.tutorial, 'vab'));
+
+	// A lesson in the Hangar (plan 344, ADR 0293 point 3) reads the design, the checks and the Library.
+	$effect(() => {
+		const parts = vab.editor.design.parts;
+		const kinds = new Set(
+			parts.map((p) => {
+				const def = vab.defOf(p.part);
+				return def ? categoryOf(def, vab.content.modules) : 'stock.other';
+			})
+		);
+		lessonVab.state = {
+			parts: parts.length,
+			command: kinds.has('stock.command'),
+			engine: kinds.has('stock.propulsion'),
+			tank: kinds.has('stock.tanks'),
+			fins: parts.filter((p) => /\.(fin|control-surface)$/.test(p.part)).length,
+			parachute: parts.some((p) => /parachute|chute/.test(p.part)),
+			symmetry: parts.some((p) => p.symmetry !== undefined),
+			checksClear: vab.checks.every((c) => c.severity !== 'error' && c.level !== 'no-go'),
+			library: vab.blueprintsOpen
+		};
+		return () => (lessonVab.state = null);
+	});
 	/** The empty Hangar's featured blueprints (plan 285); the rest are in the Library. */
 	const FEATURED = ['learn.two-stage', 'kronos-selene', 'wayfarer-shuttle', 'trailblazer-rover'];
 	/** The welcome card carries the first step's words; the guide card waits for the first part. */
@@ -318,7 +345,9 @@
 					{/each}
 				</div>
 				<div class="row">
-					<Button onclick={() => (vab.blueprintsOpen = true)}>Open the Library</Button>
+					<Button onclick={() => (vab.blueprintsOpen = true)} data-testid="vab-open-library"
+						>Open the Library</Button
+					>
 					{#if vab.vesselEntries.length > 0}
 						<Button onclick={() => vab.openLibrary()}>Open a saved vessel</Button>
 					{/if}

@@ -9,6 +9,7 @@ import type { ScenarioDefinition } from './scenarios.ts';
 import type { BlueprintDefinition } from './blueprints.ts';
 import type { PanelDefinition } from './panels.ts';
 import type { AutopilotDefinition } from './autopilots.ts';
+import type { KeybindingDefinition, StoreDefinition } from './mod-api.ts';
 import type { CategoryDefinition } from './categories.ts';
 import type { AchievementDefinition } from './milestones.ts';
 import type { FailureModeDefinition } from './reliability.ts';
@@ -166,6 +167,10 @@ export interface BasePluginContext {
 	readonly panels: Registrar<PanelDefinition>;
 	/** Autopilots the sim runs for a vessel (plan 310, ADR 0271). */
 	readonly autopilots: Registrar<AutopilotDefinition>;
+	/** A mod's own saved state (plan 343, ADR 0292 point 4). */
+	readonly stores: Registrar<StoreDefinition>;
+	/** Keys the player can rebind under Controls → Mods (ADR 0292 point 6). */
+	readonly keybindings: Registrar<KeybindingDefinition>;
 	/** Crew traits and name syllables (plan 106, ADR 0176). */
 	readonly crewTraits: Registrar<CrewTraitDefinition>;
 	readonly crewNames: Registrar<CrewNamesDefinition>;
@@ -231,7 +236,9 @@ export const REGISTRY_KINDS = [
 	'blueprint',
 	'panel',
 	'crew-trait',
-	'crew-names'
+	'crew-names',
+	'store',
+	'keybinding'
 ] as const;
 export type RegistryKind = (typeof REGISTRY_KINDS)[number];
 
@@ -308,6 +315,8 @@ const RESERVED_KEYS: ReadonlySet<string> = new Set([
 	'blueprints',
 	'panels',
 	'autopilots',
+	'stores',
+	'keybindings',
 	'crewTraits',
 	'crewNames',
 	'patches',
@@ -513,6 +522,8 @@ export function loadPlugins(plugins: readonly Plugin[], options: LoadOptions = {
 			blueprints: registrar(registries.blueprints),
 			panels: registrar(registries.panels),
 			autopilots: registrar(registries.autopilots),
+			stores: registrar(registries.stores),
+			keybindings: registrar(registries.keybindings),
 			crewTraits: registrar(registries.crewTraits),
 			crewNames: registrar(registries.crewNames),
 			patches: {
@@ -703,7 +714,9 @@ export function loadPlugins(plugins: readonly Plugin[], options: LoadOptions = {
 				blueprint: section(registries.blueprints),
 				panel: section(registries.panels),
 				'crew-trait': section(registries.crewTraits),
-				'crew-names': section(registries.crewNames)
+				'crew-names': section(registries.crewNames),
+				store: section(registries.stores),
+				keybinding: section(registries.keybindings)
 			},
 			patches: patched.patches,
 			provenance: patched.provenance

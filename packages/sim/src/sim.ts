@@ -2,6 +2,15 @@
  * `createSim`: boots plugins, owns the world and the physics frames, and runs the fixed-timestep
  * loop (simulation.md). No clock, no I/O: time is an input to `step`.
  */
+import {
+	markSituations,
+	restoreStores,
+	situationsDirty,
+	subscribeSystems,
+	systemContextOf,
+	updateSituations,
+	watchSituations
+} from './mod-runtime.ts';
 import { freshTech } from './tech.ts';
 import { collectMilestones, freshMilestones, listenForMilestones } from './milestones.ts';
 import { collectRange, freshRange } from './range.ts';
@@ -429,9 +438,14 @@ export async function createSim(options: SimOptions): Promise<Sim> {
 	let frozenInfo: Readonly<WorldInfo> | null = null;
 	let frozenFor: unknown = null;
 
+	// the mod World API (plan 343, ADR 0292): stores from the save, systems' `on` handlers
+	restoreStores(core, resume?.stores);
+	subscribeSystems(core, systems, rules);
+	watchSituations(core);
 	const runSystems = (list: SystemDefinition[], step: number): void => {
-		for (const s of list) s.update(core.world, step, { registries, events, rules });
+		for (const s of list) s.update?.(core.world, step, systemContextOf(core, s, rules));
 	};
+	const runTicks = (): void => runDueTicks(core, (s, tick) => systemContextOf(core, s, rules, tick));
 
 	/** Rails vessels: module `updateOnRails` hooks and a conditioning rebase of their elements. */
 	// An agency's object is passive (plan 126, ADR 0190 point 3): a fixed circular orbit read from
@@ -535,10 +549,11 @@ export async function createSim(options: SimOptions): Promise<Sim> {
 		collectMilestones(core);
 		collectRange(core);
 		evaluateObjectivesDue(core, 'step');
+		updateSituations(core); // `vessel:situation-changed` (ADR 0292 point 2)
 		runStaleBackground(core); // rails vessels' charge between ticks (plan 208, ADR 0214)
 		updateRates(core); // plan 213
 		// The step is not split; a boundary it crossed ticks now, at the boundary's own time (ADR 0171 point 4).
-		if (atBoundary(core.t, nextTickTime(core))) runDueTicks(core, { registries, events, rules });
+		if (atBoundary(core.t, nextTickTime(core))) runTicks();
 	}
 
 	/**
@@ -556,7 +571,7 @@ export async function createSim(options: SimOptions): Promise<Sim> {
 					core.t = boundary; // the boundary from its day number, not the sum of chunks
 					left -= toBoundary;
 				}
-				runDueTicks(core, { registries, events, rules }); // also a tick that is already due
+				runTicks(); // also a tick that is already due
 			} else {
 				railsChunk(left);
 				left = 0;
@@ -585,6 +600,7 @@ export async function createSim(options: SimOptions): Promise<Sim> {
 		collectMilestones(core);
 		collectRange(core);
 		evaluateObjectivesDue(core, 'step');
+		if (situationsDirty(core)) updateSituations(core); // nothing in physics: only on a change
 		runStaleBackground(core);
 		updateRates(core);
 	}
@@ -640,7 +656,11 @@ export async function createSim(options: SimOptions): Promise<Sim> {
 			followAlarms(core);
 			holdWarp(flightSteps);
 		},
-		dispatch: (command, options) => dispatch(core, command, options?.source ?? 'player'),
+		dispatch(command, options) {
+			const result = dispatch(core, command, options?.source ?? 'player');
+			if (result.ok) markSituations(core);
+			return result;
+		},
 		scripts: () => savedScripts(core),
 		snapshot: () => takeSnapshot(core),
 		save: () => writeSave({ core, mods, seed }),

@@ -9,6 +9,7 @@ import type { ScenarioDefinition } from './scenarios.ts';
 import type { BlueprintDefinition } from './blueprints.ts';
 import type { PanelDefinition } from './panels.ts';
 import type { AutopilotDefinition } from './autopilots.ts';
+import type { KeybindingDefinition, ModContext, StoreDefinition } from './mod-api.ts';
 import type { CategoryDefinition } from './categories.ts';
 import type { AchievementDefinition } from './milestones.ts';
 import type { FailureModeDefinition } from './reliability.ts';
@@ -148,6 +149,9 @@ export interface ReadonlyRegistries {
 	panels: ReadonlyRegistry<PanelDefinition>;
 	/** Autopilots (plan 310, ADR 0271). */
 	autopilots: ReadonlyRegistry<AutopilotDefinition>;
+	/** Mod stores and keybindings (plan 343, ADR 0292). */
+	stores: ReadonlyRegistry<StoreDefinition>;
+	keybindings: ReadonlyRegistry<KeybindingDefinition>;
 	/** Crew traits and name syllables (plan 106, ADR 0176). */
 	crewTraits: ReadonlyRegistry<CrewTraitDefinition>;
 	crewNames: ReadonlyRegistry<CrewNamesDefinition>;
@@ -583,8 +587,11 @@ export interface WorldTick {
 	readonly rng: Rng;
 }
 
-/** Third argument of `SystemDefinition.update`: what a system may read besides the world. */
-export interface SystemContext {
+/**
+ * Third argument of `SystemDefinition.update`: what a system may read besides the world, and the
+ * mod World API (plan 343, ADR 0292): `world` (the query), `commands`, `store`, `notify`.
+ */
+export interface SystemContext extends ModContext {
 	readonly registries: ReadonlyRegistries;
 	readonly events: EventBus<EventMap>;
 	/** The world's rule values (plan 078, ADR 0111); a plain map read. */
@@ -592,6 +599,11 @@ export interface SystemContext {
 	/** Set for `world-tick` systems only (plan 082). */
 	readonly tick?: WorldTick;
 }
+
+/** Event handlers a system declares (ADR 0292 point 5), called with the system's context. */
+export type SystemEventHandlers = {
+	[K in keyof EventMap]?: (payload: EventMap[K], ctx: SystemContext) => void;
+};
 
 /** Read access to a world's rule values. */
 export interface RuleReader {
@@ -601,8 +613,11 @@ export interface RuleReader {
 
 export interface SystemDefinition {
 	id: string;
-	phase: SystemPhase;
+	/** When `update` runs; required with `update`. */
+	phase?: SystemPhase;
 	/** `world-tick` order: lower first (default 0), then plugin boot order, then id. */
 	order?: number;
-	update(world: World, dt: number, ctx: SystemContext): void;
+	update?(world: World, dt: number, ctx: SystemContext): void;
+	/** Sim events this system reacts to (ADR 0292 point 5); a throwing handler is logged and skipped. */
+	on?: SystemEventHandlers;
 }

@@ -16,8 +16,10 @@ import {
 	type Command,
 	type CommandResult,
 	type EntityId,
+	type ModContext,
 	type VesselPilot
 } from '@orbital/core';
+import { modContextOf } from './mod-runtime.ts';
 import { dispatch } from './commands.ts';
 import { isControlled, vesselIds, vesselOf, type SimCore } from './core.ts';
 import { vesselSnapshot } from './snapshot.ts';
@@ -29,6 +31,10 @@ const message = (e: unknown): string => (e instanceof Error ? e.message : String
 
 const definitionOf = (core: SimCore, id: string): AutopilotDefinition | undefined =>
 	core.registries.autopilots.get(id);
+
+/** The mod World API of the plugin that registered autopilot `id` (plan 343, ADR 0292). */
+const contextOf = (core: SimCore, id: string): ModContext =>
+	modContextOf(core, core.registries.autopilots.owner(id) ?? '?');
 
 /** A pilot for `vesselId` over snapshots of it and its target vessel; commands for other vessels are dropped. */
 function pilotFor(core: SimCore, vesselId: EntityId): VesselPilot {
@@ -72,7 +78,7 @@ export function engageAutopilot(
 			: params;
 	let memory: unknown;
 	try {
-		memory = plain(def.start(pilotFor(core, vesselId), merged));
+		memory = plain(def.start(pilotFor(core, vesselId), merged, contextOf(core, id)));
 	} catch (e) {
 		const reason = message(e);
 		// the panel says why (ADR 0285 point 4)
@@ -160,7 +166,7 @@ export function runAutopilots(core: SimCore): void {
 		a.last = core.t;
 		let result;
 		try {
-			result = def.step(pilotFor(core, id), a.memory, dt);
+			result = def.step(pilotFor(core, id), a.memory, dt, contextOf(core, a.id));
 		} catch (e) {
 			endAutopilot(core, id, 'aborted', `${def.title} failed: ${message(e)}`);
 			continue;

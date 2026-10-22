@@ -4,7 +4,13 @@
  * the world layout show with its reason.
  */
 import type { ActionId, Keymap } from '../keybindings';
-import { blockedAction, blockedPlace, lessonOf, type Lesson } from './lessons';
+import {
+	blockedAction,
+	blockedPlace,
+	lessonOf,
+	type Lesson,
+	type VabLessonState
+} from './lessons';
 import { activeLesson } from './lesson-world';
 
 /**
@@ -24,6 +30,13 @@ class LessonNotice {
 }
 
 export const lessonNotice = new LessonNotice();
+
+/** The Hangar's design as a lesson sees it (ADR 0293 point 3); null away from the Hangar. */
+class LessonVab {
+	state = $state.raw<VabLessonState | null>(null);
+}
+
+export const lessonVab = new LessonVab();
 
 /** The lesson running in the active world, if any. */
 export function runningLesson(): Lesson | null {

@@ -731,6 +731,26 @@ export function createSimHost(options: SimHostOptions): SimHost {
 						flushLines();
 						postStatus('stopped');
 					}),
+					// the mod World API (plan 343, ADR 0292): notices and focus requests
+					created.events.on('mod:notice', (e) =>
+						options.post({
+							kind: 'sim-event',
+							event: {
+								type: 'mod-notice',
+								plugin: e.plugin,
+								text: e.text,
+								tone: e.tone,
+								...(e.detail !== undefined ? { detail: e.detail } : {}),
+								vessel: e.vessel === undefined ? null : Number(e.vessel)
+							}
+						})
+					),
+					created.events.on('mod:focus', (e) =>
+						options.post({
+							kind: 'sim-event',
+							event: { type: 'mod-focus', plugin: e.plugin, vessel: Number(e.vessel) }
+						})
+					),
 					created.events.on('vessel:destroyed', (e) =>
 						options.post({
 							kind: 'sim-event',
