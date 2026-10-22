@@ -51,18 +51,19 @@ Both are slow on huge, loop-heavy shaders such as the planet pass. ADR 0308 has 
 
 ## Acceptance criteria
 
-- [ ] The loading screen shows the shaders ready, the one compiling and the elapsed time, and keeps animating. "Continue with lower quality" appears after 15 s and switches to `low` (checked with the CPU throttled). Debug → Info has the load report.
-- [ ] Load logs are stored (the last 20), and `/developer` lists, copies, downloads and clears them.
-- [ ] `measure-shader-compile.ts` on the M5: before and after numbers in the research doc. No load-time regression on the Mac.
-- [ ] The second load reports "cached", and no module changed between two loads.
-- [ ] The research doc tells the owner how to send the Windows report.
-- [ ] `bun run docs:check`, `bun run test` (unit), `bun run typecheck`, `bun run build` pass.
+- [x] The loading screen shows the shaders ready, the one compiling and the elapsed time, and keeps animating. "Continue with lower quality" appears after 15 s and switches to `low` (checked with the CPU throttled). Debug → Info has the load report.
+- [x] Load logs are stored (the last 20), and `/developer` lists, copies, downloads and clears them.
+- [x] `measure-shader-compile.ts` on the M2 (this session's machine): before and after numbers in the research doc. No load-time regression on the Mac.
+- [x] The second load reports "cached", and no module changed between two loads.
+- [x] The research doc tells the owner how to send the Windows report.
+- [x] `bun run docs:check`, `bun run test` (unit), `bun run typecheck`, `bun run build` pass.
 
 ## Docs checklist
 
-- [ ] STATUS board row, journal 370, ADR 0308 in the index, research doc, stack-versions note for the Chrome/Dawn facts.
+- [x] STATUS board row, journal 370, ADR 0308 in the index, research doc, stack-versions note for the Chrome/Dawn facts.
 
 ## Log
 
 - 2026-10-22 — Written and started (ADR 0308).
 - 2026-10-22 — Measured on the M2 (Chrome 156, WebGPU): 11.2 MB of WGSL at load, the planet fragment shader 932 KB. After laid-out noise, one build per preset, separate placeholders and stable names: 3.6 MB; load 22.2 → 7.0 s (auto), 30.7 → 9.1 s (high); 0 of 164 modules changed between two loads. No implicit-derivative sample in a loop, so step 4's first item needed no change. The low boot preset of step 5 is deferred until the owner's Windows report shows it is needed. Journal 370, research `shader-compile-windows.md`.
+- 2026-10-22 — The owner's additions done and pushed (988dd02b): the loading screen with the game's shots and corner progress, "Continue with lower quality" after 15 s, a 50 ms node-build budget per task while loading (longest task 1.4 s → 0.54 s), load logs and `/developer`. Checks: `bun run typecheck` clean; `bun test ./packages` 2080 pass; `./mods ./examples ./tools` 233 pass; web vitest 1651 pass, 3 fail. Two of the fails are the known `sim-host-script-worker` timeouts under load; the third, `tips.test`, was this plan's `title=` and is fixed. Production `bun run build` passes. Left open: the owner's Windows log, and the slides the brief also named (SLA petals, the Shuttle's bay, a lunar landing), which need set-up scenes.
