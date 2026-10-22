@@ -29,6 +29,14 @@ import { SHAFT, SHAFT_TERRAIN } from '../light-shaft.ts';
 import { EDGE_CHROMA, EDGE_DEPTH_OCTAVES, SKY_DEPTH } from '../half-res.ts';
 import { cloudFieldGLSL } from './cloud-field.glsl.ts';
 import { auroraGLSL } from './aurora.glsl.ts';
+import { skyMapGLSL } from './starfield.glsl.ts';
+import {
+	MID_COAST_CAP,
+	MID_OCTAVES_KM,
+	MID_OCTAVE_SALT,
+	SCALED_BLEND
+} from '../scaled-space-model.ts';
+import { DETAIL_CONTRAST, DETAIL_SIZE, DETAIL_TILE } from '../detail-textures.ts';
 import {
 	CLOUD_FILL,
 	CLOUD_GAIN_CAP,
@@ -455,6 +463,16 @@ uniform float uCloudAlt;
 uniform float uCloudTop;
 uniform float uCirrusAlt;
 uniform float uStarBright;
+uniform samplerCube uScaledA;   // the scaled-space bake (plan 364): sqrt albedo, water in alpha
+uniform samplerCube uScaledN;   // and the body-fixed normal
+uniform float uScaledTexelM;
+uniform float uScaledOn;
+uniform float uScaledMode;     // debug: 1 as drawn, 0 never, 2 every ground pixel
+uniform float uDetailOn;       // debug: the ground detail on (1) or off
+uniform sampler2D uDetail;     // ground detail maps (plan 364): R rock, G grass, B sand, A snow
+uniform int uBakeFace;
+uniform float uBakeWhat;
+uniform float uBakeSize;
 uniform float uShadowOn;
 uniform sampler2DShadow uShadowMap;
 uniform mat4 uShadowMatrix;
@@ -514,6 +532,7 @@ ${terrainNoiseGLSL}
 ${terrainZonesGLSL}
 
 ${cloudFieldGLSL}
+${skyMapGLSL}
 #if AURORA_STEPS > 0
 ${auroraGLSL}
 #endif
@@ -691,28 +710,9 @@ float cloudSlabDensity(float cover, float h, float e) {
 }
 
 // --- stars ------------------------------------------------------------------------------------
+// the baked Milky Way and the catalogue stars (plan 364, ADR 0306), dimmed by daylight
 vec3 stars(vec3 rd, float px) {
-	vec3 col = vec3(0.0);
-	for (int layer = 0; layer < 3; layer++) {
-		float scale = 55.0 * pow(2.1, float(layer));
-		vec3 p = rd * scale;
-		vec3 cell = floor(p);
-		vec3 h = hash33i(ivec3(cell) + ivec3(layer * 977));
-		vec3 pos = cell + 0.2 + 0.6 * h;
-		float d = length(p - pos);
-		float rad = max(0.5 * px * scale, 0.02);
-		float mag = pow(hash13i(ivec3(cell) + ivec3(layer * 31 + 5)), 14.0);
-		float w = smoothstep(rad, 0.0, d) * mag * (0.5 + 3.5 * h.x);
-		vec3 tint = mix(vec3(0.7, 0.8, 1.0), vec3(1.0, 0.85, 0.7), h.y);
-		col += tint * w * (layer == 0 ? 6.0 : 3.0);
-	}
-	// A faint milky band along a tilted great circle.
-	vec3 gal = normalize(vec3(0.3, 0.8, 0.5));
-	float gd = dot(rd, gal) / 0.16;
-	float band = exp(-gd * gd);
-	float clumps = fbmF(rd * 5.0 + 11.0, 4);
-	col += vec3(0.55, 0.6, 0.8) * band * (0.012 + 0.07 * clumps * clumps);
-	return col * uStarBright;
+	return skyRadiance(rd, px) * uStarBright;
 }
 
 // --- ground -----------------------------------------------------------------------------------
@@ -864,7 +864,7 @@ float riverField(vec3 p) {
 	return noiseA(p, 1024.0, 41) * 0.62 + noiseA(p, 512.0, 42) * 0.3 + noiseA(p, 128.0, 43) * 0.08;
 }
 
-Surface surfaceAt(vec3 nBF, vec3 pl, float footprint, vec3 viewBF, float hT, vec3 gT) {
+Surface surfaceAt(vec3 nBF, vec3 pl, float footprint, vec3 vSite, float hT, vec3 gT) {
 	Surface s;
 	vec2 ll = warpedLatLon(nBF, uR); // the biome map is read through the coast warp (core MAP_WARP)
 	vec2 uv = vec2(ll.y / (2.0 * kPI) + 0.5, ll.x / kPI + 0.5);
@@ -902,6 +902,19 @@ Surface surfaceAt(vec3 nBF, vec3 pl, float footprint, vec3 viewBF, float hT, vec
 		if (lam < 64.0) fine += n * fade * (lam < 8.0 ? 1.0 : 0.6);
 		if (lam > 6.0 && lam < 200.0) colourNoise += n * fade * 0.7;
 	}
+	// the mid octaves (plan 364): 16 km to 2 km, between the map's noise and the first ground octave,
+	// on core's terrain lattice; their coast shift stays inside the terrain's land margin
+	vec3 qKm = nBF * (uR / 1000.0);
+	float eMid = 0.0;
+${MID_OCTAVES_KM.map((km, k) => `	{
+		float fadeM = clamp((${f(km * 1000)} / lamMin - 1.0) * 1.5, 0.0, 1.0);
+		if (fadeM > 0.0) {
+			float n = noiseT(qKm, ${f(1 / km)}, ${MID_OCTAVE_SALT + k}) - 0.5;
+			eMid += n * 0.7 * gPerM * ${f(km * 1000)} * fadeM;
+			colourNoise += n * fadeM * 0.45;
+		}
+	}`).join('\n')}
+	eDetail += clamp(eMid, -${f(MID_COAST_CAP)}, ${f(MID_COAST_CAP)});
 	float e2 = e + eDetail;
 	// the waterline's antialiasing over the coast's own slope: the detail octaves make it 3 to 5 times
 	// the map's, and with the map's alone the edge was sharper than a pixel (a jagged, stepped coast)
@@ -945,7 +958,7 @@ Surface surfaceAt(vec3 nBF, vec3 pl, float footprint, vec3 viewBF, float hT, vec
 		landW = mix(landW, 1.0 - smoothstep(-footprint, footprint, sdM + swash), nearShore);
 	}
 
-	vec3 vS = uCamToSite + viewBF;
+	vec3 vS = vSite;
 	float siteDist = length(vS);
 
 	// Hill shading: normal from finite differences of a few octaves, away from the launch site.
@@ -1065,6 +1078,24 @@ Surface surfaceAt(vec3 nBF, vec3 pl, float footprint, vec3 viewBF, float hT, vec
 	vec3 land = mix(veg, rockc, wRock);
 	land = mix(land, sand, wBeach);
 	land = mix(land, snow, wSnow * smoothstep(0.0, 1.0, 1.0 - slope * 2.0));
+	// ground detail (plan 364): tiling rock, grass, sand and snow maps read triplanar at the level of the
+	// footprint (the mips average to neutral), faded out once a tile is a few pixels
+	float detailFade = (1.0 - smoothstep(2.0, 8.0, footprint)) * uDetailOn;
+	if (detailFade > 0.01) {
+		vec3 wT = pow(abs(Nb), vec3(4.0));
+		wT /= wT.x + wT.y + wT.z;
+		float lod4 = max(log2(footprint * ${f(DETAIL_SIZE / DETAIL_TILE.rock)}), 0.0);
+		vec3 q4 = pl / ${f(DETAIL_TILE.rock)};
+		vec4 d4 = textureLod(uDetail, q4.yz, lod4) * wT.x + textureLod(uDetail, q4.xz, lod4) * wT.y + textureLod(uDetail, q4.xy, lod4) * wT.z;
+		float lod2 = max(log2(footprint * ${f(DETAIL_SIZE / DETAIL_TILE.grass)}), 0.0);
+		vec3 q2 = pl / ${f(DETAIL_TILE.grass)};
+		vec4 d2 = textureLod(uDetail, q2.yz, lod2) * wT.x + textureLod(uDetail, q2.xz, lod2) * wT.y + textureLod(uDetail, q2.xy, lod2) * wT.z;
+		float soft = mix(1.0 + (d2.y - 0.5) * ${f(2 * DETAIL_CONTRAST.grass)}, 1.0 + (d2.z - 0.5) * ${f(2 * DETAIL_CONTRAST.sand)}, wDesert);
+		float mult = mix(soft, 1.0 + (d4.x - 0.5) * ${f(2 * DETAIL_CONTRAST.rock)}, wRock);
+		mult = mix(mult, 1.0 + (d2.z - 0.5) * ${f(2 * DETAIL_CONTRAST.sand)}, wBeach);
+		mult = mix(mult, 1.0 + (d4.w - 0.5) * ${f(2 * DETAIL_CONTRAST.snow)}, wSnow * smoothstep(0.0, 1.0, 1.0 - slope * 2.0));
+		land *= mix(1.0, mult, detailFade);
+	}
 	// wet sand strip along the shore
 	land *= 1.0 - 0.35 * (1.0 - smoothstep(0.0, 3.0, -(sdM + swash))) * (1.0 - wRock);
 
@@ -1255,7 +1286,25 @@ vec3 shadeRay(vec3 ro, vec3 rd, float r0, float d, float h, bool hitG, bool hitT
 #endif
 		float cosv = max(abs(dot(nGeoI, rd)), 0.03);
 		float footprint = max(tG * uPixelAngle / cosv, 0.002);
-		Surface sf = surfaceAt(nBF, pl, footprint, rdBF * tG, hT, gT);
+		// far from the camera the scaled-space bake (plan 364): crisp, filtered, cheap; near it the
+		// procedural ground; between them a blend by texels a pixel
+		float texels = footprint / uScaledTexelM;
+		float wBake = (uScaledMode > 1.5 ? 1.0 : smoothstep(${f(SCALED_BLEND[0])}, ${f(SCALED_BLEND[1])}, texels) * min(uScaledMode, 1.0)) * uScaledOn;
+		Surface sf;
+		sf.albedo = vec3(0.0);
+		sf.normal = nBF;
+		sf.spec = 0.0;
+		sf.waterDepth = 0.0;
+		sf.lampE = vec3(0.0);
+		if (wBake < 1.0) sf = surfaceAt(nBF, pl, footprint, uCamToSite + rdBF * tG, hT, gT);
+		if (wBake > 0.0) {
+			float lodB = max(log2(texels), 0.0);
+			vec4 ba = textureLod(uScaledA, nBF, lodB);
+			vec3 bn = normalize(textureLod(uScaledN, nBF, lodB).xyz * 2.0 - 1.0);
+			sf.albedo = mix(sf.albedo, ba.rgb * ba.rgb, wBake);
+			sf.spec = mix(sf.spec, ba.a, wBake);
+			sf.normal = normalize(mix(sf.normal, bn, wBake));
+		}
 		// A ray that grazes the ground sees the rim of a slope edge-on, but its pixel spans the face in
 		// front of it as well: the normal leans back to level ground and the rim's self-shadow fades as
 		// the incidence goes grazing (plan 133), or the silhouette of every ridge is a dark dashed line.
@@ -1313,7 +1362,7 @@ vec3 shadeRay(vec3 ro, vec3 rd, float r0, float d, float h, bool hitG, bool hitT
 		depthDist = tG;
 	} else {
 		float px = uPixelAngle;
-		// the star field is skipped (not just dimmed) when daylight hides it: it is ~15 hash lookups and an fbm per sky pixel
+		// the star field is skipped (not just dimmed) when daylight hides it: a map fetch and three catalogue cells per sky pixel
 		base = uStarBright > 0.002 ? stars(rd, px) : vec3(0.0);
 		float ang = dot(rd, uSunDir) > 0.0 ? length(cross(rd, uSunDir)) : 2.0;
 		float disc2 = 1.0 - smoothstep(SUN_ANGULAR_RADIUS * 0.8, SUN_ANGULAR_RADIUS * 1.08, ang);
@@ -1514,6 +1563,33 @@ vec3 shadeRay(vec3 ro, vec3 rd, float r0, float d, float h, bool hitG, bool hitT
 	return colour;
 }
 
+#ifdef SCALED_BAKE
+// the scaled-space bake (plan 364): surfaceAt for one texel of one face, on the height cube alone, at the
+// texel's footprint (the WebGL terrain bake's faceDir); square-root albedo with water in alpha, or the normal
+vec3 bakeFaceDir(int face, vec2 st) {
+	if (face == 0) return vec3(1.0, -st.y, -st.x);
+	if (face == 1) return vec3(-1.0, -st.y, st.x);
+	if (face == 2) return vec3(st.x, 1.0, st.y);
+	if (face == 3) return vec3(st.x, -1.0, -st.y);
+	if (face == 4) return vec3(st.x, -st.y, 1.0);
+	return vec3(-st.x, -st.y, -1.0);
+}
+void main() {
+	vec2 st = gl_FragCoord.xy / uBakeSize * 2.0 - 1.0;
+	vec3 nBF = normalize(bakeFaceDir(uBakeFace, st));
+	float hT = 0.0;
+	vec3 gT = vec3(0.0);
+#if TERRAIN
+	vec4 ter = decodeTerrain(textureLod(uTerrain, nBF, 0.0), nBF);
+	hT = ter.x;
+	gT = ter.yzw;
+#endif
+	Surface sf = surfaceAt(nBF, nBF * (uR + hT), uScaledTexelM, (nBF - uSiteUp) * uR, hT, gT);
+	gl_FragColor = uBakeWhat < 0.5
+		? vec4(sqrt(clamp(sf.albedo, 0.0, 1.0)), clamp(sf.spec, 0.0, 1.0))
+		: vec4(normalize(sf.normal) * 0.5 + 0.5, 1.0);
+}
+#else
 void main() {
 	if (uEdgeOnly > 0.5 && !halfEdge(gl_FragCoord.xy)) discard;
 	vec4 vp = uInvProj * vec4(vNdc, 0.0, 1.0);
@@ -1635,4 +1711,5 @@ void main() {
 	#include <tonemapping_fragment>
 	#include <colorspace_fragment>
 }
+#endif
 `;

@@ -93,7 +93,19 @@ import { noiseT } from './noise.ts';
 import type { PlanetPass } from '../planet.ts';
 import { APRONS, PAD_RADIUS, ROADS, SCORCH_RADIUS } from '../site.ts';
 import { createLutSky, type LutSky } from './lut-sky.ts';
-import { fbmF, hash13i, hash33i, noiseA, noiseF, warpedLatLon } from './noise.ts';
+import { SkyMapTSL, skyRadiance } from './starfield.ts';
+import { DETAIL_CONTRAST, DETAIL_SIZE, DETAIL_TILE } from '../detail-textures.ts';
+import { ScaledSpaceTSL, faceDirection } from './scaled-space.ts';
+import {
+	MID_COAST_CAP,
+	MID_OCTAVES_KM,
+	MID_OCTAVE_SALT,
+	SCALED_BLEND,
+	scaledSpaceSize,
+	scaledTexelMetres
+} from '../scaled-space-model.ts';
+import { skyMapSize } from '../sky-model.ts';
+import { hash33i, noiseA, noiseF, warpedLatLon } from './noise.ts';
 
 /* TSL nodes are untyped proxies; three's TSL typings lag its runtime */
 type N = any;
@@ -178,6 +190,8 @@ interface Variant {
 	edge: MeshBasicNodeMaterial;
 	up: MeshBasicNodeMaterial;
 	pre: MeshBasicNodeMaterial;
+	/** The scaled-space bake (plan 364). */
+	bake: MeshBasicNodeMaterial;
 	syncs: (() => void)[];
 }
 
@@ -188,12 +202,14 @@ function newVariant(): Variant {
 		edge: new MeshBasicNodeMaterial(),
 		up: new MeshBasicNodeMaterial(),
 		pre: new MeshBasicNodeMaterial(),
+		bake: new MeshBasicNodeMaterial(),
 		syncs: []
 	};
+	v.bake.name = 'planet-scaled-bake';
 	v.full.name = 'planet-pass-tsl';
 	v.full.depthFunc = AlwaysDepth;
 	v.full.depthWrite = true;
-	for (const m of [v.half, v.pre]) {
+	for (const m of [v.half, v.pre, v.bake]) {
 		m.depthTest = false;
 		m.depthWrite = false;
 	}
@@ -207,7 +223,7 @@ function newVariant(): Variant {
 }
 
 function disposeVariant(v: Variant): void {
-	for (const m of [v.full, v.half, v.edge, v.up, v.pre]) m.dispose();
+	for (const m of [v.full, v.half, v.edge, v.up, v.pre, v.bake]) m.dispose();
 }
 
 export class PlanetPassTSL {
@@ -278,6 +294,16 @@ export class PlanetPassTSL {
 	private baked = false;
 	private terrain: TerrainTSL | null = null;
 	private cloudMap: CloudMapTSL | null = null;
+	/** The night sky's baked map (plan 364). */
+	private readonly skyMap = new SkyMapTSL();
+	/** The ground detail maps (plan 364): the WebGL pass's texture, one image for both. */
+	private get detailTexture(): DataTexture {
+		return this.planet.material.uniforms.uDetail!.value as DataTexture;
+	}
+	/** The scaled-space bake of the planet (plan 364) and its pass. */
+	private readonly scaled = new ScaledSpaceTSL();
+	private bakeMaterial: MeshBasicNodeMaterial | null = null;
+	private bakeQuad: QuadMesh | null = null;
 	private readonly up = new Vector3();
 	private readonly sun = new Vector3();
 
@@ -386,6 +412,18 @@ export class PlanetPassTSL {
 			this.sky.bake(renderer);
 			this.baked = true;
 		}
+		this.skyMap.bake(renderer, skyMapSize(this.settings.mapWidth));
+		// the scaled-space bake follows the heights and the map: once the cube is baked, a face a frame
+		const terrainReady = this.settings.terrainSize <= 0 || (u.uTerrainOn!.value as number) > 0.5;
+		if (terrainReady && this.bakeQuad) {
+			const size = scaledSpaceSize(this.settings);
+			this.scaled.request(
+				size,
+				`${this.planet.terrainEpoch}:${(u.uMap!.value as DataTexture).uuid}:${this.settings.terrainSize > 0}`,
+				scaledTexelMetres(R, size)
+			);
+			this.scaled.step(renderer, this.bakeQuad);
+		}
 		this.up.copy(u.uCamUp!.value as Vector3);
 		this.sun.copy(u.uSunDir!.value as Vector3);
 		this.sky.update(renderer, R + Math.max(u.uAlt!.value as number, 0), this.up, this.sun);
@@ -424,6 +462,8 @@ export class PlanetPassTSL {
 		this.sky.dispose();
 		this.terrain?.dispose();
 		this.cloudMap?.dispose();
+		this.skyMap.dispose();
+		this.scaled.dispose();
 	}
 
 	/**
@@ -490,12 +530,15 @@ export class PlanetPassTSL {
 		this.edgeMaterial = v.edge;
 		this.upMaterial = v.up;
 		this.preMaterial = v.pre;
+		this.bakeMaterial = v.bake;
 		this.syncs = v.syncs;
 		this.mesh.material = v.full;
 		this.upMesh.material = v.up;
 		this.edgeMesh.material = v.edge;
 		this.halfQuad.material = v.half;
 		this.preQuad.material = v.pre;
+		if (this.bakeQuad) this.bakeQuad.material = v.bake;
+		else this.bakeQuad = new QuadMesh(v.bake);
 	}
 
 	/** The current variant, from the cache or built now. */
@@ -528,7 +571,7 @@ export class PlanetPassTSL {
 	/** Writes the shaders of the current settings into the active variant's materials. */
 	private compose(): void {
 		const U = this.planet.material.uniforms;
-		const graph = (mode: 'full' | 'half' | 'edge' | 'prepass'): N => {
+		const graph = (mode: 'full' | 'half' | 'edge' | 'prepass' | 'bake'): N => {
 			const uR = this.link('uR');
 			const uInvProj = this.link('uInvProj');
 			const uCamRot = this.link('uCamRot');
@@ -538,7 +581,8 @@ export class PlanetPassTSL {
 			const uSunBF = this.link('uSunBF');
 			const uBodyInv = this.link('uBodyInv');
 			const uCamLocal = this.link('uCamLocal');
-			const uAnchorCell = this.link('uAnchorCell');
+			// the bake reads the noise at absolute body-fixed positions: no floating anchor
+			const uAnchorCell = mode === 'bake' ? vec3(0.0) : this.link('uAnchorCell');
 			const uCamToSite = this.link('uCamToSite');
 			const uSiteEast = this.link('uSiteEast');
 			const uSiteNorth = this.link('uSiteNorth');
@@ -746,7 +790,7 @@ export class PlanetPassTSL {
 			 * surfaceAt: albedo, normal (body-fixed) and how much is water (the GLSL's `spec`), at height hT
 			 * with the terrain's body-fixed gradient gT (0 on the sea-level sphere).
 			 */
-			const surfaceAt = (nBF: N, pl: N, footprint: N, viewBF: N, hT: N, gT: N) => {
+			const surfaceAt = (nBF: N, pl: N, footprint: N, vSite: N, hT: N, gT: N) => {
 				const ll = warpedLatLon(nBF, uR, uTerrainShift);
 				const st = vec2(ll.y.div(2 * PI).add(0.5), ll.x.div(PI).add(0.5)).toVar();
 				const lod = max(log2(footprint.div(uMapTexel)), 0.0).toVar();
@@ -785,6 +829,21 @@ export class PlanetPassTSL {
 						if (lam > 6 && lam < 200) colourNoise.addAssign(n.mul(fade).mul(0.7));
 					});
 				}
+				// the mid octaves (plan 364): 16 km to 2 km, between the map's noise and the first ground
+				// octave, on core's terrain lattice (absolute, seeded); their coast shift stays inside the
+				// terrain's land margin so the sea never covers relief
+				const qKm = nBF.mul(uR.div(1000.0));
+				const eMid = float(0.0).toVar();
+				MID_OCTAVES_KM.forEach((km, k) => {
+					const lam = km * 1000;
+					const fade = clamp(float(lam).div(lamMin).sub(1.0).mul(1.5), 0.0, 1.0);
+					If(fade.greaterThan(0.0), () => {
+						const n = noiseT(qKm, 1 / km, MID_OCTAVE_SALT + k, uTerrainShift).sub(0.5);
+						eMid.addAssign(n.mul(0.7).mul(gPerM).mul(lam).mul(fade));
+						colourNoise.addAssign(n.mul(fade).mul(0.45));
+					});
+				});
+				eDetail.addAssign(clamp(eMid, -MID_COAST_CAP, MID_COAST_CAP));
 				const e2 = e.add(eDetail).toVar();
 				// the waterline's antialiasing over the coast's own slope (the detail makes it 3 to 5 times
 				// the map's): with the map's alone the edge was sharper than a pixel, a stepped coast
@@ -857,7 +916,7 @@ export class PlanetPassTSL {
 						)
 					);
 				});
-				const vS = uCamToSite.add(viewBF).toVar();
+				const vS = vec3(vSite).toVar();
 				const siteDist = length(vS).toVar();
 
 				// hill shading: a normal from finite differences of a few octaves, away from the launch site
@@ -1070,6 +1129,35 @@ export class PlanetPassTSL {
 					snow,
 					wSnow.mul(smoothstep(0.0, 1.0, float(1.0).sub(slope.mul(2.0))))
 				).toVar();
+				// ground detail (plan 364): tiling rock, grass, sand and snow maps read triplanar at the
+				// level of the footprint (the mips average to neutral), faded out once a tile is a few pixels
+				const detailFade = smoothstep(2.0, 8.0, footprint)
+					.oneMinus()
+					.mul(this.link('uDetailOn'))
+					.toVar();
+				If(detailFade.greaterThan(0.01), () => {
+					const wT0 = pow(abs(Nb), vec3(4.0));
+					const wT = wT0.div(wT0.x.add(wT0.y).add(wT0.z)).toVar();
+					const tri = (tile: number): N => {
+						const lod = max(log2(footprint.mul(DETAIL_SIZE / tile)), 0.0);
+						const q = pl.div(tile);
+						return texture(detailTex, q.yz)
+							.level(lod)
+							.mul(wT.x)
+							.add(texture(detailTex, q.xz).level(lod).mul(wT.y))
+							.add(texture(detailTex, q.xy).level(lod).mul(wT.z));
+					};
+					const d4 = tri(DETAIL_TILE.rock).toVar();
+					const d2 = tri(DETAIL_TILE.grass).toVar();
+					const k = (v: N, c: number): N => v.sub(0.5).mul(2 * c).add(1.0);
+					const soft = mix(k(d2.y, DETAIL_CONTRAST.grass), k(d2.z, DETAIL_CONTRAST.sand), wDesert);
+					const mult = mix(
+						mix(mix(soft, k(d4.x, DETAIL_CONTRAST.rock), wRock), k(d2.z, DETAIL_CONTRAST.sand), wBeach),
+						k(d4.w, DETAIL_CONTRAST.snow),
+						wSnow.mul(smoothstep(0.0, 1.0, float(1.0).sub(slope.mul(2.0))))
+					);
+					land.mulAssign(mix(float(1.0), mult, detailFade));
+				});
 				// wet sand along the shore
 				land.mulAssign(
 					float(1.0).sub(
@@ -1335,28 +1423,12 @@ export class PlanetPassTSL {
 				};
 			};
 
-			const stars = (rd: N): N => {
-				let col: N = vec3(0.0);
-				for (let layer = 0; layer < 3; layer++) {
-					const scale = 55.0 * 2.1 ** layer;
-					const p = rd.mul(scale);
-					const cell = floor(p);
-					const h = hash33i(ivec3(cell).add(ivec3(layer * 977)));
-					const pos = cell.add(0.2).add(h.mul(0.6));
-					const d = length(p.sub(pos));
-					const rad = max(pixelAngle.mul(0.5 * scale), 0.02);
-					const mag = pow(hash13i(ivec3(cell).add(ivec3(layer * 31 + 5))), 14.0);
-					const w = smoothstep(rad, 0.0, d).mul(mag).mul(h.x.mul(3.5).add(0.5));
-					const tint = mix(vec3(0.7, 0.8, 1.0), vec3(1.0, 0.85, 0.7), h.y);
-					col = col.add(tint.mul(w).mul(layer === 0 ? 6.0 : 3.0));
-				}
-				const gal = normalize(vec3(0.3, 0.8, 0.5));
-				const gd = dot(rd, gal).div(0.16);
-				const band = exp(gd.mul(gd).negate());
-				const clumps = fbmF(rd.mul(5.0).add(11.0), 4);
-				col = col.add(vec3(0.55, 0.6, 0.8).mul(band).mul(clumps.mul(clumps).mul(0.07).add(0.012)));
-				return col.mul(uStarBright);
-			};
+			// the baked Milky Way and the catalogue stars (plan 364, ADR 0306), dimmed by daylight
+			const skyMap = this.skyMap;
+			const detailTex = this.detailTexture;
+			const scaled = this.scaled;
+			const stars = (rd: N): N =>
+				skyRadiance(skyMap.node, skyMap.texel, rd, pixelAngle).mul(uStarBright);
 
 			/** Height of the ray point at t above the sea sphere, without float32's 6 cm loss at 600 km. */
 			const rayAltitude = (r0: N, d: N, t: N, p: N): N =>
@@ -1918,6 +1990,36 @@ export class PlanetPassTSL {
 					return vec4(out, 0.0, 0.0, 1.0);
 				})();
 			}
+			if (mode === 'bake') {
+				// the scaled-space bake (plan 364): surfaceAt for one texel of one face, on the height cube
+				// alone, at the texel's footprint; albedo (square root, water in alpha) or the normal
+				const uSiteUp = this.link('uSiteUp');
+				const bakeTerrain =
+					this.settings.terrainSize > 0
+						? (this.terrain?.sampler((n) => this.link(n), uBodyInv, false) ?? null)
+						: null;
+				return Fn(() => {
+					const tx = scaled.bakeTexel();
+					If(tx.face.notEqual(scaled.uFace), () => {
+						Discard();
+					});
+					const nBF = normalize(faceDirection(tx.face, tx.st)).toVar();
+					const hT = float(0.0).toVar();
+					const gT = vec3(0.0).toVar();
+					if (bakeTerrain) {
+						const ter = bakeTerrain.cubeAt(nBF);
+						hT.assign(ter.x);
+						gT.assign(ter.yzw);
+					}
+					const pl = nBF.mul(uR.add(hT)).toVar();
+					const sf = surfaceAt(nBF, pl, scaled.uTexelM, nBF.sub(uSiteUp).mul(uR), hT, gT);
+					return select(
+						scaled.uWhat.lessThan(0.5),
+						vec4(sqrt(clamp(sf.albedo, 0.0, 1.0)), clamp(sf.spec, 0.0, 1.0)),
+						vec4(normalize(sf.normal).mul(0.5).add(0.5), 1.0)
+					);
+				})();
+			}
 			const main = Fn(() => {
 				if (mode === 'edge')
 					If(halfEdge().not(), () => {
@@ -1993,7 +2095,38 @@ export class PlanetPassTSL {
 					}
 					const cosv = max(abs(dot(nGeoI, rd)), 0.03);
 					const footprint = max(tG.mul(pixelAngle).div(cosv), 0.002).toVar();
-					const sf = surfaceAt(nBF, pl, footprint, rdBF.mul(tG), hT, gT);
+					// far from the camera the scaled-space bake (plan 364): crisp, filtered, cheap; near it
+					// the procedural ground; between them a blend by texels a pixel
+					const sf = {
+						albedo: vec3(0.0).toVar(),
+						normal: vec3(nBF).toVar(),
+						spec: float(0.0).toVar(),
+						lampE: vec3(0.0).toVar()
+					};
+					const texels = footprint.div(scaled.uTexelM).toVar();
+					const uScaledMode = this.link('uScaledMode');
+					const wBake = select(
+						uScaledMode.greaterThan(1.5),
+						float(1.0),
+						smoothstep(SCALED_BLEND[0], SCALED_BLEND[1], texels).mul(min(uScaledMode, 1.0))
+					)
+						.mul(scaled.uOn)
+						.toVar();
+					If(wBake.lessThan(1.0), () => {
+						const p = surfaceAt(nBF, pl, footprint, uCamToSite.add(rdBF.mul(tG)), hT, gT);
+						sf.albedo.assign(p.albedo);
+						sf.normal.assign(p.normal);
+						sf.spec.assign(p.spec);
+						sf.lampE.assign(p.lampE);
+					});
+					If(wBake.greaterThan(0.0), () => {
+						const b = scaled.sample(nBF, max(log2(texels), 0.0));
+						sf.albedo.assign(mix(sf.albedo, b.albedo.xyz.mul(b.albedo.xyz), wBake));
+						sf.spec.assign(mix(sf.spec, b.albedo.w, wBake));
+						sf.normal.assign(
+							normalize(mix(sf.normal, normalize(b.normal.xyz.mul(2.0).sub(1.0)), wBake))
+						);
+					});
 					// a grazing ray sees the rim of a slope edge-on: lean the normal back to level ground
 					const graze = select(
 						hitT.and(uSilhouetteAA.greaterThan(0.5)),
@@ -2449,6 +2582,8 @@ export class PlanetPassTSL {
 		this.preMaterial.vertexNode = quad;
 		this.preMaterial.fragmentNode = graph('prepass');
 		this.preMaterial.needsUpdate = true;
+		this.bakeMaterial!.fragmentNode = graph('bake');
+		this.bakeMaterial!.needsUpdate = true;
 		// the depth-aware upsample (upsampleWeights in half-res.ts)
 		const halfTex = this.halfTarget.texture;
 		const up = Fn(() => {

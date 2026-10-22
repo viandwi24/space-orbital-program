@@ -83,6 +83,10 @@ export interface RendererDebug {
 	 * bake cost); `gradient` picks the bake program (`analytic`, the old `fd`, or `none`). Development only.
 	 */
 	bakeMode(rebake: boolean, gradient: 'analytic' | 'fd' | 'none'): void;
+	/** Plan 364: the scaled-space bake as drawn, off, or for every ground pixel (before/after screenshots). */
+	scaledSpace(mode: 'on' | 'off' | 'only'): void;
+	/** Plan 364: the triplanar ground detail on or off. */
+	groundDetail(on: boolean): void;
 	/** Plan 133: the planet pass's silhouette coverage on or off (before/after screenshots). */
 	silhouetteAA(on: boolean): void;
 	readPatch(which: 'fine' | 'mid'): {

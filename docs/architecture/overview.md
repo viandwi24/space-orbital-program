@@ -49,6 +49,14 @@ Since plan 027 the same pass also draws terrain heights (ADR 0036): `terrain-mod
 
 The CPU twin is `terrain-model.ts` (`marchTerrain(...).closest`, `silhouetteCoverage`, `parabolaMin`).
 
+**Sky, scaled-space bake and ground detail** (plan 364, ADR 0306):
+- **The sky.** The planet pass's sky is a baked octahedral half-float map (`sky-model.ts`; `shaders/starfield.glsl.ts` and `tsl/starfield.ts`, baked once) with the Milky Way, dust lanes, nebulae and haze. Over it go analytic catalogue stars: three layers of an equi-angular cube grid, magnitudes from a power law, and each star an energy-normalised Gaussian at least 0.72 px wide, so none twinkles. The star visibility (daylight) scales both.
+- **The scaled-space bake.** It holds albedo (square root, water in alpha) and the body-fixed normal of the whole planet, made by the pass's own `surfaceAt` at a texel's footprint on the height cube. WebGL uses two RGBA8 cube targets; WebGPU uses two 3 × 2 atlases with 32-texel gutters, because the pass may sample only 16 textures. Faces are 512, 1024 or 1536 by preset, baked two passes a frame after the height cube, and again when the heights or the map change.
+- **Reading the bake.** The ground reads it where a pixel covers 1.2 texels or more, blends from 0.6, and below that runs `surfaceAt`. `debug.scaledSpace('on' | 'off' | 'only')` switches it for checks.
+- **Mid octaves.** `surfaceAt` gains octaves from 16 km to 2 km (core's lattice, coast shift capped at 0.008), so coasts are fractal at every scale.
+- **Ground detail.** Four tiling grey maps in one 256² image (`detail-textures.ts`) are read triplanar below an 8 m footprint, at a level from the footprint.
+- **The biome map cache.** The web app stores the generated biome maps per world in IndexedDB (`apps/web/src/lib/planet-map-cache.ts`; core's `planetMapKey`, `exportPlanetMaps`, `importPlanetMaps`, `PLANET_MAP_VERSION`).
+
 Lakes, rivers and shores (plan 038, ADR 0072): `core/terrain.ts` carves lake basins out of the one height function (a flat floor at sea level, relief capped by a cone, so lakes are as solid as the sea), the planet pass draws them as water, moves the ripples of a river along its course by a two-phase flow map (`water-flow.ts`) and runs the swell up the beach with a shoaling phase and a breaker line (`shore-wave.ts`). The launch site's arms, steam, beacons and lit windows are driven by the vessel's height and the clock (`site-animation.ts`, ADR 0073), and `Renderer.precompile(onProgress)` reports its progress to the flight page's badge (ADR 0074).
 
 ### Space Center (plan 091, ADR 0117)

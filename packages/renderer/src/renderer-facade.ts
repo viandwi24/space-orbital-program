@@ -61,6 +61,8 @@ export type DebugFacade = Pick<
 	| 'terrainHeightAt'
 	| 'bakeMode'
 	| 'silhouetteAA'
+	| 'scaledSpace'
+	| 'groundDetail'
 	| 'setMoonTint'
 	| 'setMoonDetail'
 	| 'dishAims'
@@ -144,7 +146,9 @@ export function debugFacade(model: SceneModel): DebugFacade {
 		setTerrain: (terrain) => env.setTerrain(terrain),
 		terrainHeightAt: (direction) => env.groundHeight(direction),
 		bakeMode: (rebake, gradient) => env.planet.debugBakeMode(rebake, gradient),
-		silhouetteAA: (on) => env.planet.debugSilhouetteAA(on)
+		silhouetteAA: (on) => env.planet.debugSilhouetteAA(on),
+		scaledSpace: (mode) => env.planet.debugScaledSpace(mode),
+		groundDetail: (on) => env.planet.debugGroundDetail(on)
 	};
 }
 

@@ -77,9 +77,17 @@ describe('vegetation per preset', () => {
 });
 
 /** The part of a WebGLRenderer that `PlanetPass.bakeTerrain` touches. */
-const fakeGl = (): { gl: WebGLRenderer; renders: () => number; cloudMapRenders: () => number } => {
+const fakeGl = (): {
+	gl: WebGLRenderer;
+	renders: () => number;
+	cloudMapRenders: () => number;
+	scaledRenders: () => number;
+	skyRenders: () => number;
+} => {
 	let renders = 0;
 	let cloudMap = 0;
+	let scaled = 0;
+	let sky = 0;
 	let current: unknown = null;
 	const gl = {
 		autoClear: true,
@@ -89,14 +97,20 @@ const fakeGl = (): { gl: WebGLRenderer; renders: () => number; cloudMapRenders: 
 			current = target;
 		},
 		render(scene: { children: { material?: { name?: string } }[] }) {
-			renders++;
-			if (scene.children[0]?.material?.name === 'cloud-map-bake') cloudMap++;
+			const name = scene.children[0]?.material?.name;
+			// the scaled-space and sky bakes of plan 364 are counted apart from the terrain's
+			if (name === 'planet-scaled-bake') scaled++;
+			else if (name === 'sky-map-bake') sky++;
+			else renders++;
+			if (name === 'cloud-map-bake') cloudMap++;
 		}
 	};
 	return {
 		gl: gl as unknown as WebGLRenderer,
 		renders: () => renders,
-		cloudMapRenders: () => cloudMap
+		cloudMapRenders: () => cloudMap,
+		scaledRenders: () => scaled,
+		skyRenders: () => sky
 	};
 };
 
@@ -185,6 +199,28 @@ describe('progressive terrain bake', () => {
 		const before = renders();
 		planet.bakeTerrain(gl);
 		expect(renders() - before).toBe(6);
+		planet.dispose();
+	});
+
+	test('the scaled-space bake (plan 364) follows the heights: two passes a frame, read once all twelve are done, again for a moved site', () => {
+		const planet = make('high');
+		const { gl, scaledRenders, skyRenders } = fakeGl();
+		const on = (): number => planet.material.uniforms.uScaledOn!.value as number;
+		for (let frame = 1; frame <= 6; frame++) {
+			planet.bakeTerrain(gl);
+			expect(scaledRenders()).toBe(frame * 2);
+			expect(on()).toBe(frame === 6 ? 1 : 0);
+		}
+		planet.bakeTerrain(gl);
+		expect(scaledRenders()).toBe(12);
+		// the sky's map is baked once
+		expect(skyRenders()).toBe(1);
+		planet.setSite(0.2, 0.3);
+		planet.bakeTerrain(gl);
+		expect(on()).toBe(0);
+		for (let i = 0; i < 8; i++) planet.bakeTerrain(gl);
+		expect(scaledRenders()).toBe(24);
+		expect(on()).toBe(1);
 		planet.dispose();
 	});
 });
