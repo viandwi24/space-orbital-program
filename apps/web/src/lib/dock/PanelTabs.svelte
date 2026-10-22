@@ -3,7 +3,9 @@
 	 * A panel's tabs (ADR 0287 point 1): a v3 tab strip and the open tab's nodes. Which tab is open
 	 * is this component's state; when the panel's `active` tab changes (a program was engaged) it opens.
 	 */
+	import { setContext } from 'svelte';
 	import PanelView from './PanelView.svelte';
+	import { OPEN_TAB } from './evaluate';
 	import type { ShownNode } from './evaluate';
 
 	type Tabs = Extract<ShownNode, { kind: 'tabs' }>;
@@ -16,6 +18,10 @@
 	} = $props();
 
 	let chosen = $state<string | null>(null);
+	// a notice's button inside these tabs opens one of them (ADR 0288)
+	setContext(OPEN_TAB, (id: string) => {
+		if (node.tabs.some((t) => t.id === id)) chosen = id;
+	});
 	let lastActive: string | null = null;
 	$effect(() => {
 		const a = node.active;

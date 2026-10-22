@@ -26,7 +26,13 @@ export type ShownNode =
 			value: number | null;
 			path: string;
 	  }
-	| { kind: 'notice'; text: string | null; tone: PanelTone }
+	| {
+			kind: 'notice';
+			text: string | null;
+			tone: PanelTone;
+			/** A button that opens a tab (ADR 0288). */
+			action: { label: string; tab: string } | null;
+	  }
 	| { kind: 'readout'; label: string; value: string | null; unit?: string }
 	| { kind: 'meter'; label: string; value: number | null }
 	| { kind: 'switch'; label: string; on: boolean; path: string }
@@ -55,6 +61,9 @@ export type ShownNode =
 			}[];
 	  }
 	| { kind: 'sparkline'; label: string; values: number[]; last: number | null };
+
+/** Svelte context key: the nearest tabs' `open(id)` (ADR 0288). */
+export const OPEN_TAB = Symbol('panel-open-tab');
 
 export type PanelResult = { ok: true; nodes: ShownNode } | { ok: false; error: string };
 
@@ -109,8 +118,15 @@ function show(node: PanelNode, input: PanelInput, memory: PanelMemory, path: str
 				path
 			};
 		}
-		case 'notice':
-			return { kind: 'notice', text: node.text(input), tone: node.tone?.(input) ?? 'info' };
+		case 'notice': {
+			const a = node.action?.(input) ?? null;
+			return {
+				kind: 'notice',
+				text: node.text(input),
+				tone: node.tone?.(input) ?? 'info',
+				action: a ? { label: String(a.label), tab: String(a.tab) } : null
+			};
+		}
 		case 'readout': {
 			const v = node.value(input);
 			const value =

@@ -3,6 +3,9 @@ import { describe, expect, test } from 'bun:test';
 import { entityId, type PanelInput, type PanelNode, type VesselSnapshot } from '@orbital/sdk';
 import { GuidancePanel } from '../src/index.ts';
 
+type Vec = { x: number; y: number; z: number };
+const sub = (a: Vec, b: Vec): Vec => ({ x: a.x - b.x, y: a.y - b.y, z: a.z - b.z });
+
 const q0 = { x: 0, y: 0, z: 0, w: 1 };
 const vessel = (extra: Partial<VesselSnapshot> = {}): VesselSnapshot =>
 	({
@@ -18,8 +21,17 @@ const vessel = (extra: Partial<VesselSnapshot> = {}): VesselSnapshot =>
 		orbit: { a: 700_000, e: 0.001 },
 		...extra
 	}) as unknown as VesselSnapshot;
-const input = (v: VesselSnapshot): PanelInput =>
-	({ snapshot: { t: 10, vessels: [v], bodies: [] }, vessel: v, altitude: 100_000, speed: 2_246, time: 10 }) as unknown as PanelInput;
+const BODY = { id: 'stock.home', radius: 600_000, mu: 3.5316e12, atmosphereHeight: 70_000 };
+const input = (v: VesselSnapshot, others: VesselSnapshot[] = [], deltaV: number | null = null): PanelInput =>
+	({
+		snapshot: { t: 10, vessels: [v, ...others], bodies: [] },
+		vessel: v,
+		altitude: 100_000,
+		speed: 2_246,
+		time: 10,
+		body: BODY,
+		deltaV
+	}) as unknown as PanelInput;
 
 const view = GuidancePanel.view;
 if (view.kind !== 'tabs') throw new Error('the panel is not tabbed');
@@ -94,5 +106,82 @@ describe('Guidance Computer panel (plan 332)', () => {
 			settings: { altitude: 90_000 }
 		});
 		expect(inc.command(input(v), 28)).toMatchObject({ settings: { inclination: 28 } });
+	});
+
+	describe('Rendezvous says the true reason it cannot start (plan 333)', () => {
+		const mu = BODY.mu;
+		const circ = (r: number) => ({ position: { x: r, y: 0, z: 0 }, velocity: { x: 0, y: 0, z: -Math.sqrt(mu / r) } });
+		/** The own vessel at `own`, targeting a vessel whose state is `other` (absolute, body-centred). */
+		const scene = (own: { position: Vec; velocity: Vec }, other: { position: Vec; velocity: Vec }, extra: Partial<VesselSnapshot> = {}) => {
+			const target = vessel({ id: entityId(2), name: 'Station', ...other, ...extra });
+			const me = vessel({
+				...own,
+				target: {
+					kind: 'vessel',
+					id: entityId(2),
+					name: 'Station',
+					position: sub(other.position, own.position),
+					velocity: sub(other.velocity, own.velocity),
+					distance: 1,
+					relativeSpeed: 1,
+					approach: null
+				}
+			} as never);
+			return { me, target };
+		};
+		const rdv = (me: VesselSnapshot, target: VesselSnapshot, dv: number | null = null) => {
+			const n = tab('rendezvous').children[0]!;
+			if (n.kind !== 'notice') throw new Error('no status line');
+			const i = input(me, [target], dv);
+			return { text: n.text(i), tone: n.tone?.(i), action: n.action?.(i) ?? null, i };
+		};
+		const station = circ(750_000);
+
+		test('climbing from the pad: no stable orbit, Fly Ascent, a button to the Ascent tab', () => {
+			const { me, target } = scene({ position: { x: 630_000, y: 0, z: 0 }, velocity: { x: 0, y: 0, z: -500 } }, station);
+			const r = rdv(me, target);
+			expect(r.text).toBe('Reach a stable orbit first: periapsis below the surface, needs 70 km+. Fly Ascent.');
+			expect(r.tone).toBe('warn');
+			expect(r.action).toEqual({ label: 'Open Ascent', tab: 'ascent' });
+			expect(button('rendezvous', 'Engage').command(r.i)).toBeNull();
+		});
+
+		test('apoapsis up, periapsis in the air: Circularize, a button to the Orbit tab', () => {
+			const rp = 612_000;
+			const a = (rp + 700_000) / 2;
+			const own = { position: { x: rp, y: 0, z: 0 }, velocity: { x: 0, y: 0, z: -Math.sqrt(mu * (2 / rp - 1 / a)) } };
+			const r = rdv(scene(own, station).me, scene(own, station).target);
+			expect(r.text).toBe('Reach a stable orbit first: periapsis 12 km, needs 70 km+. Circularize at the apoapsis.');
+			expect(r.action).toEqual({ label: 'Open Orbit', tab: 'orbit' });
+		});
+
+		test('the target around another body, on the ground, or not in orbit', () => {
+			const own = circ(700_000);
+			const away = scene(own, station, { soi: 'stock.cinder' } as never);
+			expect(rdv(away.me, away.target).text).toBe(
+				'The target orbits Cinder; you orbit Home. A rendezvous needs both around one body.'
+			);
+			expect(rdv(away.me, away.target).action).toBeNull();
+			const landed = scene(own, station, { surface: true } as never);
+			expect(rdv(landed.me, landed.target).text).toBe('The target is on the ground.');
+			const low = scene(own, { position: { x: 640_000, y: 0, z: 0 }, velocity: { x: 0, y: 0, z: -900 } });
+			expect(rdv(low.me, low.target).text).toBe('The target is not in a stable orbit: periapsis below the surface, needs 70 km+.');
+		});
+
+		test('ready: the idle line, Engage, the HUD delta-v and an estimate while off', () => {
+			const { me, target } = scene(circ(700_000), station);
+			const r = rdv(me, target, 3_391.94);
+			expect(r.tone).toBe('info');
+			expect(r.action).toBeNull();
+			expect(button('rendezvous', 'Engage').command(r.i)).toMatchObject({ type: 'autopilot-engage', autopilot: 'guidance.rendezvous' });
+			const readout = (label: string) => {
+				const n = nodesOf('rendezvous').find((x) => x.kind === 'readout' && x.label === label);
+				return n?.kind === 'readout' ? n.value(r.i) : undefined;
+			};
+			expect(readout('Delta-v left')).toBe(3391.9);
+			const estimate = Number(readout('Delta-v estimate'));
+			expect(estimate).toBeGreaterThan(50);
+			expect(estimate).toBeLessThan(300);
+		});
 	});
 });

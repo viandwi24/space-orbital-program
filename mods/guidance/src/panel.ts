@@ -5,17 +5,16 @@
  * why. Built from the HUD's own panel nodes, so it follows the theme and the keyboard.
  */
 import {
-	createVesselPilot,
 	definePanel,
 	type AutopilotSettingValue,
 	type Command,
 	type PanelInput,
 	type PanelNode,
-	type PanelTone,
-	type VesselPilot
+	type PanelNoticeAction,
+	type PanelTone
 } from '@orbital/sdk';
 import { Ascent, Circularize, ExecuteNode, Land, TOUCHDOWN_SPEED } from './autopilots.ts';
-import { Rendezvous, STANDOFF, targetProblem } from './rendezvous.ts';
+import { Rendezvous, STANDOFF, readiness, rendezvousEstimate, type Readiness } from './rendezvous.ts';
 
 /** Which tab each program lives in. */
 const TAB_OF: Record<string, string> = {
@@ -40,8 +39,14 @@ const settingsOf = (i: PanelInput, id: string): Record<string, AutopilotSettingV
 	i.vessel?.autopilotSettings?.[id] ?? {};
 const setting = (i: PanelInput, id: string, key: string, value: AutopilotSettingValue): Command | null =>
 	i.vessel ? { type: 'autopilot-settings', vessel: i.vessel.id, autopilot: id, settings: { [key]: value } } : null;
-const pilotOf = (i: PanelInput): VesselPilot | null =>
-	i.vessel ? createVesselPilot(i.snapshot, i.vessel.id, () => undefined) : null;
+/** The rendezvous readiness from the panel's snapshot and body (plan 333). */
+function rdvReadiness(i: PanelInput): Readiness {
+	const v = i.vessel;
+	if (!v) return { problem: 'No vessel to fly.' };
+	const t = v.target;
+	const other = t?.kind === 'vessel' ? i.snapshot.vessels.find((x) => x.id === t.id) : undefined;
+	return readiness(v, t, other, i.body);
+}
 
 /** On the ground or the water. */
 const grounded = (i: PanelInput): boolean =>
@@ -71,11 +76,8 @@ function blocked(i: PanelInput, id: string): string | null {
 		case Circularize.id:
 			if (grounded(i)) return 'On the ground: fly an ascent first.';
 			return v.orbit && v.orbit.e < 1 ? null : 'The orbit is open: there is no apoapsis.';
-		case Rendezvous.id: {
-			if (grounded(i)) return 'On the ground: reach orbit first.';
-			const p = pilotOf(i);
-			return p ? targetProblem(p) : 'No vessel to fly.';
-		}
+		case Rendezvous.id:
+			return rdvReadiness(i).problem;
 		case Land.id:
 			return grounded(i) ? 'Already on the ground.' : null;
 		default:
@@ -91,10 +93,14 @@ const refusal = (i: PanelInput, ...ids: string[]): string | null => {
 		: null;
 };
 
-/** The tab's status line: the program flying, else why it cannot start, else how it last ended. */
-function status(ids: string[], idle: string) {
+/**
+ * The tab's status line: the program flying, else why it cannot start, else how it last ended;
+ * `action` offers the next step as a button to another tab (ADR 0288).
+ */
+function status(ids: string[], idle: string, action?: (i: PanelInput) => PanelNoticeAction | null) {
 	return {
 		kind: 'notice' as const,
+		...(action ? { action: (i: PanelInput) => (flying(i, ...ids) ? null : action(i)) } : {}),
 		text: (i: PanelInput): string | null => {
 			const a = flying(i, ...ids);
 			if (a) return a.status ? `${a.title}: ${a.status}` : `${a.title} · ${a.phase}`;
@@ -268,7 +274,14 @@ const RDV_STEPS = ['plane', 'transfer', 'match', 'close', 'hold'];
 const rdvStep = (phase: string): number =>
 	phase === 'phasing' || phase === 'correct' ? 1 : Math.max(0, RDV_STEPS.indexOf(phase));
 const rendezvousTab: PanelNode[] = [
-	status(RDV, 'Target a vessel or a docking port, then engage: it stops 100–200 m away, at rest.'),
+	status(RDV, 'Target a vessel or a docking port, then engage: it stops 100–200 m away, at rest.', (i) => {
+		const next = rdvReadiness(i).next;
+		return next === 'ascent'
+			? { label: 'Open Ascent', tab: 'ascent' }
+			: next === 'orbit'
+				? { label: 'Open Orbit', tab: 'orbit' }
+				: null;
+	}),
 	{
 		kind: 'progress',
 		label: 'Rendezvous',
@@ -302,8 +315,30 @@ const rendezvousTab: PanelNode[] = [
 		title: 'Delta-v',
 		children: [
 			{ kind: 'readout', label: 'Delta-v used', unit: 'm/s', value: reading(RDV, 'Delta-v used') },
-			{ kind: 'readout', label: 'Delta-v estimate', unit: 'm/s', value: reading(RDV, 'Delta-v estimate') },
-			{ kind: 'readout', label: 'Delta-v left', unit: 'm/s', value: reading(RDV, 'Delta-v left') }
+			{
+				kind: 'readout',
+				label: 'Delta-v estimate',
+				unit: 'm/s',
+				// while off: an estimate when a plan is possible (plan 333)
+				value: reading(RDV, 'Delta-v estimate', (i) => {
+					const v = i.vessel;
+					const t = v?.target;
+					if (!v || !t || !i.body || rdvReadiness(i).problem) return null;
+					const own = { r: v.position, v: v.velocity };
+					const target = {
+						r: { x: v.position.x + t.position.x, y: v.position.y + t.position.y, z: v.position.z + t.position.z },
+						v: { x: v.velocity.x + t.velocity.x, y: v.velocity.y + t.velocity.y, z: v.velocity.z + t.velocity.z }
+					};
+					return Math.round(rendezvousEstimate(own, target, t.distance, i.body.mu) * 10) / 10;
+				})
+			},
+			{
+				kind: 'readout',
+				label: 'Delta-v left',
+				unit: 'm/s',
+				// while off: the vessel's delta-v as the HUD's stage stack shows it (ADR 0288)
+				value: reading(RDV, 'Delta-v left', (i) => (i.deltaV == null ? null : Math.round(i.deltaV * 10) / 10))
+			}
 		]
 	},
 	{

@@ -233,8 +233,8 @@ describe('tabs, progress, number fields and notices (plan 332, ADR 0287)', () =>
 		expect(r.nodes.tabs[1]!.children[1]).toMatchObject({ kind: 'number', value: 80, min: 70, max: 500, step: 5, path: 'v.1.1' });
 		expect(r.nodes.tabs[1]!.children[2]).toMatchObject({ kind: 'button', tone: 'primary', enabled: true });
 		expect(r.nodes.tabs[0]!.children).toEqual([
-			{ kind: 'notice', text: 'Target a vessel first.', tone: 'warn' },
-			{ kind: 'notice', text: null, tone: 'info' }
+			{ kind: 'notice', text: 'Target a vessel first.', tone: 'warn', action: null },
+			{ kind: 'notice', text: null, tone: 'info', action: null }
 		]);
 		const low = evaluatePanel(tabbed, input(1, 10), new Map());
 		expect(low.ok && low.nodes.kind === 'tabs' && low.nodes.active).toBe(null);
@@ -260,5 +260,52 @@ describe('tabs, progress, number fields and notices (plan 332, ADR 0287)', () =>
 		expect(high).toContain('data-testid="panel-number-v.1.1"');
 		expect(high).toContain('role="progressbar"');
 		expect(high).toContain('>ON<');
+	});
+});
+
+describe('a notice offers the next step as a button to a tab (plan 333, ADR 0288)', () => {
+	const hinted: PanelDefinition = {
+		...PanelBeacon,
+		id: 'mod.hinted',
+		canvas: undefined,
+		view: {
+			kind: 'tabs',
+			label: 'Programs',
+			tabs: [
+				{
+					id: 'a',
+					label: 'First',
+					children: [
+						{
+							kind: 'notice',
+							text: (i) => `Reach orbit first (Δv ${i.deltaV ?? 'none'}, ${i.body?.id ?? 'no body'})`,
+							tone: () => 'warn',
+							action: () => ({ label: 'Open Second', tab: 'b' })
+						}
+					]
+				},
+				{ id: 'b', label: 'Second', children: [] }
+			]
+		}
+	};
+
+	it('the panel input carries the body and the HUD delta-v; the notice its action', () => {
+		const i = panelInputOf(snapshot(1, R + 10), 7 as never, [
+			{ id: 'stock.home' as never, radius: R, mass: 5.29e22, atmosphere: { height: 70_000 } as never }
+		], 1234.5);
+		expect(i.deltaV).toBe(1234.5);
+		expect(i.body).toMatchObject({ id: 'stock.home', radius: R, atmosphereHeight: 70_000 });
+		expect(i.body!.mu).toBeCloseTo(6.6743e-11 * 5.29e22, -3);
+		const r = evaluatePanel(hinted, i, new Map());
+		if (!r.ok || r.nodes.kind !== 'tabs') throw new Error('not tabs');
+		expect(r.nodes.tabs[0]!.children[0]).toEqual({
+			kind: 'notice',
+			text: 'Reach orbit first (Δv 1234.5, stock.home)',
+			tone: 'warn',
+			action: { label: 'Open Second', tab: 'b' }
+		});
+		const html = render(ModPanel, { props: { panel: hinted, input: i, oncommand: () => {} } }).body;
+		expect(html).toContain('data-testid="panel-notice-action-b"');
+		expect(html).toContain('Open Second');
 	});
 });

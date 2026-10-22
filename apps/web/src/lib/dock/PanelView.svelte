@@ -8,7 +8,8 @@
 	import Segmented from '../ui/Segmented.svelte';
 	import Self from './PanelView.svelte';
 	import PanelTabs from './PanelTabs.svelte';
-	import { clampEntry, type ShownNode } from './evaluate';
+	import { getContext } from 'svelte';
+	import { OPEN_TAB, clampEntry, type ShownNode } from './evaluate';
 
 	let {
 		node,
@@ -21,6 +22,9 @@
 		 */
 		onaction: (path: string, on?: boolean | string | number) => void;
 	} = $props();
+
+	/** The nearest tabs' opener, for a notice's button (ADR 0288). */
+	const openTab = getContext<((id: string) => void) | undefined>(OPEN_TAB);
 
 	/** A number field committed (Enter or leaving it): clamped, then sent. */
 	function commit(e: Event, n: Extract<ShownNode, { kind: 'number' }>): void {
@@ -83,7 +87,16 @@
 	</label>
 {:else if node.kind === 'notice'}
 	{#if node.text}
-		<p class="notice {node.tone}" role={node.tone === 'warn' ? 'note' : 'status'}>{node.text}</p>
+		<div class="notice {node.tone}" role={node.tone === 'warn' ? 'note' : 'status'}>
+			<span>{node.text}</span>
+			{#if node.action && openTab}
+				<Button
+					variant="ghost"
+					onclick={() => openTab(node.action!.tab)}
+					data-testid="panel-notice-action-{node.action.tab}">{node.action.label} →</Button
+				>
+			{/if}
+		</div>
 	{/if}
 {:else if node.kind === 'readout'}
 	<StatCell label={node.label} value={node.value} {...node.unit ? { unit: node.unit } : {}} />
@@ -248,6 +261,11 @@
 	}
 	.notice {
 		grid-column: 1 / -1;
+		display: flex;
+		flex-wrap: wrap;
+		align-items: center;
+		justify-content: space-between;
+		gap: 0.25rem 0.5rem;
 		margin: 0;
 		padding: 0.375rem 0.5rem;
 		border-radius: var(--radius-tile);

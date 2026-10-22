@@ -22,6 +22,19 @@ export interface PanelInput {
 	speed: number | null;
 	/** Sim time, s. */
 	time: number;
+	/**
+	 * The active vessel's sphere-of-influence body (ADR 0288): radius and top of the atmosphere
+	 * (0 without one), m; gravitational parameter, m³/s². Absent when the host does not know it.
+	 */
+	body?: { id: string; radius: number; mu: number; atmosphereHeight: number } | null;
+	/** The active vessel's delta-v as the HUD's stage stack shows it, m/s (ADR 0288); absent when unknown. */
+	deltaV?: number | null;
+}
+
+/** A notice's button (ADR 0288): opens a tab of the panel's `tabs`. */
+export interface PanelNoticeAction {
+	label: string;
+	tab: string;
 }
 
 /** A notice's colour (ADR 0287 point 4). */
@@ -64,7 +77,13 @@ export type PanelNode =
 			command(input: PanelInput, value: number): Command | null;
 	  }
 	/** One line, hidden when the text is null (ADR 0287 point 4). */
-	| { kind: 'notice'; text(input: PanelInput): string | null; tone?(input: PanelInput): PanelTone }
+	| {
+			kind: 'notice';
+			text(input: PanelInput): string | null;
+			tone?(input: PanelInput): PanelTone;
+			/** A next step: a button that opens a tab (ADR 0288); null for none. */
+			action?(input: PanelInput): PanelNoticeAction | null;
+	  }
 	| {
 			kind: 'readout';
 			label: string;
@@ -197,7 +216,7 @@ export const panelNodeSchema: z.ZodType<PanelNode> = z.lazy(() =>
 				command: fn
 			})
 			.refine((n) => n.min <= n.max, 'min must not be above max'),
-		z.object({ kind: z.literal('notice'), text: fn, tone: fn.optional() }),
+		z.object({ kind: z.literal('notice'), text: fn, tone: fn.optional(), action: fn.optional() }),
 		z.object({ kind: z.literal('readout'), label, value: fn, unit: z.string().optional() }),
 		z.object({ kind: z.literal('meter'), label, value: fn }),
 		z.object({ kind: z.literal('switch'), label, value: fn, command: fn }),

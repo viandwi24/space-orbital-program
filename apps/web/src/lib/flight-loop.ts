@@ -1977,7 +1977,10 @@ export function startFlight(options: FlightOptions): Flight {
 	}
 
 	return {
-		panelInput: () => (snap && catalog ? panelInputOf(snap, vessel, catalog.bodies) : null),
+		panelInput: () =>
+			snap && catalog
+				? panelInputOf(snap, vessel, catalog.bodies, hud.model?.stages.total ?? null)
+				: null,
 		highlightPart: (part) => renderer?.highlightPart(part),
 		partAt: (x, y) => renderer?.partAt(x, y) ?? null,
 		vesselAt(x, y) {

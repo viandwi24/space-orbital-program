@@ -24,8 +24,10 @@ import {
 	relativeNodes,
 	type AutopilotStep,
 	type StateVector,
+	type TargetSnapshot,
 	type Vec3,
-	type VesselPilot
+	type VesselPilot,
+	type VesselSnapshot
 } from '@orbital/sdk';
 import { exhaustVelocity, facts, newNodeMemory, noseOf, stepNode, type NodeMemory } from './autopilots.ts';
 import { add, angleBetween, burnTime, clamp, cross, dot, length, orbitOf, scale, sub, unit, visViva } from './orbit.ts';
@@ -153,7 +155,8 @@ interface Target {
 function targetOf(pilot: VesselPilot): Target | string {
 	const t = pilot.target;
 	if (!t || t.kind !== 'vessel') return 'Target a vessel or a docking port first.';
-	if (t.approach === null) return 'The target orbits another body.';
+	const other = pilot.targetVessel;
+	if (other && other.soi !== pilot.vessel.soi) return `The target orbits ${bodyName(other.soi)}.`;
 	const r = pilot.vessel.position;
 	const v = pilot.vessel.velocity;
 	return {
@@ -162,6 +165,84 @@ function targetOf(pilot: VesselPilot): Target | string {
 		u: scale(t.velocity, -1),
 		d: t.distance
 	};
+}
+
+/** A body's display name from its id: `stock.cinder` → "Cinder". */
+export const bodyName = (id: string): string =>
+	(id.split('.').pop() ?? id)
+		.split('-')
+		.map((w) => w.charAt(0).toUpperCase() + w.slice(1))
+		.join(' ');
+
+const kmText = (m: number): string => `${(m / 1000).toFixed(Math.abs(m) < 10_000 ? 1 : 0)} km`;
+
+/** The body the readiness check needs (the pilot's `body`, or the panel's, ADR 0288). */
+export interface ReadinessBody {
+	id: string;
+	radius: number;
+	mu: number;
+	atmosphereHeight: number;
+}
+
+/** Why the rendezvous cannot start, and the program that fixes it (plan 333). */
+export interface Readiness {
+	problem: string | null;
+	/** The Guidance tab with the next step: `ascent` to reach orbit, `orbit` to round it. */
+	next?: 'ascent' | 'orbit';
+}
+
+const grounded = (v: VesselSnapshot): boolean =>
+	v.surface === true || v.splashed === true || v.recovery !== undefined;
+
+/** Lowest periapsis altitude that counts as a stable orbit: the top of the air, or 2 % of the radius without one, m. */
+export const stableAltitude = (b: ReadinessBody): number =>
+	b.atmosphereHeight > 0 ? b.atmosphereHeight : 0.02 * b.radius;
+
+/**
+ * Whether a rendezvous can start (plan 333): the true reason when it cannot, from the vessel's and
+ * the target's orbits, the same for the autopilot and the panel. `targetVessel` is the target's
+ * snapshot when the view has it.
+ */
+export function readiness(
+	own: VesselSnapshot,
+	target: TargetSnapshot | undefined,
+	targetVessel: VesselSnapshot | undefined,
+	body: ReadinessBody | null | undefined
+): Readiness {
+	if (!target || target.kind !== 'vessel') return { problem: 'Target a vessel or a docking port first.' };
+	if (own.uncontrolled) return { problem: `The vessel takes no commands (${own.uncontrolled.replace('no-', 'no ')}).` };
+	if (targetVessel && targetVessel.soi !== own.soi)
+		return {
+			problem: `The target orbits ${bodyName(targetVessel.soi)}; you orbit ${bodyName(own.soi)}. A rendezvous needs both around one body.`
+		};
+	if (grounded(own)) return { problem: 'On the ground: fly Ascent to orbit first.', next: 'ascent' };
+	if (!body) return { problem: null };
+	const safe = stableAltitude(body);
+	const o = orbitOf(own.position, own.velocity, body.mu);
+	if (!(o.e < 1)) return { problem: 'On an escape path: get into an orbit first.', next: 'orbit' };
+	const peri = o.periapsis - body.radius;
+	if (peri < safe) {
+		const where = peri < 0 ? 'below the surface' : kmText(peri);
+		const apoOk = o.apoapsis - body.radius > safe;
+		return {
+			problem: `Reach a stable orbit first: periapsis ${where}, needs ${kmText(safe)}+. ${apoOk ? 'Circularize at the apoapsis.' : 'Fly Ascent.'}`,
+			next: apoOk ? 'orbit' : 'ascent'
+		};
+	}
+	if (targetVessel && grounded(targetVessel)) return { problem: 'The target is on the ground.' };
+	const t = orbitOf(add(own.position, target.position), add(own.velocity, target.velocity), body.mu);
+	if (!(t.e < 1)) return { problem: 'The target is on an escape path.' };
+	const tPeri = t.periapsis - body.radius;
+	if (tPeri < safe)
+		return {
+			problem: `The target is not in a stable orbit: periapsis ${tPeri < 0 ? 'below the surface' : kmText(tPeri)}, needs ${kmText(safe)}+.`
+		};
+	return { problem: null };
+}
+
+/** The delta-v estimate from two states about one body (plan 333: the panel shows it while off), m/s. */
+export function rendezvousEstimate(own: StateVector, target: StateVector, distance: number, mu: number): number {
+	return estimateNeeded(own, { state: target, p: sub(target.r, own.r), u: sub(own.v, target.v), d: distance }, mu);
 }
 
 /** Delta-v the burning engines have left, m/s (ADR 0286 point 4). */
@@ -347,9 +428,8 @@ export function rendezvousProblem(pilot: VesselPilot): string | null {
 	if (typeof f === 'string') return f;
 	const t = targetOf(pilot);
 	if (typeof t === 'string') return t;
-	if (!(orbitOf(pilot.vessel.position, pilot.vessel.velocity, f.mu).e < 1))
-		return 'The vessel is not in orbit.';
-	if (pilot.vessel.surface === true) return 'The vessel is on the ground.';
+	const ready = readiness(pilot.vessel, pilot.target, pilot.targetVessel, pilot.body);
+	if (ready.problem) return ready.problem;
 	if (pilot.maxThrust <= 0 && !(t.d < RCS_RANGE && rcsLeft(pilot)))
 		return 'No engine is burning: stage first.';
 	return null;

@@ -281,6 +281,13 @@ describe('Rendezvous autopilot (plan 331)', () => {
 		sim.dispose();
 	});
 
+	test('in the air below a stable orbit it refuses with the periapsis and what it needs (plan 333)', async () => {
+		const { sim, a } = await scene(100_000, 0.5, 0, 40_000);
+		const r = sim.dispatch({ type: 'autopilot-engage', vessel: a, autopilot: 'guidance.rendezvous' });
+		expect(r).toEqual({ ok: false, reason: 'Reach a stable orbit first: periapsis 40 km, needs 70 km+. Fly Ascent.' });
+		sim.dispose();
+	});
+
 	test('refuses without a target', async () => {
 		const { sim, a } = await scene(100_000, 0.01, 0);
 		sim.dispatch({ type: 'target-set', vessel: a, target: null });
