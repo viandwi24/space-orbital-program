@@ -290,3 +290,4 @@ An ADR records one decision, its context, and its consequences. ADRs are **appen
 | 0301 | [Symmetry about the parent or the vessel axis; re-rooting rewrites each link from the other side](0301-symmetry-pivot-and-reroot-through-side-links.md) | accepted | 2026-10-22 |
 | 0302 | [The programs list is a modal popover with Open panel, Vessel and Stop](0302-programs-popover.md) | accepted | 2026-10-22 |
 | 0303 | [SAS pointing modes hold roll; a Re-entry mode](0303-sas-holds-roll-and-reentry-mode.md) | accepted | 2026-10-22 |
+| 0307 | [Trajectories shows when it helps; panels pick points on the map](0307-trajectories-shows-when-it-helps.md) | accepted | 2026-10-22 |
