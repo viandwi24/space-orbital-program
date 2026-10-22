@@ -32,7 +32,7 @@ Implications are tagged **Adopt / Improve / Avoid**. They are options for the ow
   - Timestamp queries read 11–19 ms there. The rest of the frame scales with the full-size pixels, and the queries do not see it (ADR 0248). So Phase 7's temporal clouds and the `ultra` preset wait.
   - Results in the [plan 261 journal](../../docs/journal/261-webgpu-renderer-migration.md).
 
-- **Plan 362 (2026-10-22, ADR 0304):** the governor steps presets on WebGPU again (the next preset is warmed at load), keeps resolution at 0.85 or above until `low`, starts Automatic where it last settled, calibrates the GPU timestamps against the frame interval and drops on a steady judder. A frame-rate limit setting (Display / 60 / 30). On the M2 in orbit: `high` with adjust went from 39 fps locked to 30 to `medium` at 60 fps.
+- **Plan 362 (2026-10-22, ADR 0304):** the governor steps presets on WebGPU again (the next preset is warmed at load), keeps resolution at 0.85 or above until `low`, starts Automatic where it last settled, calibrates the GPU timestamps against the frame interval and drops on a steady judder. A frame-rate limit setting (Display / 60 / 30). On the M2 in orbit: `high` with adjust went from 39 fps locked to 30 to `medium` at 60 fps. Research for what comes next: `docs/research/frame-budget-and-efficiency.md` (plan 363).
 
 ## Index
 

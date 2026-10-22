@@ -51,6 +51,38 @@ export function thrustAtPressure(curve: EngineInfo['thrust'], pressure: number):
 }
 
 /**
+ * Config parses by module and raw config object (plan 363): the HUD and the vessel panel describe every
+ * part's modules each frame, and the raw configs are the registered part definitions' own objects, so
+ * one parse per pair is enough (zod's parse was about a fifth of a frame's allocations). A config built
+ * fresh each time (Hangar settings merged in) simply misses the cache.
+ */
+const configCache = new WeakMap<ModuleDefinition, WeakMap<object, ReturnType<typeof parseModuleConfig>>>();
+const noConfigCache = new WeakMap<ModuleDefinition, ReturnType<typeof parseModuleConfig>>();
+
+function parsedConfig(module: ModuleDefinition, rawConfig: unknown): ReturnType<typeof parseModuleConfig> {
+	if (rawConfig === undefined || rawConfig === null) {
+		let hit = noConfigCache.get(module);
+		if (!hit) {
+			hit = parseModuleConfig(module, rawConfig ?? (module.config ? {} : undefined));
+			noConfigCache.set(module, hit);
+		}
+		return hit;
+	}
+	if (typeof rawConfig !== 'object') return parseModuleConfig(module, rawConfig);
+	let byRaw = configCache.get(module);
+	if (!byRaw) {
+		byRaw = new WeakMap();
+		configCache.set(module, byRaw);
+	}
+	let hit = byRaw.get(rawConfig);
+	if (!hit) {
+		hit = parseModuleConfig(module, rawConfig);
+		byRaw.set(rawConfig, hit);
+	}
+	return hit;
+}
+
+/**
  * The descriptor of `module` for a part configured with `rawConfig`, or `undefined` when the
  * module has no `describe`. `view` is the module's snapshot view on a live vessel; without it the
  * state is a fresh `state(config)`. Throws an `Error` naming the module when the config or the
@@ -62,7 +94,7 @@ export function describeModule(
 	view?: unknown
 ): ModuleInfo | undefined {
 	if (!module.describe) return undefined;
-	const parsed = parseModuleConfig(module, rawConfig ?? (module.config ? {} : undefined));
+	const parsed = parsedConfig(module, rawConfig);
 	if (!parsed.ok) throw new Error(`describe "${module.id}": ${parsed.message}`);
 	const state = view ?? module.state?.(parsed.value as never);
 	const info = moduleInfoSchema.safeParse(module.describe(parsed.value as never, state as never));

@@ -273,6 +273,11 @@
 | 333 | [Rendezvous readiness and the next step](plans/333-rendezvous-readiness-and-next-step.md) | done | rendezvous session | ADR 0288. The true reason a rendezvous cannot start (periapsis with numbers, other body, landed, suborbital) with a button to Ascent or Orbit; delta-v while off; `PanelInput.body`/`.deltaV`, `notice.action` (API 0.1.105). Journal 333. |
 | 360 | [Guidance autostage drops spent boosters](plans/360-guidance-autostage-spent-boosters.md) | done | rendezvous session | Pilot `nextStage` (drops, lights); autostage drops burnt-out SRBs 0.5 s after burnout, never crew, a burning engine or past the last stage. Journal 360. |
 | 362 | [Automatic quality: preset steps on WebGPU, a resolution floor per preset, a learned start, a frame-rate limit](plans/362-auto-quality-fix.md) | done | perf session | ADR 0304. Owner report 2026-10-22: Automatic fell to 25 fps in orbit where Medium held 100. M2: high+adjust 39 fps locked to 30 → medium 60 fps; switch stalls 1.5 s → 0.08 s. Journal 362. |
+| 363 | [Frame budget research and the first cuts](plans/363-frame-budget-research-and-first-cuts.md) | done | perf session | Owner request 2026-10-22: deep research on efficient rendering. `profile-frame.ts`, research doc; allocation 1143 → 951 KB a frame (navball, config parses). Journal 363. |
+| 365 | [Snapshot transport: fewer bytes and less parsing per frame](plans/365-snapshot-transport.md) | draft | — | From plan 363's ranking. |
+| 367 | [Vessel parts merged per material](plans/367-vessel-parts-merged-per-material.md) | draft | — | From plan 363's ranking: ~350 draw calls for Kronos V. |
+| 368 | [The Retina frame end on Apple GPUs](plans/368-retina-frame-end-on-apple-gpus.md) | draft | — | From plans 362/363: the cost the timestamps do not see. |
+| 369 | [Cached shadow maps for the static site](plans/369-cached-shadow-maps-for-the-static-site.md) | draft | — | From plan 363's ranking. |
 | 340 | [One renderer for the world session, warm-up at world load, loading screen](plans/340-world-renderer-warm-up-and-loading-screen.md) | done | world renderer session | ADR 0290. Flight, Mission Center and Space Center share one renderer and canvas owned by the `(world)` layout; every view is drawn once behind a loading screen when the world loads. Page switches went from 1.5–2.8 s (WebGPU) and 0.2–0.4 s (WebGL) worst frames to 19 ms. Journal 340. |
 | 341 | [Stylised crew character](plans/341-stylised-crew-character.md) | done | crew character session | ADR 0291. The NOVA chibi astronaut for every person: EVA suit, 10 Hangar walkers, 6 Space Center staff, one skinned mesh each on one material; 12 outfits as data, looks from the crew id, 8 expressions, 1.7 m tall; portraits in the Astronaut Complex and crew seats; `/dev/crew`. Journal 341. |
 | 342 | [The first map toggle and the last hitch after loading](plans/342-first-map-toggle-and-post-load-hitch.md) | draft | | Plan 340's leftovers: about 150 ms on the first Flight → Map, one 567 ms frame on WebGPU after the loading screen. |
@@ -357,6 +362,7 @@ Existing drafts realigned on 2026-10-17: 063 (runway building), 065, 066, 067, 0
 
 ## Recent journal entries
 
+- [363 — Frame budget research and the first cuts](journal/363-frame-budget-research-and-first-cuts.md)
 - [362 — Automatic quality that matches a fixed preset](journal/362-auto-quality-fix.md)
 - [360 — Guidance autostage drops spent boosters](journal/360-guidance-autostage-spent-boosters.md)
 - [359 — The programs popover](journal/359-programs-popover.md)

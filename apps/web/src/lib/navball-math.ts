@@ -133,7 +133,14 @@ export function horizonDirection(h: Horizon, az: number, elev: number): Vec3 {
 
 /** Projects a BCI direction onto the ball seen from behind the nose with +Z up. */
 export function projectDirection(dir: Vec3, q: Quat): BallPoint {
-	const a = vesselAxes(q);
+	return projectOn(dir, vesselAxes(q));
+}
+
+/**
+ * `projectDirection` with the vessel's axes worked out once by the caller (plan 363): a curve of a
+ * hundred points rotated the same quaternion three times per point, about ten thousand objects a frame.
+ */
+function projectOn(dir: Vec3, a: { nose: Vec3; up: Vec3; right: Vec3 }): BallPoint {
 	return { x: dot(dir, a.right), y: dot(dir, a.up), z: dot(dir, a.nose) };
 }
 
@@ -145,8 +152,9 @@ export function visibleRuns(dirs: readonly Vec3[], q: Quat): BallPoint[][] {
 	const runs: BallPoint[][] = [];
 	let run: BallPoint[] = [];
 	let prev: BallPoint | null = null;
+	const axes = vesselAxes(q);
 	for (const d of dirs) {
-		const p = projectDirection(d, q);
+		const p = projectOn(d, axes);
 		if (prev) {
 			if (prev.z >= 0 !== p.z >= 0) {
 				const t = prev.z / (prev.z - p.z);
@@ -204,12 +212,13 @@ export type GroundRegion =
 
 /** The visible part of the below-horizon hemisphere, as a closed region of the disc. */
 export function groundRegion(h: Horizon, q: Quat): GroundRegion {
-	const n = projectDirection({ x: -h.up.x, y: -h.up.y, z: -h.up.z }, q); // ground pole in view coords
+	const axes = vesselAxes(q);
+	const n = projectOn({ x: -h.up.x, y: -h.up.y, z: -h.up.z }, axes); // ground pole in view coords
 	const nxy = Math.hypot(n.x, n.y);
 	if (nxy < 1e-9) return n.z > 0 ? { kind: 'full' } : { kind: 'none' };
 	// Orthonormal basis (c, s) of the horizon plane, in view coordinates.
-	const c = projectDirection(h.north, q);
-	const s = projectDirection(h.east, q);
+	const c = projectOn(h.north, axes);
+	const s = projectOn(h.east, axes);
 	const pts: BallPoint[] = [];
 	const N = 180;
 	for (let i = 0; i <= N; i++) {

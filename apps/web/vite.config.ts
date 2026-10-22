@@ -18,6 +18,9 @@ export default defineConfig({
 		}),
 		planStatus(fileURLToPath(new URL('../../docs/plans', import.meta.url)))
 	],
+	// `ORBITAL_PROFILE=1`: readable function names in CPU and allocation profiles (plan 363,
+	// `scripts/profile-frame.ts`); never for a deployed build
+	...(process.env.ORBITAL_PROFILE === '1' ? { build: { minify: false } } : {}),
 	test: {
 		expect: { requireAssertions: true },
 		projects: [

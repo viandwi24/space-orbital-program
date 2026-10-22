@@ -113,3 +113,37 @@ describe('describeModule', () => {
 		expect(() => describeModule(broken, undefined)).toThrow(/acme\.broken.*invalid descriptor/s);
 	});
 });
+
+describe('describeModule parses a config object once (plan 363)', () => {
+	test('the same raw config is parsed once; a new object, or a bad one, is parsed again', () => {
+		let parses = 0;
+		const config = z
+			.object({ flow: z.number().positive().default(10) })
+			.transform((c) => {
+				parses++;
+				return c;
+			});
+		const mod: ModuleDefinition = {
+			id: 'acme.counted',
+			config,
+			state: () => ({ lit: false }),
+			describe: (c: { flow: number }, s: { lit: boolean }) => ({
+				engine: { ...engine, massFlow: c.flow, ignited: s.lit }
+			})
+		};
+		const raw = { flow: 4 };
+		for (let i = 0; i < 5; i++) describeModule(mod, raw, { lit: i % 2 === 0 });
+		expect(parses).toBe(1);
+		// the view still changes the descriptor each call
+		expect(describeModule(mod, raw, { lit: true })?.engine?.ignited).toBe(true);
+		expect(describeModule(mod, raw, { lit: false })?.engine?.ignited).toBe(false);
+		describeModule(mod, { flow: 4 });
+		expect(parses).toBe(2);
+		describeModule(mod, undefined);
+		describeModule(mod, undefined);
+		expect(parses).toBe(3);
+		const bad = { flow: -1 };
+		expect(() => describeModule(mod, bad)).toThrow(/acme\.counted/);
+		expect(() => describeModule(mod, bad)).toThrow(/acme\.counted/);
+	});
+});
