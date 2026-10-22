@@ -40,7 +40,9 @@ export const SAS_BUTTONS: readonly SasButtonSpec[] = [
 	{ mode: 'target', label: 'Target', glyph: 'target', action: 'sasTarget' },
 	{ mode: 'anti-target', label: 'Anti-target', glyph: 'anti-target', action: 'sasAntiTarget' },
 	// wings level, nose on the horizon (plan 063, ADR 0161 point 5)
-	{ mode: 'level', label: 'Level wings', glyph: 'hold', action: 'sasLevel' }
+	{ mode: 'level', label: 'Level wings', glyph: 'hold', action: 'sasLevel' },
+	// belly first, 40° above the airflow, wings level (plan 361)
+	{ mode: 'reentry', label: 'Re-entry (40° nose up)', glyph: 'prograde', action: 'sasReentry' }
 ];
 
 export interface SasButtonState extends SasButtonSpec {

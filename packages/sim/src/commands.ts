@@ -643,6 +643,7 @@ export function dispatch(
 				v.sas.active = false;
 				v.sas.quiet = false;
 				v.sas.error = 0;
+				delete v.sas.roll;
 				if (command.mode === 'hold') beginHold(v.sas, orientationOf(core, v));
 			}
 			if (v.sas.mode !== 'direction') delete v.sas.direction;

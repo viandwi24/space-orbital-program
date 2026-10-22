@@ -41,8 +41,16 @@ export const SAS_MODES = [
 	/** Wings level and the nose on the horizon (plan 063, ADR 0161 point 5). */
 	'level',
 	/** The control part's nose along a free direction (plan 310, ADR 0271 point 2): autopilots and scripts. */
-	'direction'
+	'direction',
+	/**
+	 * Re-entry (plan 361, ADR 0303): belly first, the nose `REENTRY_AOA` above the airflow, wings
+	 * level, as the Shuttle came home.
+	 */
+	'reentry'
 ] as const;
+
+/** The angle of attack the `reentry` mode holds, degrees (plan 361). */
+export const REENTRY_AOA = 40;
 export type SasMode = (typeof SAS_MODES)[number];
 
 /** Which velocity prograde/retrograde follow: relative to the rotating ground, or the inertial one. */

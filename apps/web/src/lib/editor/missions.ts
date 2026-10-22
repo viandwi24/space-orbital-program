@@ -278,21 +278,55 @@ export const MISSION_BLUEPRINTS: readonly MissionBlueprint[] = [
 			const mains = b.below('stock.engine-plate-8', et);
 			// core engines and boosters light together; the boosters drop; the tank drops and the
 			// orbiter's own engines light for the orbit burn; the module undocks from the open bay
+			// landing gear (plan 361): the nose gear under the cabin, two main gear under the bay's aft
+			// end; stowed for launch and re-entry, lowered with G
+			const noseGear = b.side('stock.orbiter-gear-nose', 0, Math.PI / 2, -0.45);
+			const mainGear = [Math.PI / 2 - 0.45, Math.PI / 2 + 0.45].map((a) =>
+				b.side('stock.orbiter-gear', bay, a, -0.72)
+			);
 			const design = b.done([[mains, ...srbs], srbDecs, [rd, aft], [side]]);
 			// the far wing (symmetry turns it half round) has its tiles on its top face, so both
 			// wings show them underneath; the last stage undocks the module ("Undock on stage")
 			const farWing = (p: VesselDesign['parts'][number]) =>
 				p.part === 'stock.wing-delta' && Math.abs((p.parent?.radial?.angle ?? 0) - Math.PI) < 0.1;
-			return {
-				...design,
-				parts: design.parts.map((p) =>
-					p.index === side
-						? { ...p, settings: { ...p.settings, 'stock.docking-port': { stageUndock: true } } }
-						: farWing(p)
-							? { ...p, settings: { ...p.settings, 'stock.wing': { tilesUp: true } } }
-							: p
-				)
+			// radial parts sit on the 2.5 m cylinder; the belly is flat, so the gear wells move in onto
+			// it (the rounded-square section's flat is 1.05 m from the axis, plan 356)
+			const inward = (index: number, angle: number, by: number) => ({
+				x: Math.cos(angle) * -by,
+				y: 0,
+				z: Math.sin(angle) * by
+			});
+			const gearOffset = new Map<number, { x: number; y: number; z: number }>([
+				[noseGear, inward(noseGear, Math.PI / 2, 0.2)],
+				[mainGear[0]!, inward(mainGear[0]!, Math.PI / 2 - 0.45, 0.1)],
+				[mainGear[1]!, inward(mainGear[1]!, Math.PI / 2 + 0.45, 0.1)]
+			]);
+			const parts = design.parts.map((p) => {
+				const offset = gearOffset.get(p.index);
+				if (offset) return { ...p, offset };
+				if (p.index === side)
+					return { ...p, settings: { ...p.settings, 'stock.docking-port': { stageUndock: true } } };
+				if (farWing(p))
+					return { ...p, settings: { ...p.settings, 'stock.wing': { tilesUp: true } } };
+				return p;
+			});
+			// the brake chute (plan 361) in a pack on the aft fuselage's top beside the fin, turned
+			// over so its canopy streams aft; Parachutes (or its own Deploy) on the runway
+			const chute = {
+				index: Math.max(...parts.map((p) => p.index)) + 1,
+				part: partId('stock.drag-chute'),
+				parent: {
+					index: aft,
+					parentNode: 'surface',
+					node: 'radial',
+					surface: {
+						point: [0.45, 0.7, 1.03] as [number, number, number],
+						normal: [0, 0, 1] as [number, number, number]
+					}
+				},
+				tilt: { x: 0, y: 0, z: Math.PI }
 			};
+			return { ...design, formatVersion: 4, parts: [...parts, chute] };
 		}
 	},
 	{

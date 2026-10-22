@@ -116,6 +116,7 @@ describe('stock boots through the loader', () => {
 			'stock.docking-port-large',
 			'stock.docking-port-side',
 			'stock.docking-port-small',
+			'stock.drag-chute',
 			'stock.drill',
 			'stock.drogue-chute',
 			'stock.engine-cluster',
@@ -187,6 +188,8 @@ describe('stock boots through the loader', () => {
 			'stock.orbital-module',
 			'stock.orbiter-aft',
 			'stock.orbiter-bay',
+			'stock.orbiter-gear',
+			'stock.orbiter-gear-nose',
 			'stock.orbiter-nose',
 			'stock.parachute',
 			'stock.parachute-ring',
@@ -415,7 +418,11 @@ describe('stock boots through the loader', () => {
 			'stock.docking-port-side',
 			// tether parts hang radially (plan 313)
 			'stock.winch',
-			'stock.tether-socket'
+			'stock.tether-socket',
+			// the orbiter's gear and brake chute hang radially (plan 361)
+			'stock.orbiter-gear',
+			'stock.orbiter-gear-nose',
+			'stock.drag-chute'
 		]);
 		// the mission parts of plans 276–300 with other node sets: radial-only, bottom-only, a
 		// hub's side ports, a coupler's several bottoms

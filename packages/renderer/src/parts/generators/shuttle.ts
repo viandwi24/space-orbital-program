@@ -495,3 +495,49 @@ export function escapeTower(ctx: GenContext): void {
 		{ r: 0, y: h2 }
 	]);
 }
+
+/**
+ * The orbiter's landing gear (plan 361): a black tile door flush with the belly and, lowered by
+ * the deploy progress, a strut swinging out of the bay (+X) with its wheels at `offset`. Stowed,
+ * the strut and wheels are hidden behind the door.
+ */
+export function orbiterGear(ctx: GenContext): GeneratedPart {
+	const [sx, sy, sz] = ctx.size;
+	const b = ctx.builder;
+	const hx = sx / 2;
+	const offset = ctx.param('offset', 1.1, 0.2, 3);
+	const radius = ctx.param('radius', 0.4, 0.1, 1.5);
+	const twin = ctx.visual.params?.twin === true;
+	// the well and the door, flush with the belly tiles
+	b.box('tile', [0.04, sy * 0.95, sz * 0.95], [-hx + 0.02, 0, 0]);
+	b.box('dark-metal', [sx * 0.5, sy * 0.6, sz * 0.5], [-hx + 0.04 + sx * 0.25, 0, 0]);
+	const pivot: [number, number, number] = [-hx + 0.1, sy * 0.3, 0];
+	const list: Piece[] = [
+		{
+			build: (g) => {
+				const len = offset - pivot[0];
+				// the strut along +X from the pivot, the axle across (Z), the wheels on it
+				g.cylinder('metal', 0.07, len, [len / 2, 0, 0], { tiltZ: Math.PI / 2 });
+				g.cylinder('dark-metal', 0.1, len * 0.4, [len * 0.3, 0, 0], { tiltZ: Math.PI / 2 });
+				const axle = len;
+				const wheel = (z: number) => {
+					g.cylinder('rubber', radius, 0.22, [axle, 0, z], { tiltZ: Math.PI / 2, turnY: Math.PI / 2 });
+					g.cylinder('metal', radius * 0.55, 0.24, [axle, 0, z], { tiltZ: Math.PI / 2, turnY: Math.PI / 2 });
+				};
+				if (twin) {
+					wheel(-0.17);
+					wheel(0.17);
+				} else wheel(0);
+				g.cylinder('dark-metal', 0.04, twin ? 0.56 : 0.3, [axle, 0, 0], { tiltZ: Math.PI / 2, turnY: Math.PI / 2 });
+			},
+			pose: (o, p) => {
+				const e = phase(p, 0, 1);
+				o.position.set(...pivot);
+				// stowed folded aft along the belly (-Y), lowered straight out (+X)
+				o.rotation.set(0, 0, -(1 - e) * (Math.PI / 2));
+				o.visible = e > 0.02;
+			}
+		}
+	];
+	return { dynamic: pieces(ctx, list) };
+}

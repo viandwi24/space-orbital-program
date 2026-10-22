@@ -29,6 +29,7 @@ import {
 	externalTank,
 	orbiterAft,
 	orbiterBay,
+	orbiterGear,
 	orbiterNose
 } from './shuttle.ts';
 import { hingeJoint, pistonJoint, rotaryJoint } from './robotic.ts';
@@ -137,6 +138,7 @@ export function registerStockGenerators(): void {
 	registerPartGenerator('orbiter-nose', orbiterNose);
 	registerPartGenerator('orbiter-aft', orbiterAft);
 	registerPartGenerator('orbiter-bay', orbiterBay);
+	registerPartGenerator('orbiter-gear', orbiterGear);
 	registerPartGenerator('delta-wing', deltaWing);
 	registerPartGenerator('external-tank', externalTank);
 	registerPartGenerator('escape-tower', escapeTower);
