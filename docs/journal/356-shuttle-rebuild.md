@@ -89,3 +89,20 @@ The bay built open (ref-43's view), with the docked module and the doors swung o
   - The tank goes at main engine cut-off, as on the Shuttle.
 - Part tests: seams (the keel and side faces listed as not flat joints, the lofts as revolve-free), every model fits its cylinder, winding, budgets: renderer 758 pass.
 - Sim 677 pass, stock and editor suites pass (see the session report for the final runs).
+
+## Follow-up: wall ports and RCS (owner, 2026-10-22)
+
+- **Wall ports.** The bay gained docking nodes on its fore and aft inner bulkheads, facing into the bay, besides the keel.
+  - The fore bulkhead's node faces back along the part, so it is a new kind of node, `face: 'seat'`: the Hangar turns a part over onto it.
+  - Wayfarer now has free 1.25 m ports on both walls, for a module brought back or a second payload.
+- **RCS at both ends.** Thrusters near the centre of mass push a vessel but hardly turn it.
+  - Every blueprint now has a ring at each end: Kronos (service module and capsule), the lander's two stages, the station's habitat, Moonwatch, the telescope, Aurora, and the lessons' Kestrel.
+  - The orbiter's old ring sat on the bay's top corners, which are the doors. It moved to RCS-5 blocks round the nose and a pair on the aft sides, and the nose's reaction wheel went from 30 to 90 kN·m.
+- **Measured.** In orbit, the orbiter alone on full input for 3 s turned:
+
+  | Axis | Before | After |
+  |---|---|---|
+  | Pitch | 9.4° | 29.5° |
+  | Yaw | 8.9° | 28.5° |
+  | Roll | 80° | 135° |
+

@@ -508,9 +508,11 @@ export const partDefinitionSchema = z.object({
 				shellTop: z.string().min(1).optional(),
 				/**
 				 * A docking face (plan 356, ADR 0300): the Hangar turns a part over to put one docking
-				 * face on another, and the sim starts such a built pair docked.
+				 * face on another, and the sim starts such a built pair docked. A seat: a node facing
+				 * back along its part (a bay's fore bulkhead); a part goes on it turned over, standing
+				 * on its bottom.
 				 */
-				face: z.enum(['docking']).optional()
+				face: z.enum(['docking', 'seat']).optional()
 			})
 		)
 		.refine((a) => !('surface' in a), 'the node name "surface" is reserved for radial attachment')

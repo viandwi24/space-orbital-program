@@ -165,6 +165,8 @@ export const MISSION_BLUEPRINTS: readonly MissionBlueprint[] = [
 			const cmSep = b.below('stock.decoupler-wide', shield);
 			const sm = b.below('stock.tank-wide-short', cmSep);
 			b.side('stock.rcs-block-5', sm, Math.PI / 4, 0.3, 4);
+			// and on the capsule, ahead of them: thrusters at both ends turn the ship (owner, 2026-10-22)
+			b.side('stock.rcs-block', pod, Math.PI / 4, -0.2, 4);
 			// the quads' monopropellant (owner, 2026-10-21: RCS said "no propellant")
 			b.side('stock.monoprop-radial', sm, Math.PI / 2, 0, 2);
 			b.side('stock.antenna-dish-fold', sm, 0, -0.3);
@@ -180,6 +182,7 @@ export const MISSION_BLUEPRINTS: readonly MissionBlueprint[] = [
 			const lmStage = b.above('stock.decoupler', descent);
 			const ascent = b.above('stock.lander-ascent', lmStage);
 			b.side('stock.rcs-block', ascent, Math.PI / 4, 0.4, 4);
+			b.side('stock.rcs-block', descent, Math.PI / 4, 0.3, 4);
 			b.side('stock.antenna-whip-radial', ascent, Math.PI / 2, -0.3);
 			b.above('stock.docking-port-small', ascent);
 			const sivb = b.below('stock.tank-3750', petals);
@@ -249,11 +252,18 @@ export const MISSION_BLUEPRINTS: readonly MissionBlueprint[] = [
 			const core = b.on('stock.probe-core', side, 'top');
 			// a berth at the far end for whatever docks with it later
 			b.above('stock.docking-port-small', b.above('stock.airlock', core));
+			// two more berths on the bay's inner bulkheads, fore and aft (owner, 2026-10-22): a module
+			// brought back, or a second payload, docks there
+			b.on('stock.docking-port', bay, 'fore', 'bottom');
+			b.on('stock.docking-port', bay, 'aft', 'bottom');
 			b.side('stock.solar-flat', cabin, Math.PI / 2, 0, 2);
 			// the wings far aft, behind the centre of mass, on the bay's aft end, either side (±X);
 			// the tank on the belly (-Z, an angle of pi/2), the bay doors (+Z) away from it
 			b.side('stock.wing-delta', bay, 0, -0.7, 2);
-			b.side('stock.rcs-block', bay, Math.PI / 4, 0.85, 4);
+			// RCS at both ends, so it turns as well as it moves (owner, 2026-10-22): four round the nose,
+			// a pair on the aft sides (the OMS pods' thrusters); none on the bay's top corners, the doors
+			b.side('stock.rcs-block-5', 0, Math.PI / 4, -0.55, 4);
+			b.side('stock.rcs-block-5', bay, 0, -0.9, 2);
 			const rd = b.side('stock.radial-decoupler', bay, Math.PI / 2, -0.2);
 			const et = b.on('stock.external-tank', rd, 'outer');
 			b.side('stock.radial-decoupler', et, Math.PI / 2, -0.2, 2);
@@ -310,7 +320,9 @@ export const MISSION_BLUEPRINTS: readonly MissionBlueprint[] = [
 			const hab = b.below('stock.hab-module', neck);
 			b.side('stock.solar-array-xl', hab, Math.PI / 2, 0.5, 2);
 			b.side('stock.radiator', hab, 0, -0.3, 2);
+			// RCS at both ends of the habitat, so the station turns as well as it moves
 			b.side('stock.rcs-block', hab, Math.PI / 4, 0.8, 4);
+			b.side('stock.rcs-block', hab, Math.PI / 4, -0.8, 4);
 			// the station's RCS propellant (owner, 2026-10-21: RCS said "no propellant")
 			b.side('stock.monoprop-radial', hab, (3 * Math.PI) / 4, -1, 2);
 			b.side('stock.antenna-dish-fold', hab, Math.PI, -0.6);
@@ -347,7 +359,9 @@ export const MISSION_BLUEPRINTS: readonly MissionBlueprint[] = [
 			b.side('stock.magnetometer-boom', bus, Math.PI, 0);
 			const wings = b.below('stock.solar-wings', bus);
 			const tank = b.below('stock.tank-small', wings);
-			b.side('stock.rcs-block', tank, Math.PI / 4, 0.5, 4);
+			// RCS at both ends: on the bus above the wings and on the tank below them
+			b.side('stock.rcs-block', bus, Math.PI / 4, 0.3, 4);
+			b.side('stock.rcs-block', tank, Math.PI / 4, -0.5, 4);
 			const eng = b.below('stock.engine-vacuum', tank);
 			launcher125(b, eng);
 			return b.done();
@@ -365,9 +379,11 @@ export const MISSION_BLUEPRINTS: readonly MissionBlueprint[] = [
 			const b = new Build(content, 'Horizon Telescope', 'stock.telescope');
 			const bus = b.below('stock.satellite-bus', 0);
 			b.side('stock.antenna-dish-fold', bus, 0, 0.2);
-			b.side('stock.rcs-block', bus, Math.PI / 4, 0, 4);
 			const wings = b.below('stock.solar-wings', bus);
 			const tank = b.below('stock.tank-small', wings);
+			// RCS at both ends: round the telescope's tube and round the tank under the wings
+			b.side('stock.rcs-block', 0, Math.PI / 4, -0.5, 4);
+			b.side('stock.rcs-block', tank, Math.PI / 4, -0.5, 4);
 			const eng = b.below('stock.engine-vacuum', tank);
 			launcher125(b, eng);
 			return b.done();
@@ -388,7 +404,9 @@ export const MISSION_BLUEPRINTS: readonly MissionBlueprint[] = [
 			b.side('stock.antenna-whip-radial', 0, Math.PI, 0.3);
 			b.side('stock.barometer-radial', 0, Math.PI, -0.3);
 			b.side('stock.thermometer-radial', 0, Math.PI / 4, 0.3);
-			b.side('stock.rcs-block', 0, (3 * Math.PI) / 4, -0.3, 2);
+			// two pairs, above and below the middle, so it turns
+			b.side('stock.rcs-block', 0, (3 * Math.PI) / 4, -0.35, 2);
+			b.side('stock.rcs-block', 0, (3 * Math.PI) / 4, 0.35, 2);
 			launcher125(b, 0);
 			return b.done();
 		}

@@ -273,7 +273,7 @@ Stock fields: engine `limiter` and `gimbalLimit` (0..1, default 1), docking port
 
 ## Interstage nodes (API 0.1.93, plan 243, ADR 0238)
 
-An attach node may carry `face: 'docking'` (plan 356, ADR 0300): the Hangar turns a part over (or onto its side) so its docking face meets another docking face, and that match is the only one offered there; the sim starts such a built pair docked. An attach node may carry `shellTop: "<module id>"`: it sits at the top of that module's shell (`baseTop` plus the section heights, as wide as the last section) and exists only while the module's per-part `interstage` setting is on. `effectiveDef(def, settings)` gives the definition as one design entry has it; `resolveVesselDesign` and the Hangar use it. The fairing's `interstage` setting (and a shell that shields while open at the top) is `stock.fairing`'s.
+An attach node may carry `face: 'docking'` (plan 356, ADR 0300): the Hangar turns a part over (or onto its side) so its docking face meets another docking face, and that match is the only one offered there; the sim starts such a built pair docked. `face: 'seat'` marks a node that faces back along its part (a cargo bay's fore bulkhead): a part goes on it turned over, standing on its bottom. An attach node may carry `shellTop: "<module id>"`: it sits at the top of that module's shell (`baseTop` plus the section heights, as wide as the last section) and exists only while the module's per-part `interstage` setting is on. `effectiveDef(def, settings)` gives the definition as one design entry has it; `resolveVesselDesign` and the Hangar use it. The fairing's `interstage` setting (and a shell that shields while open at the top) is `stock.fairing`'s.
 
 ## Lamps (API 0.1.94, plan 242, ADR 0239)
 

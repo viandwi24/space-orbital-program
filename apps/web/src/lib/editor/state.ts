@@ -1621,7 +1621,12 @@ export function attachTargets(
 				// a docking face onto a docking face: the part turns (over, or onto its side) so the
 				// faces meet, a payload built docked (plan 356, ADR 0300)
 				const flip =
-					facing > -1 + 1e-6 && !tilt && parentNode.face === 'docking' && child.face === 'docking';
+					(facing > -1 + 1e-6 &&
+						!tilt &&
+						parentNode.face === 'docking' &&
+						child.face === 'docking') ||
+					// a seat facing back along its part: the part goes on it turned over (plan 356)
+					(facing > 1 - 1e-6 && !tilt && parentNode.face === 'seat');
 				if (flip) {
 					const to = unit(parentNode.dir);
 					turn = tiltOfMatrix(rotationBetween(unit(child.dir), [-to[0], -to[1], -to[2]]));

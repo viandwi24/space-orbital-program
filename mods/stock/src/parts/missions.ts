@@ -1156,7 +1156,8 @@ export const PartOrbiterNose = definePart({
 	hatch: { pos: [1.06, -1.2, 0], dir: [1, 0, 0] },
 	modules: [
 		[ModuleCommand, {}],
-		[ModuleReactionWheel, { torque: 30_000, chargeRate: 1.2 }],
+		// a 30 m orbiter turns slowly on 30 kN·m (owner, 2026-10-22: hard to manoeuvre)
+		[ModuleReactionWheel, { torque: 90_000, chargeRate: 2.4 }],
 		[
 			ModuleResourceContainer,
 			{
@@ -1173,7 +1174,8 @@ export const PartOrbiterNose = definePart({
 /**
  * The orbiter's cargo bay (plan 356): 9 m of fuselage with two clamshell doors on top (+Z) that
  * open along the length. Closed, it shields what it carries (ADR 0261). A keel node on the floor
- * faces up out of the bay, for a docking port: the payload rides docked and leaves on Undock.
+ * faces up out of the bay, and a node on each inner bulkhead (fore, aft) faces into it, for docking
+ * ports: the payload rides docked and leaves on Undock.
  */
 export const PartOrbiterBay = definePart({
 	id: 'stock.orbiter-bay',
@@ -1190,7 +1192,15 @@ export const PartOrbiterBay = definePart({
 	},
 	attach: {
 		...stackNodes(9, 2.5),
-		keel: { pos: [0, 0, -0.94] as Vec3Tuple, dir: [0, 0, 1] as Vec3Tuple, size: 1.25 }
+		keel: { pos: [0, 0, -0.94] as Vec3Tuple, dir: [0, 0, 1] as Vec3Tuple, size: 1.25 },
+		// ports on the inner bulkheads, fore and aft, facing into the bay (owner, 2026-10-22)
+		fore: {
+			pos: [0, 4.46, 0] as Vec3Tuple,
+			dir: [0, -1, 0] as Vec3Tuple,
+			size: 1.25,
+			face: 'seat' as const
+		},
+		aft: { pos: [0, -4.46, 0] as Vec3Tuple, dir: [0, 1, 0] as Vec3Tuple, size: 1.25 }
 	},
 	modules: [
 		[

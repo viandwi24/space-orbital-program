@@ -96,7 +96,7 @@ export function lander(content: Content): VesselDesign {
 
 /**
  * The docking chaser: a small docking port on the pod's collar, two radial parachutes, the heat
- * shield, and a service module with monopropellant and four RCS blocks round its middle.
+ * shield, and a service module with monopropellant and RCS blocks at both ends of it.
  */
 export function chaser(content: Content): VesselDesign {
 	const b = new Build(content, 'Kestrel', 'stock.command-pod');
@@ -109,6 +109,8 @@ export function chaser(content: Content): VesselDesign {
 	const mono = b.below('stock.monoprop-tank', wheel);
 	b.side('stock.rcs-block', mono, QUARTER, 0, 4);
 	const tank = b.below('stock.tank-small', mono);
+	// a second ring at the tail: thrusters at both ends turn it (owner, 2026-10-22)
+	b.side('stock.rcs-block', tank, QUARTER, -0.6, 4);
 	const engine = b.below('stock.engine-vacuum', tank);
 	const chuteIds = b.s.design.parts
 		.filter((p) => p.part === 'stock.radial-parachute')

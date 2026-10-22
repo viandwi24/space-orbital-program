@@ -57,6 +57,8 @@ const NOT_A_FLAT_JOINT: Record<string, string> = {
 	'stock.cargo-bay/inner': 'a payload seat on the floor inside the bay, not a face',
 	// plan 356
 	'stock.orbiter-bay/keel': 'a payload seat on the keel inside the bay, not a face',
+	'stock.orbiter-bay/fore': 'a port seat on the inner bulkhead, not a joint face',
+	'stock.orbiter-bay/aft': 'a port seat on the inner bulkhead, not a joint face',
 	'stock.docking-port-side/side': 'a side port: its ring faces sideways, not along the axis',
 	'stock.lander-descent/bottom': "a bell: the lander's engine is under the stage"
 };

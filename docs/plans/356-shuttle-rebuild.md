@@ -73,3 +73,8 @@ Markings stay fictional: no flags and no country names.
   - the far wing has a "tiles on top" setting;
   - the OMS propellant moved into the aft, and the orbiter got lighter so the stack stays controllable.
 - Follow-up, not fixed here: guidance's `autoStage` never sees a flameout (`ignited && flameout`, while the engine clears `ignited` as it flames out).
+- 2026-10-22 follow-up (owner):
+  - the bay has docking nodes on its inner bulkheads, `fore` (a new node kind `face: 'seat'`: the port goes on it turned over) and `aft`, besides the keel; Wayfarer carries free ports on both walls;
+  - RCS at both ends on every blueprint;
+  - the orbiter's RCS moved off the bay's top corners (the doors) to RCS-5 blocks round the nose and a pair on the aft sides, and the nose's wheel went from 30 to 90 kN·m. The orbiter now turns 29.5° in 3 s on full pitch, where it turned 9.4°.
+

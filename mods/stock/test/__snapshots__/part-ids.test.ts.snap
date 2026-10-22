@@ -3560,8 +3560,8 @@ exports[`stock part ids, masses, costs and modules match the snapshot 1`] = `
       [
         "stock.reaction-wheel",
         {
-          "chargeRate": 1.2,
-          "torque": 30000,
+          "chargeRate": 2.4,
+          "torque": 90000,
         },
       ],
       [
