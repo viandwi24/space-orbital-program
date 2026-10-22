@@ -667,6 +667,46 @@ ctx.notify('Touchdown on the Mun', { tone: 'success', vessel: id, detail: '3.2 m
 - A key without `command` sends `mod-key { key, vessel }`; handle it in a system's `on: { 'mod:key': ... }`.
 - `notify` shows a toast on the page (`tone` `info`, `success`, `warning`, `danger`); with `vessel` only while the player flies that vessel. One toast per mod at a time: a new one replaces the last.
 
+## Overlays: draw in the 3D view and the map (API 0.1.107, plan 347, ADR 0296)
+
+A mod draws world-space shapes without three.js: it hands the game plain data and the renderer owns the meshes, on WebGL and WebGPU.
+
+```ts
+ctx.overlays.register(defineOverlay({
+	id: 'my-mod.path',
+	title: 'My path',                        // Settings → Interface lists it with a switch
+	description: 'Where the probe is going.',
+	defaultOn: true,
+	// optional, page-side: shapes from the panel input, `rate` times a second (1 to 30, default 10)
+	draw: (i) => (i.vessel ? [{ kind: 'marker', body: i.vessel.soi, frame: 'inertial', position: i.vessel.position, style: 'ring', color: '#ffffff' }] : [])
+}));
+// or from a sim system of the same plugin (replaces the last shapes; not saved):
+ctx.overlays.set('my-mod.path', shapes, { seconds: 42 });   // meta: small numbers and strings for your panel
+ctx.overlays.clear('my-mod.path');
+// a panel reads them back: input.world.overlay('my-mod.path')?.meta
+```
+
+| Shape | Fields |
+|---|---|
+| `polyline` | `points` (≥ 2), `width` 1–8 px (default 2), `dash: { on, off }` in metres |
+| `marker` | `position`, `style` `cross` \| `ring` \| `dot` \| `target`, `size` 6–64 px (default 20) |
+| `label` | `position`, `text` (cut at 40 characters) |
+
+Every shape has `body`, `frame` (`inertial`: offsets from the body centre in the shared inertial axes, like `WorldVessel.position`; `body-fixed`: in the body's own turning axes, for points on the ground), `color` (`#rrggbb` or `#rrggbbaa`), and optionally `depth` (`on-top`, the default, or `test` to hide behind terrain and parts), `views` (`flight`, `map`) and `vessel` (shown only while the player flies it). Budgets per overlay: 64 shapes, 4 096 points, 16 labels (`OVERLAY_LIMITS`); `set` returns what `clampOverlay` dropped, and an invalid shape is dropped, not thrown.
+
+Facts for physics mods: `ctx.world.atmosphere(body, altitude)` (the sim's own air: density, pressure, temperature, speed of sound), `machDragFactor(mach)`, `WorldBody.angularVelocity` (the air turns with it), `ctx.world.groundHeight(body, position)` (the sim's terrain; null on the page) and `WorldVessel.mass` / `.dragArea` (C_d·A measured along the airflow as a running average over a few seconds in air, else an estimate along the vessel's axis).
+
+### Walk-through: the Trajectories mod (`mods/trajectories`)
+
+The built-in Trajectories mod is the reference example, about 300 lines:
+
+1. **`predict.ts`** is pure: RK4 for a point mass under gravity and drag, with drag on the velocity relative to the turning air (`v − Ω × r`), step length half the time to fall the current height, until the ground (`groundHeight` below 12 km), the SOI edge or 30 minutes. Each point is turned back into the body's axes at the time it is reached, so the arc lies on the ground the vessel will reach. It has its own tests, one against the range-safety conic in vacuum.
+2. **The system** (`trajectories.predictor`, post-physics) runs five times a second of sim time: `ctx.world.vessels({ situation: ['flying', 'sub-orbital'], owner: 'player', noDebris: true })`, a prediction for each (four at most), and `ctx.overlays.set` with the arc (green), a cross-hair and a label at the impact, all `body-fixed` and tagged with the vessel, plus `meta` (`time:<id>`, `distance:<id>`, `speed:<id>`, `error:<id>`).
+3. **The landing target** is a store (`trajectories.target`, latitude and longitude). The panel's buttons send `mod-key` with two keybindings (unbound by default); the system's `on: { 'mod:key' }` sets the target at the current predicted impact or clears it. The overlay then draws an amber target, a dashed line from the impact and the error.
+4. **The panel** reads the published `meta` through `input.world.overlay(...)`: impact in, distance, speed at impact, target error.
+
+It predicts a coast: engines are not in it (the panel says so). A tumbling vessel's drag area swings with its attitude, so its prediction settles once it holds an attitude (SAS) or after a few seconds of the average.
+
 ## Missions and mission packs (API 0.1.53, plan 100, ADR 0151)
 
 A mission is a tree of objectives (the stock primitives: `stock.reach-altitude`, `stock.reach-orbit`, `stock.flyby`, `stock.enter-soi`, `stock.land`, `stock.return-home`) with words around it:
