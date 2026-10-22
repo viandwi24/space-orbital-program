@@ -9,6 +9,7 @@ import type { NewDataItem } from './data.ts';
 import type { EntityId } from './ids.ts';
 import type { VesselMode } from './protocol.ts';
 import type { ControlChannel } from './programs.ts';
+import type { VesselSituation } from './world-query.ts';
 
 export interface EventMap {
 	'world:entity-added': { id: EntityId };
@@ -197,6 +198,29 @@ export interface EventMap {
 		cause?: 'impact' | 'overheat';
 		temperature?: number;
 	};
+	/**
+	 * A vessel's coarse situation changed (plan 343, ADR 0292 point 2): a landing (`landed`,
+	 * `splashed`), a lift-off (`flying`), reaching orbit (`orbiting`), an escape. `body` is its SOI.
+	 */
+	'vessel:situation-changed': {
+		vessel: EntityId;
+		from: VesselSituation;
+		to: VesselSituation;
+		body: string;
+		time: number;
+	};
+	/** A mod asked for a toast (ADR 0292 point 6): `plugin` is who asked. */
+	'mod:notice': {
+		plugin: string;
+		text: string;
+		tone: 'info' | 'success' | 'warning' | 'danger';
+		detail?: string;
+		vessel?: EntityId;
+	};
+	/** A mod asked the page to fly `vessel` (ADR 0292 point 3). */
+	'mod:focus': { plugin: string; vessel: EntityId };
+	/** The player pressed a mod keybinding that has no command (ADR 0292 point 6). */
+	'mod:key': { key: string; vessel?: EntityId; time: number };
 }
 
 export type EventHandler<P> = (payload: P) => void;

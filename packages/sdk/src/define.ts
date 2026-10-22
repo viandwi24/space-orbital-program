@@ -50,7 +50,9 @@ import type {
 	PresetDefinition,
 	ResourceDefinition,
 	RuleDefinition,
-	SystemDefinition
+	SystemDefinition,
+	StoreDefinition,
+	KeybindingDefinition
 } from '@orbital/core';
 
 // ---------------------------------------------------------------------------------------------
@@ -173,6 +175,19 @@ export function definePart(def: PartInputLoose): PartDefinition {
 export const defineResource = (def: ResourceDefinition): ResourceDefinition => def;
 export const defineBody = (def: BodyDefinition): BodyDefinition => def;
 export const defineSystem = (def: SystemDefinition): SystemDefinition => def;
+
+// ---------------------------------------------------------------------------------------------
+// defineStore / defineKeybinding (plan 343, ADR 0292)
+
+/**
+ * A mod's own state saved with the world: `ctx.stores.register(def)` in setup, then
+ * `ctx.store(def)` in the plugin's systems and autopilots. `schema` checks every write and the
+ * saved value on resume; `initial` is the value of a new world.
+ */
+export const defineStore = <T>(def: StoreDefinition<T>): StoreDefinition<T> => def;
+
+/** A key the player can rebind under Controls → Mods; `command(input)` or a `mod:key` event. */
+export const defineKeybinding = (def: KeybindingDefinition): KeybindingDefinition => def;
 
 // ---------------------------------------------------------------------------------------------
 // defineRule / definePreset

@@ -528,11 +528,144 @@ ctx.panels.register(definePanel({
 }));
 ```
 
-- The input (`PanelInput`) holds the snapshot, the vessel the player flies, its altitude and speed relative to its body, and the sim time. Selectors run ten times a second; keep them cheap.
+- The input (`PanelInput`) holds the snapshot, the vessel the player flies, its altitude and speed relative to its body, the sim time, the body and delta-v (ADR 0288) and `world`, the World Query (plan 343). Selectors run ten times a second; keep them cheap.
 - Nodes: `section` (`columns` 1 or 2), `readout` (a value or `null` for `[—]`), `meter` (0 to 1), `switch`, `button` (`tone` `primary` or `danger`), `select`, `list`, `sparkline` (the game keeps the last `samples`, default 60), and (plan 332, ADR 0287) `tabs`, `progress`, `number` and `notice`; see `guides/vessel-pilot-api.md`, "Mod panel UIs".
 - `canvas.draw` gets a `PanelCanvas` (clear, fill and stroke styles, paths, arcs, rectangles, text). It runs only while the panel is open. Mods import only `@orbital/sdk`: no DOM.
 - A panel that throws shows "This panel stopped" with the message; the game and the other panels go on.
 - The player adds and removes panels with the Panel library (the plus at the foot of the dock); `examples/mod-sample` has a complete panel.
+
+## The World API: read the whole game, act on it, keep state (API 0.1.106, plan 343, ADR 0292)
+
+Content registrars add things to the game; the World API is how your code *reads and changes the running world*. Systems (`defineSystem`) and autopilots (`defineAutopilot`) get it as their context (`ctx`), panels as `input.world`. Everything below comes from `@orbital/sdk`; `examples/mod-world-api` uses all of it and has a test.
+
+### What can read what
+
+| Code | Runs | Gets |
+|---|---|---|
+| Module hooks (`defineModule`) | per part, every step, in the sim | `ctx.world` (raw ECS for module state), `ctx.vessel` (capabilities) |
+| Systems (`defineSystem`) | every step (`pre-physics`, `post-physics`), each game day (`world-tick`), or on events (`on`), in the sim | the whole `SystemContext`: `world`, `commands`, `store`, `notify`, `events`, `registries`, `rules`, `tick` |
+| Autopilots (`defineAutopilot`) | per vessel at their rate, in the sim | `ctrl` (the `VesselPilot`) plus `ctx` (the same `ModContext`) as the last argument of `start` and `step` |
+| Panels (`definePanel`) and keybindings | in the page, 10 Hz | `input` (snapshot, flown vessel, altitude, speed, body, delta-v) and `input.world` |
+
+### World Query (`ctx.world`, `input.world`)
+
+A read-only facade over the snapshot, in plain types that follow the protocol, not the ECS. "Get all vessels" is `ctx.world.vessels()`.
+
+```ts
+const w = ctx.world;
+w.time; w.paused; w.day;                                   // sim time (s), the clock, the world-tick day
+w.vessels();                                               // every vessel (WorldVessel[])
+w.vessels({ type: 'probe', situation: 'landed', soi: 'stock.mun' });
+w.vessels({ near: { of: myId, within: 2_000 }, noDebris: true, except: myId });
+w.vessels({ owner: 'player' });                            // or an agency id
+w.vessel(id); w.findVessel('Station'); w.nearest(myId, { noDebris: true });
+w.distance(a, b);                                          // m, across SOIs too
+w.parts(id);     // WorldPart[]: definition, modules (each module's snapshot), temperature, resources
+w.resources(id); w.amount(id, 'stock.liquid-fuel');
+w.crewOf(id); w.crew();                                    // roster: name, profession, level, status, vessel
+w.orbit(id);                                               // OrbitalElements or null
+w.comms(id);                                               // { to, control, rate, latency, route } or null
+w.bodies(); w.body('stock.home');                          // radius, mu, atmosphereHeight, soi, parent, position
+w.sites();                                                 // buildings and outposts per site
+w.economy();                                               // { enabled, funds, science, reputation }
+w.rule('stock.economy'); w.store('my-mod.log');            // any rule's value; any mod's store (read only)
+w.snapshot;                                                // the protocol itself, for what the facade lacks
+```
+
+A `WorldVessel` has `id`, `name`, `type`, `owner`, `mode`, `situation`, `soi`, `position`/`velocity` (relative to `soi`), `absolute` (root frame), `altitude`, `radarAltitude`, `speed`, `parts`, `crew`, `controlled`, `orbit`, `periapsis`, `apoapsis`, `target`, `autopilot` and `stage`.
+
+**Situations** (`VESSEL_SITUATIONS`): `prelaunch`, `landed`, `splashed`, `flying` (below the top of the air), `sub-orbital`, `orbiting`, `escaping` (open orbit, or apoapsis beyond the SOI). The sim sets `VesselSnapshot.situation`; `classifySituation` is the rule.
+
+**Cost.** In the sim the query is built from a full snapshot the first time you read `ctx.world` at a sim time, then reused until the time moves or a mod command or store write changes something. A system that reads it every physics step pays a snapshot per step: prefer `world-tick`, event handlers (`on`), or a lower rate of your own.
+
+### Commands (`ctx.commands`)
+
+The sim's own commands, checked by the same handler as the player's keys and scripts. A mod is a program (ADR 0276): the player's override and the signal delay apply to it as to an autopilot. Each call returns the sim's `CommandResult`; a refusal says why.
+
+```ts
+const c = ctx.commands;
+c.setTarget(id, { kind: 'vessel', id: other });            // or { kind: 'body', id: 'stock.mun' }, or null
+c.stage(id); c.throttle(id, 0.5); c.sas(id, 'prograde');
+c.actionGroup(id, 'stock.gear'); c.actionGroup(id, 'custom.1', true);
+c.warp(100); c.warpTo(w.time + 3_600); c.warpTo({ kind: 'apoapsis', vessel: id });
+c.placeNode(id, { time: t, prograde: 120, normal: 0, radial: 0 }); c.removeNode(id);
+c.addAlarm({ name: 'Burn', time: t - 60 }); c.rename(id, 'Relay 3');
+c.engage(id, 'my-mod.hover', { height: 50 }); c.disengage(id);
+c.focus(id);                                               // the page switches to this vessel
+c.spawn(design, placement); c.terminate(id);               // only while debug tools are allowed
+c.send({ type: 'set-rcs', vessel: id, on: true });         // any allowed command
+```
+
+Allowed: vessel control (throttle, attitude, RCS, SAS, trim, staging, action groups and part actions, control part, transfers, flow locks), targets, warp and warp-to (within the world's warp limits), maneuver nodes, alarms, names and types, autopilots, program stop, antenna pointing, comms routes, data moves and transmissions, `mod-key`.
+Only while debug tools are allowed (a sandbox world, or debug mode on in a world whose `stock.debug-tools` is `opt-in`): `load-vessel` (spawn), `terminate-vessel`, `recover-vessel`, `clear-debris` and the `debug-set-*` and `debug-cheat` commands.
+Refused: everything that changes a career or the world's settings (economy, contracts, research, crew hiring, buildings, strategies, market, rules, pause, debug mode). A mod that wants to change a career defines content the player chooses (charges, contracts, strategies).
+
+### Stores: your mod's saved state (`defineStore`, `ctx.store`)
+
+```ts
+export const Log = defineStore({
+	id: 'my-mod.log',
+	schema: z.object({ landings: z.int().min(0), lines: z.array(z.string()).max(20) }),
+	initial: { landings: 0, lines: [] as string[] }
+});
+// setup: ctx.stores.register(Log);
+// a system or autopilot of the same plugin:
+ctx.store(Log).update((l) => ({ ...l, landings: l.landings + 1 }));
+ctx.store(Log).get();
+```
+
+- Saved with the world (`SimSave.stores`) and in the snapshot (`snapshot.stores`, `input.world.store(id)`).
+- `set` validates with the schema and refuses more than 64 KiB of JSON (`STORE_MAX_BYTES`): it throws a `RangeError` that names the field.
+- Only the registering plugin's systems and autopilots may write; any code may read through the world query.
+- On resume a value that no longer parses (you changed the schema) falls back to `initial`. Write a schema that accepts your old shape (`z.union`, `.catch`) when you want to keep it.
+
+### Events (`SIM_EVENTS`, `EventMap`)
+
+Every sim event is typed in `EventMap` and listed in `SIM_EVENTS` (`{ name, group, description, by? }`). Subscribe in a system with `on`, which gets the payload and the system's context:
+
+```ts
+ctx.systems.register(defineSystem({
+	id: 'my-mod.watch',
+	on: {
+		'vessel:situation-changed': (e, ctx) => { if (e.to === 'landed') ctx.notify('Touchdown'); },
+		'vessel:docked': (e, ctx) => ctx.store(Log).update(/* ... */),
+		'objective:completed': (e, ctx) => { /* a contract or mission done */ }
+	}
+}));
+```
+
+`ctx.events.on` in `setup` works too, but the handler has no World API context. A handler that throws is skipped; the game goes on.
+
+| Group | Events |
+|---|---|
+| vessel | `vessel:created`, `vessel:split`, `vessel:destroyed` (crash, burn-up, terminate, recovery: `reason`), `vessel:docked`, `vessel:undocked`, `vessel:mode-changed`, `vessel:soi-changed`, `vessel:situation-changed` (landing, splashdown, lift-off, orbit, escape), `vessel:maneuver-complete`, `vessel:target-lost`, `vessel:power-depleted`, `vessel:frozen`, `vessel:thawed` |
+| flight | `stage:activated`, `part:damaged` (impact or heat), `part:failed`, `stock:engine-flameout`, `stock:parachute-deployed`, `stock:parachute-torn`, `range:violation` |
+| program | `autopilot:ended`, `program:override`, `program:resumed`, `program:stopped`, `script:attached`, `script:detached` |
+| world | `world:tick`, `world:rule-changed`, `world:entity-added`, `world:entity-removed`, `warp:limited`, `warp:stopped`, `warp:clamped`, `alarm:fired`, `building:ready`, `site:founded`, `site:joined`, `site:left`, `route:delivered` |
+| career | `objective:completed`, `objective:failed`, `milestone:reached`, `economy:entry`, `discovery:reviewed` |
+| crew | `crew:hired`, `crew:dismissed`, `crew:xp`, `crew:lost`, `crew:returned`, `crew:shortage`, `crew:resupplied`, `crew:g-loc` |
+| science, comms | `science:result`, `science:credited`, `data:stored`, `data:dropped`, `comms:link-up`, `comms:link-down`, `comms:control-changed`, `comms:data-delivered` |
+| mod | `mod:notice`, `mod:focus`, `mod:key` |
+
+Add your own events by module augmentation of `EventMap` (see stock's `stock:engine-flameout`).
+
+### Keybindings and notices
+
+```ts
+ctx.keybindings.register(defineKeybinding({
+	id: 'my-mod.target-nearest',
+	label: 'Target the nearest vessel',
+	defaults: ['Alt+KeyN'],                 // key ids as Settings → Controls writes them; [] for unbound
+	mode: 'flight',                         // or 'map'
+	// optional: a command straight from the panel input; without it the sim emits `mod:key`
+	command: (i) => (i.vessel ? { type: 'stage', vessel: i.vessel.id } : null)
+}));
+ctx.notify('Touchdown on the Mun', { tone: 'success', vessel: id, detail: '3.2 m/s' });
+```
+
+- The player rebinds mod keys under Settings → Controls → Mods. The game's own keys win: a mod key that is also a game key (or another mod's) is marked and does nothing until rebound. Most plain letters are taken; prefer an `Alt+` chord.
+- A key without `command` sends `mod-key { key, vessel }`; handle it in a system's `on: { 'mod:key': ... }`.
+- `notify` shows a toast on the page (`tone` `info`, `success`, `warning`, `danger`); with `vessel` only while the player flies that vessel. One toast per mod at a time: a new one replaces the last.
 
 ## Missions and mission packs (API 0.1.53, plan 100, ADR 0151)
 
@@ -790,7 +923,7 @@ visual: {
 
 ## Open items
 
-- `defineSystem` (per-step logic over the world, phases `pre-physics`/`post-physics`, and once per game day `world-tick`, API 0.1.29, plan 082) is supported by the sim but has no stock example yet; this guide will gain a section when one exists. A world-tick system reads `ctx.tick.day` and draws only from `ctx.tick.rng`: it gets its own stream, which no other mod's system can disturb, and it reads no clock. A module that keeps working while its vessel is on rails can declare `background(ctx, dt)`: one closed form over the elapsed time (for example `state.charge += rate * dt`), run on each tick, at wake and before a save, in place of `updateOnRails`. See `packages/sim/test/world-tick.test.ts` for a battery and a world system. The stock solar panel (`mods/stock/src/solar.ts`, plan 190) is the stock example. One function serves as both `update` and `background`, so flight and rails charge the same:
+- `defineSystem` (per-step logic over the world, phases `pre-physics`/`post-physics`, and once per game day `world-tick`, API 0.1.29, plan 082): see "The World API" above (plan 343) and `examples/mod-world-api`. A world-tick system reads `ctx.tick.day` and draws only from `ctx.tick.rng`: it gets its own stream, which no other mod's system can disturb, and it reads no clock. A module that keeps working while its vessel is on rails can declare `background(ctx, dt)`: one closed form over the elapsed time (for example `state.charge += rate * dt`), run on each tick, at wake and before a save, in place of `updateOnRails`. See `packages/sim/test/world-tick.test.ts` for a battery and a world system. The stock solar panel (`mods/stock/src/solar.ts`, plan 190) is the stock example. One function serves as both `update` and `background`, so flight and rails charge the same:
 
 ```ts
 function charge(ctx, dt) {

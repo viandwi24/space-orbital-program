@@ -28,8 +28,8 @@ export interface MissionBlueprint {
 	build(content: Content): VesselDesign;
 }
 
-/** A small builder over the editor's operations: stack below or above, hang on a side. */
-class Build {
+/** A small builder over the editor's operations: stack below or above, hang on a side (also the lessons' vessels, plan 344). */
+export class Build {
 	s: EditorState;
 	constructor(
 		private readonly content: Content,

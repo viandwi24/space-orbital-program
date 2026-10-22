@@ -4,6 +4,7 @@ import {
 	type BlueprintDefinition,
 	type CategoryDefinition,
 	type FailureModeDefinition,
+	type KeybindingDefinition,
 	type MissionDefinition,
 	type PanelDefinition,
 	type PartLookup,
@@ -38,6 +39,11 @@ export function partLookup(catalog: Catalog): PartLookup {
 
 /** Catalog plus the registries the HUD's stage maths needs (module definitions carry the store accessors). */
 /** `system`: the world's system and variant (plan 124); the stock system by default. */
+/** The loaded mods' keybindings (plan 343), for the Controls settings outside a world. */
+export function loadKeybindings(system: SystemChoice = STOCK_CHOICE): KeybindingDefinition[] {
+	return loadPlugins([...BUILTIN_PLUGINS, ...activePlugins()], { system }).registries.keybindings.list();
+}
+
 export function loadContent(system: SystemChoice = STOCK_CHOICE): {
 	catalog: Catalog;
 	content: ContentLookups;
@@ -59,6 +65,8 @@ export function loadContent(system: SystemChoice = STOCK_CHOICE): {
 	 * strategies for the Administration projection (plan 101, ADR 0187).
 	 */
 	world: Pick<Registries, 'buildings' | 'rules' | 'presets' | 'charges' | 'strategies'>;
+	/** Mod keybindings (plan 343, ADR 0292 point 6). */
+	keybindings: KeybindingDefinition[];
 	/** Mods' blueprints for the Hangar's Library (plan 285, ADR 0263). */
 	blueprints: BlueprintDefinition[];
 } {
@@ -73,6 +81,7 @@ export function loadContent(system: SystemChoice = STOCK_CHOICE): {
 		categories: registries.categories.list(),
 		actionGroups: registries.actionGroups.list(),
 		panels: registries.panels.list(),
+		keybindings: registries.keybindings.list(),
 		missions: registries.missions.list(),
 		objectiveLabels: Object.fromEntries(registries.objectives.list().map((o) => [o.id, o.label])),
 		techNodes: registries.techNodes.list(),

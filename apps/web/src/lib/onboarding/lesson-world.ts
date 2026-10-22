@@ -9,7 +9,10 @@ import { LEGACY_WORLD_ID, homeBodyOf } from '@orbital/core';
 import type { WorldCatalog } from '../worlds/catalog';
 import { createWorldInfo } from '../worlds/world-model';
 import { activeWorldId, setActiveWorld, type Worlds } from '../worlds/worlds';
-import type { Lesson } from './lessons';
+import { lessonStart, type Lesson } from './lessons';
+
+/** `localStorage` key of the player's Hangar draft (`storage.ts`), kept aside during a Hangar lesson. */
+const DRAFT_KEY = 'orbital.design';
 
 /** `localStorage` key of the running lesson. */
 export const LESSON_KEY = 'orbital.lesson';
@@ -23,6 +26,8 @@ export interface LessonSession {
 	previous: string;
 	/** The scene was set (the setup ran once). */
 	ready: boolean;
+	/** The player's Hangar draft, put back when the lesson ends (a Hangar lesson starts empty). */
+	draft?: string | null;
 }
 
 export function lessonSession(): LessonSession | null {
@@ -33,8 +38,26 @@ export function lessonSession(): LessonSession | null {
 		return typeof s.lesson === 'string' &&
 			typeof s.world === 'string' &&
 			typeof s.previous === 'string'
-			? { lesson: s.lesson, world: s.world, previous: s.previous, ready: s.ready === true }
+			? {
+					lesson: s.lesson,
+					world: s.world,
+					previous: s.previous,
+					ready: s.ready === true,
+					...(s.draft !== undefined ? { draft: s.draft } : {})
+				}
 			: null;
+	} catch {
+		return null;
+	}
+}
+
+/** Puts `next` in the draft's place (null removes it) and returns what was there. */
+function swapDraft(next: string | null): string | null {
+	try {
+		const was = localStorage.getItem(DRAFT_KEY);
+		if (next === null) localStorage.removeItem(DRAFT_KEY);
+		else localStorage.setItem(DRAFT_KEY, next);
+		return was;
 	} catch {
 		return null;
 	}
@@ -110,9 +133,28 @@ export async function startLesson(
 			lesson: lesson.id
 		}
 	);
-	saveSession({ lesson: lesson.id, world: record.id, previous, ready: false });
+	const start = lessonStart(lesson);
+	// a Hangar lesson starts from an empty Hangar; the player's draft comes back at the end
+	let draft = running?.draft;
+	if (start === 'vab') {
+		const was = swapDraft(null);
+		if (draft === undefined) draft = was;
+	}
+	saveSession({
+		lesson: lesson.id,
+		world: record.id,
+		previous,
+		ready: false,
+		...(draft !== undefined ? { draft } : {})
+	});
 	setActiveWorld(record.id);
-	await go(resolve('/(world)/flight'));
+	await go(
+		start === 'vab'
+			? resolve('/(world)/vab')
+			: start === 'space-center'
+				? resolve('/(world)/space-center')
+				: resolve('/(world)/flight')
+	);
 }
 
 /**
@@ -122,6 +164,7 @@ export async function startLesson(
 export function endLessonSession(): void {
 	const s = lessonSession();
 	saveSession(null);
+	if (s && s.draft !== undefined) swapDraft(s.draft);
 	if (s) setActiveWorld(s.previous || LEGACY_WORLD_ID);
 }
 

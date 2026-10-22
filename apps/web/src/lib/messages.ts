@@ -118,7 +118,18 @@ export type SimEvent =
 	/** Two vessels docked (plan 222): `absorbed` is now part of `vessel`. */
 	| { type: 'docked'; vessel: number; absorbed: number }
 	/** An undock split `vessel` (plan 222): `restored` has its old name back. */
-	| { type: 'undocked'; vessel: number; restored: number; name: string };
+	| { type: 'undocked'; vessel: number; restored: number; name: string }
+	/** A mod's notice (plan 343, ADR 0292 point 6): with `vessel`, only while the player flies it. */
+	| {
+			type: 'mod-notice';
+			plugin: string;
+			text: string;
+			tone: 'info' | 'success' | 'warning' | 'danger';
+			detail?: string;
+			vessel: number | null;
+	  }
+	/** A mod asked the page to fly `vessel` (ADR 0292 point 3). */
+	| { type: 'mod-focus'; plugin: string; vessel: number };
 
 /**
  * The page-made end of the channel to the script Worker inside the sandbox iframe (ADR 0038): a
@@ -228,7 +239,9 @@ const SIM_EVENT_TYPES: readonly unknown[] = [
 	'parachute-torn',
 	'program-override',
 	'program-resumed',
-	'program-stopped'
+	'program-stopped',
+	'mod-notice',
+	'mod-focus'
 ];
 
 const isRecord = (v: unknown): v is Record<string, unknown> => typeof v === 'object' && v !== null;

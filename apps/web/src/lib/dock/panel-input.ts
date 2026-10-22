@@ -1,5 +1,13 @@
 /** The input every panel selector reads (plan 112, ADR 0149 point 2), built once per HUD update. */
-import { GRAVITATIONAL_CONSTANT, type BodyDefinition, type EntityId, type PanelInput, type Snapshot } from '@orbital/core';
+import {
+	createWorldQuery,
+	GRAVITATIONAL_CONSTANT,
+	type BodyDefinition,
+	type EntityId,
+	type PanelInput,
+	type Snapshot,
+	type WorldQuery
+} from '@orbital/core';
 import { computeTelemetry } from '../telemetry';
 
 export function panelInputOf(
@@ -13,7 +21,7 @@ export function panelInputOf(
 	const v = vessel === null ? undefined : snapshot.vessels.find((s) => s.id === vessel);
 	const t = v ? computeTelemetry(snapshot, v.id, bodies) : null;
 	const b = v ? bodies.find((x) => String(x.id) === String(v.soi)) : undefined;
-	return {
+	const input: PanelInput = {
 		snapshot,
 		vessel: v ?? null,
 		altitude: t?.altitude ?? null,
@@ -31,4 +39,15 @@ export function panelInputOf(
 				: null,
 		deltaV: deltaV !== null && Number.isFinite(deltaV) ? deltaV : null
 	};
+	// the World Query (plan 343, ADR 0292 point 1), built on first read; not enumerable, so the
+	// input still clones into a mod's frame as plain data
+	let world: WorldQuery | null = null;
+	Object.defineProperty(input, 'world', {
+		enumerable: false,
+		get: () =>
+			(world ??= createWorldQuery(snapshot, {
+				bodies: { list: () => bodies as readonly BodyDefinition[] as BodyDefinition[] }
+			}))
+	});
+	return input;
 }

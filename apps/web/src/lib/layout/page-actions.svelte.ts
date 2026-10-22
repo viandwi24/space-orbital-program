@@ -64,6 +64,8 @@ class PageShell {
 	 * (V3 §1.4: the Space Center icon returns the Space Center to Overview; plan 274).
 	 */
 	home = $state.raw<(() => void) | null>(null);
+	/** The page's own row right of the time bar (ADR 0295 point 1: the Hangar's name and kind). */
+	beside = $state.raw<Snippet | null>(null);
 
 	reset(): void {
 		this.actions = [];
@@ -72,6 +74,7 @@ class PageShell {
 		this.map = null;
 		this.menu = null;
 		this.home = null;
+		this.beside = null;
 	}
 }
 

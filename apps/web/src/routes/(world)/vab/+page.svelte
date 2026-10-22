@@ -16,6 +16,9 @@
 	import ActionGroupEditor from '../../../lib/vab/ActionGroupEditor.svelte';
 	import StatsStrip from '../../../lib/vab/StatsStrip.svelte';
 	import VesselName from '../../../lib/vab/VesselName.svelte';
+	import LaunchButton from '../../../lib/vab/LaunchButton.svelte';
+	import StartVessel from '../../../lib/vab/StartVessel.svelte';
+	import { loadFlag } from '../../../lib/storage';
 	import BuildContext from '../../../lib/vab/BuildContext.svelte';
 	import { pageShell } from '../../../lib/layout/page-actions.svelte';
 	import ToolPill from '../../../lib/vab/ToolPill.svelte';
@@ -33,6 +36,7 @@
 	import { categoryOf } from '../../../lib/editor/categories';
 	import { settings } from '../../../lib/settings/settings.svelte';
 	import { advance, currentStep, skip, stepLabel } from '../../../lib/onboarding/tutorial';
+	import { lessonVab, runningLesson } from '../../../lib/onboarding/lesson-gate.svelte';
 
 	const vab = new VabController();
 	// the active world's tech tree flags locked parts (plan 105, ADR 0154 point 4)
@@ -69,12 +73,13 @@
 		if (new URLSearchParams(location.search).has('library')) {
 			history.replaceState(null, '', location.pathname);
 			void vab.openLibrary();
-		}
+		} else offerStart();
 		return stop;
 	});
 
 	// The first-flight guide watches what the design contains, by catalogue category (plan 023).
 	$effect(() => {
+		if (runningLesson()) return;
 		const categories = new Set(
 			vab.editor.design.parts.map((p) => {
 				const def = vab.defOf(p.part);
@@ -91,13 +96,63 @@
 		});
 		if (next !== settings.tutorial) settings.setTutorial(next);
 	});
-	const tutorialStep = $derived(currentStep(settings.tutorial, 'vab'));
+	// a lesson world teaches its own lesson, not the first flight (plan 229)
+	const inLesson = runningLesson() !== null;
+	const tutorialStep = $derived(inLesson ? null : currentStep(settings.tutorial, 'vab'));
+
+	// A lesson in the Hangar (plan 344, ADR 0293 point 3) reads the design, the checks and the Library.
+	$effect(() => {
+		const parts = vab.editor.design.parts;
+		const kinds = new Set(
+			parts.map((p) => {
+				const def = vab.defOf(p.part);
+				return def ? categoryOf(def, vab.content.modules) : 'stock.other';
+			})
+		);
+		lessonVab.state = {
+			parts: parts.length,
+			command: kinds.has('stock.command'),
+			engine: kinds.has('stock.propulsion'),
+			tank: kinds.has('stock.tanks'),
+			fins: parts.filter((p) => /\.(fin|control-surface)$/.test(p.part)).length,
+			parachute: parts.some((p) => /parachute|chute/.test(p.part)),
+			symmetry: parts.some((p) => p.symmetry !== undefined),
+			checksClear: vab.checks.every((c) => c.severity !== 'error' && c.level !== 'no-go'),
+			library: vab.blueprintsOpen
+		};
+		return () => (lessonVab.state = null);
+	});
 	/** The empty Hangar's featured blueprints (plan 285); the rest are in the Library. */
 	const FEATURED = ['learn.two-stage', 'kronos-selene', 'wayfarer-shuttle', 'trailblazer-rover'];
 	/** The welcome card carries the first step's words; the guide card waits for the first part. */
 	const emptyHangar = $derived(
 		vab.editor.design.parts.length === 0 && !vab.armed && vab.editor.loose.length === 0
 	);
+
+	// "Start a vessel" (plan 350, ADR 0299): an empty Hangar opens with recommended blueprints or
+	// Build my own; Build my own (or the modal turned off) points at the parts list instead.
+	let startOpen = $state(false);
+	let coach = $state(false);
+	let coachAt = $state({ x: 0, y: 0 });
+	function offerStart(): void {
+		if (!emptyHangar || runningLesson()) return;
+		if (loadFlag('hideStart')) showCoach();
+		else startOpen = true;
+	}
+	function showCoach(): void {
+		const r = left?.getBoundingClientRect();
+		const host = stage?.getBoundingClientRect();
+		coachAt =
+			r && host ? { x: r.right - host.left + 14, y: r.top - host.top + 110 } : { x: 380, y: 180 };
+		coach = true;
+	}
+	// the first part (or a loaded design) ends both
+	$effect(() => {
+		if (!emptyHangar) {
+			startOpen = false;
+			coach = false;
+		}
+	});
 
 	// The drawers (narrow windows) change which panels take room; the view re-centres the vessel.
 	$effect(() => {
@@ -113,7 +168,10 @@
 				icon: 'new',
 				title: 'A new, empty vessel',
 				testid: 'menu-new',
-				onclick: () => vab.newVessel()
+				onclick: () => {
+					vab.newVessel();
+					offerStart();
+				}
 			},
 			{
 				id: 'open',
@@ -134,27 +192,22 @@
 					vab.saveState = 'saving';
 					void vab.flushSave();
 				}
-			},
-			{
-				id: 'launch',
-				label: 'Launch',
-				icon: 'launch',
-				primary: true,
-				title: vab.launchBlocked
-					? vab.checks.find((c) => c.severity === 'error')?.text
-					: vab.warnings > 0
-						? `${vab.warnings} warning${vab.warnings === 1 ? '' : 's'}: you will be asked to confirm`
-						: 'Go to the launch screen (Shift-click: fly at once)',
-				testid: 'menu-launch',
-				disabled: vab.launchBlocked,
-				onclick: (e) => vab.launch(false, e.shiftKey)
 			}
 		];
 		return () => {
 			pageShell.actions = [];
 		};
 	});
+	// the name and kind beside the time bar (plan 346, ADR 0295 point 2)
+	$effect(() => {
+		pageShell.beside = besideRow;
+		return () => {
+			pageShell.beside = null;
+		};
+	});
 </script>
+
+{#snippet besideRow()}<VesselName {vab} />{/snippet}
 
 <PageMeta
 	title="Vehicle assembly · {GAME_NAME}"
@@ -232,7 +285,6 @@
 		{/if}
 
 		<div class="leftcol" class:open={vab.drawer === 'parts'} bind:this={left}>
-			<VesselName {vab} />
 			<Catalogue
 				bind:this={catalogueRef}
 				parts={vab.parts}
@@ -250,6 +302,7 @@
 		</div>
 
 		<div class="rightcol" class:open={vab.drawer === 'stages'} bind:this={right}>
+			<LaunchButton {vab} />
 			<StatsStrip
 				stats={vab.stats}
 				trip={vab.trip}
@@ -293,6 +346,25 @@
 			<ToolPill {vab} />
 		</div>
 
+		{#if coach && emptyHangar}
+			<div
+				class="coach"
+				role="status"
+				data-testid="vab-coach"
+				style="left:{coachAt.x}px;top:{coachAt.y}px"
+			>
+				<span class="arrow" aria-hidden="true"></span>
+				<strong>Build your own</strong>
+				<span
+					>Pick a command pod in the parts list, then click the glowing ring on the platform. Add
+					tanks and an engine below it.</span
+				>
+				<button type="button" aria-label="Got it" class="x" onclick={() => (coach = false)}
+					>Got it</button
+				>
+			</div>
+		{/if}
+
 		{#if tutorialStep && !emptyHangar}
 			<div class="guide">
 				<TutorialCard
@@ -303,7 +375,8 @@
 			</div>
 		{/if}
 
-		{#if emptyHangar}
+		<!-- a lesson keeps the inline card its steps point at (plan 344); elsewhere the start modal -->
+		{#if emptyHangar && inLesson}
 			<div class="welcome">
 				<h2>Build a vessel</h2>
 				<p>
@@ -322,7 +395,9 @@
 					{/each}
 				</div>
 				<div class="row">
-					<Button onclick={() => (vab.blueprintsOpen = true)}>Open the Library</Button>
+					<Button onclick={() => (vab.blueprintsOpen = true)} data-testid="vab-open-library"
+						>Open the Library</Button
+					>
 					{#if vab.vesselEntries.length > 0}
 						<Button onclick={() => vab.openLibrary()}>Open a saved vessel</Button>
 					{/if}
@@ -334,6 +409,15 @@
 	<div class="sr-only" aria-live="polite" role="status">{vab.announce}</div>
 	<p class="sr-only" id="stack-description">{vab.stackText}</p>
 
+	<StartVessel
+		{vab}
+		open={startOpen}
+		featured={FEATURED}
+		onclose={(how) => {
+			startOpen = false;
+			if (how === 'build') showCoach();
+		}}
+	/>
 	<LibraryDialog {vab} />
 	<BlueprintLibrary {vab} />
 
@@ -522,6 +606,60 @@
 		margin-top: 3rem;
 		align-self: start;
 		justify-self: center;
+	}
+	/* the coach mark beside the parts list (plan 350) */
+	.coach {
+		position: absolute;
+		z-index: 5;
+		display: grid;
+		gap: 0.375rem;
+		width: 15rem;
+		padding: 0.75rem 0.875rem;
+		border-radius: 0.875rem;
+		background: #f4f4f5;
+		color: #0b0b0c;
+		box-shadow: 0 12px 40px rgb(0 0 0 / 0.45);
+		animation: nudge 1.6s ease-in-out infinite;
+	}
+	.coach strong {
+		font-size: var(--t-button);
+	}
+	.coach span {
+		font-size: var(--t-small);
+		line-height: 1.4;
+	}
+	.coach .arrow {
+		position: absolute;
+		left: -7px;
+		top: 1.125rem;
+		width: 14px;
+		height: 14px;
+		background: inherit;
+		transform: rotate(45deg);
+		border-radius: 2px;
+	}
+	.coach .x {
+		justify-self: end;
+		height: 1.75rem;
+		padding: 0 0.75rem;
+		border: 0;
+		border-radius: var(--radius-pill);
+		background: #0b0b0c;
+		color: #fff;
+		font: inherit;
+		font-size: var(--t-small);
+		font-weight: 700;
+		cursor: pointer;
+	}
+	@keyframes nudge {
+		50% {
+			transform: translateX(-4px);
+		}
+	}
+	@media (prefers-reduced-motion: reduce) {
+		.coach {
+			animation: none;
+		}
 	}
 	.welcome {
 		position: absolute;

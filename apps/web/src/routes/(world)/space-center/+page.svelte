@@ -52,6 +52,7 @@
 		firstFreeCell,
 		marketRows,
 		productionNote,
+		type BuildingRow,
 		type GhostCheck,
 		type SiteState
 	} from '../../../lib/space-center/model';
@@ -146,6 +147,9 @@
 	);
 	const thumbnail = (card: BuildCard): Promise<string> | null =>
 		card.generator ? buildingThumbnails().get(card.generator, card.size) : null;
+	// the Buildings strip's cards take the same pictures (plan 349)
+	const picture = (row: BuildingRow): Promise<string> | null =>
+		row.generator ? buildingThumbnails().get(row.generator, row.size) : null;
 	let vessels = $state.raw<Snapshot['vessels']>([]);
 	const label = (id: string): string =>
 		(
@@ -386,13 +390,16 @@
 		};
 	});
 
-	/** Demolish (V3 §1.3, plan 274): the building under the bulldozer in a red box, like a blocked ghost. */
-	function markBuilding(id: string | null): void {
+	/**
+	 * Demolish (V3 §1.3, plan 274): the building under the bulldozer in a red box, like a blocked
+	 * ghost; a hovered Buildings card boxes its building in white (plan 349).
+	 */
+	function markBuilding(id: string | null, danger = true): void {
 		if (build) return;
 		const b = id === null ? undefined : site?.buildings.find((x) => x.id === id);
 		const def = b ? buildingRegistry.get(b.kind) : undefined;
 		center?.setGhost(
-			b && def ? { size: def.size, cell: b.cell, rotation: b.rotation, valid: false } : null
+			b && def ? { size: def.size, cell: b.cell, rotation: b.rotation, valid: !danger } : null
 		);
 	}
 
@@ -473,6 +480,7 @@
 		onframe={frame}
 		{menu}
 		{thumbnail}
+		{picture}
 		build={build
 			? {
 					kind: build.kind,

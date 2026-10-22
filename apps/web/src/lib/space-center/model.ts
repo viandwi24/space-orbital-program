@@ -45,6 +45,23 @@ export interface BuildingRow {
 	capacity: readonly string[];
 	/** Where the label sits: site metres east, north and up. */
 	anchor: { east: number; north: number; up: number };
+	/** How far construction or the upgrade has come, 0..1, or null while nothing is built (plan 349). */
+	progress: number | null;
+	/** The thumbnail's generator and footprint (plan 349, as the build cards'); null for an asset visual. */
+	generator: string | null;
+	size: { w: number; d: number };
+}
+
+/** Construction or upgrade progress from the days left and the level's build time (plan 349). */
+export function progressOf(
+	b: { state: BuildingRow['status']; level: number; readyDay?: number },
+	levels: readonly { buildDays: number }[],
+	today: number | undefined
+): number | null {
+	if (b.state !== 'building' && b.state !== 'upgrading') return null;
+	const total = levels[b.state === 'building' ? 0 : b.level + 1]?.buildDays ?? 0;
+	if (b.readyDay === undefined || today === undefined || total <= 0) return 0;
+	return Math.min(1, Math.max(0, 1 - (b.readyDay - today) / total));
 }
 
 export type SiteState = NonNullable<Snapshot['sites']>[number];
@@ -160,7 +177,10 @@ export function buildingRows(
 				description: def.description ?? '',
 				upkeep: def.levels[Math.min(b.level, def.levels.length - 1)]?.upkeep ?? 0,
 				capacity: capacityLines(def.levels[Math.min(b.level, def.levels.length - 1)]?.capacity),
-				anchor: { ...c, up: (HEIGHTS[generator] ?? 10) + 4 }
+				anchor: { ...c, up: (HEIGHTS[generator] ?? 10) + 4 },
+				progress: progressOf(b, def.levels, today),
+				generator: def.visual.kind === 'generator' ? def.visual.generator : null,
+				size: { w: def.size.w, d: def.size.d }
 			}
 		];
 	});

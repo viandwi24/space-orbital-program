@@ -1,18 +1,52 @@
 /**
- * Lessons after the first orbit (plan 229): landing, maneuver nodes, rendezvous and docking, and a
- * transfer. A lesson is data: a design, the debug API calls that set its scene (plan 203, ADR
- * 0200), what it does not let the player use and why, its steps and its goal. The step machine is
- * the first-flight guide's (`tutorial.ts`): a step completes only on its own condition, at most one
- * per observation, and reaching the goal ends the lesson. Nothing here touches the DOM or the sim.
+ * Lessons (plan 229, plan 344, ADR 0293): short, focused scenes from the first launch to docking,
+ * grouped by level. A lesson is data: where it starts, its vessel, the debug API calls that set its
+ * scene (plan 203, ADR 0200), what it does not let the player use and why, its steps and its goal.
+ * The step machine is the first-flight guide's (`tutorial.ts`): a step completes only on its own
+ * condition, at most one per observation, and reaching the goal (or the last step) ends the lesson.
+ * Nothing here touches the DOM or the sim.
  */
-import { partId, type BodyDefinition, type VesselDesign, type VesselSnapshot } from '@orbital/core';
+import type {
+	BodyDefinition,
+	Command,
+	EntityId,
+	Snapshot,
+	VesselDesign,
+	VesselSnapshot
+} from '@orbital/core';
 import type { DebugApi } from '../debug/api';
+import type { Content } from '../editor/state';
 import { spinVector, surfaceVelocity } from '../speed';
 import type { ActionId } from '../keybindings';
 import type { LessonProgress } from '../settings/settings';
+import { BASIC_LESSONS } from './lessons-basics';
+import { FLIGHT_LESSONS } from './lessons-flight';
+import { ADVANCED_LESSONS } from './lessons-advanced';
+import { FOCUS } from './lesson-kit';
 
-/** What a lesson reads from the flight, once per HUD model. */
+export { FOCUS };
+
+/** What the Hangar shows a lesson about its design (ADR 0293 point 3). */
+export interface VabLessonState {
+	parts: number;
+	command: boolean;
+	engine: boolean;
+	tank: boolean;
+	/** Fins and control surfaces. */
+	fins: number;
+	parachute: boolean;
+	/** A part was placed with symmetry (2 or more copies). */
+	symmetry: boolean;
+	/** The pre-flight checks show nothing that blocks a launch or is no-go. */
+	checksClear: boolean;
+	/** The Blueprint Library is open. */
+	library: boolean;
+}
+
+/** What a lesson reads, once per HUD model in Flight and per snapshot elsewhere. */
 export interface LessonObservation {
+	/** The in-world page: `flight`, `vab`, `space-center`, `mission-center`, … */
+	place: string;
 	/** Body of the sphere the vessel is in. */
 	body: string;
 	throttle: number;
@@ -22,6 +56,8 @@ export interface LessonObservation {
 	surfaceSpeed: number;
 	/** On the ground and at rest. */
 	landed: boolean;
+	/** In the water. */
+	splashed: boolean;
 	sasMode: string;
 	rcs: boolean;
 	map: boolean;
@@ -37,13 +73,93 @@ export interface LessonObservation {
 	nodeLeft: number | null;
 	/** `body:<id>` or `vessel:<id>` of the target, with its distance and relative speed. */
 	target: { key: string; distance: number; relativeSpeed: number } | null;
-	/** The vessel docked since the lesson began. */
+	/** A docking port of the vessel is joined. */
 	docked: boolean;
+	/** The target is a docking port (not just a vessel). */
+	targetPort: boolean;
+	/** Stages fired since the flight began. */
+	stagesFired: number;
+	/** A parachute is open (semi or full). */
+	parachute: boolean;
+	/** Dock panels on the rail, and the open one. */
+	panels: readonly string[];
+	openPanel: string | null;
+	/** The running autopilot's id, and the last one's id and outcome. */
+	autopilot: string | null;
+	autopilotLast: { id: string; outcome: string } | null;
+	/** A crew member is outside in a suit, and walking. */
+	eva: boolean;
+	walking: boolean;
+	/** Flags standing in the world. */
+	flags: number;
+	/** Science results stored aboard, and science credited to the world so far. */
+	scienceStored: number;
+	scienceCredited: number;
+	/** Hops on the vessel's comms route (0: no link). */
+	linkHops: number;
+	/** The largest robotic joint travel aboard, degrees (or metres for a piston). */
+	joint: number;
+	/** Robotic joints moved more than 20 from zero. */
+	jointsMoved: number;
+	/** Drive mode (rovers). */
+	drive: boolean;
+	/** Vessels in the world, and how many are debris. */
+	vessels: number;
+	debris: number;
+	/** The Hangar's design, on the Hangar page. */
+	vab: VabLessonState | null;
 }
+
+/** An observation with nothing going on: the defaults a page fills in from what it knows. */
+export const QUIET: LessonObservation = {
+	place: 'flight',
+	body: '',
+	throttle: 0,
+	altitude: 0,
+	surfaceSpeed: 0,
+	landed: false,
+	splashed: false,
+	sasMode: 'off',
+	rcs: false,
+	map: false,
+	warp: 1,
+	apoapsis: null,
+	periapsis: null,
+	nodes: 0,
+	nodePrograde: 0,
+	nodeLeft: null,
+	target: null,
+	docked: false,
+	targetPort: false,
+	stagesFired: 0,
+	parachute: false,
+	panels: [],
+	openPanel: null,
+	autopilot: null,
+	autopilotLast: null,
+	eva: false,
+	walking: false,
+	flags: 0,
+	scienceStored: 0,
+	scienceCredited: 0,
+	linkHops: 0,
+	joint: 0,
+	jointsMoved: 0,
+	drive: false,
+	vessels: 0,
+	debris: 0,
+	vab: null
+};
 
 /** What the flight page has at hand, once per HUD model. */
 export interface LessonInput {
-	vessel: Pick<VesselSnapshot, 'soi' | 'position' | 'velocity' | 'surface' | 'ports'>;
+	vessel: Pick<VesselSnapshot, 'soi' | 'position' | 'velocity' | 'surface' | 'ports'> &
+		Partial<
+			Pick<
+				VesselSnapshot,
+				'id' | 'parts' | 'splashed' | 'science' | 'autopilot' | 'autopilotLast' | 'target'
+			>
+		>;
 	bodies: readonly Pick<BodyDefinition, 'id' | 'rotationPeriod' | 'rotation'>[];
 	throttle: number;
 	altitude: number;
@@ -55,6 +171,35 @@ export interface LessonInput {
 	periapsis: number | null;
 	nodes: readonly { prograde: number; dv: number }[];
 	target: { key: string; distance: number; relativeSpeed: number } | null;
+	stagesFired?: number;
+	panels?: readonly string[];
+	openPanel?: string | null;
+	eva?: { walking: boolean } | null;
+	drive?: boolean;
+	/** The whole snapshot: flags, debris, science credited and the comms route. */
+	snapshot?: Pick<Snapshot, 'vessels'> & Partial<Pick<Snapshot, 'science' | 'network'>>;
+}
+
+const moduleOf = (part: { modules?: Record<string, unknown> }, id: string) =>
+	part.modules?.[id] as Record<string, unknown> | undefined;
+
+/** Counts and totals that come from the whole snapshot (any page). */
+export function observeWorld(
+	snapshot: (Pick<Snapshot, 'vessels'> & Partial<Pick<Snapshot, 'science' | 'network'>>) | null,
+	vessel?: EntityId
+): Pick<LessonObservation, 'flags' | 'vessels' | 'debris' | 'scienceCredited' | 'linkHops'> {
+	if (!snapshot) return { flags: 0, vessels: 0, debris: 0, scienceCredited: 0, linkHops: 0 };
+	const link =
+		vessel === undefined
+			? undefined
+			: snapshot.network?.vessels.find((v) => Number(v.vessel) === Number(vessel));
+	return {
+		flags: snapshot.vessels.filter((v) => v.type === 'flag').length,
+		vessels: snapshot.vessels.filter((v) => v.type !== 'flag').length,
+		debris: snapshot.vessels.filter((v) => v.type === 'debris').length,
+		scienceCredited: (snapshot.science ?? []).reduce((s, x) => s + x.credited, 0),
+		linkHops: link && link.to !== null ? Math.max(1, link.route.length) : 0
+	};
 }
 
 /** The observation of `input` (pure; the flight page calls it on every HUD model). */
@@ -66,12 +211,26 @@ export function observeLesson(input: LessonInput): LessonObservation {
 			? { x: 0, y: 0, z: 0 }
 			: surfaceVelocity(v.position, v.velocity, spinVector(body));
 	const first = input.nodes[0];
+	const parts = v.parts ?? [];
+	const chute = parts.some((p) => {
+		const status = moduleOf(p, 'stock.parachute')?.status;
+		return status === 'semi' || status === 'full';
+	});
+	const travel = parts.flatMap((p) => {
+		const value = moduleOf(p, 'stock.robotic')?.value;
+		return typeof value === 'number' ? [Math.abs(value)] : [];
+	});
+	const last = v.autopilotLast;
 	return {
+		...QUIET,
+		...observeWorld(input.snapshot ?? null, v.id),
+		place: 'flight',
 		body: String(v.soi),
 		throttle: input.throttle,
 		altitude: input.altitude,
 		surfaceSpeed: Math.hypot(ground.x, ground.y, ground.z),
 		landed: v.surface === true,
+		splashed: v.splashed === true,
 		sasMode: input.sasMode,
 		rcs: input.rcs,
 		map: input.map,
@@ -82,8 +241,40 @@ export function observeLesson(input: LessonInput): LessonObservation {
 		nodePrograde: first?.prograde ?? 0,
 		nodeLeft: first ? first.dv : null,
 		target: input.target,
-		docked: (v.ports ?? []).some((p) => !p.free)
+		docked: (v.ports ?? []).some((p) => !p.free),
+		stagesFired: input.stagesFired ?? 0,
+		parachute: chute,
+		panels: input.panels ?? [],
+		openPanel: input.openPanel ?? null,
+		autopilot: v.autopilot?.id ?? null,
+		autopilotLast: last ? { id: last.id, outcome: last.outcome } : null,
+		eva: input.eva != null,
+		walking: input.eva?.walking === true,
+		scienceStored: v.science?.stored?.length ?? 0,
+		joint: Math.max(0, ...travel),
+		jointsMoved: travel.filter((t) => t > 20).length,
+		targetPort: v.target?.kind === 'vessel' && v.target.part !== undefined,
+		drive: input.drive === true
 	};
+}
+
+/** The observation on a page other than Flight: the place, the world's counts, the Hangar. */
+export function observePlace(
+	place: string,
+	snapshot: (Pick<Snapshot, 'vessels'> & Partial<Pick<Snapshot, 'science' | 'network'>>) | null,
+	vab: VabLessonState | null = null
+): LessonObservation {
+	return { ...QUIET, ...observeWorld(snapshot), place, vab };
+}
+
+/** Things a step tells the player to use; a test checks each exists (ADR 0293 point 5). */
+export interface LessonTargets {
+	/** `data-testid`s in the app's source; a trailing `*` matches a prefix (`crew-eva-*`). */
+	testids?: readonly string[];
+	/** Dock panel ids: the host's or a built-in mod's. */
+	panels?: readonly string[];
+	/** Sim commands the step leads to. */
+	commands?: readonly Command['type'][];
 }
 
 export interface LessonStep {
@@ -93,8 +284,10 @@ export interface LessonStep {
 	text: string;
 	touchText?: string;
 	actions?: readonly ActionId[];
+	targets?: LessonTargets;
 	done(o: LessonObservation): boolean;
 }
+
 
 /** One call of the debug API that sets the scene: the function's name and its arguments. */
 export type LessonSetupCall = {
@@ -103,393 +296,69 @@ export type LessonSetupCall = {
 
 /** The in-world pages a lesson can close (the (world) route names). */
 export type LessonPlace =
-	'vab' | 'launch' | 'rnd' | 'administration' | 'astronauts' | 'mods' | 'test-stand';
+	| 'vab'
+	| 'launch'
+	| 'rnd'
+	| 'administration'
+	| 'astronauts'
+	| 'mods'
+	| 'test-stand'
+	| 'space-center'
+	| 'mission-center';
+
+export type LessonLevel = 'basics' | 'flight' | 'advanced';
+
+export const LEVELS: readonly { id: LessonLevel; title: string; summary: string }[] = [
+	{
+		id: 'basics',
+		title: 'Basics',
+		summary: 'Launch, build, reach orbit, change it, come home, find your way round the Space Center.'
+	},
+	{
+		id: 'flight',
+		title: 'Flight',
+		summary: 'Fly with the Guidance Computer, go to the moon, land, walk, do science, stay in touch.'
+	},
+	{
+		id: 'advanced',
+		title: 'Advanced',
+		summary: 'Meet and dock in orbit, drive a rover, move robotic parts, keep orbit tidy.'
+	}
+];
 
 export interface Lesson {
 	id: string;
+	level: LessonLevel;
 	title: string;
 	summary: string;
-	/** The vessel the lesson starts with; it is placed by `setup`. */
-	design(): VesselDesign;
-	/** Debug API calls in order, after the flight starts. `focus` stands for the lesson vessel. */
-	setup: readonly LessonSetupCall[];
+	/** Where the lesson opens (ADR 0293 point 2); Flight when absent. */
+	start?: 'flight' | 'vab' | 'space-center';
+	/** The vessel a Flight lesson starts with; it is placed by `setup`. */
+	design?(content: Content): VesselDesign;
+	/**
+	 * Debug API calls in order, after the flight starts; a function when a call carries a design
+	 * built from the content. `FOCUS` stands for the lesson vessel.
+	 */
+	setup: readonly LessonSetupCall[] | ((content: Content) => readonly LessonSetupCall[]);
 	/** Actions and pages the lesson does not offer, each with the reason shown when tried. */
 	blocked: {
 		actions: Partial<Record<ActionId, string>>;
 		places: Partial<Record<LessonPlace, string>>;
 	};
 	steps: readonly LessonStep[];
-	/** Reaching it ends the lesson, whatever step is showing. */
-	goal(o: LessonObservation): boolean;
+	/** Reaching it ends the lesson, whatever step is showing; without one, the last step does. */
+	goal?(o: LessonObservation): boolean;
 	debrief: string;
 	/** "Try it in your world": what to do next outside the lesson. */
 	hint: string;
 }
 
-const part = (
-	index: number,
-	id: string,
-	parent: number | null,
-	node = 'top',
-	parentNode = 'bottom'
-) => ({
-	index,
-	part: partId(id),
-	parent: parent === null ? null : { index: parent, parentNode, node }
-});
-
-/** A chain of stacked parts, top to bottom. */
-const stack = (name: string, ids: readonly string[]): VesselDesign => ({
-	formatVersion: 3,
-	name,
-	parts: ids.map((id, i) => part(i, id, i === 0 ? null : i - 1)),
-	stages: []
-});
-
-const radialRcs = (from: number, parent: number) =>
-	[0, 1, 2, 3].map((k) => ({
-		index: from + k,
-		part: partId('stock.rcs-block'),
-		parent: {
-			index: parent,
-			parentNode: 'surface',
-			node: 'radial',
-			radial: { angle: (k * Math.PI) / 2, y: 0 }
-		}
-	}));
-
-export const LANDER = (): VesselDesign => ({
-	...stack('Lesson lander', [
-		'stock.command-pod',
-		'stock.reaction-wheel',
-		'stock.tank-small',
-		'stock.engine-lv',
-		'stock.landing-legs'
-	]),
-	stages: [[3, 4]]
-});
-
-export const ORBITER = (): VesselDesign => ({
-	...stack('Lesson orbiter', [
-		'stock.command-pod',
-		'stock.reaction-wheel',
-		'stock.tank-medium',
-		'stock.engine-lv'
-	]),
-	stages: [[3]]
-});
-
-/** A port on the nose, monopropellant with four RCS blocks, and a small engine for the rendezvous. */
-export const CHASER = (): VesselDesign => ({
-	formatVersion: 3,
-	name: 'Lesson chaser',
-	parts: [
-		part(0, 'stock.command-pod', null),
-		part(1, 'stock.docking-port', 0, 'bottom', 'top'),
-		part(2, 'stock.reaction-wheel', 0),
-		part(3, 'stock.monoprop-tank', 2),
-		part(4, 'stock.tank-small', 3),
-		part(5, 'stock.engine-lv', 4),
-		...radialRcs(6, 3)
-	],
-	stages: [[5]]
-});
-
-export const TARGET_PROBE = (): VesselDesign => ({
-	formatVersion: 3,
-	name: 'Lesson target',
-	parts: [
-		part(0, 'stock.probe-core', null),
-		part(1, 'stock.docking-port', 0, 'bottom', 'top'),
-		part(2, 'stock.reaction-wheel', 0)
-	],
-	stages: []
-});
-
-/** Radius of the stock home planet, m: the docking lesson's 2 km lead in mean anomaly. */
-const HOME_RADIUS = 600_000;
-const PARKING = 100_000;
-/** The docking target leads by this much along the orbit, m. */
-export const TARGET_LEAD = 2_000;
-/** The maneuver-node lesson's target orbit, m. */
-export const RAISED_ORBIT = 250_000;
-
-const CLOSED_PLACES: Lesson['blocked']['places'] = {
-	vab: 'The Hangar is closed during a lesson: fly the vessel the lesson gives you.',
-	launch: 'Launching is closed during a lesson: leave it to fly your own rockets.',
-	rnd: 'Research is closed during a lesson.',
-	administration: 'Administration is closed during a lesson.',
-	astronauts: 'The Astronaut Complex is closed during a lesson.',
-	mods: 'Mods cannot change during a lesson.',
-	'test-stand': 'The Test Stand is closed during a lesson.'
-};
-
-export const LESSONS: readonly Lesson[] = [
-	{
-		id: 'landing',
-		title: 'Landing',
-		summary:
-			'From a 30 km arc over Cinder: point retrograde, burn late, and touch down under 3 m/s.',
-		design: LANDER,
-		setup: [
-			{
-				fn: 'setLocation',
-				args: [
-					{
-						kind: 'air',
-						body: 'stock.cinder' as never,
-						latitude: 0,
-						longitude: 0,
-						altitude: 30_000,
-						speed: 250,
-						heading: Math.PI / 2,
-						climb: -0.2
-					}
-				]
-			}
-		],
-		blocked: {
-			actions: {
-				map: 'This lesson is about the ground: the map stays closed. Watch the radar altitude instead.',
-				warpUp: 'No time warp while landing: every second counts.'
-			},
-			places: CLOSED_PLACES
-		},
-		steps: [
-			{
-				id: 'retrograde',
-				title: 'Point retrograde',
-				text: 'You are falling towards Cinder. Press {key:sasRetrograde}: SAS turns the engine to face the way you are moving, so a burn slows you down.',
-				touchText:
-					'You are falling towards Cinder. Tap the retrograde button beside the navball: SAS turns the engine to face the way you are moving.',
-				actions: ['sasRetrograde'],
-				done: (o) => o.sasMode === 'retrograde'
-			},
-			{
-				id: 'brake',
-				title: 'Brake',
-				text: 'Press {key:throttleFull} and burn. Cinder has no air, so only the engine slows you. Watch the speed fall.',
-				touchText: 'Tap Full and burn. Cinder has no air, so only the engine slows you.',
-				actions: ['throttleFull'],
-				done: (o) => o.throttle > 0.5
-			},
-			{
-				id: 'slow',
-				title: 'Slow before the ground',
-				text: 'Get below 50 m/s before 5 km. Ease off with {key:throttleDown} as the speed drops, and press {key:gear} to lower the legs.',
-				touchText:
-					'Get below 50 m/s before 5 km. Ease the throttle down as the speed drops, and lower the legs.',
-				actions: ['gear'],
-				done: (o) => o.surfaceSpeed < 50 && o.altitude < 5_000
-			},
-			{
-				id: 'touchdown',
-				title: 'Touch down',
-				text: 'Hold a gentle descent and touch down under 3 m/s. Cut the throttle with {key:throttleCut} once you stand.',
-				touchText: 'Hold a gentle descent and touch down under 3 m/s. Tap Cut once you stand.',
-				actions: ['throttleCut'],
-				done: (o) => o.landed
-			}
-		],
-		goal: (o) => o.landed && o.body === 'stock.cinder' && o.surfaceSpeed < 3,
-		debrief:
-			'You landed. The burn that ends just as you touch the ground is called a suicide burn: it wastes the least fuel, and leaves the least room for error.',
-		hint: 'In your world, fly to Cinder with a lander that has legs and a few hundred m/s to spare.'
-	},
-	{
-		id: 'nodes',
-		title: 'Maneuver nodes',
-		summary:
-			'From a 100 km orbit: plan a burn with a node, type its Δv, raise the apoapsis and circularise at 250 km.',
-		design: ORBITER,
-		setup: [
-			{ fn: 'setOrbit', args: [{ body: 'stock.home', apoapsis: PARKING, periapsis: PARKING }] }
-		],
-		blocked: {
-			actions: { stage: 'This vessel has one stage: there is nothing to drop in this lesson.' },
-			places: CLOSED_PLACES
-		},
-		steps: [
-			{
-				id: 'map',
-				title: 'Open the map',
-				text: 'Press {key:map}. Your orbit is the line around Home, with its Ap and Pe markers.',
-				touchText: 'Tap Map. Your orbit is the line around Home, with its Ap and Pe markers.',
-				actions: ['map'],
-				done: (o) => o.map
-			},
-			{
-				id: 'node',
-				title: 'Add a node',
-				text: 'Click your orbit line ahead of the vessel and choose Add node. A node is a burn you plan before you fly it.',
-				done: (o) => o.nodes >= 1
-			},
-			{
-				id: 'dv',
-				title: 'Type the Δv',
-				text: 'In the node panel, type a prograde Δv of about 85 m/s. The dashed line shows the orbit after the burn: its Ap rises to about 250 km.',
-				done: (o) => o.nodePrograde >= 50
-			},
-			{
-				id: 'burn',
-				title: 'Fly the node',
-				text: 'Press {key:sasManeuver} to point at the node, warp up to it with {key:warpUp}, and burn when the countdown reaches half the burn time, until the node has no Δv left.',
-				actions: ['sasManeuver', 'warpUp'],
-				done: (o) => (o.apoapsis ?? 0) >= RAISED_ORBIT - 10_000
-			},
-			{
-				id: 'circularise',
-				title: 'Circularise',
-				text: 'At the new Ap, add a second node and type the prograde Δv that lifts Pe to the same height. Fly it the same way.',
-				done: (o) => (o.periapsis ?? -Infinity) >= RAISED_ORBIT - 10_000
-			}
-		],
-		goal: (o) =>
-			(o.periapsis ?? -Infinity) >= RAISED_ORBIT - 10_000 &&
-			(o.apoapsis ?? Infinity) <= RAISED_ORBIT + 60_000,
-		debrief:
-			'Two burns half an orbit apart move you from one circle to another: a Hohmann transfer. A node lets you see the result before you spend the fuel.',
-		hint: 'In your world, plan every orbit change with a node first, and trust the burn timer.'
-	},
-	{
-		id: 'docking',
-		title: 'Rendezvous and docking',
-		summary:
-			'A target probe 2 km ahead: find the closest approach, match velocity, then dock on RCS.',
-		design: CHASER,
-		setup: [
-			{ fn: 'setOrbit', args: [{ body: 'stock.home', apoapsis: PARKING, periapsis: PARKING }] },
-			{
-				fn: 'setOrbit',
-				args: [
-					{
-						body: 'stock.home',
-						apoapsis: PARKING,
-						periapsis: PARKING,
-						m0: TARGET_LEAD / (HOME_RADIUS + PARKING)
-					},
-					{ design: TARGET_PROBE() }
-				]
-			}
-		],
-		blocked: {
-			actions: {
-				warpUp: 'No time warp near another vessel in this lesson: approach in real time.'
-			},
-			places: CLOSED_PLACES
-		},
-		steps: [
-			{
-				id: 'target',
-				title: 'Target the probe',
-				text: 'Press {key:targetNext} until the target is Lesson target. The target card shows its distance and relative speed.',
-				actions: ['targetNext'],
-				done: (o) => o.target?.key.startsWith('vessel:') === true
-			},
-			{
-				id: 'approach',
-				title: 'Find the closest approach',
-				text: 'Open the map with {key:map}. The closest approach markers show where your orbits come nearest; you want them within a few hundred metres.',
-				actions: ['map'],
-				done: (o) => o.map
-			},
-			{
-				id: 'match',
-				title: 'Match velocity',
-				text: 'Point retrograde to the target with {key:sasAntiTarget} and burn gently until the relative speed is under 1 m/s.',
-				actions: ['sasAntiTarget'],
-				done: (o) => o.target !== null && o.target.relativeSpeed < 1
-			},
-			{
-				id: 'rcs',
-				title: 'Switch on RCS',
-				text: 'Press {key:rcsToggle}. RCS thrusters push the vessel without turning it, for the last metres.',
-				actions: ['rcsToggle'],
-				done: (o) => o.rcs
-			},
-			{
-				id: 'close',
-				title: 'Close in',
-				text: 'Point at the target with {key:sasTarget} and translate forward with {key:translateForward}. Keep the closing speed under 1 m/s until 50 m.',
-				actions: ['sasTarget', 'translateForward'],
-				done: (o) => o.target !== null && o.target.distance < 50
-			},
-			{
-				id: 'dock',
-				title: 'Dock',
-				text: 'Line up the ports and drift in at 0.2 to 0.5 m/s. The ports capture on contact.',
-				done: (o) => o.docked
-			}
-		],
-		goal: (o) => o.docked,
-		debrief:
-			'Docked. Rendezvous is two orbits brought together; docking is the last few metres, slow and straight. Once you know how, the Guidance Computer can fly it: its Rendezvous tab brings you from anywhere in orbit to 150 m of the target, and Auto Dock does the last metres.',
-		hint: 'In your world, launch a target first, then a second vessel with a docking port and RCS. Target it, stage, and press Engage on the Rendezvous tab of the Guidance Computer; with "Dock when close" on and a port targeted, it hands over to Auto Dock.'
-	},
-	{
-		id: 'transfer',
-		title: 'Transfer to Cinder',
-		summary:
-			'From a parking orbit: wait for the window, place a node at it, warp, burn, and change sphere of influence.',
-		design: ORBITER,
-		setup: [
-			{ fn: 'setOrbit', args: [{ body: 'stock.home', apoapsis: PARKING, periapsis: PARKING }] }
-		],
-		blocked: {
-			actions: { stage: 'This vessel has one stage: there is nothing to drop in this lesson.' },
-			places: CLOSED_PLACES
-		},
-		steps: [
-			{
-				id: 'map',
-				title: 'Open the map',
-				text: 'Press {key:map} and find Cinder, the moon, on its own orbit around Home.',
-				touchText: 'Tap Map and find Cinder, the moon, on its own orbit around Home.',
-				actions: ['map'],
-				done: (o) => o.map
-			},
-			{
-				id: 'target',
-				title: 'Target Cinder',
-				text: 'Press {key:targetNext} until Cinder is the target. Upcoming in the Mission Center shows the next transfer window.',
-				actions: ['targetNext'],
-				done: (o) => o.target?.key === 'body:stock.cinder'
-			},
-			{
-				id: 'node',
-				title: 'Place the node at the window',
-				text: 'Add a node where the window is and type about 860 m/s prograde. Move it along your orbit until the dashed line meets Cinder.',
-				done: (o) => o.nodes >= 1 && o.nodePrograde >= 500
-			},
-			{
-				id: 'warp',
-				title: 'Warp to the node',
-				text: 'Press {key:warpUp} to speed up time. Warp stops before the node.',
-				actions: ['warpUp'],
-				done: (o) => o.warp > 1
-			},
-			{
-				id: 'burn',
-				title: 'Burn',
-				text: 'Point at the node with {key:sasManeuver} and burn until the node has no Δv left.',
-				actions: ['sasManeuver'],
-				done: (o) => o.nodeLeft !== null && o.nodeLeft < 20
-			},
-			{
-				id: 'soi',
-				title: "Enter Cinder's sphere",
-				text: 'Warp ahead. When the vessel enters Cinder’s sphere of influence, the orbit is drawn around Cinder.',
-				done: (o) => o.body === 'stock.cinder'
-			}
-		],
-		goal: (o) => o.body === 'stock.cinder',
-		debrief:
-			'You left Home’s sphere for Cinder’s. Every transfer is the same idea: burn at the window so your new orbit meets the destination.',
-		hint: 'In your world, plan the transfer burn with a node at the window shown in Upcoming.'
-	}
-];
+export const LESSONS: readonly Lesson[] = [...BASIC_LESSONS, ...FLIGHT_LESSONS, ...ADVANCED_LESSONS];
 
 export const lessonOf = (id: string): Lesson | undefined => LESSONS.find((l) => l.id === id);
+
+export const lessonsOfLevel = (level: LessonLevel): readonly Lesson[] =>
+	LESSONS.filter((l) => l.level === level);
 
 export const NEW_LESSON: LessonProgress = { status: 'new', step: 0 };
 
@@ -509,7 +378,7 @@ export function advanceLesson(
 	o: LessonObservation
 ): LessonProgress {
 	if (progress.status === 'done') return progress;
-	if (lesson.goal(o)) return { status: 'done', step: lesson.steps.length };
+	if (lesson.goal?.(o)) return { status: 'done', step: lesson.steps.length };
 	const step = lesson.steps[progress.step];
 	if (!step) return { status: 'done', step: lesson.steps.length };
 	if (step.done(o)) {
@@ -528,15 +397,33 @@ export const restartLesson = (): LessonProgress => ({ status: 'active', step: 0 
 export const lessonLabel = (lesson: Lesson, progress: LessonProgress): string =>
 	progress.status === 'done' ? 'Done' : `${progress.step + 1} of ${lesson.steps.length}`;
 
+/** `value` with every `FOCUS` replaced by `focus` (deep, plain data only). */
+function withFocus(value: unknown, focus: EntityId | null): unknown {
+	if (value === FOCUS) return focus;
+	if (Array.isArray(value)) return value.map((v) => withFocus(v, focus));
+	if (value && typeof value === 'object' && Object.getPrototypeOf(value) === Object.prototype)
+		return Object.fromEntries(
+			Object.entries(value).map(([k, v]) => [k, withFocus(v, focus)])
+		);
+	return value;
+}
+
+/** The lesson's setup calls for `content`. */
+export const setupOf = (lesson: Lesson, content: Content): readonly LessonSetupCall[] =>
+	typeof lesson.setup === 'function' ? lesson.setup(content) : lesson.setup;
+
 /** Runs the lesson's setup calls in order; the first refusal stops it with its reason. */
 export async function runLessonSetup(
 	lesson: Lesson,
-	api: DebugApi
+	api: DebugApi,
+	content: Content
 ): Promise<{ ok: true } | { ok: false; reason: string }> {
-	for (const call of lesson.setup) {
+	for (const call of setupOf(lesson, content)) {
 		const fn = api[call.fn] as (...args: unknown[]) => unknown;
-		const result = (await fn.apply(api, call.args as unknown[])) as
-			{ ok: boolean; reason?: string } | undefined;
+		const args = JSON.stringify(call.args).includes(String(FOCUS))
+			? (withFocus(call.args, api.vessel()?.id ?? null) as unknown[])
+			: (call.args as unknown[]);
+		const result = (await fn.apply(api, args)) as { ok: boolean; reason?: string } | undefined;
 		if (result && result.ok === false) {
 			return { ok: false, reason: `${call.fn}: ${result.reason ?? 'refused'}` };
 		}
@@ -557,3 +444,7 @@ export function blockedPlace(lesson: Lesson, path: string): string | null {
 		.at(-1) as LessonPlace;
 	return lesson.blocked.places[name] ?? null;
 }
+
+/** The page a lesson opens on, as a (world) route. */
+export const lessonStart = (lesson: Lesson): 'flight' | 'vab' | 'space-center' =>
+	lesson.start ?? 'flight';

@@ -121,6 +121,7 @@
 	import {
 		advanceLesson,
 		lessonOf,
+		lessonStart,
 		lessonStep,
 		NEW_LESSON,
 		observeLesson,
@@ -161,6 +162,8 @@
 	import PrecompileBadge from '../../../lib/ui/PrecompileBadge.svelte';
 	import type { PrecompileProgress } from '@orbital/renderer/precompile-progress';
 	import { loadContent, partLookup } from '../../../lib/catalog';
+	import { modKeyRows } from '../../../lib/mod-keys';
+	import type { KeybindingDefinition } from '@orbital/core';
 	import type { SimSave, VesselDesign, VesselPlacement } from '@orbital/core';
 	import { parseDesign } from '../../../lib/design';
 	import { startFlight, type Flight, type FlightHud } from '../../../lib/flight-loop';
@@ -452,7 +455,11 @@
 	let debugHost = $state.raw<DebugHost | null>(null);
 	// a lesson world (plan 229): its lesson, whether its scene is set, and why a setup failed
 	const lessonRun = activeLesson();
-	const lesson = lessonRun ? (lessonOf(lessonRun.lesson) ?? null) : null;
+	// a lesson that opens in Flight (ADR 0293 point 2); the Hangar's and Space Center's run elsewhere
+	const lessonFound = lessonRun ? (lessonOf(lessonRun.lesson) ?? null) : null;
+	const lesson = lessonFound && lessonStart(lessonFound) === 'flight' ? lessonFound : null;
+	/** The content the lesson's vessel and scene are built from. */
+	let lessonContent: ReturnType<typeof loadContent>['content'] | null = null;
 	let lessonReady = $state(lessonRun?.ready === true);
 	let lessonProblem = $state<string | null>(null);
 	let lessonSetting = false;
@@ -779,12 +786,14 @@
 			catalog,
 			content,
 			panels,
+			keybindings,
 			missions,
 			objectiveLabels,
 			actionGroups,
 			categories,
 			world: worldContent
 		} = loadContent();
+		modKeybindings = keybindings;
 		siteBuildings = worldContent.buildings;
 		vesselContent = {
 			parts: content.parts,
@@ -835,6 +844,8 @@
 	 */
 	/** The world's buildings, so the launch site draws what the player built (ADR 0117). */
 	let siteBuildings: ReturnType<typeof loadContent>['world']['buildings'] | undefined;
+	/** Mod keybindings of the loaded content (plan 343). */
+	let modKeybindings: KeybindingDefinition[] = [];
 
 	async function startFlightOf(
 		loadId: string | null,
@@ -879,9 +890,10 @@
 			} else if (!launch && !worldSession.base && (start = await scenarioOfWorld())) {
 				// a world made from a scenario starts its first flight from it (plan 100, ADR 0151)
 				design = start.design;
-			} else if (!launch && lesson) {
+			} else if (!launch && lesson?.design) {
 				// a lesson flies its own vessel; the setup puts it where the lesson starts (plan 229)
-				design = lesson.design();
+				design = lesson.design(content);
+				lessonContent = content;
 			} else {
 				const text = loadDraft();
 				if (text === null) {
@@ -1053,6 +1065,8 @@
 				lesson
 					? lessonKeymap(settings.keymap, lesson, (reason) => lessonNotice.show(reason))
 					: settings.keymap,
+			// mod keys with the player's overrides (plan 343, ADR 0292 point 6)
+			modKeys: () => modKeyRows(modKeybindings, settings.modKeys, settings.keymap),
 			cameraMode: loadCameraMode(),
 			...(start
 				? {}
@@ -1470,11 +1484,11 @@
 	// ---- lessons (plan 229) ----------------------------------------------------------------------
 	/** Sets the lesson's scene through the debug API, once per lesson world. */
 	async function setLessonScene(): Promise<void> {
-		if (!lesson || !debugHost) return;
+		if (!lesson || !debugHost || !lessonContent) return;
 		lessonSetting = true;
 		// the clock is held while the scene is set and until Begin, so nothing moves before the player reads
 		worldSession.hold('lesson', true);
-		const result = await runLessonSetup(lesson, createDebugApi(debugHost));
+		const result = await runLessonSetup(lesson, createDebugApi(debugHost), lessonContent);
 		lessonSetting = false;
 		if (!result.ok) {
 			lessonProblem = `The lesson could not set its scene (${result.reason}).`;
@@ -1497,10 +1511,17 @@
 	const lessonObservation = $derived.by((): LessonObservation | null => {
 		if (!lesson || !lessonReady || !lessonBegun) return null;
 		if (!hud || hud.status !== 'flying' || !model || !debugHost) return null;
-		const v = flight?.panelInput()?.vessel;
+		const input = flight?.panelInput();
+		const v = input?.vessel;
 		if (!v) return null;
 		return observeLesson({
 			vessel: v,
+			snapshot: input.snapshot,
+			stagesFired: model.stagesFired,
+			panels: settings.dock.panels,
+			openPanel: settings.dock.open,
+			eva: hud.eva,
+			drive: hud.drive === true,
 			bodies: debugHost.bodies(),
 			throttle: model.throttle,
 			altitude: model.altitude,
