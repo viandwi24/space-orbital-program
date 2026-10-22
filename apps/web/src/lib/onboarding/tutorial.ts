@@ -89,7 +89,7 @@ export const TUTORIAL_STEPS: readonly TutorialStep[] = [
 		id: 'launch',
 		scene: 'vab',
 		title: 'Launch it',
-		text: 'The checklist on the right should show no red items. Press Launch at the bottom right. An empty hangar offers the Two-stage example, a rocket that reaches orbit.',
+		text: 'The checklist on the right should show no red items. Press the white LAUNCH button at the top right. An empty hangar offers the Two-stage example, a rocket that reaches orbit.',
 		done: (o) => o.scene === 'flight'
 	},
 	{
