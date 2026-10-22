@@ -287,3 +287,4 @@ An ADR records one decision, its context, and its consequences. ADRs are **appen
 | 0298 | [The Space Center's Buildings list is a strip of cards along the bottom](0298-space-center-buildings-strip.md) | accepted | 2026-10-22 |
 | 0299 | [An empty Hangar opens with "Start a vessel": recommended blueprints or Build my own](0299-hangar-start-modal.md) | accepted | 2026-10-22 |
 | 0301 | [Symmetry about the parent or the vessel axis; re-rooting rewrites each link from the other side](0301-symmetry-pivot-and-reroot-through-side-links.md) | accepted | 2026-10-22 |
+| 0302 | [The programs list is a modal popover with Open panel, Vessel and Stop](0302-programs-popover.md) | accepted | 2026-10-22 |
