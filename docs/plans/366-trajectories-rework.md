@@ -1,7 +1,7 @@
 ---
 id: 366
 title: "Trajectories helps instead of cluttering: when it shows, how it looks, its settings"
-status: in-progress
+status: done
 owner: "mod world API session (Claude)"
 depends: [347]
 phase: 0
@@ -34,15 +34,16 @@ The Trajectories path appears only when it helps: never on the ground or the pad
 
 ## Acceptance criteria
 
-- [ ] `bun test mods/trajectories`: pad, ascent (fade 1–2 km, descending-only), orbit, re-entry, landed; the arc's pieces; the settings and a map pick through the sim.
-- [ ] web vitest: the pick node and the tool.
-- [ ] A screenshot of a re-entry arc in Flight.
-- [ ] `bun run typecheck`, `bun run docs:check` pass.
+- [x] `bun test mods/trajectories`: pad, ascent (fade 1–2 km, descending-only), orbit, re-entry, landed; the arc's pieces; the settings and a map pick through the sim.
+- [x] web vitest: the pick node and the tool.
+- [x] A screenshot of a re-entry arc in Flight.
+- [x] `bun run typecheck`, `bun run docs:check` pass.
 
 ## Docs checklist
 
-- [ ] ADR 0307; guide (Trajectories, the `pick` node, `mod-key` data, hidden keys); STATUS; journal 366.
+- [x] ADR 0307; guide (Trajectories, the `pick` node, `mod-key` data, hidden keys); STATUS; journal 366.
 
 ## Log
 
 - 2026-10-22 — Started from c36ba3df.
+- 2026-10-22 — Done. `bun test mods/trajectories packages/core/test`: 397 pass, 0 fail (the drop: 92 s over 78.4 km predicted, 91 s flown, 920 m off). Web vitest dock, mods, mod-keys, mod-overlays: 59 pass. svelte-check 0 errors; package typechecks clean; `bun run docs:check` OK. Renderer `overlay-layer.test.ts` passes after the label offset. Screenshots: `journal/assets/366-trajectories-reentry.png`, `366-trajectories-pad.png`.
