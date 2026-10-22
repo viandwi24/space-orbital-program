@@ -17,7 +17,14 @@ import Stock from '@orbital/mod-stock';
 import AutoDockMod from '@orbital/mod-autodock';
 import { createRapierBackend } from '@orbital/physics';
 import { createSim, type Sim } from '@orbital/sim';
-import GuidanceMod, { HOLD_DISTANCE, GuidancePanel, aimBurn, phasingBurn } from '../src/index.ts';
+import GuidanceMod, {
+	HOLD_DISTANCE,
+	GuidancePanel,
+	MAX_PHASING_WAIT,
+	aimBurn,
+	phasingBurn,
+	tooLowToPhase
+} from '../src/index.ts';
 
 type Part = VesselDesign['parts'][number];
 const link = (index: number, part: string, parent: number, parentNode = 'bottom'): Part => ({
@@ -174,6 +181,43 @@ describe('rendezvous helpers', () => {
 		expect(p.dv).toBeLessThan(0); // lower and faster
 		expect(Math.abs(p.dv)).toBeLessThan(10);
 	});
+	describe('phasing low over the air (plan 333)', () => {
+		const floor = 680_000; // 600 km radius, air to 70 km, 10 km margin
+		const at = (r: number, angle: number) => {
+			const o = onOrbit(mu, r, angle);
+			return { r: o.position, v: o.velocity };
+		};
+		/** Both apsides of the phasing orbit after the burn, m from the centre. */
+		const apsides = (r: number, dv: number) => {
+			const v = Math.sqrt(mu / r) + dv;
+			const a = 1 / (2 / r - (v * v) / mu);
+			return [r, 2 * a - r];
+		};
+		test('1 km above the floor, the target 30° ahead: it raises and lets the target come round', () => {
+			const r = floor + 1_000;
+			const p = phasingBurn(at(r, 0), at(r, Math.PI / 6), mu, r, floor)!;
+			expect(p).toBeDefined();
+			expect(p.dv).toBeGreaterThan(0);
+			expect(Math.min(...apsides(r, p.dv))).toBeGreaterThanOrEqual(floor);
+			expect(p.flight).toBeLessThanOrEqual(MAX_PHASING_WAIT);
+		});
+		test('5 km above the floor, 30° ahead: a phasing orbit that stays above the floor', () => {
+			const r = floor + 5_000;
+			const p = phasingBurn(at(r, 0), at(r, Math.PI / 6), mu, r, floor)!;
+			expect(p).toBeDefined();
+			expect(Math.min(...apsides(r, p.dv))).toBeGreaterThanOrEqual(floor - 1);
+		});
+		test('the target 30° behind: it raises', () => {
+			const r = floor + 5_000;
+			const p = phasingBurn(at(r, 0), at(r, -Math.PI / 6), mu, r, floor)!;
+			expect(p.dv).toBeGreaterThan(0);
+		});
+		test('below the floor nothing fits, and the words say how high to go', () => {
+			expect(phasingBurn(at(670_000, 0), at(670_000, 0.5), mu, 670_000, floor)).toBeUndefined();
+			expect(tooLowToPhase(80_000)).toBe('Too low to phase: raise your orbit above 100 km first (Orbit tab).');
+		});
+	});
+
 	test('the aimed burn reaches a point a quarter turn on', () => {
 		const r = 700_000;
 		const own = { r: { x: r, y: 0, z: 0 }, v: { x: 0, y: 0, z: -Math.sqrt(mu / r) } };

@@ -25,3 +25,7 @@ sim: engage at 40 km circular → { ok: false, reason: "Reach a stable orbit fir
 ## Open questions
 
 - No "engine running" hint: the snapshot carries no throttle; the time bar already says why the warp is limited.
+
+## Follow-up: phasing low over the air (same day)
+
+The owner hit "No phasing orbit stays clear of the ground." `phasingBurn` only caught up from behind (a lower, faster orbit), and a vessel just above the floor (top of the air + 10 km) has no room to drop. It now also tries the other way (a higher, slower orbit for k turns while the target laps round: period `(2π(k+1) − lead) / (k·nT)`), k up to 20 within 10 days, and takes the first cheap one, else the cheapest. When nothing fits (the vessel itself below the floor) the abort says "Too low to phase: raise your orbit above X km first (Orbit tab)" and the Rendezvous tab offers "Open Orbit". Tests: 1 km above the floor with the target 30° ahead raises; 5 km above stays above the floor; 30° behind raises; below the floor, the words. `bun test mods/guidance`: 29 pass.

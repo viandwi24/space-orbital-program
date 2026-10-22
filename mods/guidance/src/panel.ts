@@ -275,6 +275,10 @@ const rdvStep = (phase: string): number =>
 	phase === 'phasing' || phase === 'correct' ? 1 : Math.max(0, RDV_STEPS.indexOf(phase));
 const rendezvousTab: PanelNode[] = [
 	status(RDV, 'Target a vessel or a docking port, then engage: it stops 100–200 m away, at rest.', (i) => {
+		const last = i.vessel?.autopilotLast;
+		// the last run stopped too low to phase: the Orbit tab raises it
+		if (last?.id === Rendezvous.id && last.reason.startsWith('Too low to phase'))
+			return { label: 'Open Orbit', tab: 'orbit' };
 		const next = rdvReadiness(i).next;
 		return next === 'ascent'
 			? { label: 'Open Ascent', tab: 'ascent' }

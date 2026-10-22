@@ -319,10 +319,15 @@ export function aimBurn(
 	return { burn: dv, miss: length(m0) };
 }
 
+/** The longest phasing wait it plans, s (10 days). */
+export const MAX_PHASING_WAIT = 10 * 86_400;
+
 /**
  * A phasing orbit (both in one orbit): the prograde burn at `tb` after which, `k` turns later, the
- * vessel is back where it burnt as the target gets there. The smallest `k` whose two burns are
- * cheap; the periapsis stays above `floor`. Undefined when none fits.
+ * vessel is back where it burnt as the target gets there. Two ways round (plan 333): lower and
+ * faster to catch a target ahead, or higher and slower to let it come round from behind; each with
+ * `k` turns up to the wait limit. The first (fewest turns) whose two burns are cheap, else the
+ * cheapest; the whole orbit stays above `floor`. Undefined when none fits.
  */
 export function phasingBurn(
 	own: StateVector,
@@ -334,23 +339,36 @@ export function phasingBurn(
 	const h = unit(cross(own.r, own.v));
 	const u1 = unit(own.r);
 	const u2 = unit(target.r);
-	const theta = Math.atan2(dot(cross(u1, u2), h), dot(u1, u2)); // the target leads by theta
+	// how far the target leads, 0..2π
+	const lead = (Math.atan2(dot(cross(u1, u2), h), dot(u1, u2)) + 2 * Math.PI) % (2 * Math.PI);
 	const nT = Math.sqrt(mu / (targetA * targetA * targetA));
 	const rb = length(own.r);
 	const speed = length(own.v);
+	if (rb < floor) return undefined;
+	const cheap = Math.max(20, 0.01 * speed);
 	let best: { dv: number; turns: number; flight: number } | undefined;
-	for (let k = 1; k <= 8; k++) {
-		const tp = (2 * Math.PI * k - theta) / (k * nT);
-		const ap = Math.cbrt(mu * (tp / (2 * Math.PI)) ** 2);
-		const other = 2 * ap - rb;
-		if (other < floor || other > 3 * rb) continue;
-		const dv = visViva(mu, rb, ap) - speed;
-		const option = { dv, turns: k, flight: k * tp };
-		if (2 * Math.abs(dv) <= Math.max(20, 0.01 * speed)) return option;
-		if (!best || Math.abs(dv) < Math.abs(best.dv)) best = option;
+	for (let k = 1; k <= 20; k++) {
+		let first: { dv: number; turns: number; flight: number } | undefined;
+		// laps = k: catch up from behind (lower); laps = k + 1: let the target lap round (higher)
+		for (const laps of [k, k + 1]) {
+			const tp = (2 * Math.PI * laps - lead) / (k * nT);
+			if (!(tp > 0) || k * tp > MAX_PHASING_WAIT) continue;
+			const ap = Math.cbrt(mu * (tp / (2 * Math.PI)) ** 2);
+			const other = 2 * ap - rb;
+			if (other < floor || other > 3 * rb) continue;
+			const option = { dv: visViva(mu, rb, ap) - speed, turns: k, flight: k * tp };
+			if (!first || Math.abs(option.dv) < Math.abs(first.dv)) first = option;
+		}
+		if (!first) continue;
+		if (2 * Math.abs(first.dv) <= cheap) return first;
+		if (!best || Math.abs(first.dv) < Math.abs(best.dv)) best = first;
 	}
 	return best;
 }
+
+/** The plain words when no phasing orbit fits: raise the orbit first (the Orbit tab). */
+export const tooLowToPhase = (floorAltitude: number): string =>
+	`Too low to phase: raise your orbit above ${Math.ceil((floorAltitude + 20_000) / 1000)} km first (Orbit tab).`;
 
 /** Rough delta-v still needed from here: plane, transfer, match and the close phase, m/s. */
 function estimateNeeded(own: StateVector, target: Target, mu: number): number {
@@ -644,7 +662,7 @@ function plan(
 	if (Math.abs(oOwn.a - oT.a) / oT.a < COORBITAL && oOwn.e < 0.01) {
 		const tb = now + LEAD;
 		const phasing = phasingBurn(ownAt(tb), targetAt(tb), mu, oT.a, floor);
-		if (!phasing) return { phase: 'plan', abort: 'No phasing orbit stays clear of the ground.' };
+		if (!phasing) return { phase: 'plan', abort: tooLowToPhase(floor - radius) };
 		pilot.addNode(tb, phasing.dv, 0, 0);
 		m.arrival = tb + phasing.flight;
 		return planned(
