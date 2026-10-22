@@ -134,6 +134,11 @@ What exists, what is missing, and what fits. File references are to `packages/re
 - The 900 MB readings are garbage between collections (§2). Cutting the per-frame churn (§5 items 4–5) lowers the peak.
 - GPU memory is mostly the render targets. By arithmetic, not a measurement: one half-float colour target at 3024 × 1890 is 46 MB, twice that with 2× MSAA, plus depth and the post chain's targets. At `medium` (2268 × 1417) each is about 56 % of that. A 2048² depth shadow map is 16 MB. Plan 368's frame capture should read the real figure.
 - Nothing disposes shared part geometries until the world ends, by design (they are cached by definition).
+- Plan 364's planet bake (report of 2026-10-22, measured by that session on the M5):
+  - two RGBA8 atlases of 20 / 76 / 164 MB (low / medium / high), the largest single GPU allocation per preset;
+  - the WebGPU planet pass now samples about 14 of its 16 allowed textures: any new texture input there must replace one, or the pipeline fails (black view);
+  - orbit at `high` went from 21.6 to 21.1 ms GPU on WebGPU; WebGL at 100 km went from 56.1 to 60.7 ms.
+- Measuring: short `benchmarkAsync(6)` runs scatter from 0.1× to 2×. Use medians of several 20-frame runs, or the frame intervals of `measure-auto-quality.ts`.
 
 ## 5. Ranked
 
