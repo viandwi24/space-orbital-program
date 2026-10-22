@@ -152,6 +152,36 @@ export function petals(ctx: GenContext): GeneratedPart {
 	return { dynamic: pieces(ctx, list) };
 }
 
+/**
+ * One petal thrown off (plan 345): the quarter `quarter` of the petals' cone, drawn round the
+ * debris part's own origin, which starts at the quarter's middle just outside the shell
+ * (`radius` + 0.45 m along it), as `ModuleBay`'s jettison places it.
+ */
+export function petalPanel(ctx: GenContext): void {
+	const { builder: b } = ctx;
+	const H = 3.5;
+	const band = 0.05;
+	const R = ctx.param('radius', 1.875, 0.3, 10);
+	const top = ctx.param('top', R * 0.6, 0.2, R);
+	const quarter = Math.round(ctx.param('quarter', 0, 0, 3));
+	const sweep = Math.PI / 2;
+	const mid = (quarter + 0.5) * sweep;
+	const out = R + 0.45;
+	b.revolveAt(
+		'paint-primary',
+		[0, 1, 2, 3].map((k) => {
+			const t = k / 3;
+			return { r: (R + (top - R) * t) * 0.99, y: -H / 2 + band + (H - 2 * band) * t };
+		}),
+		[-Math.sin(mid) * out, 0, -Math.cos(mid) * out],
+		{
+			segments: Math.max(4, Math.round(b.segments / 3)),
+			phiStart: mid - sweep / 2 + 0.005,
+			phiLength: sweep - 0.01
+		}
+	);
+}
+
 /** A multi-coupler: a domed plate with `params.ways` skirts under it (2, 3 or 4). */
 export function coupler(ctx: GenContext): void {
 	const { radius: R, height: H, builder: b } = ctx;

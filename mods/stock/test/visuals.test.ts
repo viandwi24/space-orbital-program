@@ -83,7 +83,8 @@ const KINDS = [
 	'rover-chassis',
 	'light-panel',
 	'light-angled',
-	'light-nav'
+	'light-nav',
+	'petal-panel'
 ];
 
 const parts = () => loadPlugins([Stock]).registries.parts.list();

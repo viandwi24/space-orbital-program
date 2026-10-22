@@ -181,14 +181,17 @@ export const MISSION_BLUEPRINTS: readonly MissionBlueprint[] = [
 			b.side('stock.fin', sic, Math.PI / 4, -0.7, 4);
 			// the Apollo sequence, one press each (owner, 2026-10-22: the lander engines lit at launch):
 			// S-IC; S-II and the tower; S-IVB (orbit, then the burn to the moon); the command ship
-			// leaves the S-IVB and the petals open (turn round, dock with the lander); the lander is
-			// released; the descent engine; the ascent stage leaves the descent stage; the capsule
-			// leaves the service module; the parachutes
+			// leaves the S-IVB and the petals are thrown off, with no engine burning (owner, 2026-10-21:
+			// the payload looked flung away when the service engine lit in the same press); the
+			// service engine (turn round, dock with the lander); the lander is released; the descent
+			// engine; the ascent stage leaves the descent stage; the capsule leaves the service
+			// module; the parachutes
 			return b.done([
 				[sicEngine],
 				[d1, siiEngine, tower],
 				[d2, sivbEngine],
-				[smDec, petals, smEngine],
+				[smDec, petals],
+				[smEngine],
 				[lmRelease],
 				[descent],
 				[lmStage, ascent],

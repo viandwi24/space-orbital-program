@@ -273,4 +273,46 @@ describe('mission flights (plans 307, 309)', () => {
 			sim.dispose();
 		}
 	}, 180_000);
+
+	// owner, 2026-10-21: opening the bay flung its payload; the petals are single use (plan 345)
+	it('the Kronos petals are thrown off: four panels leave, the lander stays, nothing is pushed', async () => {
+		const design = blueprint('kronos-selene');
+		const petals = indexOf(design, 'stock.payload-petals');
+		const keep = subtreeOf(design, petals);
+		const sim = await newSim();
+		try {
+			// far out: gravity is a rounding error over the second measured
+			const id = place(
+				sim,
+				piece(design, keep, [[petals]]),
+				'stock.home',
+				{ x: 0, y: 4e8, z: 0 },
+				{ x: 0, y: 0, z: 0 }
+			);
+			const main = () => sim.snapshot().vessels.find((v) => Number(v.id) === id)!;
+			run(sim, 0.5);
+			const before = main();
+			const parts = before.parts.length;
+			expect(sim.dispatch({ type: 'stage', vessel: before.id }).ok).toBe(true);
+			run(sim, 2);
+			const after = main();
+			const dv = Math.hypot(
+				after.velocity.x - before.velocity.x,
+				after.velocity.y - before.velocity.y,
+				after.velocity.z - before.velocity.z
+			);
+			expect(dv).toBeLessThan(0.05);
+			// the lander is still on board, and the four panels are debris of their own
+			expect(after.parts.length).toBe(parts);
+			expect(after.parts.some((p) => p.definition === 'stock.lander-ascent')).toBe(true);
+			const panels = sim
+				.snapshot()
+				.vessels.filter((v) => v.parts.some((p) => p.definition.startsWith('stock.petal-panel-')));
+			expect(panels).toHaveLength(4);
+			const bay = after.parts.find((p) => p.definition === 'stock.payload-petals')!;
+			expect(bay.modules['stock.bay']).toMatchObject({ open: true, jettisoned: true });
+		} finally {
+			sim.dispose();
+		}
+	}, 120_000);
 });

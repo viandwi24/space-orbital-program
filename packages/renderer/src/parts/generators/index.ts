@@ -20,7 +20,7 @@ import { noseCone } from './nose-cone.ts';
 import { parachute } from './parachute.ts';
 import { probe } from './probe.ts';
 import { antennaDish, antennaRelay, antennaWhip, container, instrument } from './comms.ts';
-import { coupler, hub, lattice, petals, serviceBay, truss } from './bays.ts';
+import { coupler, hub, lattice, petals, serviceBay, truss, petalPanel } from './bays.ts';
 import { battery, fuelCell, rtg, solarArray, solarFlat, solarFold, solarWings } from './power.ts';
 import { deltaWing, escapeTower, externalTank, orbiterAft, orbiterNose } from './shuttle.ts';
 import { hingeJoint, pistonJoint, rotaryJoint } from './robotic.ts';
@@ -107,6 +107,7 @@ export function registerStockGenerators(): void {
 	registerPartGenerator('coupler', coupler);
 	registerPartGenerator('truss', truss);
 	registerPartGenerator('hub', hub);
+	registerPartGenerator('petal-panel', petalPanel);
 	registerPartGenerator('lattice', lattice);
 	// plans 296–300: spacecraft
 	registerPartGenerator('headlight', headlight);

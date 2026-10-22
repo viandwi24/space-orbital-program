@@ -274,6 +274,7 @@
 | 340 | [One renderer for the world session, warm-up at world load, loading screen](plans/340-world-renderer-warm-up-and-loading-screen.md) | done | world renderer session | ADR 0290. Flight, Mission Center and Space Center share one renderer and canvas owned by the `(world)` layout; every view is drawn once behind a loading screen when the world loads. Page switches went from 1.5–2.8 s (WebGPU) and 0.2–0.4 s (WebGL) worst frames to 19 ms. Journal 340. |
 | 341 | [Stylised crew character](plans/341-stylised-crew-character.md) | done | crew character session | ADR 0291. The NOVA chibi astronaut for every person: EVA suit, 10 Hangar walkers, 6 Space Center staff, one skinned mesh each on one material; 12 outfits as data, looks from the crew id, 8 expressions, 1.7 m tall; portraits in the Astronaut Complex and crew seats; `/dev/crew`. Journal 341. |
 | 342 | [The first map toggle and the last hitch after loading](plans/342-first-map-toggle-and-post-load-hitch.md) | draft | | Plan 340's leftovers: about 150 ms on the first Flight → Map, one 567 ms frame on WebGPU after the loading screen. |
+| 345 | [Single-use petals thrown off; Kronos V separates without a burn](plans/345-petals-jettison-and-kronos-staging.md) | done | part visuals session | Owner's reports: the payload looked flung (the service engine lit in the separation stage) and the petals should come off. `stock.bay` `jettison`: four panel debris, pushes that cancel; `deploy.gone`; the cargo bay keeps its doors. Journal 345. |
 
 Statuses: `draft` (needs refinement before an agent takes it) · `ready` · `in-progress` · `done` · `blocked`.
 
@@ -341,6 +342,7 @@ Existing drafts realigned on 2026-10-17: 063 (runway building), 065, 066, 067, 0
 
 ## Recent journal entries
 
+- [345 — Petals thrown off](journal/345-petals-jettison-and-kronos-staging.md)
 - [333 — Rendezvous readiness and the next step](journal/333-rendezvous-readiness-and-next-step.md)
 - [332 — Guidance Computer panel with tabs](journal/332-guidance-panel-tabs.md)
 - [340 — One renderer for the world, warm-up and a loading screen](journal/340-world-renderer-warm-up-and-loading-screen.md)

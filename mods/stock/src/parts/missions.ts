@@ -448,10 +448,29 @@ export const PartServiceBayWide = bay(
 );
 export const PartCargoBay = bay('stock.cargo-bay', 'OrbitX RS-CB25 "Hold"', 2.5, 4, 1_500, true);
 
+/** The petals' four panels as debris once thrown off (plan 345), one per quarter from +Z round. */
+const PETAL_PANELS = [0, 1, 2, 3].map((i) =>
+	definePart({
+		id: `stock.petal-panel-${i}`,
+		title: 'Petal panel',
+		mass: kg(225),
+		cost: 0,
+		impactTolerance: 8,
+		shape: { kind: 'box', size: [0.4, 3.3, 2.4] },
+		visual: {
+			kind: 'petal-panel',
+			palette: WHITE,
+			params: { quarter: i, radius: 1.875, top: 1.25 }
+		},
+		catalog: { hidden: true }
+	})
+);
+
 export const PartPayloadPetals = definePart({
 	id: 'stock.payload-petals',
 	title: 'OrbitX RS-PL "Petal"',
-	mass: kg(1_200),
+	// the ring; the four panels' 900 kg ride on the bay until they are thrown off (plan 345)
+	mass: kg(300),
 	cost: partCost(1_200, 'structure'),
 	impactTolerance: 8,
 	shape: cyl(1.875, 3.5),
@@ -459,7 +478,7 @@ export const PartPayloadPetals = definePart({
 		kind: 'petals',
 		palette: WHITE,
 		params: { top: 1.25 },
-		deploy: { module: ModuleBay.id, flag: 'open', seconds: 3 }
+		deploy: { module: ModuleBay.id, flag: 'open', seconds: 3, gone: 'jettisoned' }
 	},
 	// `inner`: a seat inside, on the floor, facing up: the lander rides there (Apollo's SLA)
 	attach: {
@@ -474,10 +493,18 @@ export const PartPayloadPetals = definePart({
 					{ y: -1.7, r: 1.7 },
 					{ y: 1.7, r: 1.15 }
 				],
-				stageable: true
+				stageable: true,
+				// single use, as the Apollo SLA: opening throws the four panels off
+				jettison: {
+					panels: PETAL_PANELS.map((p) => p.id),
+					mass: 900,
+					radius: 1.875 + 0.45,
+					push: 0.8
+				}
 			}
 		]
-	]
+	],
+	stagingIcon: 'decoupler'
 });
 
 function couplerPart(ways: 2 | 3 | 4) {
@@ -1275,6 +1302,7 @@ export const STOCK_MISSION_PARTS = [
 	PartServiceBayWide,
 	PartCargoBay,
 	PartPayloadPetals,
+	...PETAL_PANELS,
 	PartCoupler2,
 	PartCoupler3,
 	PartCoupler4,
