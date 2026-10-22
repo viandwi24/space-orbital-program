@@ -1,7 +1,7 @@
 ---
 id: 346
 title: "Hangar header beside the time bar, a white LAUNCH above Vessel, the Launch page redesign, and a vessel library to manage"
-status: in-progress
+status: done
 owner: "ui-v3 session (Claude, 2026-10-22)"
 depends: [272, 285, 318, 341]
 phase: 7
@@ -52,9 +52,19 @@ The owner's feedback of 2026-10-22 (screenshots `refs/owner-shots/hangar-2026-10
 
 ## Acceptance criteria
 
-- [ ] The Hangar's name field and AIRCRAFT switch are one 44 px row right of the time bar; the time bar stays at left 24, top 24.
-- [ ] The menu bar has no Launch; a white LAUNCH button sits above the Vessel stats, shows a caution dot when checks warn, and is disabled with the reason when blocked.
-- [ ] Identical library designs show once; variants of one name show their mass and date; search, filter (rocket, aircraft, crewed) and sort (recent, name, mass, cost) work — `vessel-library.test.ts`.
-- [ ] Designs without a thumbnail get an outline picture — `design-profile.test.ts`.
-- [ ] The Launch page shows the hero, facility cards with status, portrait seats and the big LAUNCH; rename, duplicate, delete (with confirm) and open in the Hangar work.
-- [ ] `bun run typecheck`, the web vitest (`CI=true`), lint and `bun run docs:check` pass. Before and after screenshots are in the journal.
+- [x] The Hangar's name field and AIRCRAFT switch are one 44 px row right of the time bar; the time bar stays at left 24, top 24.
+- [x] The menu bar has no Launch; a white LAUNCH button sits above the Vessel stats, shows a caution dot when checks warn, and is disabled with the reason when blocked.
+- [x] Identical library designs show once; variants of one name show their mass and date; search, filter (rocket, aircraft, crewed) and sort (recent, name, mass, cost) work — `vessel-library.test.ts`.
+- [x] Designs without a thumbnail get an outline picture — `design-profile.test.ts`.
+- [x] The Launch page shows the hero, facility cards with status, portrait seats and the big LAUNCH; rename, duplicate, delete (with confirm) and open in the Hangar work.
+- [x] `bun run typecheck`, the web vitest (`CI=true`), lint and `bun run docs:check` pass. Before and after screenshots are in the journal.
+
+## Docs checklist
+
+- [x] `docs/STATUS.md`
+- [x] ADR 0295 and its index row
+- [x] Journal `346-hangar-header-launch-page-vessel-library.md`
+
+## Log
+
+- 2026-10-22: Written from the owner's feedback (relayed by the main session) and done on the same day. See [journal 346](../journal/346-hangar-header-launch-page-vessel-library.md). e2e was not run, at the owner's request.

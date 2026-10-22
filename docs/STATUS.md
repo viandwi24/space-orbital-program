@@ -274,6 +274,7 @@
 | 340 | [One renderer for the world session, warm-up at world load, loading screen](plans/340-world-renderer-warm-up-and-loading-screen.md) | done | world renderer session | ADR 0290. Flight, Mission Center and Space Center share one renderer and canvas owned by the `(world)` layout; every view is drawn once behind a loading screen when the world loads. Page switches went from 1.5–2.8 s (WebGPU) and 0.2–0.4 s (WebGL) worst frames to 19 ms. Journal 340. |
 | 341 | [Stylised crew character](plans/341-stylised-crew-character.md) | done | crew character session | ADR 0291. The NOVA chibi astronaut for every person: EVA suit, 10 Hangar walkers, 6 Space Center staff, one skinned mesh each on one material; 12 outfits as data, looks from the crew id, 8 expressions, 1.7 m tall; portraits in the Astronaut Complex and crew seats; `/dev/crew`. Journal 341. |
 | 342 | [The first map toggle and the last hitch after loading](plans/342-first-map-toggle-and-post-load-hitch.md) | draft | | Plan 340's leftovers: about 150 ms on the first Flight → Map, one 567 ms frame on WebGPU after the loading screen. |
+| 346 | [Hangar header beside the time bar, a white LAUNCH, the Launch page and a vessel library](plans/346-hangar-header-launch-page-vessel-library.md) | done | ui-v3 session | ADR 0295. Owner feedback 2026-10-22. The name and AIRCRAFT go in one row beside the time warp (`pageShell.beside`); a white LAUNCH sits above Vessel; the Launch page has a hero, facility cards (free, or occupied with Recover/Terminate) and portrait seats with drag; the library merges copies, shows variants, and can search, filter, sort, rename, duplicate, delete and open in the Hangar. Journal 346. |
 
 Statuses: `draft` (needs refinement before an agent takes it) · `ready` · `in-progress` · `done` · `blocked`.
 
@@ -341,6 +342,7 @@ Existing drafts realigned on 2026-10-17: 063 (runway building), 065, 066, 067, 0
 
 ## Recent journal entries
 
+- [346 — Hangar header, white LAUNCH, Launch page and vessel library](journal/346-hangar-header-launch-page-vessel-library.md)
 - [333 — Rendezvous readiness and the next step](journal/333-rendezvous-readiness-and-next-step.md)
 - [332 — Guidance Computer panel with tabs](journal/332-guidance-panel-tabs.md)
 - [340 — One renderer for the world, warm-up and a loading screen](journal/340-world-renderer-warm-up-and-loading-screen.md)
