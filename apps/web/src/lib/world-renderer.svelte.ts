@@ -22,6 +22,18 @@ import type { Catalog } from './messages';
 import { modelProviders } from './mods/asset-models';
 import type { SimClient } from './sim-client';
 import { primePlanetMaps, storePlanetMaps } from './planet-map-cache';
+import {
+	changedSince,
+	formatLoadReport,
+	loadMemory,
+	moduleKey,
+	readEnvironment,
+	remember,
+	saveMemory,
+	stepTimes,
+	type LoadReportData,
+	type LoadStepName
+} from './load-report';
 
 /** Where the world's loading stands, in order; `ready` once a frame was drawn after the warm-up. */
 export type WorldLoadStep = 'sim' | 'device' | 'programs' | 'views' | 'frame' | 'ready';
@@ -90,6 +102,29 @@ class WorldRenderer {
 	progress = $state.raw<PrecompileProgress | null>(null);
 	/** Why the graphics could not start, or null. */
 	error = $state<string | null>(null);
+	/** Pipelines built and asked for so far (plan 370): the loading screen's count. */
+	pipelines = $state.raw<{ ready: number; total: number }>({ ready: 0, total: 0 });
+
+	/** When each loading step began (`performance.now()`), and when the world was ready (plan 370). */
+	private marks: Partial<Record<LoadStepName, number>> = {};
+	private readyAt: number | null = null;
+	/** What the load knew at `ready`: first or cached, modules changed since the last load. */
+	private loadFacts: Pick<LoadReportData, 'cache' | 'seenBefore' | 'changedModules'> | null = null;
+	private offCompiles: (() => void) | null = null;
+	private config: { preset: string; warmPresets: string[]; backend: string } | null = null;
+
+	/** Every shader source the renderer kept (`orbital.debug.shaderSources` = 1), for the size analysis. */
+	shaderSources(): { label: string; code: string }[] {
+		return this.renderer?.compiles.sources() ?? [];
+	}
+
+	/** The step now; each change is timed for the load report. */
+	private set stepNow(next: WorldLoadStep) {
+		if (next === this.step) return;
+		this.step = next;
+		if (next === 'ready') this.finishLoad();
+		else if (this.marks[next] === undefined) this.marks[next] = performance.now();
+	}
 
 	private canvasEl: HTMLCanvasElement | null = null;
 	private renderer: Renderer | null = null;
@@ -138,7 +173,12 @@ class WorldRenderer {
 		const generation = ++this.generation;
 		const previous = this.building;
 		this.building = (async () => {
-			if (!this.renderer) this.step = 'sim';
+			if (!this.renderer) {
+				this.marks = {};
+				this.readyAt = null;
+				this.loadFacts = null;
+				this.stepNow = 'sim';
+			}
 			const c = await client.ready;
 			if (generation !== this.generation) throw new Error('the world ended');
 			const key = catalogKey(c);
@@ -148,12 +188,19 @@ class WorldRenderer {
 			}
 			await previous?.catch(() => undefined);
 			this.teardown();
-			this.step = 'device';
+			this.stepNow = 'device';
 			const backend = await rendererBackend();
 			// the biome maps this world's renderer made last time (plan 364): no noise on this thread
 			const stored = await primePlanetMaps(key);
 			if (generation !== this.generation) throw new Error('the world ended');
-			const r = createRenderer(configOf(c, this.canvas, backend));
+			const config = configOf(c, this.canvas, backend);
+			const r = createRenderer(config);
+			this.config = {
+				backend,
+				preset: config.preset ?? 'high',
+				warmPresets: [...(config.warmPresets ?? [])]
+			};
+			this.watchCompiles(r);
 			if (stored === 0) void storePlanetMaps(key);
 			this.renderer = r;
 			this.key = key;
@@ -165,15 +212,15 @@ class WorldRenderer {
 				if (this.renderer !== r) return;
 				this.progress = p;
 				if (warmed) return;
-				if (p.stage === 'programs') this.step = p.total > 0 ? 'programs' : 'device';
-				else if (p.stage === 'warm') this.step = 'views';
+				if (p.stage === 'programs') this.stepNow = p.total > 0 ? 'programs' : 'device';
+				else if (p.stage === 'warm') this.stepNow = 'views';
 				else {
 					warmed = true;
-					this.step = 'frame';
+					this.stepNow = 'frame';
 					// one frame drawn after the warm-up, by a page or by the holder's loop
 					const drawnAfter = (n: number): void => {
 						if (this.renderer !== r) return;
-						if (n === 0) this.step = 'ready';
+						if (n === 0) this.stepNow = 'ready';
 						else requestAnimationFrame(() => drawnAfter(n - 1));
 					};
 					drawnAfter(2);
@@ -224,13 +271,91 @@ class WorldRenderer {
 		this.client = null;
 		this.building = null;
 		this.step = 'sim';
+		this.marks = {};
+		this.readyAt = null;
+		this.loadFacts = null;
 		this.progress = null;
 		this.error = null;
 		this.canvasEl?.remove();
 		this.canvasEl = null;
 	}
 
+	/**
+	 * The load report (plan 370, ADR 0308): steps, renderer, cache and compile summary; null before a
+	 * renderer exists. The compile part keeps growing after `ready` (the background presets).
+	 */
+	report(): { data: LoadReportData; text: string } | null {
+		const r = this.renderer;
+		const cfg = this.config;
+		if (!r || !cfg) return null;
+		const compile = r.compiles.summary();
+		const { steps, totalMs } = stepTimes(this.marks, this.readyAt);
+		const facts = this.loadFacts ?? this.cacheFacts(r, cfg);
+		const data: LoadReportData = {
+			when: new Date().toISOString(),
+			env: readEnvironment(),
+			backend: cfg.backend,
+			gpu: r.capabilities().gpu ?? '',
+			preset: cfg.preset,
+			presetNow: r.preset,
+			warmPresets: cfg.warmPresets,
+			steps,
+			totalMs,
+			...facts,
+			compile
+		};
+		return { data, text: formatLoadReport(data) };
+	}
+
+	private cacheFacts(
+		r: Renderer,
+		cfg: { backend: string; preset: string }
+	): Pick<LoadReportData, 'cache' | 'seenBefore' | 'changedModules'> {
+		const memory = loadMemory();
+		const set = r.compiles.summary(0).setHash;
+		const seen = memory.sets[set] ?? null;
+		return {
+			cache: seen ? 'cached' : 'first',
+			seenBefore: seen,
+			changedModules: changedSince(r.compiles.modules, memory.modules[moduleKey(cfg.backend, cfg.preset)])
+		};
+	}
+
+	/** At `ready`: what this load was (first or cached) is fixed and remembered for the next one. */
+	private finishLoad(): void {
+		this.readyAt = performance.now();
+		const r = this.renderer;
+		const cfg = this.config;
+		if (!r || !cfg) return;
+		this.loadFacts = this.cacheFacts(r, cfg);
+		const start = Object.values(this.marks).reduce((a, b) => Math.min(a, b), this.readyAt);
+		saveMemory(
+			remember(
+				loadMemory(),
+				r.compiles.summary(0).setHash,
+				Math.round(this.readyAt - start),
+				moduleKey(cfg.backend, cfg.preset),
+				r.compiles.modules
+			)
+		);
+		const text = this.report()?.text;
+		if (text) console.info(text);
+	}
+
+	private watchCompiles(r: Renderer): void {
+		this.offCompiles?.();
+		const count = (): void => {
+			if (this.renderer !== r && this.renderer !== null) return;
+			const total = r.compiles.pipelines.length;
+			this.pipelines = { ready: total - r.compiles.pending, total };
+		};
+		this.offCompiles = r.compiles.subscribe(count);
+		count();
+	}
+
 	private teardown(): void {
+		this.offCompiles?.();
+		this.offCompiles = null;
 		cancelAnimationFrame(this.raf);
 		this.raf = 0;
 		this.offSnapshot?.();
@@ -280,3 +405,10 @@ class WorldRenderer {
 }
 
 export const worldRenderer = new WorldRenderer();
+
+// the load report for the measure script and for a player's console (plan 370)
+if (typeof window !== 'undefined') {
+	const w = window as unknown as Record<string, unknown>;
+	w.__orbitalLoadReport = () => worldRenderer.report();
+	w.__orbitalShaderSources = () => worldRenderer.shaderSources();
+}

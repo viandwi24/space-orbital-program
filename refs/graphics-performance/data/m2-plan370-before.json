@@ -1,0 +1,68 @@
+{
+ "when": "2026-10-22T11:19:44.426Z",
+ "backend": "webgpu",
+ "preset": "auto",
+ "notes": "",
+ "runs": [
+  {
+   "load": 1,
+   "loadMs": 22173,
+   "log": {
+    "modules": 170,
+    "moduleBytes": 11235701,
+    "largest": [
+     "fragment_planet-pass-tsl 932 KB",
+     "fragment 929 KB",
+     "fragment_planet-pass-tsl-edge 863 KB",
+     "fragment_planet-pass-tsl 859 KB",
+     "fragment_planet-pass-tsl-edge 859 KB",
+     "fragment 856 KB",
+     "fragment_planet-pass-tsl 855 KB",
+     "fragment 852 KB",
+     "fragment_planet-scaled-bake 602 KB",
+     "fragment_planet-scaled-bake 595 KB",
+     "fragment_sky-map-bake 209 KB",
+     "fragment 168 KB"
+    ],
+    "pipelines": 115,
+    "sync": 113,
+    "async": 2,
+    "slowest": [
+     "renderPipeline_MeshBasicMaterial_70 3219 ms",
+     "renderPipeline_planet-pass-tsl_121 8 ms"
+    ]
+   },
+   "report": null
+  },
+  {
+   "load": 2,
+   "loadMs": 18978,
+   "log": {
+    "modules": 170,
+    "moduleBytes": 11235701,
+    "largest": [
+     "fragment_planet-pass-tsl 932 KB",
+     "fragment 929 KB",
+     "fragment_planet-pass-tsl-edge 863 KB",
+     "fragment_planet-pass-tsl 859 KB",
+     "fragment_planet-pass-tsl-edge 859 KB",
+     "fragment 856 KB",
+     "fragment_planet-pass-tsl 855 KB",
+     "fragment 852 KB",
+     "fragment_planet-scaled-bake 602 KB",
+     "fragment_planet-scaled-bake 595 KB",
+     "fragment_sky-map-bake 209 KB",
+     "fragment 168 KB"
+    ],
+    "pipelines": 115,
+    "sync": 113,
+    "async": 2,
+    "slowest": [
+     "renderPipeline_MeshBasicMaterial_70 4075 ms",
+     "renderPipeline_planet-pass-tsl_121 9 ms"
+    ]
+   },
+   "report": null
+  }
+ ]
+}

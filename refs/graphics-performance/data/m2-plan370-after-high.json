@@ -1,0 +1,241 @@
+{
+ "when": "2026-10-22T11:31:11.259Z",
+ "backend": "webgpu",
+ "preset": "high",
+ "notes": "",
+ "runs": [
+  {
+   "load": 1,
+   "loadMs": 9091,
+   "log": {
+    "modules": 155,
+    "moduleBytes": 4486550,
+    "largest": [
+     "fragment_planet-pass-tsl-edge 274 KB",
+     "fragment_planet-pass-tsl-edge 271 KB",
+     "fragment_planet-pass-tsl 271 KB",
+     "fragment 268 KB",
+     "fragment 265 KB",
+     "fragment_planet-pass-tsl-edge 260 KB",
+     "fragment_planet-pass-tsl 257 KB",
+     "fragment 253 KB",
+     "fragment_planet-scaled-bake 94 KB",
+     "fragment 92 KB",
+     "fragment_planet-scaled-bake 92 KB",
+     "fragment 92 KB"
+    ],
+    "pipelines": 120,
+    "sync": 36,
+    "async": 84,
+    "slowest": [
+     "renderPipeline_planet-pass-tsl-edge_134 3490 ms",
+     "renderPipeline_MeshStandardNodeMaterial_153 2597 ms",
+     "renderPipeline_MeshStandardNodeMaterial_156 2569 ms",
+     "renderPipeline_MeshStandardNodeMaterial_151 2544 ms",
+     "renderPipeline_MeshStandardNodeMaterial_154 2523 ms",
+     "renderPipeline_MeshBasicNodeMaterial_142 2513 ms",
+     "renderPipeline_planet-pass-tsl-edge_244 2511 ms",
+     "renderPipeline_planet-pass-tsl_242 2473 ms",
+     "renderPipeline_MeshStandardNodeMaterial_150 2464 ms",
+     "renderPipeline_MeshStandardNodeMaterial_152 2434 ms",
+     "renderPipeline_MeshStandardMaterial_104 2412 ms",
+     "renderPipeline_MeshStandardNodeMaterial_145 2406 ms"
+    ]
+   },
+   "report": {
+    "when": "2026-10-22T11:31:10.917Z",
+    "env": {
+     "userAgent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/156.0.0.0 Safari/537.36",
+     "platform": "macOS",
+     "cores": 8,
+     "memoryGB": 16,
+     "angle": "ANGLE (Apple, ANGLE Metal Renderer: Apple M2, Unspecified Version)",
+     "build": "DEexQTr9.js",
+     "origin": "http://localhost:5232"
+    },
+    "backend": "webgpu",
+    "gpu": "WebGPU: apple metal-3",
+    "preset": "medium",
+    "warmPresets": [
+     "medium"
+    ],
+    "steps": [
+     {
+      "step": "device",
+      "ms": 324
+     },
+     {
+      "step": "programs",
+      "ms": 7596
+     },
+     {
+      "step": "views",
+      "ms": 35
+     },
+     {
+      "step": "frame",
+      "ms": 100
+     }
+    ],
+    "totalMs": 8054,
+    "cache": "first",
+    "seenBefore": null,
+    "changedModules": null,
+    "compile": {
+     "modules": 155,
+     "moduleBytes": 4486550,
+     "pipelines": 120,
+     "sync": 36,
+     "async": 84,
+     "pending": 0,
+     "timedMs": 112858,
+     "slowest": [
+      {
+       "label": "renderPipeline_planet-pass-tsl-edge_134",
+       "mode": "async",
+       "bytes": 278510,
+       "ms": 3489.7,
+       "phase": "programs",
+       "at": 2580.899999976158,
+       "pending": false
+      },
+      {
+       "label": "renderPipeline_MeshStandardNodeMaterial_153",
+       "mode": "async",
+       "bytes": 58012,
+       "ms": 2597.1,
+       "phase": "programs",
+       "at": 2682.2000000476837,
+       "pending": false
+      },
+      {
+       "label": "renderPipeline_MeshStandardNodeMaterial_156",
+       "mode": "async",
+       "bytes": 58012,
+       "ms": 2568.8,
+       "phase": "programs",
+       "at": 2710.5,
+       "pending": false
+      },
+      {
+       "label": "renderPipeline_MeshStandardNodeMaterial_151",
+       "mode": "async",
+       "bytes": 66561,
+       "ms": 2543.6,
+       "phase": "programs",
+       "at": 2671.600000023842,
+       "pending": false
+      },
+      {
+       "label": "renderPipeline_MeshStandardNodeMaterial_154",
+       "mode": "async",
+       "bytes": 58031,
+       "ms": 2522.9,
+       "phase": "programs",
+       "at": 2692.3000000715256,
+       "pending": false
+      },
+      {
+       "label": "renderPipeline_MeshBasicNodeMaterial_142",
+       "mode": "async",
+       "bytes": 8106,
+       "ms": 2513.1,
+       "phase": "programs",
+       "at": 2766.2000000476837,
+       "pending": false
+      },
+      {
+       "label": "renderPipeline_planet-pass-tsl-edge_244",
+       "mode": "async",
+       "bytes": 281580,
+       "ms": 2511.3,
+       "phase": "programs",
+       "at": 5068.5,
+       "pending": false
+      },
+      {
+       "label": "renderPipeline_planet-pass-tsl_242",
+       "mode": "async",
+       "bytes": 278320,
+       "ms": 2472.6,
+       "phase": "programs",
+       "at": 6019.200000047684,
+       "pending": false
+      },
+      {
+       "label": "renderPipeline_MeshStandardNodeMaterial_150",
+       "mode": "async",
+       "bytes": 66538,
+       "ms": 2464.4,
+       "phase": "programs",
+       "at": 2814.899999976158,
+       "pending": false
+      },
+      {
+       "label": "renderPipeline_MeshStandardNodeMaterial_152",
+       "mode": "async",
+       "bytes": 66551,
+       "ms": 2434.4,
+       "phase": "programs",
+       "at": 2780.8000000715256,
+       "pending": false
+      }
+     ],
+     "largest": [
+      {
+       "label": "fragment_planet-pass-tsl-edge",
+       "stage": "fragment",
+       "bytes": 280934,
+       "hash": "8ad2bc3d"
+      },
+      {
+       "label": "fragment_planet-pass-tsl-edge",
+       "stage": "fragment",
+       "bytes": 277864,
+       "hash": "fc483a38"
+      },
+      {
+       "label": "fragment_planet-pass-tsl",
+       "stage": "fragment",
+       "bytes": 277674,
+       "hash": "7fc2afc1"
+      },
+      {
+       "label": "fragment",
+       "stage": "fragment",
+       "bytes": 274138,
+       "hash": "2edc79d4"
+      },
+      {
+       "label": "fragment",
+       "stage": "fragment",
+       "bytes": 271068,
+       "hash": "2d74559a"
+      }
+     ],
+     "phases": [
+      {
+       "phase": "programs",
+       "pipelines": 66,
+       "timedMs": 64604,
+       "spanMs": 7396
+      },
+      {
+       "phase": "background",
+       "pipelines": 45,
+       "timedMs": 48254,
+       "spanMs": 2854
+      },
+      {
+       "phase": "play",
+       "pipelines": 9,
+       "timedMs": 0,
+       "spanMs": 3683
+      }
+     ],
+     "setHash": "51add3cf"
+    }
+   }
+  }
+ ]
+}

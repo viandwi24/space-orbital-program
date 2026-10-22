@@ -18,6 +18,7 @@
 	import { downloadText } from '../download';
 	import { logBuffer, LOG_LEVELS, type LogLevel } from '../log-buffer';
 	import type { DebugInfo } from '../flight-loop';
+	import { worldRenderer } from '../world-renderer.svelte';
 	import { createDebugApi, type DebugHost } from './api';
 	import {
 		uniqueDesigns,
@@ -225,6 +226,32 @@
 			noteBad = true;
 		}
 	}
+
+	// ---- the world's load report (plan 370, ADR 0308)
+	async function copyLoadReport(): Promise<void> {
+		const text = worldRenderer.report()?.text;
+		if (!text) {
+			note = 'No world renderer yet';
+			noteBad = true;
+			return;
+		}
+		try {
+			await navigator.clipboard.writeText(text);
+			note = 'Copied the load report';
+			noteBad = false;
+		} catch {
+			note = 'The browser did not allow copying';
+			noteBad = true;
+		}
+	}
+	const loadLine = $derived.by(() => {
+		void infoNow;
+		const d = worldRenderer.report()?.data;
+		if (!d) return 'no world renderer';
+		const c = d.compile;
+		const total = d.totalMs === null ? 'loading' : `${(d.totalMs / 1000).toFixed(1)} s`;
+		return `${total}, ${d.cache === 'first' ? 'first load of these shaders' : 'shaders seen before'} · ${c.pipelines} pipelines (${c.pending} compiling) · ${Math.round(c.moduleBytes / 1024)} KB of shaders`;
+	});
 
 	// ---- info
 	let fps = $state(0);
@@ -527,6 +554,11 @@
 							: ''}
 					</dd>
 				{/if}
+				<dt>World load</dt>
+				<dd data-testid="debug-load">
+					{loadLine}
+					<Button onclick={() => void copyLoadReport()} data-testid="debug-copy-load">Copy load report</Button>
+				</dd>
 				<dt>Frame pacing</dt>
 				<dd data-testid="debug-governor-pacing">
 					{infoNow?.governorPacing ?? 'not adjusted automatically'}

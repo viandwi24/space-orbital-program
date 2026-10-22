@@ -64,9 +64,14 @@ export class ScaledSpaceTSL {
 	readonly uTile = uniform(512 + 2 * SCALED_GUTTER);
 	/** 1 once every face is baked: the ground reads the bake from then on. */
 	readonly uOn = uniform(0);
-	private readonly blank = new RenderTarget(1, 1, { depthBuffer: false });
-	readonly albedo: N = texture(this.blank.texture);
-	readonly normal: N = texture(this.blank.texture);
+	/**
+	 * One placeholder per map (plan 370): with one for both, a shader built before the first bake got
+	 * one binding for the two maps (three merges uniforms of the same texture), read the normal from
+	 * the albedo atlas, and differed from a load where the bake came first (Chrome's cache missed).
+	 */
+	private readonly blanks = [0, 1].map(() => new RenderTarget(1, 1, { depthBuffer: false }));
+	readonly albedo: N = texture(this.blanks[0]!.texture);
+	readonly normal: N = texture(this.blanks[1]!.texture);
 	private targets: RenderTarget[] = [];
 	private size = 0;
 	private key = '';
@@ -187,6 +192,6 @@ export class ScaledSpaceTSL {
 
 	dispose(): void {
 		for (const t of this.targets) t.dispose();
-		this.blank.dispose();
+		for (const b of this.blanks) b.dispose();
 	}
 }

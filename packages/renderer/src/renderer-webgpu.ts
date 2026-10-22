@@ -20,6 +20,7 @@ import type { RenderPipeline, WebGPURenderer } from 'three/webgpu';
 import type { RendererBackend } from './backend.ts';
 import { FEATURE_NAMES, FeatureSwitches, type FeatureName } from './feature-switches.ts';
 import { PrecompileTracker, type PrecompileProgress } from './precompile-progress.ts';
+import { CompileReport } from './compile-report.ts';
 import {
 	GRAPHICS_PRESETS,
 	PRESETS,
@@ -35,6 +36,8 @@ import { hideUnported } from './webgpu-compat.ts';
 import { Twins } from './tsl/twins.ts';
 import { MoonTSL } from './tsl/moon.ts';
 import type { MoonPass } from './moon.ts';
+
+type GetForRender = (renderObject: { object?: unknown }, promises?: Promise<unknown>[] | null) => unknown;
 
 /** Steps `LaunchSite.warmVegetation` takes for the three presets' sets (as in renderer.ts). */
 const VEGETATION_STEPS = 34;
@@ -169,6 +172,10 @@ export function createWebGPURenderer(
 			trackTimestamp: true
 		});
 		await r.init();
+		const b = r.backend as { device?: GPUDevice; gl?: WebGL2RenderingContext };
+		if (b.device) compiles.watchWebGPU(b.device);
+		else if (b.gl) compiles.watchWebGL(b.gl);
+		hookPipelines(r);
 		r.toneMapping = ACESFilmicToneMapping;
 		r.shadowMap.enabled = true;
 		r.shadowMap.type = PCFShadowMap;
@@ -323,6 +330,35 @@ export function createWebGPURenderer(
 		});
 
 	let variants: Scene[] = [];
+	/** Every module and pipeline built, with sizes and async compile times (plan 370). */
+	const compiles = new CompileReport();
+	compiles.keepSources = globalThis.localStorage?.getItem?.('orbital.debug.shaderSources') === '1';
+	/** While true, new pipelines of the scene's meshes are built async and their draws skipped until ready. */
+	let asyncPipelines = false;
+	const pendingCompiles = new Set<Promise<unknown>>();
+	/**
+	 * Routes three's pipeline requests through its async path while `asyncPipelines` is on (ADR 0308):
+	 * `Pipelines.getForRender` with a collecting array calls `createRenderPipelineAsync` (WebGPU) or
+	 * polls `KHR_parallel_shader_compile` (WebGL2), and `isReady` skips the draw until it is built.
+	 * Full-screen quads stay sync but the planet's per-frame ones: a one-shot bake must not be skipped.
+	 */
+	const hookPipelines = (r: WebGPURenderer): void => {
+		const pipes = (r as unknown as { _pipelines?: { getForRender: GetForRender } })._pipelines;
+		if (!pipes || typeof pipes.getForRender !== 'function') return;
+		const own = pipes.getForRender.bind(pipes);
+		pipes.getForRender = (ro, promises = null) => {
+			const o = ro.object as { isQuadMesh?: boolean } | undefined;
+			if (promises !== null || !asyncPipelines || (o?.isQuadMesh && !planet.isFrameQuad(o)))
+				return own(ro, promises);
+			const list: Promise<unknown>[] = [];
+			const out = own(ro, list);
+			for (const p of list) {
+				pendingCompiles.add(p);
+				void p.finally(() => pendingCompiles.delete(p));
+			}
+			return out;
+		};
+	};
 	/** How long each other preset's warm-up frames took at load, ms (plan 362; Debug, the measure script). */
 	const presetWarmMs: Partial<Record<GraphicsPreset, number>> = {};
 	/**
@@ -348,90 +384,102 @@ export function createWebGPURenderer(
 	};
 	const tracker = new PrecompileTracker();
 	let precompiling: Promise<void> | null = null;
+	/**
+	 * Asks for pipelines without waiting for them (plan 370, ADR 0308): repeats `frames` in async
+	 * mode until a round asks for no new pipeline and none is pending. Dawn builds async pipelines on
+	 * worker threads, side by side; the loading screen counts them down.
+	 */
+	const settle = async (frames: () => void): Promise<void> => {
+		for (let round = 0; round < 30; round++) {
+			await idle();
+			if (!gpu) return;
+			const before = compiles.pipelines.length;
+			const was = asyncPipelines;
+			asyncPipelines = true;
+			try {
+				frames();
+			} finally {
+				asyncPipelines = was;
+			}
+			const pending = [...pendingCompiles];
+			if (pending.length === 0 && compiles.pipelines.length === before) return;
+			await Promise.all(pending);
+		}
+	};
+	/** The planet on its full and its half path (a governor rung or the pixel budget finds both built). */
+	const planetFrames = (): void => {
+		try {
+			for (const s of [1, HALF_PLANET_SCALE]) {
+				planet.forceScale = s;
+				drawFrame(0);
+			}
+		} finally {
+			planet.forceScale = null;
+		}
+	};
 	const precompile = (onProgress?: (p: PrecompileProgress) => void): Promise<void> => {
 		if (onProgress) tracker.subscribe(onProgress);
+		// until the world is ready, every new pipeline of the scene is built async: the holder's frames
+		// and the warm-up only ask for them (a draw whose pipeline is pending is skipped)
+		if (!precompiling) asyncPipelines = true;
 		precompiling ??= (async () => {
 			await started;
-			const compile = (scene: Scene, camera: Camera, lights: Scene): Promise<unknown> => {
-				const r = gpu;
-				if (!r) return Promise.resolve();
-				tracker.expect(1);
-				// compileAsync collects the objects before its first await: hide around the call only
-				const u = hideUnported(scene, twinOf);
-				try {
-					return r.compileAsync(scene, camera, lights).finally(() => tracker.finish());
-				} finally {
-					u.restore();
-				}
-			};
-			const jobs: Promise<unknown>[] = [compile(model.scene, model.camera, model.scene)];
-			// the vessel's part materials at the other presets' detail
-			const others: { name: GraphicsPreset; parts: Scene }[] = [];
-			for (const name of GRAPHICS_PRESETS) {
-				if (name === preset) continue;
+			compiles.phase = 'programs';
+			tracker.expect(1);
+			for (let i = 0; i < 200 && !planet.built; i++) await idle();
+			// plan 261 / 340 / 370: the planet's full and half paths and one frame of each view the world
+			// moves between (flight with its effects, map in vessel and system scope, the site), drawn until
+			// every pipeline they need is built for the targets they draw into
+			await settle(() => {
+				planetFrames();
+				model.warmViews(() => drawFrame(0));
+			});
+			tracker.finish();
+			// the same frames on the sync path: everything is built, and what only draws once draws now
+			tracker.setStage('warm');
+			compiles.phase = 'warm';
+			tracker.expect(1);
+			await idle();
+			asyncPipelines = false;
+			if (gpu) {
+				planetFrames();
+				model.warmViews(() => drawFrame(0));
+			}
+			tracker.finish();
+			// After the loading screen (ADR 0308 point 4, amending 0304): the presets the host names
+			// (`warmPresets`, where the governor goes first) with their part models in view, asked for
+			// async while the world is shown. Each round ends with a frame of the player's own preset in
+			// the same task, so the canvas never shows the other preset's half-built frame.
+			tracker.setStage('presets');
+			compiles.phase = 'background';
+			const own = preset;
+			for (const name of config.warmPresets ?? []) {
+				if (name === own) continue;
 				const parts = model.warmPartScene(name);
 				variants.push(parts);
-				others.push({ name, parts });
-				jobs.push(compile(parts, model.camera, model.scene));
-			}
-			await Promise.all(jobs);
-			// Warm-up frames (plan 261): the planet drawn once on its full and once on its half path,
-			// so a move of the governor's resolution or the pixel budget finds both shaders built.
-			// three's WebGPU renderer builds a shader per object and render target the first time it
-			// draws them, 1 to 4 s for the planet pass, and \`compileAsync\` into other targets did not
-			// carry over. Done while the compile badge is up.
-			for (let i = 0; i < 200 && !planet.built; i++) await idle();
-			tracker.expect(1);
-			await idle();
-			if (gpu) {
-				try {
-					for (const s of [1, HALF_PLANET_SCALE]) {
-						planet.forceScale = s;
-						drawFrame(0);
-					}
-				} finally {
-					planet.forceScale = null;
-				}
-			}
-			tracker.finish();
-			// plan 362 (ADR 0304): the same frames at the neighbouring presets, with that preset's part models in
-			// view, so the governor's preset steps (and the player's) find the planet variant, the post
-			// chain of its sample count and the parts' pipelines for its targets already built
-			// only the presets the host names (`warmPresets`): each costs 3 to 6 s of load on the M2, and
-			// the governor moves one preset at a time, 30 s apart; any other move builds once, inside the
-			// governor's settle time
-			const own = preset;
-			const near = others.filter((o) => config.warmPresets?.includes(o.name));
-			for (const other of near) {
 				tracker.expect(1);
-				await idle();
-				if (!gpu || preset !== own) {
-					tracker.finish();
-					continue;
-				}
 				const t0 = performance.now();
-				try {
-					applyPreset(other.name);
-					withParts(other.parts, () => {
-						for (const s of [1, HALF_PLANET_SCALE]) {
-							planet.forceScale = s;
-							drawFrame(0);
-						}
-					});
-				} finally {
-					planet.forceScale = null;
-					applyPreset(own);
+				for (let round = 0; round < 20; round++) {
+					await idle();
+					if (!gpu || preset !== own) break;
+					const before = compiles.pipelines.length;
+					asyncPipelines = true;
+					try {
+						applyPreset(name);
+						withParts(parts, planetFrames);
+					} finally {
+						asyncPipelines = false;
+						applyPreset(own);
+					}
+					drawFrame(0);
+					const pending = [...pendingCompiles];
+					if (pending.length === 0 && compiles.pipelines.length === before) break;
+					await Promise.all(pending);
 				}
-				presetWarmMs[other.name] = Math.round(performance.now() - t0);
+				presetWarmMs[name] = Math.round(performance.now() - t0);
 				tracker.finish();
 			}
-			// plan 340 (ADR 0290): one frame of each view the world moves between (flight with its
-			// effects, map in vessel and system scope, the site), so no switch builds a pipeline later
-			tracker.setStage('warm');
-			tracker.expect(1);
-			await idle();
-			if (gpu) model.warmViews(() => drawFrame(0));
-			tracker.finish();
+			compiles.phase = 'play';
 			// the instanced vegetation of the other presets, a few milliseconds per idle period (ADR 0055)
 			tracker.setStage('vegetation');
 			const budgets = GRAPHICS_PRESETS.map((name) => ({
@@ -594,6 +642,7 @@ export function createWebGPURenderer(
 					(b?.gl ? Number(b.gl.getParameter(b.gl.MAX_TEXTURE_SIZE)) : 8192);
 				return { gpu: gpuName(), maxTextureSize: max };
 			},
+			compiles,
 			debug: debugApi,
 			dispose() {
 				for (const v of variants) v.clear();

@@ -35,14 +35,18 @@ Nothing told us which pipeline cost what, on which backend, or whether Chrome's 
    - The warm-up repeats its frames until no pipeline is pending, then draws one more frame of each view on the sync path. That frame finds everything built, and the bakes that only run once draw in it.
    - One-shot bakes (`QuadMesh` draws into their own targets) stay on the sync path, so a bake is never skipped and then marked done. Only the scene's meshes and the planet's per-frame prepass and half-size quads go async.
    - After the world is ready the sync path is back, because a skipped draw in play would flicker. `RendererDebug.asyncPipelines` turns async mode on or off for tests.
-3. **Smaller planet shaders.** The planet pass's march loops sample with explicit levels (no implicit derivatives inside loops). Rarely used parts (aurora, light shafts) are not in a preset's shaders when that preset has them off. The size of every module is measured before and after in the research doc.
+3. **Smaller planet shaders, built once.** Measured first. The planet pass had no implicit-derivative sample in a loop, so FXC was not forced to unroll. It was 932 KB of WGSL in one `main`, because TSL inlines every helper.
+   - The noise (`pcg3d`, value noise, `noiseF3`) and the cube-atlas lookup are laid-out WGSL functions. They read no uniforms.
+   - The sun's shadow map is read through one swappable texture node. A variant is keyed by having the taps or not, so a new map size or a preset without shadows no longer rebuilds every variant. The first build waits a few frames for the map.
+   - Texture nodes that are swapped later start on separate placeholders: three merges uniforms of the same texture into one binding.
 4. **The next preset off the critical path.** The governor's next preset (ADR 0304) is warmed after the loading screen has gone, with async pipelines, while the world is shown. Its pipelines compile in the background, and the preset's frame is drawn into the hidden holder only when they are ready. A governor step before then builds as before.
-5. **No per-load values in shader strings.** The report's "changed since last load" count must be 0 on a reload; a test of the planet pass's WGSL builds it twice and compares.
+5. **No per-load values in shader strings.** three names buffer uniforms after a global node id (`NodeBuffer_1348856`), so the source changed between loads. The device wrapper renumbers those names per module (`stableShaderNames`) before the source reaches the browser. The report's "changed since the last load" count must be 0 on a reload; `measure-shader-compile.ts` dumps both loads to compare.
 
 ## Alternatives considered
 
 - **Always async in play (skip a draw until its pipeline is ready).** It removes every hitch, but a light toggle would make the vessel vanish for a frame or more. Kept as a debug switch, not the default.
 - **Ship precompiled HLSL or DXIL.** The web has no such path; Chrome's own disk cache is the only cache.
+- **A cheap boot preset on a first load on Windows.** Left until the owner's Windows report shows it is still needed after the size cut. The background warm-up of point 4 is the mechanism it would use.
 - **Uniform loop bounds for all presets (one planet variant for all).** It removes the per-preset variants, but every preset then pays for the biggest shader, and the GPU cost of dynamic loops on the march is unmeasured. Revisit if the Windows report shows the variant count dominates.
 
 ## Consequences

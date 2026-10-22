@@ -1,0 +1,477 @@
+{
+ "when": "2026-10-22T11:30:31.202Z",
+ "backend": "webgpu",
+ "preset": "auto",
+ "notes": "",
+ "runs": [
+  {
+   "load": 1,
+   "loadMs": 6952,
+   "log": {
+    "modules": 164,
+    "moduleBytes": 3634587,
+    "largest": [
+     "fragment_planet-pass-tsl 257 KB",
+     "fragment 253 KB",
+     "fragment_planet-pass-tsl-edge 216 KB",
+     "fragment_planet-pass-tsl 212 KB",
+     "fragment 209 KB",
+     "fragment_planet-scaled-bake 92 KB",
+     "fragment 92 KB",
+     "fragment 92 KB",
+     "fragment_planet-scaled-bake 91 KB",
+     "fragment 90 KB",
+     "fragment 74 KB",
+     "fragment 72 KB"
+    ],
+    "pipelines": 120,
+    "sync": 33,
+    "async": 87,
+    "slowest": [
+     "renderPipeline_MeshBasicNodeMaterial_288 1870 ms",
+     "renderPipeline_planet-pass-tsl_284 1233 ms",
+     "renderPipeline_ShadowMaterial_154 1220 ms",
+     "renderPipeline_ShadowMaterial_154 1220 ms",
+     "renderPipeline_ShadowMaterial_154 1212 ms",
+     "renderPipeline_ShadowMaterial_154 1199 ms",
+     "renderPipeline_ShadowMaterial_154 1182 ms",
+     "renderPipeline_ShadowMaterial_154 1178 ms",
+     "renderPipeline_ShadowMaterial_154 1175 ms",
+     "renderPipeline_ShadowMaterial_154 1174 ms",
+     "renderPipeline_ShadowMaterial_154 1168 ms",
+     "renderPipeline_MeshLambertNodeMaterial_140 1168 ms"
+    ]
+   },
+   "report": {
+    "when": "2026-10-22T11:30:15.695Z",
+    "env": {
+     "userAgent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/156.0.0.0 Safari/537.36",
+     "platform": "macOS",
+     "cores": 8,
+     "memoryGB": 16,
+     "angle": "ANGLE (Apple, ANGLE Metal Renderer: Apple M2, Unspecified Version)",
+     "build": "DEexQTr9.js",
+     "origin": "http://localhost:5232"
+    },
+    "backend": "webgpu",
+    "gpu": "WebGPU: apple metal-3",
+    "preset": "low",
+    "warmPresets": [
+     "medium"
+    ],
+    "steps": [
+     {
+      "step": "device",
+      "ms": 288
+     },
+     {
+      "step": "programs",
+      "ms": 3788
+     },
+     {
+      "step": "views",
+      "ms": 35
+     },
+     {
+      "step": "frame",
+      "ms": 100
+     }
+    ],
+    "totalMs": 4210,
+    "cache": "first",
+    "seenBefore": null,
+    "changedModules": null,
+    "compile": {
+     "modules": 164,
+     "moduleBytes": 3634587,
+     "pipelines": 120,
+     "sync": 33,
+     "async": 87,
+     "pending": 0,
+     "timedMs": 52741,
+     "slowest": [
+      {
+       "label": "renderPipeline_MeshBasicNodeMaterial_288",
+       "mode": "async",
+       "bytes": 23118,
+       "ms": 1869.7,
+       "phase": "background",
+       "at": 5106.299999952316,
+       "pending": false
+      },
+      {
+       "label": "renderPipeline_planet-pass-tsl_284",
+       "mode": "async",
+       "bytes": 263417,
+       "ms": 1233,
+       "phase": "background",
+       "at": 5743,
+       "pending": false
+      },
+      {
+       "label": "renderPipeline_ShadowMaterial_154",
+       "mode": "async",
+       "bytes": 3050,
+       "ms": 1219.9,
+       "phase": "background",
+       "at": 5756.100000023842,
+       "pending": false
+      },
+      {
+       "label": "renderPipeline_ShadowMaterial_154",
+       "mode": "async",
+       "bytes": 2532,
+       "ms": 1219.5,
+       "phase": "background",
+       "at": 5756.600000023842,
+       "pending": false
+      },
+      {
+       "label": "renderPipeline_ShadowMaterial_154",
+       "mode": "async",
+       "bytes": 21382,
+       "ms": 1211.8,
+       "phase": "background",
+       "at": 5764.299999952316,
+       "pending": false
+      },
+      {
+       "label": "renderPipeline_ShadowMaterial_154",
+       "mode": "async",
+       "bytes": 4283,
+       "ms": 1198.9,
+       "phase": "background",
+       "at": 5777.199999928474,
+       "pending": false
+      },
+      {
+       "label": "renderPipeline_ShadowMaterial_154",
+       "mode": "async",
+       "bytes": 13969,
+       "ms": 1182.4,
+       "phase": "background",
+       "at": 5793.699999928474,
+       "pending": false
+      },
+      {
+       "label": "renderPipeline_ShadowMaterial_154",
+       "mode": "async",
+       "bytes": 13967,
+       "ms": 1178.3,
+       "phase": "background",
+       "at": 5797.799999952316,
+       "pending": false
+      },
+      {
+       "label": "renderPipeline_ShadowMaterial_154",
+       "mode": "async",
+       "bytes": 13983,
+       "ms": 1174.6,
+       "phase": "background",
+       "at": 5801.5,
+       "pending": false
+      },
+      {
+       "label": "renderPipeline_ShadowMaterial_154",
+       "mode": "async",
+       "bytes": 3800,
+       "ms": 1174.1,
+       "phase": "background",
+       "at": 5802,
+       "pending": false
+      }
+     ],
+     "largest": [
+      {
+       "label": "fragment_planet-pass-tsl",
+       "stage": "fragment",
+       "bytes": 262771,
+       "hash": "d0e595b2"
+      },
+      {
+       "label": "fragment",
+       "stage": "fragment",
+       "bytes": 259235,
+       "hash": "c13c7599"
+      },
+      {
+       "label": "fragment_planet-pass-tsl-edge",
+       "stage": "fragment",
+       "bytes": 220745,
+       "hash": "d879b653"
+      },
+      {
+       "label": "fragment_planet-pass-tsl",
+       "stage": "fragment",
+       "bytes": 217508,
+       "hash": "52a8a800"
+      },
+      {
+       "label": "fragment",
+       "stage": "fragment",
+       "bytes": 213972,
+       "hash": "d9370a97"
+      }
+     ],
+     "phases": [
+      {
+       "phase": "programs",
+       "pipelines": 59,
+       "timedMs": 10740,
+       "spanMs": 2507
+      },
+      {
+       "phase": "background",
+       "pipelines": 56,
+       "timedMs": 42001,
+       "spanMs": 1992
+      },
+      {
+       "phase": "play",
+       "pipelines": 5,
+       "timedMs": 0,
+       "spanMs": 53
+      }
+     ],
+     "setHash": "9a5958af"
+    }
+   }
+  },
+  {
+   "load": 2,
+   "loadMs": 7043,
+   "log": {
+    "modules": 164,
+    "moduleBytes": 3634587,
+    "largest": [
+     "fragment_planet-pass-tsl 257 KB",
+     "fragment 253 KB",
+     "fragment_planet-pass-tsl-edge 216 KB",
+     "fragment_planet-pass-tsl 212 KB",
+     "fragment 209 KB",
+     "fragment_planet-scaled-bake 92 KB",
+     "fragment 92 KB",
+     "fragment 92 KB",
+     "fragment_planet-scaled-bake 91 KB",
+     "fragment 90 KB",
+     "fragment 74 KB",
+     "fragment 72 KB"
+    ],
+    "pipelines": 120,
+    "sync": 33,
+    "async": 87,
+    "slowest": [
+     "renderPipeline_MeshBasicNodeMaterial_288 1824 ms",
+     "renderPipeline_MeshBasicNodeMaterial_135 1624 ms",
+     "renderPipeline_planet-pass-tsl_284 1173 ms",
+     "renderPipeline_ShadowMaterial_154 1151 ms",
+     "renderPipeline_ShadowMaterial_154 1130 ms",
+     "renderPipeline_ShadowMaterial_154 1126 ms",
+     "renderPipeline_ShadowMaterial_154 1123 ms",
+     "renderPipeline_ShadowMaterial_154 1119 ms",
+     "renderPipeline_ShadowMaterial_154 1119 ms",
+     "renderPipeline_ShadowMaterial_154 1114 ms",
+     "renderPipeline_ShadowMaterial_154 1113 ms",
+     "renderPipeline_ShadowMaterial_154 1113 ms"
+    ]
+   },
+   "report": {
+    "when": "2026-10-22T11:30:30.944Z",
+    "env": {
+     "userAgent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/156.0.0.0 Safari/537.36",
+     "platform": "macOS",
+     "cores": 8,
+     "memoryGB": 16,
+     "angle": "ANGLE (Apple, ANGLE Metal Renderer: Apple M2, Unspecified Version)",
+     "build": "DEexQTr9.js",
+     "origin": "http://localhost:5232"
+    },
+    "backend": "webgpu",
+    "gpu": "WebGPU: apple metal-3",
+    "preset": "low",
+    "warmPresets": [
+     "medium"
+    ],
+    "steps": [
+     {
+      "step": "device",
+      "ms": 307
+     },
+     {
+      "step": "programs",
+      "ms": 3887
+     },
+     {
+      "step": "views",
+      "ms": 32
+     },
+     {
+      "step": "frame",
+      "ms": 101
+     }
+    ],
+    "totalMs": 4328,
+    "cache": "cached",
+    "seenBefore": {
+     "loads": 1,
+     "lastMs": 4210
+    },
+    "changedModules": 0,
+    "compile": {
+     "modules": 164,
+     "moduleBytes": 3634587,
+     "pipelines": 120,
+     "sync": 33,
+     "async": 87,
+     "pending": 0,
+     "timedMs": 54660,
+     "slowest": [
+      {
+       "label": "renderPipeline_MeshBasicNodeMaterial_288",
+       "mode": "async",
+       "bytes": 23118,
+       "ms": 1823.8,
+       "phase": "background",
+       "at": 5252.200000047684,
+       "pending": false
+      },
+      {
+       "label": "renderPipeline_MeshBasicNodeMaterial_135",
+       "mode": "async",
+       "bytes": 23118,
+       "ms": 1623.5,
+       "phase": "programs",
+       "at": 2476.399999976158,
+       "pending": false
+      },
+      {
+       "label": "renderPipeline_planet-pass-tsl_284",
+       "mode": "async",
+       "bytes": 263417,
+       "ms": 1173.1,
+       "phase": "background",
+       "at": 5902.899999976158,
+       "pending": false
+      },
+      {
+       "label": "renderPipeline_ShadowMaterial_154",
+       "mode": "async",
+       "bytes": 21382,
+       "ms": 1150.8,
+       "phase": "background",
+       "at": 5925.200000047684,
+       "pending": false
+      },
+      {
+       "label": "renderPipeline_ShadowMaterial_154",
+       "mode": "async",
+       "bytes": 4283,
+       "ms": 1129.9,
+       "phase": "background",
+       "at": 5946.100000023842,
+       "pending": false
+      },
+      {
+       "label": "renderPipeline_ShadowMaterial_154",
+       "mode": "async",
+       "bytes": 13969,
+       "ms": 1126,
+       "phase": "background",
+       "at": 5950,
+       "pending": false
+      },
+      {
+       "label": "renderPipeline_ShadowMaterial_154",
+       "mode": "async",
+       "bytes": 13967,
+       "ms": 1122.7,
+       "phase": "background",
+       "at": 5953.299999952316,
+       "pending": false
+      },
+      {
+       "label": "renderPipeline_ShadowMaterial_154",
+       "mode": "async",
+       "bytes": 13983,
+       "ms": 1119.4,
+       "phase": "background",
+       "at": 5956.600000023842,
+       "pending": false
+      },
+      {
+       "label": "renderPipeline_ShadowMaterial_154",
+       "mode": "async",
+       "bytes": 3800,
+       "ms": 1118.9,
+       "phase": "background",
+       "at": 5957.100000023842,
+       "pending": false
+      },
+      {
+       "label": "renderPipeline_ShadowMaterial_154",
+       "mode": "async",
+       "bytes": 21397,
+       "ms": 1113.8,
+       "phase": "background",
+       "at": 5962.200000047684,
+       "pending": false
+      }
+     ],
+     "largest": [
+      {
+       "label": "fragment_planet-pass-tsl",
+       "stage": "fragment",
+       "bytes": 262771,
+       "hash": "d0e595b2"
+      },
+      {
+       "label": "fragment",
+       "stage": "fragment",
+       "bytes": 259235,
+       "hash": "c13c7599"
+      },
+      {
+       "label": "fragment_planet-pass-tsl-edge",
+       "stage": "fragment",
+       "bytes": 220745,
+       "hash": "d879b653"
+      },
+      {
+       "label": "fragment_planet-pass-tsl",
+       "stage": "fragment",
+       "bytes": 217508,
+       "hash": "52a8a800"
+      },
+      {
+       "label": "fragment",
+       "stage": "fragment",
+       "bytes": 213972,
+       "hash": "d9370a97"
+      }
+     ],
+     "phases": [
+      {
+       "phase": "programs",
+       "pipelines": 59,
+       "timedMs": 14740,
+       "spanMs": 2560
+      },
+      {
+       "phase": "background",
+       "pipelines": 56,
+       "timedMs": 39921,
+       "spanMs": 1940
+      },
+      {
+       "phase": "play",
+       "pipelines": 5,
+       "timedMs": 0,
+       "spanMs": 42
+      }
+     ],
+     "setHash": "9a5958af"
+    }
+   }
+  }
+ ]
+}

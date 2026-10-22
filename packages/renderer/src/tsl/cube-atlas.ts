@@ -8,7 +8,7 @@ import * as TSL from 'three/tsl';
 /* TSL nodes are untyped proxies; three's TSL typings lag its runtime */
 type N = any;
 const T = TSL as any;
-const { abs, float, floor, select, uv, vec2, vec3 } = T;
+const { Fn, abs, float, floor, select, uv, vec2, vec3 } = T;
 
 /** Width and height of the atlas for faces of `size` texels. */
 export const atlasSize = (size: number): { width: number; height: number } => ({
@@ -49,10 +49,8 @@ export function atlasBakeDirection(size: number): N {
 	);
 }
 
-/** The atlas coordinate of a unit direction n. */
-export function atlasCoord(n: N, size: number | N): N {
-	// a JS number bakes the size in; a uniform lets one shader read atlases of any size (plan 261)
-	const sz: N = typeof size === 'number' ? float(size) : size;
+/** The atlas coordinate of a unit direction n, `sz` texels a face (a float node). */
+const atlasCoordFn = Fn(([n, sz]: N[]) => {
 	const tile = sz.add(2.0);
 	const a = abs(n);
 	const isX = a.x.greaterThanEqual(a.y).and(a.x.greaterThanEqual(a.z));
@@ -84,4 +82,18 @@ export function atlasCoord(n: N, size: number | N): N {
 			.div(tile.mul(6.0)),
 		sy.add(1.0).mul(sz.mul(0.5)).add(1.0).div(tile)
 	);
+	// one WGSL function, not its body at every lookup (plan 370: about 20 copies in the planet pass)
+}).setLayout({
+	name: 'orbitalAtlasCoord',
+	type: 'vec2',
+	inputs: [
+		{ name: 'n', type: 'vec3' },
+		{ name: 'sz', type: 'float' }
+	]
+});
+
+/** The atlas coordinate of a unit direction n. */
+export function atlasCoord(n: N, size: number | N): N {
+	// a JS number bakes the size in; a uniform lets one shader read atlases of any size (plan 261)
+	return atlasCoordFn(n, typeof size === 'number' ? float(size) : size);
 }

@@ -127,9 +127,17 @@
 		}))
 	);
 	const loadFraction = $derived.by(() => {
-		const p = worldRenderer.progress;
-		if (worldRenderer.step !== 'programs' || !p || p.total === 0) return null;
-		return p.done / p.total;
+		// the pipelines built of those asked for (plan 370): the count grows as the frames ask for more
+		const p = worldRenderer.pipelines;
+		if (worldRenderer.step !== 'programs' || p.total === 0) return null;
+		return p.ready / p.total;
+	});
+
+	/** Pipelines ready of those asked for while the programs compile (plan 370). */
+	const loadDetail = $derived.by(() => {
+		const p = worldRenderer.pipelines;
+		if ((worldRenderer.step !== 'programs' && worldRenderer.step !== 'views') || p.total === 0) return '';
+		return `${p.ready} of ${p.total} shader pipelines ready`;
 	});
 
 	const worldId = activeWorldId();
@@ -670,6 +678,8 @@
 				step={worldRenderer.error ?? WORLD_LOAD_STEPS[Math.max(0, loadAt)]!.label}
 				steps={loadSteps}
 				fraction={loadFraction}
+				detail={loadDetail}
+				report={() => worldRenderer.report()?.text ?? null}
 			/>
 		</div>
 	{/if}

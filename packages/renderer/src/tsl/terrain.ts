@@ -122,16 +122,24 @@ export class TerrainTSL {
 	 * map are replaced, and the sizes as uniforms: one compiled planet shader serves every preset.
 	 */
 	private readonly blankHalf = new RenderTarget(1, 1, { type: HalfFloatType, depthBuffer: false });
-	private readonly blankFloat = new RenderTarget(1, 1, {
-		type: FloatType,
-		minFilter: NearestFilter,
-		magFilter: NearestFilter,
-		depthBuffer: false
-	});
+	/**
+	 * One placeholder per patch (plan 370): three merges uniforms of the same texture, so with one for
+	 * both a shader built before the first bake had one binding for the two patches, and its source
+	 * differed from a load where the bake came first.
+	 */
+	private readonly blankFloats = [0, 1].map(
+		() =>
+			new RenderTarget(1, 1, {
+				type: FloatType,
+				minFilter: NearestFilter,
+				magFilter: NearestFilter,
+				depthBuffer: false
+			})
+	);
 	private readonly atlasNode: N = texture(this.blankHalf.texture);
 	private readonly patchNodes: Record<'fine' | 'mid', N> = {
-		fine: texture(this.blankFloat.texture),
-		mid: texture(this.blankFloat.texture)
+		fine: texture(this.blankFloats[0]!.texture),
+		mid: texture(this.blankFloats[1]!.texture)
 	};
 	private mapNode: N = null;
 	private readonly uAtlasSize = uniform(1);
@@ -227,7 +235,8 @@ export class TerrainTSL {
 		this.uAtlasSize.value = Math.max(cubeSize, 1);
 		this.uPatchSize.value = Math.max(patchSize, 1);
 		this.atlasNode.value = this.blankHalf.texture;
-		this.patchNodes.fine.value = this.patchNodes.mid.value = this.blankFloat.texture;
+		this.patchNodes.fine.value = this.blankFloats[0]!.texture;
+		this.patchNodes.mid.value = this.blankFloats[1]!.texture;
 		if (cubeSize <= 0) return;
 		const tile = cubeSize + 2;
 		this.atlas = new RenderTarget(6 * tile, tile, {
@@ -720,7 +729,7 @@ export class TerrainTSL {
 		}
 		this.passes.clear();
 		this.blankHalf.dispose();
-		this.blankFloat.dispose();
+		for (const b of this.blankFloats) b.dispose();
 	}
 }
 
