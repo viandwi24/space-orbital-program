@@ -16,6 +16,7 @@
 	import ActionGroupEditor from '../../../lib/vab/ActionGroupEditor.svelte';
 	import StatsStrip from '../../../lib/vab/StatsStrip.svelte';
 	import VesselName from '../../../lib/vab/VesselName.svelte';
+	import LaunchButton from '../../../lib/vab/LaunchButton.svelte';
 	import BuildContext from '../../../lib/vab/BuildContext.svelte';
 	import { pageShell } from '../../../lib/layout/page-actions.svelte';
 	import ToolPill from '../../../lib/vab/ToolPill.svelte';
@@ -134,27 +135,22 @@
 					vab.saveState = 'saving';
 					void vab.flushSave();
 				}
-			},
-			{
-				id: 'launch',
-				label: 'Launch',
-				icon: 'launch',
-				primary: true,
-				title: vab.launchBlocked
-					? vab.checks.find((c) => c.severity === 'error')?.text
-					: vab.warnings > 0
-						? `${vab.warnings} warning${vab.warnings === 1 ? '' : 's'}: you will be asked to confirm`
-						: 'Go to the launch screen (Shift-click: fly at once)',
-				testid: 'menu-launch',
-				disabled: vab.launchBlocked,
-				onclick: (e) => vab.launch(false, e.shiftKey)
 			}
 		];
 		return () => {
 			pageShell.actions = [];
 		};
 	});
+	// the name and kind beside the time bar (plan 346, ADR 0295 point 2)
+	$effect(() => {
+		pageShell.beside = besideRow;
+		return () => {
+			pageShell.beside = null;
+		};
+	});
 </script>
+
+{#snippet besideRow()}<VesselName {vab} />{/snippet}
 
 <PageMeta
 	title="Vehicle assembly · {GAME_NAME}"
@@ -232,7 +228,6 @@
 		{/if}
 
 		<div class="leftcol" class:open={vab.drawer === 'parts'} bind:this={left}>
-			<VesselName {vab} />
 			<Catalogue
 				bind:this={catalogueRef}
 				parts={vab.parts}
@@ -250,6 +245,7 @@
 		</div>
 
 		<div class="rightcol" class:open={vab.drawer === 'stages'} bind:this={right}>
+			<LaunchButton {vab} />
 			<StatsStrip
 				stats={vab.stats}
 				trip={vab.trip}
