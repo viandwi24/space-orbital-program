@@ -97,6 +97,7 @@ import { fireAlarms, followAlarms, freshAlarms, nextAlarm } from './alarms.ts';
 import { designRecord, type DesignRecord } from './vessel-design.ts';
 import { capturePorts, pullPorts, wakePortNeighbours } from './docking.ts';
 import { stepJoints } from './robotics.ts';
+import { pullTethers, wakeTetherNeighbours } from './tethers.ts';
 import { runTransfers, updateRates } from './transfer.ts';
 import { spawnQueuedDebris } from './debris.ts';
 
@@ -508,6 +509,7 @@ export async function createSim(options: SimOptions): Promise<Sim> {
 	function flightStep(): void {
 		drain();
 		wakePortNeighbours(core); // an idle station on rails can be docked with (plan 222)
+		wakeTetherNeighbours(core); // a winch's rope needs both vessels in flight (plan 313)
 		const tStart = core.t;
 		runSystems(core.pre, dt);
 		const overheated: Overheat[] = [];
@@ -516,6 +518,8 @@ export async function createSim(options: SimOptions): Promise<Sim> {
 		}
 		// docking ports pull each other in (plan 222, ADR 0218)
 		for (const frame of core.frames) if (frame.inUse) pullPorts(core, frame);
+		// winch ropes tie on, let go and pull (plan 313, ADR 0272)
+		for (const frame of core.frames) if (frame.inUse) pullTethers(core, frame, dt);
 		for (const frame of core.frames) {
 			if (!frame.inUse) continue;
 			for (const hit of advanceFrame(core, frame, dt)) damagePart(core, hit);

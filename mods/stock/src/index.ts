@@ -97,6 +97,8 @@ import { ModuleLight } from './lights.ts';
 import { ModuleRtg, ModuleSolarPanel } from './solar.ts';
 import { ModuleAnimate, ModuleBay, ModuleFuelCell } from './animate.ts';
 import { ModuleRobotic } from './robotics.ts';
+import { ModuleStrut, ModuleTetherSocket, ModuleWinch } from './tether.ts';
+import { STOCK_TETHER_PARTS } from './parts/tethers.ts';
 import { ModulePaint } from './paint.ts';
 import { ModuleRcs } from './rcs.ts';
 import { ModuleDockingPort } from './docking.ts';
@@ -152,6 +154,10 @@ export const Stock = definePlugin({
 		ctx.modules.register(ModuleBay);
 		ctx.modules.register(ModuleFuelCell);
 		ctx.modules.register(ModuleRobotic);
+		// plan 313: winches, sockets and releasable struts
+		ctx.modules.register(ModuleWinch);
+		ctx.modules.register(ModuleTetherSocket);
+		ctx.modules.register(ModuleStrut);
 		ctx.modules.register(ModulePaint);
 		ctx.modules.register(ModuleRtg);
 		ctx.modules.register(ModuleLight);
@@ -257,6 +263,7 @@ export const Stock = definePlugin({
 		// the parts of the famous-mission blueprints (plans 276, 280, 281, 295–300)
 		for (const part of STOCK_MISSION_PARTS) ctx.parts.register(part);
 		for (const part of STOCK_ROBOTIC_PARTS) ctx.parts.register(part);
+		for (const part of STOCK_TETHER_PARTS) ctx.parts.register(part);
 		for (const part of STOCK_ROVER_PARTS) ctx.parts.register(part);
 		ctx.commodities.register(CommodityIce);
 		ctx.recipes.register(RecipeIceElectrolysis);
@@ -270,6 +277,8 @@ export default Stock;
 export { API_VERSION } from '@orbital/sdk';
 export * from './resources.ts';
 export * from './modules.ts';
+export * from './tether.ts';
+export * from './parts/tethers.ts';
 export * from './parts/index.ts';
 export * from './bodies.ts';
 export * from './eva.ts';

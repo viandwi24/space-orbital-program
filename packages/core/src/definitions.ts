@@ -294,6 +294,11 @@ export interface VesselApi {
 	 */
 	detach(node: string, impulse?: number): void;
 	/**
+	 * A connector part lets go of its far end (plan 313: a strut released in flight): its link is
+	 * cut, as a split cuts it. No effect on a part without a link. Optional in test fakes.
+	 */
+	releaseLink?(): void;
+	/**
 	 * Throws off a piece as its own vessel (plan 219: fairing panels): one part of definition `part`
 	 * with module config `settings` (by module id, merged over the definition's), at `offset` (part
 	 * frame, m) moving at this part's velocity plus `velocity` (part frame, m/s). Its mass must
@@ -431,6 +436,27 @@ export interface ModuleDefinition<In = unknown, Out = In, State = unknown> {
 	 * in the module's state current, so `describe` and the actions can read it.
 	 */
 	dock?(config: Out): { size: number; node: string };
+	/**
+	 * A winch's rope (plan 313, ADR 0272): where it leaves the part (part frame, m), how far it
+	 * reaches, its length now and the pull it holds before it snaps (N). `connect` arms it: the sim
+	 * ties it to the nearest socket of another vessel in reach and writes back the state fields
+	 * `connected`, `length` (the distance when it ties on), `tension` (N) and `snapped`. Null while
+	 * the part has no rope out.
+	 */
+	tether?: Bivariant<
+		(
+			config: Out,
+			state: State
+		) => {
+			anchor: Vec3;
+			maxLength: number;
+			length: number;
+			strength: number;
+			connect: boolean;
+		} | null
+	>;
+	/** Where a winch's rope ties on to this part (part frame, m): a tether socket (plan 313). */
+	socket?: Bivariant<(config: Out) => { anchor: Vec3 }>;
 	/**
 	 * Whether stack-flow resources may pass through the part now (plan 222): false makes it a
 	 * barrier like a part with `crossfeed: false` (a docking port with its crossfeed switched off).

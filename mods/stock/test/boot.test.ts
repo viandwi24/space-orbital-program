@@ -62,7 +62,10 @@ describe('stock boots through the loader', () => {
 			'stock.rtg',
 			'stock.scrubber',
 			'stock.solar-panel',
+			'stock.strut',
+			'stock.tether-socket',
 			'stock.wheel',
+			'stock.winch',
 			'stock.wing'
 		]);
 		expect(ids('part')).toEqual([
@@ -256,12 +259,14 @@ describe('stock boots through the loader', () => {
 			'stock.tank-wide',
 			'stock.tank-wide-short',
 			'stock.telescope',
+			'stock.tether-socket',
 			'stock.thermometer',
 			'stock.thermometer-radial',
 			'stock.truss',
 			'stock.wheel',
 			'stock.wheel-steer',
 			'stock.whip-antenna',
+			'stock.winch',
 			'stock.wing',
 			'stock.wing-delta'
 		]);
@@ -407,7 +412,10 @@ describe('stock boots through the loader', () => {
 			'stock.light-nav-green',
 			'stock.light-nav-white',
 			// a side port: a docking face on its side (plan 356)
-			'stock.docking-port-side'
+			'stock.docking-port-side',
+			// tether parts hang radially (plan 313)
+			'stock.winch',
+			'stock.tether-socket'
 		]);
 		// the mission parts of plans 276–300 with other node sets: radial-only, bottom-only, a
 		// hub's side ports, a coupler's several bottoms

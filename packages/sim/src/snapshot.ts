@@ -1,5 +1,6 @@
 /** Builds the plain-data `Snapshot` the host reads (protocol.ts). Read-only: never mutates sim state. */
 import { partResourceSnapshot, vesselResourceSnapshot } from './transfer.ts';
+import { tetherSnapshot } from './tethers.ts';
 import { portAlignment, portSnapshots } from './docking.ts';
 import { techSnapshot } from './tech.ts';
 import { debugSnapshot } from './debug.ts';
@@ -127,6 +128,7 @@ export function vesselSnapshot(core: SimCore, id: EntityId): VesselSnapshot {
 				maxTemperature: maxTemperatureOf(core, partEntity),
 				index: partOf(core, partEntity).index,
 				...linkOf(core, partEntity, root.rotation),
+				...tetherSnapshot(core, partEntity),
 				...withResources(core, partEntity)
 			});
 		}
@@ -148,6 +150,7 @@ export function vesselSnapshot(core: SimCore, id: EntityId): VesselSnapshot {
 				maxTemperature: maxTemperatureOf(core, partEntity),
 				index: p.index,
 				...linkOf(core, partEntity, orientation),
+				...tetherSnapshot(core, partEntity),
 				...withResources(core, partEntity)
 			});
 		}

@@ -173,7 +173,10 @@ describe('part seams', () => {
 					'suit',
 					// the orbiter's lofted hull (plan 356): no revolve
 					'orbiter-nose',
-					'orbiter-bay'
+					'orbiter-bay',
+					// boxes and cylinders (plan 313)
+					'winch',
+					'tether-socket'
 				].includes(visual.kind)
 			)
 				continue;

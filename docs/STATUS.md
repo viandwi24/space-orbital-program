@@ -258,7 +258,7 @@
 | 310 | [Vessel menu in Flight, docking-port targets, a vessel-control API and the Auto Dock mod](plans/310-vessel-menu-port-targets-control-api-and-auto-dock.md) | done | auto dock session | ADRs 0270, 0271. Click a vessel in Flight for a menu; port targets; `VesselPilot` and `defineAutopilot`; built-in Auto Dock mod; SAS turns at the vessel's torque. Journal 310. |
 | 311 | [Lights (panel, angled, navigation), the RCS jet redrawn, RCS propellant](plans/311-lights-panel-angled-nav.md) | done | part visuals session | Owner's question and report 2026-10-21. 5 lights, OrbitX names for spot and flood. Monoprop on Horizon (it had none), the Kronos SM, the satellite bus, and full new pods; a test guards it. RCS jet: a core and sprite puffs (a cone read as a light beam; WebGPU ignored additive opacity). Journal 311. |
 | 312 | [Blueprint Library follow-ups: labels, checklist, thumbnail cache, career locks](plans/312-blueprint-library-follow-ups.md) | draft | — | Leftovers of 285. |
-| 313 | [Tethers and winches between vessels, and releasable struts](plans/313-tethers-winches-and-strut-release.md) | draft | — | Owner's question 2026-10-21 (KSP struts and KAS cables). ADR 0272 proposed; research in `refs/part-visuals-and-blueprints/connectors-and-tethers.md`. |
+| 313 | [Tethers and winches between vessels, and releasable struts](plans/313-tethers-winches-and-strut-release.md) | done | part visuals session | ADR 0272 (accepted, amended): the sim's rope between two vessel bodies, pull only, reeled, snapping by its smoothed tension, saved on the winch part. `stock.winch` (Connect, Release, reel in, hold, out), `stock.tether-socket`, a strut that releases (action or stage); the rope drawn sagging. Journal 313. |
 | 314 | [A bigger Hangar, and tall craft framed whole](plans/314-bigger-hangar.md) | done | part visuals session | Owner: Kronos V reached the roof. Room 90 × 90 × 69 m (×1.5), camera limits scaled, the view widens to 75° for tall craft; a test fits every blueprint with 1.3× room. Journal 314. |
 | 315 | [Hangar: see inside fairings, bays and petals](plans/315-hangar-see-inside.md) | done | part visuals session | Owner's request. Hover tip (name, mass, holds), x-ray shells, Open/Close in the editor, Show payload; picks reach through a shell only to what it holds. Journal 315. |
 | 316 | [Hangar: part list and start state](plans/316-hangar-part-list-and-start-state.md) | done | part visuals session | Owner's request. A Parts tree in the right panel (select, hover to find); start switches for panels, legs, bays, doors and fuel cells saved in the design; the Hangar draws each part from its start snapshot. Journal 316. |
@@ -359,6 +359,7 @@ Existing drafts realigned on 2026-10-17: 063 (runway building), 065, 066, 067, 0
 - [360 — Guidance autostage drops spent boosters](journal/360-guidance-autostage-spent-boosters.md)
 - [359 — The programs popover](journal/359-programs-popover.md)
 - [357 — Symmetry pivot and re-rooting through side links](journal/357-symmetry-pivot-and-reroot-through-side-links.md)
+- [313 — Tethers, winches and strut release](journal/313-tethers-winches-and-strut-release.md)
 - [356 — Shuttle rebuild](journal/356-shuttle-rebuild.md)
 - [355 — Apollo visual pass](journal/355-apollo-visual-pass.md)
 - [344 — Lessons overhaul](journal/344-lessons-overhaul.md)

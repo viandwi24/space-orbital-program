@@ -395,7 +395,10 @@ export const STOCK_TECH = [
 			'stock.servo-m',
 			'stock.rotor-s',
 			'stock.piston-s',
-			'stock.piston-m'
+			'stock.piston-m',
+			// plan 313: tethers
+			'stock.winch',
+			'stock.tether-socket'
 		]
 	}),
 	defineTechNode({

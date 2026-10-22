@@ -8,6 +8,7 @@ import { controlSurface } from './control-surface.ts';
 import { fuelLine, strut } from './connector.ts';
 import { decoupler } from './decoupler.ts';
 import { dockingPort, sidePort } from './docking-port.ts';
+import { tetherSocket, winch } from './tether.ts';
 import { engine } from './engine.ts';
 import { engineCluster } from './engine-cluster.ts';
 import { flag, suit } from './eva.ts';
@@ -86,6 +87,8 @@ export function registerStockGenerators(): void {
 	registerPartGenerator('fairing-panel', fairingPanel);
 	registerPartGenerator('docking-port', dockingPort);
 	registerPartGenerator('side-port', sidePort);
+	registerPartGenerator('winch', winch);
+	registerPartGenerator('tether-socket', tetherSocket);
 	registerPartGenerator('fin', fin);
 	registerPartGenerator('control-surface', controlSurface);
 	registerPartGenerator('wing', wing);

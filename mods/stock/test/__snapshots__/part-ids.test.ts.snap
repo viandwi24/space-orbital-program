@@ -669,7 +669,12 @@ exports[`stock part ids, masses, costs and modules match the snapshot 1`] = `
     "cost": 40,
     "id": "stock.strut",
     "mass": 20,
-    "modules": [],
+    "modules": [
+      [
+        "stock.strut",
+        {},
+      ],
+    ],
   },
   {
     "cost": 20,
@@ -3837,6 +3842,40 @@ exports[`stock part ids, masses, costs and modules match the snapshot 1`] = `
           "min": 0,
           "power": 1.5,
           "speed": 0.2,
+        },
+      ],
+    ],
+  },
+  {
+    "cost": 300,
+    "id": "stock.winch",
+    "mass": 150,
+    "modules": [
+      [
+        "stock.winch",
+        {
+          "anchor": [
+            0.24,
+            0,
+            0,
+          ],
+        },
+      ],
+    ],
+  },
+  {
+    "cost": 30,
+    "id": "stock.tether-socket",
+    "mass": 15,
+    "modules": [
+      [
+        "stock.tether-socket",
+        {
+          "anchor": [
+            0.1,
+            0,
+            0,
+          ],
         },
       ],
     ],

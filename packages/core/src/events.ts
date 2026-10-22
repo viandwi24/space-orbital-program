@@ -23,6 +23,13 @@ export interface EventMap {
 	'vessel:destroyed': { vessel: EntityId; reason: string };
 	/** Two vessels docked (plan 222, ADR 0218): `absorbed` is now part of `vessel` and is gone. */
 	'vessel:docked': { vessel: EntityId; absorbed: EntityId; port: EntityId; peerPort: EntityId };
+	/**
+	 * A winch's rope (plan 313, ADR 0272) tied on to a socket of another vessel, let go, or snapped
+	 * under a pull above its strength (`tension`, N).
+	 */
+	'tether:attached': { vessel: EntityId; part: EntityId; peerVessel: EntityId; peer: EntityId };
+	'tether:released': { vessel: EntityId; part: EntityId };
+	'tether:snapped': { vessel: EntityId; part: EntityId; tension: number };
 	/** An undock split `vessel` (plan 222): `restored` is the new vessel with the old name and design. */
 	'vessel:undocked': { vessel: EntityId; restored: EntityId; name: string };
 	/** Every control source of the vessel ran out of the power it needs (plan 208, ADR 0214). */

@@ -19,6 +19,8 @@ const KINDS = [
 	'rcs-block',
 	'docking-port',
 	'side-port',
+	'winch',
+	'tether-socket',
 	// plan 210
 	'launch-clamp',
 	// plan 219

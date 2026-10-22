@@ -244,6 +244,19 @@ export interface PartSnapshot {
 	 * `position`. Absent for other parts and once a split cut the link.
 	 */
 	link?: { peer: EntityId; point: Vec3 };
+	/**
+	 * A winch's rope (plan 313, ADR 0272): the socket part and vessel it is tied to, where it
+	 * leaves this part and where it ties on to the socket (each in its own part's frame, m), its
+	 * length and the pull on it (N). Absent without a rope out.
+	 */
+	tether?: {
+		peer: EntityId;
+		peerVessel: EntityId;
+		anchor: Vec3;
+		peerAnchor: Vec3;
+		length: number;
+		tension: number;
+	};
 	/** The part's stores by resource (plan 213); absent for a part without one. */
 	resources?: ResourceSnapshot[];
 }

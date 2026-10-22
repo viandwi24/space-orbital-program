@@ -165,6 +165,10 @@ export function makeContext(core: SimCore, partId: EntityId, moduleId: string): 
 			}
 			core.pending.push({ part: partId, node, impulse });
 		},
+		releaseLink() {
+			// a connector lets go of its far end (plan 313): as a split cuts it
+			delete part.link;
+		},
 		spawnDebris(spec) {
 			finiteVec(spec.offset, 'debris offset');
 			finiteVec(spec.velocity, 'debris velocity');

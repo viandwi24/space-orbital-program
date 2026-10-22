@@ -327,6 +327,8 @@ export interface PartState {
 	 * Cleared when a split puts the two ends on different vessels.
 	 */
 	link?: { peer: EntityId; point: Vec3 };
+	/** A winch's rope tied to a socket part of another vessel (plan 313, ADR 0272). */
+	tether?: { peer: EntityId };
 	attachments: Attachment[];
 	/** Skin temperature, K (ADR 0023). */
 	temperature: number;

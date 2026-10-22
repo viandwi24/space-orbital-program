@@ -145,7 +145,9 @@ describe('connector parts (ADR 0071)', () => {
 		for (const p of [PartStrut, PartFuelLine]) {
 			expect(p.attach!.end!.dir).toEqual([-1, 0, 0]);
 			expect(p.crossfeed).toBe(false);
-			expect(p.modules).toBeUndefined();
 		}
+		// the strut may let go of its far end (plan 313); the fuel line has no module
+		expect(PartStrut.modules?.map(([m]) => m)).toEqual(['stock.strut']);
+		expect(PartFuelLine.modules).toBeUndefined();
 	});
 });

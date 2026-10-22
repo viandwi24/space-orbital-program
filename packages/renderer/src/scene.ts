@@ -3,6 +3,7 @@
  * rig and the map-view overlay. Contains no `WebGLRenderer`, so it runs (and is tested) in Bun.
  * It only reads snapshots; it never mutates them.
  */
+import { TetherLayer } from './effects/tethers.ts';
 import { addOverlay, HighlightMaterials, removeOverlay } from './vab/highlight.ts';
 import type { SiteBuildingView } from './site-list.ts';
 import type { LaunchSite } from './site-meshes.ts';
@@ -221,6 +222,8 @@ export class SceneModel {
 	readonly scene = new Scene();
 	/** Mod overlays (plan 347, ADR 0296): body-fixed shapes hang under their body's holder. */
 	private readonly overlays = new OverlayLayer(this.scene, (id) => this.bodies.get(id)?.holder);
+	/** Winch ropes between vessels (plan 313). */
+	private readonly tethers = new TetherLayer();
 	readonly camera = new PerspectiveCamera(50, 1, CAMERA_NEAR, CAMERA_FAR);
 
 	private readonly bodies = new Map<
@@ -1246,6 +1249,18 @@ export class SceneModel {
 			entry.marker.place(p, this.markerRadius(p) * (lit ? 1.6 : 1));
 			this.trackRest(v, snapshot.t);
 		}
+		// winch ropes (plan 313): between the parts' models, which now stand where this sync put them
+		this.tethers.group.visible = !this.map;
+		if (!this.tethers.group.parent) this.scene.add(this.tethers.group);
+		this.tethers.update(
+			vessels,
+			(vessel, part) => this.vessels.get(vessel)?.parts.get(part)?.model.root,
+			(v) => {
+				const c = toRenderSpace(soiPos(v), this.origin);
+				const g = this.vessels.get(v.id)!.group.position;
+				return new Vector3(c.x - g.x, c.y - g.y, c.z - g.z).normalize();
+			}
+		);
 		if (dtSim < 0) this.clearPersistent();
 		for (const [id, entry] of this.vessels) {
 			if (seen.has(id)) continue;
@@ -1957,6 +1972,7 @@ export class SceneModel {
 	dispose(): void {
 		this.setRegionOverlay(null);
 		this.waterline.dispose();
+		this.tethers.dispose();
 		removeOverlay(this.highlight.meshes);
 		this.highlightMaterials.dispose();
 		for (const r of this.remnants) this.dropRemnant(r);

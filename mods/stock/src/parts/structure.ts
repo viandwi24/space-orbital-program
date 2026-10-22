@@ -1,3 +1,4 @@
+import { ModuleStrut } from '../tether.ts';
 import { definePart, kg } from '@orbital/sdk';
 import { partCost } from '../costs.ts';
 import { ModuleFairing, ModuleFairingPanel } from '../fairing.ts';
@@ -142,7 +143,10 @@ export const PartStrut = definePart({
 	shape: { kind: 'cylinder', radius: CONNECTOR_RADIUS, height: 0.1 },
 	visual: { kind: 'strut', palette: { primary: '#aeb4bc', secondary: '#23272d' } },
 	attach: connectorNode,
-	crossfeed: false
+	crossfeed: false,
+	// it may let go of its far end in flight (plan 313)
+	modules: [[ModuleStrut, {}]],
+	stagingIcon: 'decoupler'
 });
 
 /**

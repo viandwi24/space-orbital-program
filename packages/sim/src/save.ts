@@ -155,6 +155,7 @@ export const checkPartState: Check = shape({
 	yaw: num,
 	rotation: optional(quat),
 	link: optional(shape({ peer: entity, point: vec3 })),
+	tether: optional(shape({ peer: entity })),
 	attachments: arrayOf(shape({ node: str, peer: entity, peerNode: str })),
 	temperature: num,
 	modules: arrayOf(shape({ id: str }))
@@ -280,6 +281,8 @@ export function restoreWorld(
 		const why = checkPartState(world.get(id, PART));
 		if (why) throw damaged(`part ${id}: ${why}`);
 		const part = world.get(id, PART)!;
+		// a rope to a part that is gone is let go (plan 313): nothing to tie to
+		if (part.tether && !world.hasEntity(part.tether.peer)) delete part.tether;
 		if (part.link && !world.hasEntity(part.link.peer)) {
 			throw damaged(`part ${id} is linked to missing part ${part.link.peer}`);
 		}
