@@ -89,7 +89,7 @@ export const TUTORIAL_STEPS: readonly TutorialStep[] = [
 		id: 'launch',
 		scene: 'vab',
 		title: 'Launch it',
-		text: 'The checklist on the right should show no red items. Press Launch at the bottom right. An empty hangar offers the Two-stage example, a rocket that reaches orbit.',
+		text: 'The Pre-flight checks on the right should show no red items. Press Launch in the menu bar at the top right, then Launch from pad. The Library has a Two-stage starter that reaches orbit.',
 		done: (o) => o.scene === 'flight'
 	},
 	{
@@ -135,9 +135,9 @@ export const TUTORIAL_STEPS: readonly TutorialStep[] = [
 		id: 'apoapsis',
 		scene: 'flight',
 		title: 'Raise the apoapsis',
-		text: 'Burn until Ap (the top of your orbit, in the strip at the bottom left) passes 70 km. Press {key:stage} to drop an empty stage. {key:throttleCut} cuts the engine.',
+		text: 'Burn until Ap (the top of your orbit, in the Orbit panel on the left) passes 70 km. Press {key:stage} to drop an empty stage. {key:throttleCut} cuts the engine.',
 		touchText:
-			'Burn until Ap (the top of your orbit, in the strip at the bottom left) passes 70 km. Tap Stage to drop an empty stage. Tap Cut to cut the engine.',
+			'Burn until Ap (the top of your orbit, in the Orbit panel on the left) passes 70 km. Tap Stage to drop an empty stage. Tap Cut to cut the engine.',
 		actions: ['throttleCut'],
 		done: (o) => (flight(o)?.apoapsis ?? 0) >= TARGET_ORBIT
 	},

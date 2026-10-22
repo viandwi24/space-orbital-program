@@ -103,7 +103,7 @@
 		<MenuButton
 			icon="orbit"
 			label="Lessons"
-			hint="Landing, maneuver nodes, docking and a transfer, step by step"
+			hint="From the first launch to docking, step by step"
 			href={resolve('/lessons')}
 			testid="menu-lessons"
 		/>
