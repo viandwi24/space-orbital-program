@@ -21,6 +21,7 @@ import {
 	STAR_CELL_MARGIN,
 	STAR_FLUX0,
 	STAR_LAYERS,
+	STAR_PEAK_CAP,
 	STAR_SIGMA_BRIGHT_MAG,
 	STAR_SIGMA_EXTRA_PX,
 	STAR_SIGMA_FROM_MAG,
@@ -222,9 +223,13 @@ export const catalogueStars = Fn(([rd, px]: N[]) => {
 			.toVar();
 		const sig = px.mul(starSigmaPx(mag)).toVar();
 		const flux = exp2(mag.mul(-1.3287712)).mul(STAR_FLUX0);
-		const w = flux
+		const l = flux
 			.mul(exp(d.mul(d).negate().div(sig.mul(sig).mul(2.0))))
-			.div(sig.mul(sig).mul(2 * Math.PI))
+			.div(sig.mul(sig).mul(2 * Math.PI));
+		// compressed under the bloom's threshold: brighter, never bigger
+		const w = float(1.0)
+			.sub(exp(l.negate().div(STAR_PEAK_CAP)))
+			.mul(STAR_PEAK_CAP)
 			.mul(smoothstep(margin, margin * 0.6, d));
 		col.addAssign(select(h.z.lessThan(L.chance), starTint(k.y).mul(w), vec3(0.0)));
 	}

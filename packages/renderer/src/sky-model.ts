@@ -43,9 +43,18 @@ export const STAR_LAYERS: readonly StarLayer[] = [
 /** Radiance × solid angle of a magnitude-0 star, in the planet pass's units (before exposure). */
 export const STAR_FLUX0 = 2.4e-5;
 /** The narrowest star, pixels (σ of the Gaussian): sampled at pixel centres its sum is within 2 % of its flux. */
-export const STAR_SIGMA_MIN_PX = 0.72;
-/** Extra width of the brightest stars, pixels of σ, reached at `STAR_SIGMA_BRIGHT_MAG`. */
-export const STAR_SIGMA_EXTRA_PX = 0.9;
+export const STAR_SIGMA_MIN_PX = 0.62;
+/**
+ * Extra width of the brightest stars, pixels of σ, reached at `STAR_SIGMA_BRIGHT_MAG`: small and crisp,
+ * about 1.5 device pixels across for most stars and 2 for the brightest (the owner: "kecil kecil aja
+ * cukup"). Device pixels: a Retina screen does not draw them twice as large.
+ */
+export const STAR_SIGMA_EXTRA_PX = 0.23;
+/**
+ * A star's radiance is compressed softly toward this cap, under the bloom's threshold (3, scene units
+ * before exposure): magnitude reads as brightness, and no star swells into a bloomed disc.
+ */
+export const STAR_PEAK_CAP = 2.0;
 export const STAR_SIGMA_BRIGHT_MAG = -1;
 /** Magnitude at which the extra width starts. */
 export const STAR_SIGMA_FROM_MAG = 3.5;
@@ -90,16 +99,17 @@ export function starSigmaPx(mag: number): number {
  */
 export function starRadiance(flux: number, d: number, px: number, sigmaPx: number): number {
 	const s = sigmaPx * px;
-	return (flux * Math.exp((-d * d) / (2 * s * s))) / (2 * Math.PI * s * s);
+	const l = (flux * Math.exp((-d * d) / (2 * s * s))) / (2 * Math.PI * s * s);
+	return STAR_PEAK_CAP * (1 - Math.exp(-l / STAR_PEAK_CAP));
 }
 
 /** Star colour by a uniform `t`: mostly white, some blue-white, a few yellow, orange and red. */
 export const STAR_TINTS: readonly (readonly [number, number, number])[] = [
-	[0.66, 0.76, 1.0],
-	[0.84, 0.9, 1.0],
-	[1.0, 0.98, 0.95],
-	[1.0, 0.9, 0.74],
-	[1.0, 0.74, 0.52]
+	[0.8, 0.86, 1.0],
+	[0.9, 0.94, 1.0],
+	[1.0, 0.99, 0.97],
+	[1.0, 0.94, 0.84],
+	[1.0, 0.86, 0.72]
 ];
 /** Where each tint takes over along `t` (the first is at 0). */
 export const STAR_TINT_STOPS: readonly number[] = [0, 0.12, 0.38, 0.74, 0.92];

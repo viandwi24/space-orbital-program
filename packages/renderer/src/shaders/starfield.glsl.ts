@@ -6,6 +6,7 @@ import {
 	STAR_CELL_MARGIN,
 	STAR_FLUX0,
 	STAR_LAYERS,
+	STAR_PEAK_CAP,
 	STAR_SIGMA_BRIGHT_MAG,
 	STAR_SIGMA_EXTRA_PX,
 	STAR_SIGMA_FROM_MAG,
@@ -57,6 +58,8 @@ const layerGLSL = STAR_LAYERS.map((L, i) => {
 			float sig = px * starSigmaPx(mag);
 			float flux = ${f(STAR_FLUX0)} * exp2(-1.3287712 * mag);
 			float w = flux * exp(-d * d / (2.0 * sig * sig)) / (6.2831853 * sig * sig);
+			// compressed under the bloom's threshold: brighter, never bigger
+			w = ${f(STAR_PEAK_CAP)} * (1.0 - exp(-w / ${f(STAR_PEAK_CAP)}));
 			col += starTint(k.y) * w * smoothstep(${f(margin)}, ${f(margin * 0.6)}, d);
 		}
 	}`;

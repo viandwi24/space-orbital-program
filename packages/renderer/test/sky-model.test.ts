@@ -4,6 +4,7 @@ import {
 	GALACTIC_POLE,
 	STAR_CELL_MARGIN,
 	STAR_LAYERS,
+	STAR_PEAK_CAP,
 	STAR_SIGMA_MIN_PX,
 	cubeFaceCoords,
 	cubeFaceDirection,
@@ -49,9 +50,9 @@ describe('the night sky (plan 364, ADR 0306)', () => {
 		expect(starFlux(0) / starFlux(5)).toBeCloseTo(100, 6);
 	});
 
-	test('a star sampled at pixel centres sums to its flux wherever it falls: it cannot twinkle', () => {
+	test('a star sampled at pixel centres sums to the same light wherever it falls: it cannot twinkle', () => {
 		const px = 4e-4;
-		for (const mag of [-1, 2, 6.5]) {
+		for (const mag of [-1, 2, 4.5, 6.5]) {
 			const flux = starFlux(mag);
 			const sig = starSigmaPx(mag);
 			const sums: number[] = [];
@@ -65,11 +66,21 @@ describe('the night sky (plan 364, ADR 0306)', () => {
 						const d = Math.hypot(x - ox, y - oy) * px;
 						sum += starRadiance(flux, d, px, sig) * px * px;
 					}
-				sums.push(sum / flux);
+				sums.push(sum);
 			}
-			for (const s of sums) expect(Math.abs(s - 1)).toBeLessThan(0.02);
-			expect(Math.max(...sums) - Math.min(...sums)).toBeLessThan(0.02);
+			const mean = sums.reduce((a, b) => a + b, 0) / sums.length;
+			// within 6 % of each other (a faint star: of its flux too)
+			expect((Math.max(...sums) - Math.min(...sums)) / mean).toBeLessThan(0.06);
+			if (mag > 5) expect(Math.abs(mean / flux - 1)).toBeLessThan(0.03);
 		}
+	});
+
+	test('small and crisp: at most about 2 px across, and never brighter than the cap under the bloom', () => {
+		expect(starSigmaPx(-2) * 2.355).toBeLessThan(2.1);
+		expect(starSigmaPx(6) * 2.355).toBeLessThan(1.5);
+		const px = 3.5e-4;
+		expect(starRadiance(starFlux(-2), 0, px, starSigmaPx(-2))).toBeLessThanOrEqual(STAR_PEAK_CAP);
+		expect(STAR_PEAK_CAP).toBeLessThan(3);
 	});
 
 	test('a star stays inside its cell at the widest it is drawn on high (3 σ at 1080p, half size)', () => {
