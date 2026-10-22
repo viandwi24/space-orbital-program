@@ -275,7 +275,7 @@
 | 341 | [Stylised crew character](plans/341-stylised-crew-character.md) | done | crew character session | ADR 0291. The NOVA chibi astronaut for every person: EVA suit, 10 Hangar walkers, 6 Space Center staff, one skinned mesh each on one material; 12 outfits as data, looks from the crew id, 8 expressions, 1.7 m tall; portraits in the Astronaut Complex and crew seats; `/dev/crew`. Journal 341. |
 | 342 | [The first map toggle and the last hitch after loading](plans/342-first-map-toggle-and-post-load-hitch.md) | draft | | Plan 340's leftovers: about 150 ms on the first Flight → Map, one 567 ms frame on WebGPU after the loading screen. |
 | 343 | [Mod World API](plans/343-mod-world-api.md) | done | mod world API session | ADR 0292. One read-only World Query for systems, autopilots and panels (vessels by type, situation, SOI, distance; parts, resources, crew, orbit, comms; bodies, sites, roster, economy); commands with the program source, spawn and terminate only with debug tools; `defineStore` saved with the world; `SIM_EVENTS` and `vessel:situation-changed`; `defineKeybinding` under Controls → Mods; `ctx.notify` toasts; `examples/mod-world-api` (API 0.1.106). Journal 343. |
-| 344 | [Lessons overhaul](plans/344-lessons-overhaul.md) | in-progress | lessons session | ADR 0293. Lessons by level (Basics, Flight, Advanced), a start place, a wider observation, step targets checked by a test; lesson rockets from today's stock parts flown headless; new lessons from first launch to Auto Dock |
+| 344 | [Lessons overhaul](plans/344-lessons-overhaul.md) | done | lessons session | ADR 0293. 18 lessons by level (Basics, Flight, Advanced), a start place, a wider observation, step targets checked by a test; lesson rockets from today's stock parts flown headless; new lessons from first launch to Auto Dock; the guide card in Flight's bottom-left corner, compact with a minimise pill, Skip and a highlight on the control it names |
 
 Statuses: `draft` (needs refinement before an agent takes it) · `ready` · `in-progress` · `done` · `blocked`.
 
@@ -343,6 +343,7 @@ Existing drafts realigned on 2026-10-17: 063 (runway building), 065, 066, 067, 0
 
 ## Recent journal entries
 
+- [344 — Lessons overhaul](journal/344-lessons-overhaul.md)
 - [333 — Rendezvous readiness and the next step](journal/333-rendezvous-readiness-and-next-step.md)
 - [332 — Guidance Computer panel with tabs](journal/332-guidance-panel-tabs.md)
 - [340 — One renderer for the world, warm-up and a loading screen](journal/340-world-renderer-warm-up-and-loading-screen.md)

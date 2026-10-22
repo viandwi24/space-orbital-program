@@ -15,8 +15,8 @@ export const HOME_RADIUS = 600_000;
 export const HOME_AIR = 70_000;
 /** The parking orbit the orbit lessons start in, m. */
 export const PARKING = 100_000;
-/** The docking target leads by this much along the orbit, m. */
-export const TARGET_LEAD = 250;
+/** The docking target leads by this much along the orbit, m (Auto Dock starts within 250 m). */
+export const TARGET_LEAD = 200;
 /** The rendezvous target leads by this much along the orbit, m. */
 export const RENDEZVOUS_LEAD = 20_000;
 /** The maneuver-node lesson's target orbit, m. */
@@ -43,9 +43,7 @@ const REASONS: Record<LessonPlace, string> = {
 };
 
 /** Every building but Flight closed, except `open`. The Space Center and Mission Center stay open. */
-export function closedPlaces(
-	...open: LessonPlace[]
-): Lesson['blocked']['places'] {
+export function closedPlaces(...open: LessonPlace[]): Lesson['blocked']['places'] {
 	const shut = (Object.keys(REASONS) as LessonPlace[]).filter(
 		(p) => p !== 'space-center' && p !== 'mission-center' && !open.includes(p)
 	);

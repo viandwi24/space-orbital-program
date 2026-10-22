@@ -22,6 +22,7 @@ export const BASIC_LESSONS: readonly Lesson[] = [
 		steps: [
 			{
 				id: 'throttle',
+				point: 'hud-throttle',
 				title: 'Throttle up',
 				text: 'Skylark stands on the pad: a capsule with its parachute on top, a fuel tank and an engine below. Press {key:throttleFull} for full throttle; {key:throttleUp} and {key:throttleDown} change it gradually.',
 				touchText:
@@ -31,6 +32,7 @@ export const BASIC_LESSONS: readonly Lesson[] = [
 			},
 			{
 				id: 'stage',
+				point: 'stage-go',
 				title: 'Light the engine',
 				text: 'Press {key:stage}. Each press fires the next stage in the stage stack at the bottom right: the first lights the engine.',
 				touchText:
@@ -40,6 +42,7 @@ export const BASIC_LESSONS: readonly Lesson[] = [
 			},
 			{
 				id: 'sas',
+				point: 'hud-sas',
 				title: 'Hold it straight',
 				text: 'Press {key:sasToggle} to switch on SAS, the stability assist: the reaction wheel and the engine’s gimbal hold the nose where it points. Climb past 1 km.',
 				touchText:
@@ -49,6 +52,7 @@ export const BASIC_LESSONS: readonly Lesson[] = [
 			},
 			{
 				id: 'cut',
+				point: 'dock-tab-host.orbit',
 				title: 'Cut at 20 km',
 				text: 'Watch Ap, the top of your flight, in the Orbit panel on the left. When it passes 20 km, cut the engine with {key:throttleCut}: the rocket coasts up the rest of the way.',
 				touchText:
@@ -59,6 +63,7 @@ export const BASIC_LESSONS: readonly Lesson[] = [
 			},
 			{
 				id: 'drop',
+				point: 'stage-go',
 				title: 'Drop the stage',
 				text: 'Press {key:stage} again: the decoupler under the heat shield lets the tank and engine go. Only the capsule comes home.',
 				touchText:
@@ -68,6 +73,7 @@ export const BASIC_LESSONS: readonly Lesson[] = [
 			},
 			{
 				id: 'chute',
+				point: 'stage-go',
 				title: 'Open the parachute',
 				text: 'Press {key:stage} once more to arm the parachute. It opens by itself when the air is thick enough and the capsule slow enough.',
 				touchText:
@@ -98,6 +104,7 @@ export const BASIC_LESSONS: readonly Lesson[] = [
 		steps: [
 			{
 				id: 'library',
+				point: 'vab-open-library',
 				title: 'Open the Library',
 				text: 'The Hangar is empty. Press Open the Library: finished rockets, from a two-stage starter to famous missions. Load one any time; for now, close it and build your own.',
 				targets: { testids: ['vab-open-library'] },
@@ -131,6 +138,7 @@ export const BASIC_LESSONS: readonly Lesson[] = [
 			},
 			{
 				id: 'checks',
+				point: 'preflight-verdict',
 				title: 'Clear the checks',
 				text: 'The Pre-flight checks on the right list what blocks a launch in red. Fix each one (staging, a part that does not fit) until they read Ready for launch.',
 				targets: { testids: ['preflight-verdict', 'menu-launch'] },
@@ -153,6 +161,7 @@ export const BASIC_LESSONS: readonly Lesson[] = [
 		steps: [
 			{
 				id: 'liftoff',
+				point: 'stage-go',
 				title: 'Lift off',
 				text: 'Press {key:throttleFull}, then {key:stage} to light the 2.5 m booster. Switch SAS on with {key:sasToggle}.',
 				touchText: 'Tap Full, then Stage to light the 2.5 m booster. Switch SAS on.',
@@ -161,6 +170,7 @@ export const BASIC_LESSONS: readonly Lesson[] = [
 			},
 			{
 				id: 'turn',
+				point: 'sas-prograde',
 				title: 'Lean east',
 				text: 'Past 1 km, tip the nose about 10° towards heading 090 with {key:pitchPlus}, {key:pitchMinus}, {key:yawMinus} and {key:yawPlus}. Then press {key:sasPrograde}: SAS follows the prograde marker and the rocket bends its own arc, the gravity turn.',
 				touchText:
@@ -170,15 +180,17 @@ export const BASIC_LESSONS: readonly Lesson[] = [
 			},
 			{
 				id: 'booster',
+				point: 'stage-go',
 				title: 'Drop the booster',
-				text: 'When the booster runs dry, press {key:stage}: it falls away and the service module’s vacuum engine lights in one press.',
+				text: 'When the booster runs dry, press {key:stage}: it falls away and the service module’s engine lights in one press.',
 				touchText:
-					'When the booster runs dry, tap Stage: it falls away and the service module’s vacuum engine lights in one press.',
+					'When the booster runs dry, tap Stage: it falls away and the service module’s engine lights in one press.',
 				actions: ['stage'],
 				done: (o) => o.stagesFired >= 2
 			},
 			{
 				id: 'apoapsis',
+				point: 'dock-tab-host.orbit',
 				title: 'Apoapsis to 80 km',
 				text: 'Burn until Ap in the Orbit panel passes 80 km, then cut with {key:throttleCut}. Above 70 km there is no air to slow you.',
 				touchText:
@@ -189,6 +201,7 @@ export const BASIC_LESSONS: readonly Lesson[] = [
 			},
 			{
 				id: 'circularise',
+				point: 'hud-warp',
 				title: 'Circularise',
 				text: 'Coast to the top: {key:warpUp} speeds up time and {key:warpDown} slows it again. A few seconds before Ap, point prograde and burn until Pe is above 70 km too.',
 				touchText:
@@ -212,13 +225,15 @@ export const BASIC_LESSONS: readonly Lesson[] = [
 		setup: [IN_PARKING_ORBIT, LIGHT],
 		blocked: {
 			actions: {
-				stage: 'Staging now would drop the service module with its engine: nothing to drop in this lesson.'
+				stage:
+					'Staging now would drop the service module with its engine: nothing to drop in this lesson.'
 			},
 			places: closedPlaces()
 		},
 		steps: [
 			{
 				id: 'map',
+				point: 'nav-map',
 				title: 'Open the map',
 				text: 'Press {key:map}. Your orbit is the line around Home, with its Ap and Pe markers.',
 				touchText: 'Tap Map. Your orbit is the line around Home, with its Ap and Pe markers.',
@@ -233,6 +248,7 @@ export const BASIC_LESSONS: readonly Lesson[] = [
 			},
 			{
 				id: 'dv',
+				point: 'maneuver-expand',
 				title: 'Set the Δv',
 				text: 'In the node card, press Edit the burn and type a prograde Δv of about 85 m/s (or drag the green handle on the map). The dashed line is the orbit after the burn: its Ap rises to about 250 km.',
 				targets: { testids: ['maneuver-expand', 'node-*'] },
@@ -240,6 +256,7 @@ export const BASIC_LESSONS: readonly Lesson[] = [
 			},
 			{
 				id: 'burn',
+				point: 'maneuver-point',
 				title: 'Fly the node',
 				text: 'Press {key:sasManeuver} to point at the node and warp up to it with {key:warpUp}. Start at full throttle when the countdown reaches half the burn time, and cut when the node has no Δv left.',
 				actions: ['sasManeuver', 'warpUp'],
@@ -272,6 +289,7 @@ export const BASIC_LESSONS: readonly Lesson[] = [
 		steps: [
 			{
 				id: 'retrograde',
+				point: 'sas-retrograde',
 				title: 'Point retrograde',
 				text: 'Press {key:sasRetrograde}: SAS turns the engine to face along your motion, so a burn slows you.',
 				touchText:
@@ -281,6 +299,7 @@ export const BASIC_LESSONS: readonly Lesson[] = [
 			},
 			{
 				id: 'deorbit',
+				point: 'dock-tab-host.orbit',
 				title: 'Lower the periapsis',
 				text: 'Burn with {key:throttleFull} until Pe in the Orbit panel is below 30 km, then cut with {key:throttleCut}. The air at 30 km will do the rest of the braking.',
 				touchText:
@@ -291,6 +310,7 @@ export const BASIC_LESSONS: readonly Lesson[] = [
 			},
 			{
 				id: 'separate',
+				point: 'stage-go',
 				title: 'Drop the service module',
 				text: 'Press {key:stage}: the decoupler lets the service module go. The heat shield is now the capsule’s bottom.',
 				touchText:
@@ -300,6 +320,7 @@ export const BASIC_LESSONS: readonly Lesson[] = [
 			},
 			{
 				id: 'shield',
+				point: 'sas-retrograde',
 				title: 'Shield first',
 				text: 'Keep SAS on retrograde ({key:sasRetrograde}) so the shield faces the air. Below 50 km the capsule glows: that heat is speed turning into fire on the shield.',
 				actions: ['sasRetrograde'],
@@ -307,6 +328,7 @@ export const BASIC_LESSONS: readonly Lesson[] = [
 			},
 			{
 				id: 'chute',
+				point: 'stage-go',
 				title: 'Arm the parachute',
 				text: 'Press {key:stage} to arm the parachute. It waits until the capsule is slow enough, then opens.',
 				touchText: 'Tap Stage to arm the parachute. It waits until the capsule is slow enough.',

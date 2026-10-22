@@ -77,6 +77,8 @@ export interface LessonObservation {
 	docked: boolean;
 	/** The target is a docking port (not just a vessel). */
 	targetPort: boolean;
+	/** The vessel is controlled from one of its docking ports. */
+	controlPort: boolean;
 	/** Stages fired since the flight began. */
 	stagesFired: number;
 	/** A parachute is open (semi or full). */
@@ -131,6 +133,7 @@ export const QUIET: LessonObservation = {
 	target: null,
 	docked: false,
 	targetPort: false,
+	controlPort: false,
 	stagesFired: 0,
 	parachute: false,
 	panels: [],
@@ -157,7 +160,14 @@ export interface LessonInput {
 		Partial<
 			Pick<
 				VesselSnapshot,
-				'id' | 'parts' | 'splashed' | 'science' | 'autopilot' | 'autopilotLast' | 'target'
+				| 'id'
+				| 'parts'
+				| 'splashed'
+				| 'science'
+				| 'autopilot'
+				| 'autopilotLast'
+				| 'target'
+				| 'controlPart'
 			>
 		>;
 	bodies: readonly Pick<BodyDefinition, 'id' | 'rotationPeriod' | 'rotation'>[];
@@ -254,6 +264,8 @@ export function observeLesson(input: LessonInput): LessonObservation {
 		joint: Math.max(0, ...travel),
 		jointsMoved: travel.filter((t) => t > 20).length,
 		targetPort: v.target?.kind === 'vessel' && v.target.part !== undefined,
+		controlPort:
+			v.controlPart !== undefined && (v.ports ?? []).some((p) => p.part === v.controlPart),
 		drive: input.drive === true
 	};
 }
@@ -285,9 +297,10 @@ export interface LessonStep {
 	touchText?: string;
 	actions?: readonly ActionId[];
 	targets?: LessonTargets;
+	/** The test id of the control the step talks about: the guide highlights it (plan 344). */
+	point?: string;
 	done(o: LessonObservation): boolean;
 }
-
 
 /** One call of the debug API that sets the scene: the function's name and its arguments. */
 export type LessonSetupCall = {
@@ -312,12 +325,14 @@ export const LEVELS: readonly { id: LessonLevel; title: string; summary: string 
 	{
 		id: 'basics',
 		title: 'Basics',
-		summary: 'Launch, build, reach orbit, change it, come home, find your way round the Space Center.'
+		summary:
+			'Launch, build, reach orbit, change it, come home, find your way round the Space Center.'
 	},
 	{
 		id: 'flight',
 		title: 'Flight',
-		summary: 'Fly with the Guidance Computer, go to the moon, land, walk, do science, stay in touch.'
+		summary:
+			'Fly with the Guidance Computer, go to the moon, land, walk, do science, stay in touch.'
 	},
 	{
 		id: 'advanced',
@@ -353,7 +368,11 @@ export interface Lesson {
 	hint: string;
 }
 
-export const LESSONS: readonly Lesson[] = [...BASIC_LESSONS, ...FLIGHT_LESSONS, ...ADVANCED_LESSONS];
+export const LESSONS: readonly Lesson[] = [
+	...BASIC_LESSONS,
+	...FLIGHT_LESSONS,
+	...ADVANCED_LESSONS
+];
 
 export const lessonOf = (id: string): Lesson | undefined => LESSONS.find((l) => l.id === id);
 
@@ -390,6 +409,15 @@ export function advanceLesson(
 	return progress.status === 'active' ? progress : { status: 'active', step: progress.step };
 }
 
+/** Skip the step on show (the card's Skip step): the next one, or done after the last. */
+export function skipStep(lesson: Lesson, progress: LessonProgress): LessonProgress {
+	if (progress.status === 'done') return progress;
+	const next = progress.step + 1;
+	return next >= lesson.steps.length
+		? { status: 'done', step: lesson.steps.length }
+		: { status: 'active', step: next };
+}
+
 /** A restart: back to the first step. */
 export const restartLesson = (): LessonProgress => ({ status: 'active', step: 0 });
 
@@ -402,9 +430,7 @@ function withFocus(value: unknown, focus: EntityId | null): unknown {
 	if (value === FOCUS) return focus;
 	if (Array.isArray(value)) return value.map((v) => withFocus(v, focus));
 	if (value && typeof value === 'object' && Object.getPrototypeOf(value) === Object.prototype)
-		return Object.fromEntries(
-			Object.entries(value).map(([k, v]) => [k, withFocus(v, focus)])
-		);
+		return Object.fromEntries(Object.entries(value).map(([k, v]) => [k, withFocus(v, focus)]));
 	return value;
 }
 

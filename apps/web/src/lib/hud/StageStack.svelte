@@ -146,6 +146,7 @@
 		<button
 			type="button"
 			class="go"
+			data-testid="stage-go"
 			disabled={!canStage}
 			aria-label="Stage ({settings.keymap.label('stage')})"
 			data-tip="Activate the next stage ({settings.keymap.label('stage')})"

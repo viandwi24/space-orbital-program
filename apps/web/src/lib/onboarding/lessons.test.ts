@@ -34,12 +34,14 @@ import {
 	observePlace,
 	restartLesson,
 	runLessonSetup,
+	skipStep,
 	setupOf,
 	type Lesson,
 	type LessonObservation,
 	type VabLessonState
 } from './lessons';
-import { stepText } from './tutorial';
+import { TUTORIAL_STEPS, stepText } from './tutorial';
+import { guideUi } from './guide-ui.svelte';
 
 const { registries } = loadPlugins([...BUILTIN_PLUGINS]);
 const content: ContentLookups = {
@@ -91,7 +93,15 @@ const RUNS: Record<string, Partial<LessonObservation>[]> = {
 		vab({ command: true, parts: 1 }),
 		vab({ command: true, tank: true, engine: true, parts: 3 }),
 		vab({ command: true, tank: true, engine: true, parts: 7, fins: 4, symmetry: true }),
-		vab({ command: true, tank: true, engine: true, parts: 8, fins: 4, symmetry: true, parachute: true }),
+		vab({
+			command: true,
+			tank: true,
+			engine: true,
+			parts: 8,
+			fins: 4,
+			symmetry: true,
+			parachute: true
+		}),
 		vab({
 			command: true,
 			tank: true,
@@ -106,7 +116,14 @@ const RUNS: Record<string, Partial<LessonObservation>[]> = {
 	orbit: [
 		{ stagesFired: 1, throttle: 1, sasMode: 'hold', altitude: 100 },
 		{ stagesFired: 1, throttle: 1, sasMode: 'prograde', altitude: 3_000 },
-		{ stagesFired: 2, throttle: 1, sasMode: 'prograde', altitude: 30_000, apoapsis: 40_000, periapsis: -500_000 },
+		{
+			stagesFired: 2,
+			throttle: 1,
+			sasMode: 'prograde',
+			altitude: 30_000,
+			apoapsis: 40_000,
+			periapsis: -500_000
+		},
 		{ stagesFired: 2, apoapsis: 80_000, periapsis: -200_000 },
 		{ stagesFired: 2, apoapsis: 82_000, periapsis: 71_000 }
 	],
@@ -118,9 +135,27 @@ const RUNS: Record<string, Partial<LessonObservation>[]> = {
 		{ apoapsis: RAISED_ORBIT + 70_000, periapsis: RAISED_ORBIT }
 	],
 	reentry: [
-		{ sasMode: 'retrograde', stagesFired: 1, altitude: 100_000, apoapsis: 100_000, periapsis: 100_000 },
-		{ sasMode: 'retrograde', stagesFired: 1, altitude: 100_000, apoapsis: 100_000, periapsis: 25_000 },
-		{ sasMode: 'retrograde', stagesFired: 2, altitude: 90_000, apoapsis: 100_000, periapsis: 25_000 },
+		{
+			sasMode: 'retrograde',
+			stagesFired: 1,
+			altitude: 100_000,
+			apoapsis: 100_000,
+			periapsis: 100_000
+		},
+		{
+			sasMode: 'retrograde',
+			stagesFired: 1,
+			altitude: 100_000,
+			apoapsis: 100_000,
+			periapsis: 25_000
+		},
+		{
+			sasMode: 'retrograde',
+			stagesFired: 2,
+			altitude: 90_000,
+			apoapsis: 100_000,
+			periapsis: 25_000
+		},
 		{ sasMode: 'retrograde', stagesFired: 2, altitude: 40_000 },
 		{ stagesFired: 3, altitude: 3_000, parachute: true },
 		{ stagesFired: 3, splashed: true, parachute: true }
@@ -148,7 +183,13 @@ const RUNS: Record<string, Partial<LessonObservation>[]> = {
 	],
 	landing: [
 		{ body: 'stock.cinder', altitude: 30_000, surfaceSpeed: 260, sasMode: 'retrograde' },
-		{ body: 'stock.cinder', altitude: 20_000, surfaceSpeed: 200, sasMode: 'retrograde', throttle: 1 },
+		{
+			body: 'stock.cinder',
+			altitude: 20_000,
+			surfaceSpeed: 200,
+			sasMode: 'retrograde',
+			throttle: 1
+		},
 		{ body: 'stock.cinder', altitude: 4_000, surfaceSpeed: 40, sasMode: 'retrograde', throttle: 1 },
 		{ body: 'stock.cinder', altitude: 3, surfaceSpeed: 5, landed: true }
 	],
@@ -187,7 +228,8 @@ const RUNS: Record<string, Partial<LessonObservation>[]> = {
 	autodock: [
 		{ panels: ['autodock.panel'] },
 		{ panels: ['autodock.panel'], targetPort: true },
-		{ panels: ['autodock.panel'], targetPort: true, autopilot: 'autodock.dock' },
+		{ panels: ['autodock.panel'], targetPort: true, controlPort: true },
+		{ panels: ['autodock.panel'], targetPort: true, controlPort: true, autopilot: 'autodock.dock' },
 		{ docked: true }
 	],
 	rover: [
@@ -312,6 +354,7 @@ describe('lessons (plans 229, 344)', () => {
 				{ modules: { 'stock.robotic': { value: 5 } } }
 			],
 			target: { kind: 'vessel', id: 3, part: 9 },
+			controlPart: 1,
 			autopilot: { id: 'autodock.dock' },
 			autopilotLast: { id: 'guidance.rendezvous', outcome: 'done' },
 			science: { situation: null, region: '', experiments: [], stored: [{}, {}] }
@@ -361,6 +404,7 @@ describe('lessons (plans 229, 344)', () => {
 			joint: 45,
 			jointsMoved: 2,
 			targetPort: true,
+			controlPort: true,
 			autopilot: 'autodock.dock',
 			autopilotLast: { id: 'guidance.rendezvous', outcome: 'done' },
 			panels: ['guidance.panel'],
@@ -461,7 +505,10 @@ describe('lesson vessels (plan 344, ADR 0293 point 6)', () => {
 				id
 			).toEqual([]);
 			// no part on a node of another size
-			expect(checks.find((c) => c.id === 'size-mismatch'), id).toBeUndefined();
+			expect(
+				checks.find((c) => c.id === 'size-mismatch'),
+				id
+			).toBeUndefined();
 			if (pad && engines) expect(sl.liftoffTwr ?? 0, id).toBeGreaterThan(1.2);
 			const dv = pad
 				? (sl.rows[0]?.dv ?? 0) + vac.rows.slice(1).reduce((s, r) => s + r.dv, 0)
@@ -471,8 +518,19 @@ describe('lesson vessels (plan 344, ADR 0293 point 6)', () => {
 	);
 
 	it('crewed vessels that come home carry a parachute and a heat shield; docking ones RCS and monopropellant', () => {
-		const has = (d: VesselDesign, part: string) => d.parts.some((p) => String(p.part).includes(part));
-		for (const id of ['first-launch', 'orbit', 'ascent-guidance', 'nodes', 'reentry', 'transfer', 'docking', 'rendezvous', 'autodock']) {
+		const has = (d: VesselDesign, part: string) =>
+			d.parts.some((p) => String(p.part).includes(part));
+		for (const id of [
+			'first-launch',
+			'orbit',
+			'ascent-guidance',
+			'nodes',
+			'reentry',
+			'transfer',
+			'docking',
+			'rendezvous',
+			'autodock'
+		]) {
 			const d = lessonOf(id)!.design!(content);
 			expect(has(d, 'parachute'), id).toBe(true);
 			expect(has(d, 'heat-shield'), id).toBe(true);
@@ -495,8 +553,16 @@ describe('lesson vessels (plan 344, ADR 0293 point 6)', () => {
 				const resolved = resolveVesselDesign(design, content.parts);
 				expect(resolved.ok, l.id).toBe(true);
 				const sl = designStats(design, content, 'sea-level', g);
-				const checks = checkDesign({ design, loose: [] }, content, sl, stabilityOf(design, content));
-				expect(checks.find((c) => c.id === 'size-mismatch'), l.id).toBeUndefined();
+				const checks = checkDesign(
+					{ design, loose: [] },
+					content,
+					sl,
+					stabilityOf(design, content)
+				);
+				expect(
+					checks.find((c) => c.id === 'size-mismatch'),
+					l.id
+				).toBeUndefined();
 			}
 		}
 	});
@@ -534,7 +600,9 @@ describe('lesson setups use only the debug API (plan 203)', () => {
 					? () => ({ id: 42 })
 					: async (...args: unknown[]) => {
 							calls.push(`${String(name)}:${JSON.stringify(args)}`);
-							return calls.length === 3 ? { ok: false, reason: 'no vessel in focus' } : { ok: true };
+							return calls.length === 3
+								? { ok: false, reason: 'no vessel in focus' }
+								: { ok: true };
 						}
 		});
 		const docking = lessonOf('docking')!;
@@ -590,7 +658,9 @@ describe('step targets exist (ADR 0293 point 5)', () => {
 				for (const panel of step.targets?.panels ?? [])
 					expect(panels.has(panel), `${where}: panel ${panel}`).toBe(true);
 				for (const command of step.targets?.commands ?? [])
-					expect(protocol.includes(`type: '${command}'`), `${where}: command ${command}`).toBe(true);
+					expect(protocol.includes(`type: '${command}'`), `${where}: command ${command}`).toBe(
+						true
+					);
 				for (const action of step.actions ?? [])
 					expect(ids.has(action), `${where}: action ${action}`).toBe(true);
 				for (const text of [step.text, step.touchText ?? '']) {
@@ -603,6 +673,19 @@ describe('step targets exist (ADR 0293 point 5)', () => {
 			}
 		}
 	);
+
+	it('every step that points at a control names one that exists (plan 344)', () => {
+		const ok = (id: string): boolean =>
+			new RegExp(`testid=["{\`']*${id.replace(/[.]/g, '\\.')}["\`'}]`).test(ui) ||
+			// the menu bar's test ids sit in a table
+			ui.includes(`: '${id}'`) ||
+			// dock tabs and SAS buttons carry their panel id and mode
+			(id.startsWith('dock-tab-') && panels.has(id.slice('dock-tab-'.length))) ||
+			(id.startsWith('sas-') && /data-testid="sas-\{b\.mode\}"/.test(ui));
+		const steps = [...LESSONS.flatMap((l) => l.steps), ...TUTORIAL_STEPS];
+		expect(steps.filter((s) => s.point).length).toBeGreaterThan(30);
+		for (const s of steps) if (s.point) expect(ok(s.point), `${s.id}: ${s.point}`).toBe(true);
+	});
 
 	it('a step that names a dock panel to add says where the Panel library is', () => {
 		for (const l of LESSONS)
@@ -676,8 +759,40 @@ describe('the lesson card', () => {
 		expect(h).toContain('2 of 5');
 		expect(h).toContain('data-testid="lesson-step-node"');
 		expect(h).toContain('Add a node');
-		expect(h).toMatch(/data-testid="lesson-notice"[^>]*>Staging now would drop the service module\./);
+		expect(h).toMatch(
+			/data-testid="lesson-notice"[^>]*>Staging now would drop the service module\./
+		);
 		expect(h).toContain('Leave the lesson');
+	});
+
+	it('offers Skip step and Minimise; minimised it is a pill, except while waiting or done', () => {
+		const skip = (p: LessonProgress) =>
+			render(LessonCard, {
+				props: {
+					lesson: nodes,
+					step: lessonStep(nodes, p),
+					progress: p,
+					keymap: createKeymap({}, 'classic'),
+					onleave: () => {},
+					onskip: () => {}
+				}
+			}).body;
+		const open = skip({ status: 'active', step: 1 });
+		expect(open).toContain('data-testid="lesson-skip"');
+		expect(open).toContain('data-testid="guide-minimise"');
+		guideUi.minimised = true;
+		try {
+			const small = skip({ status: 'active', step: 1 });
+			expect(small).toContain('data-testid="guide-pill"');
+			expect(small).toContain('Lesson 2/5');
+			expect(small).not.toContain('data-testid="lesson-card"');
+			// the debrief always shows
+			expect(skip({ status: 'done', step: nodes.steps.length })).toContain('lesson-debrief');
+		} finally {
+			guideUi.minimised = false;
+		}
+		expect(skipStep(nodes, { status: 'active', step: 1 })).toEqual({ status: 'active', step: 2 });
+		expect(skipStep(nodes, { status: 'active', step: 4 })).toEqual({ status: 'done', step: 5 });
 	});
 
 	it('shows the debrief and the hint once done', () => {

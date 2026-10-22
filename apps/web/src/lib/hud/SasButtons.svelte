@@ -35,6 +35,7 @@
 <div class="sas" role="group" aria-label="Stability assist">
 	<div class="pills">
 		<button
+			data-testid="hud-sas"
 			type="button"
 			class="master"
 			class:on
