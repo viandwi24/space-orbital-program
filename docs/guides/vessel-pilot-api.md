@@ -19,7 +19,7 @@ Read-outs (SI units; inertial axes are the shared axes of `ship.position`):
 | `relative()` | `{ position, velocity, localPosition, localVelocity, distance, closing }`: target point minus own point. With a port targeted and a port as control part, both points are the port faces (ADR 0270) |
 | `alignment()` | port to port: `{ angle, along, lateral, lateralDistance, distance, closing, velocity, sameSize }`. `angle` rad between the faces (0 = face to face); `along` how far the own face is out in front of the target face along its axis (negative: behind it); `lateral` the offset from that axis; `closing` the speed along it toward the face; `velocity` own minus target |
 | `resource(id)` | `{ amount, capacity }` over the vessel, or undefined |
-| `body` | `{ id, mu, radius, atmosphereHeight, angularVelocity }` of the sphere-of-influence body (ADR 0277; undefined when the host gave no facts) |
+| `body` | `{ id, mu, radius, atmosphereHeight, angularVelocity, rotation? }` of the sphere-of-influence body (ADR 0277; undefined when the host gave no facts) |
 | `mass` | the vessel's current mass, kg (undefined without facts) |
 | `engines`, `maxThrust` | each engine module `{ part, thrustVacuum, ispVacuum, ignited, flameout }`; the vacuum thrust of those burning, N |
 | `propellantMass` | the mass of the propellant mix the burning engines draw, over the whole vessel, kg (ADR 0286): with `mass` and the exhaust velocity, the delta-v left is `ve · ln(mass / (mass − propellantMass))` |
@@ -92,7 +92,7 @@ export default definePlugin({
 | `guidance.node` | | points along the next node, lights at half the burn time before it (rocket equation, vacuum Isp), throttles down over the last 1.5 s, removes the node; stages when the engines run dry |
 | `guidance.circularize` | `{ at: 'apoapsis' \| 'periapsis' }` | plans a node for the circular speed at that apsis, then burns it like `guidance.node` |
 | `guidance.ascent` | `{ altitude?, shape?, inclination? }` | launches, gravity turn east (or on the launch azimuth for `inclination`°, steered closed loop on the inclination error) (pitch `90° · (1 − f^shape)` up to 75 % of the atmosphere), eases off near the target apoapsis, coasts out of the air, circularizes; stages on flame-out, and drops spent boosters (burnt-out solids, liquids with empty tanks) 0.5 s after burnout when the next stage separates them, never crew or a burning engine (plan 360) |
-| `guidance.land` | `{ touchdown? }` | burns retrograde until the periapsis is underground, coasts to the suicide-burn height, brakes along a speed profile that ends at the touchdown speed (default 1.2 m/s, 0.5–3), touches down upright |
+| `guidance.land` | `{ touchdown?, target? }` | burns retrograde until the periapsis is underground, coasts to the suicide-burn height, brakes along a speed profile that ends at the touchdown speed (default 1.2 m/s, 0.5–3), touches down upright; with `target` `{ body, lat, lon }` (plan 372) the deorbit waits until it would touch down there, the coast burns across toward it and the brake leans to it |
 
 | `guidance.rendezvous` | `{ standoff?, dock?, warp?, mode?, cap? }` | flies to the target vessel (or a targeted port's vessel) from anywhere in the same sphere of influence and stops at the set distance (10–200 m, default 150 m) from it, at rest (below). Plan 331, ADR 0286 |
 

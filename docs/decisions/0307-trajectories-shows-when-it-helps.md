@@ -1,6 +1,6 @@
 # 0307 — Trajectories shows when it helps; panels pick points on the map
 
-**Status:** accepted (owner's feedback, 2026-10-22)
+**Status:** accepted (owner's feedback, 2026-10-22); the Trajectories mod's parts are superseded by ADR 0309 (it moved into the Guidance Computer); the map pick stays
 **Date:** 2026-10-22
 **Plan:** plans/366-trajectories-rework.md
 **Amends:** ADR 0296 point 7 (Trajectories), ADR 0292 point 6 (keys), ADR 0149 (panel nodes)

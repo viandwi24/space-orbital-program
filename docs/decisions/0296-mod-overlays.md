@@ -1,6 +1,6 @@
 # 0296 — Mod overlays: world-space shapes as data, drawn by the renderer; Trajectories as the built-in example
 
-**Status:** accepted (owner's request, 2026-10-22)
+**Status:** accepted (owner's request, 2026-10-22); the built-in Trajectories example is superseded by ADR 0309 (the Guidance Computer's Landing tab); the overlay API stays
 **Date:** 2026-10-22
 **Plan:** plans/347-mod-overlays-and-trajectories.md
 **Amends:** ADR 0292 (World API), ADR 0149 (panels)
