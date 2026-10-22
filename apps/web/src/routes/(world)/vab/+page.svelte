@@ -18,6 +18,8 @@
 	import VesselName from '../../../lib/vab/VesselName.svelte';
 	import LaunchButton from '../../../lib/vab/LaunchButton.svelte';
 	import StartVessel from '../../../lib/vab/StartVessel.svelte';
+	import CoachMark from '../../../lib/vab/CoachMark.svelte';
+	import WelcomeCard from '../../../lib/vab/WelcomeCard.svelte';
 	import { loadFlag } from '../../../lib/storage';
 	import BuildContext from '../../../lib/vab/BuildContext.svelte';
 	import { pageShell } from '../../../lib/layout/page-actions.svelte';
@@ -347,22 +349,7 @@
 		</div>
 
 		{#if coach && emptyHangar}
-			<div
-				class="coach"
-				role="status"
-				data-testid="vab-coach"
-				style="left:{coachAt.x}px;top:{coachAt.y}px"
-			>
-				<span class="arrow" aria-hidden="true"></span>
-				<strong>Build your own</strong>
-				<span
-					>Pick a command pod in the parts list, then click the glowing ring on the platform. Add
-					tanks and an engine below it.</span
-				>
-				<button type="button" aria-label="Got it" class="x" onclick={() => (coach = false)}
-					>Got it</button
-				>
-			</div>
+			<CoachMark at={coachAt} onclose={() => (coach = false)} />
 		{/if}
 
 		{#if tutorialStep && !emptyHangar}
@@ -377,32 +364,7 @@
 
 		<!-- a lesson keeps the inline card its steps point at (plan 344); elsewhere the start modal -->
 		{#if emptyHangar && inLesson}
-			<div class="welcome">
-				<h2>Build a vessel</h2>
-				<p>
-					Pick a command pod on the left, then click the glowing ring on the platform. Keep adding
-					parts below it, then stage the engines on the right.
-				</p>
-				<div class="featured" aria-label="Featured blueprints">
-					{#each FEATURED as id (id)}
-						{@const card = vab.blueprints.find((c) => c.id === id)}
-						{#if card}
-							<button class="feature" onclick={() => vab.loadBlueprint(card.id)}>
-								<strong>{card.title}</strong>
-								<span>{card.inspiredBy ? `Inspired by ${card.inspiredBy}` : card.summary}</span>
-							</button>
-						{/if}
-					{/each}
-				</div>
-				<div class="row">
-					<Button onclick={() => (vab.blueprintsOpen = true)} data-testid="vab-open-library"
-						>Open the Library</Button
-					>
-					{#if vab.vesselEntries.length > 0}
-						<Button onclick={() => vab.openLibrary()}>Open a saved vessel</Button>
-					{/if}
-				</div>
-			</div>
+			<WelcomeCard {vab} featured={FEATURED} />
 		{/if}
 	</div>
 
@@ -606,121 +568,6 @@
 		margin-top: 3rem;
 		align-self: start;
 		justify-self: center;
-	}
-	/* the coach mark beside the parts list (plan 350) */
-	.coach {
-		position: absolute;
-		z-index: 5;
-		display: grid;
-		gap: 0.375rem;
-		width: 15rem;
-		padding: 0.75rem 0.875rem;
-		border-radius: 0.875rem;
-		background: #f4f4f5;
-		color: #0b0b0c;
-		box-shadow: 0 12px 40px rgb(0 0 0 / 0.45);
-		animation: nudge 1.6s ease-in-out infinite;
-	}
-	.coach strong {
-		font-size: var(--t-button);
-	}
-	.coach span {
-		font-size: var(--t-small);
-		line-height: 1.4;
-	}
-	.coach .arrow {
-		position: absolute;
-		left: -7px;
-		top: 1.125rem;
-		width: 14px;
-		height: 14px;
-		background: inherit;
-		transform: rotate(45deg);
-		border-radius: 2px;
-	}
-	.coach .x {
-		justify-self: end;
-		height: 1.75rem;
-		padding: 0 0.75rem;
-		border: 0;
-		border-radius: var(--radius-pill);
-		background: #0b0b0c;
-		color: #fff;
-		font: inherit;
-		font-size: var(--t-small);
-		font-weight: 700;
-		cursor: pointer;
-	}
-	@keyframes nudge {
-		50% {
-			transform: translateX(-4px);
-		}
-	}
-	@media (prefers-reduced-motion: reduce) {
-		.coach {
-			animation: none;
-		}
-	}
-	.welcome {
-		position: absolute;
-		left: 50%;
-		top: 46%;
-		transform: translate(-50%, -50%);
-		display: grid;
-		justify-items: center;
-		gap: var(--s-3);
-		max-width: 390px;
-		padding: var(--s-4) var(--s-5);
-		text-align: center;
-		background: var(--panel);
-		border: 1px solid var(--line-strong);
-		border-radius: var(--r-panel);
-		backdrop-filter: blur(10px) saturate(1.2);
-	}
-	.welcome h2 {
-		margin: 0;
-		font-size: var(--t-xl);
-		font-weight: 600;
-	}
-	.welcome p {
-		margin: 0;
-		color: var(--text-dim);
-	}
-	.featured {
-		display: grid;
-		grid-template-columns: repeat(auto-fit, minmax(9rem, 1fr));
-		gap: var(--s-2);
-		margin: var(--s-2) 0;
-	}
-	.feature {
-		display: grid;
-		gap: 0.2rem;
-		text-align: left;
-		padding: 0.6rem 0.7rem;
-		border-radius: 0.6rem;
-		border: 1px solid rgb(255 255 255 / 0.14);
-		color: inherit;
-		font: inherit;
-		cursor: pointer;
-		background-color: #12355e;
-		background-image:
-			linear-gradient(rgb(255 255 255 / 0.1) 1px, transparent 1px),
-			linear-gradient(90deg, rgb(255 255 255 / 0.1) 1px, transparent 1px);
-		background-size: 12px 12px;
-	}
-	.feature:hover,
-	.feature:focus-visible {
-		border-color: rgb(255 255 255 / 0.5);
-	}
-	.feature span {
-		font-size: var(--t-sm);
-		color: var(--text-dim);
-	}
-	.row {
-		display: flex;
-		flex-wrap: wrap;
-		justify-content: center;
-		gap: var(--s-2);
 	}
 	.fatal {
 		position: absolute;
