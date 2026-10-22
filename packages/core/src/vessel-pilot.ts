@@ -70,6 +70,8 @@ export interface PilotBody {
 	atmosphereHeight: number;
 	/** Spin of the body, rad/s, inertial axes. */
 	angularVelocity: Vec3;
+	/** The body's axes now, body-fixed to inertial (plan 372, ADR 0309 point 5); absent from older hosts. */
+	rotation?: Quat;
 }
 
 /** One engine module of the vessel (ADR 0277), from its descriptor (ADR 0033). */

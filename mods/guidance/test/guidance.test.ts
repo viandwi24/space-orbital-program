@@ -8,7 +8,16 @@ import { partId, type CommandResult, type EntityId, type VesselDesign } from '@o
 import Stock from '@orbital/mod-stock';
 import { createRapierBackend } from '@orbital/physics';
 import { createSim, type Sim } from '@orbital/sim';
-import GuidanceMod, { cross, length, orbitOf, visViva } from '../src/index.ts';
+import GuidanceMod, {
+	cross,
+	latLonOf,
+	length,
+	orbitOf,
+	pointAt,
+	rotate,
+	surfaceDistance,
+	visViva
+} from '../src/index.ts';
 
 const HOME_RADIUS = 600_000;
 const MOON_RADIUS = 190_000;
@@ -236,6 +245,45 @@ describe('Guidance Computer (plan 321)', () => {
 		const s = vesselOf(sim, id)!;
 		expect(s.parts.length).toBe(parts);
 		expect(contact).toBeLessThan(2);
+		sim.dispose();
+	}, 300_000);
+
+	test('lands near a target picked 150° ahead on the moon, from a 20 km orbit (plan 372)', async () => {
+		const sim = await newSim();
+		const start = circular(sim, 'stock.cinder', MOON_RADIUS, 20_000);
+		const id = loaded(
+			sim.dispatch({
+				type: 'load-vessel',
+				design: lander(),
+				placement: { kind: 'state', ...start, orientation: { x: 0, y: 0, z: -0.7071068, w: 0.7071068 } }
+			})
+		);
+		sim.dispatch({ type: 'stage', vessel: id });
+		const leg = vesselOf(sim, id)!.parts.find((p) => p.definition === 'stock.landing-legs')!;
+		sim.dispatch({ type: 'action', vessel: id, part: leg.id, module: 'stock.landing-leg', action: 'deploy' });
+		// the target: 150° along the orbit (prograde about +Y), in the moon's own axes now
+		const moon = () => sim.snapshot().bodies.find((b) => b.id === 'stock.cinder')!;
+		const conj = (q: { x: number; y: number; z: number; w: number }) => ({ x: -q.x, y: -q.y, z: -q.z, w: q.w });
+		const ahead = (150 * Math.PI) / 180;
+		const fixed = rotate(conj(moon().rotation), { x: Math.cos(ahead), y: 0, z: -Math.sin(ahead) });
+		const target = { body: 'stock.cinder', ...latLonOf(fixed) };
+		expect(
+			sim.dispatch({ type: 'autopilot-engage', vessel: id, autopilot: 'guidance.land', params: { target } }).ok
+		).toBe(true);
+		let lastLog = -1e9;
+		const ended = fly(sim, id, 4_000, (t) => {
+			const ap = vesselOf(sim, id)?.autopilot;
+			if (process.env.LAND_TRACE && ap && t - lastLog > 10) {
+				lastLog = t;
+				console.log(Math.round(t), ap.phase, ap.status, JSON.stringify(ap.readouts));
+			}
+		});
+		expect(ended).toMatch(/^done/);
+		const s = vesselOf(sim, id)!;
+		const here = rotate(conj(moon().rotation), s.position);
+		const miss = surfaceDistance(here, pointAt(target.lat, target.lon, MOON_RADIUS), MOON_RADIUS);
+		console.log(`targeted landing: ${ended}, ${Math.round(miss)} m from the target`);
+		expect(miss).toBeLessThan(3_000);
 		sim.dispose();
 	}, 300_000);
 

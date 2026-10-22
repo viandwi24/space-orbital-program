@@ -73,9 +73,9 @@ describe('the mod runtime', () => {
 		await initModRuntime(store, { importModule: importCode });
 		const { catalog } = loadContent();
 		// the built-in plugins (stock, the Sol pack of plan 124) boot before the installed mods
-		expect(catalog.plugins).toEqual(['stock', 'sol', 'autodock', 'guidance', 'trajectories', 'good']);
+		expect(catalog.plugins).toEqual(['stock', 'sol', 'autodock', 'guidance', 'good']);
 		expect(catalog.parts.some((p) => p.id === 'good.thing')).toBe(true);
-		expect([...bootedMods().keys()]).toEqual(['stock', 'sol', 'autodock', 'guidance', 'trajectories', 'good']);
+		expect([...bootedMods().keys()]).toEqual(['stock', 'sol', 'autodock', 'guidance', 'good']);
 	});
 
 	it('explains why a mod a save needs is not running', async () => {
@@ -99,6 +99,6 @@ describe('the mod runtime', () => {
 			put: async () => {},
 			delete: async () => {}
 		});
-		expect([...bootedMods().keys()]).toEqual(['stock', 'sol', 'autodock', 'guidance', 'trajectories']);
+		expect([...bootedMods().keys()]).toEqual(['stock', 'sol', 'autodock', 'guidance']);
 	});
 });

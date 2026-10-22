@@ -23,7 +23,6 @@
         "@orbital/mod-guidance": "workspace:*",
         "@orbital/mod-sol": "workspace:*",
         "@orbital/mod-stock": "workspace:*",
-        "@orbital/mod-trajectories": "workspace:*",
         "@orbital/physics": "workspace:*",
         "@orbital/renderer": "workspace:*",
         "@orbital/scripting": "workspace:*",
@@ -100,6 +99,7 @@
         "@orbital/sdk": "workspace:*",
       },
       "devDependencies": {
+        "@orbital/core": "workspace:*",
         "@orbital/mod-autodock": "workspace:*",
         "@orbital/mod-stock": "workspace:*",
         "@orbital/physics": "workspace:*",
@@ -127,21 +127,6 @@
         "@orbital/sdk": "workspace:*",
       },
       "devDependencies": {
-        "@types/bun": "latest",
-        "typescript": "catalog:",
-      },
-    },
-    "mods/trajectories": {
-      "name": "@orbital/mod-trajectories",
-      "version": "0.0.0",
-      "dependencies": {
-        "@orbital/sdk": "workspace:*",
-      },
-      "devDependencies": {
-        "@orbital/core": "workspace:*",
-        "@orbital/mod-stock": "workspace:*",
-        "@orbital/physics": "workspace:*",
-        "@orbital/sim": "workspace:*",
         "@types/bun": "latest",
         "typescript": "catalog:",
       },
@@ -319,8 +304,6 @@
     "@orbital/mod-sol": ["@orbital/mod-sol@workspace:mods/sol"],
 
     "@orbital/mod-stock": ["@orbital/mod-stock@workspace:mods/stock"],
-
-    "@orbital/mod-trajectories": ["@orbital/mod-trajectories@workspace:mods/trajectories"],
 
     "@orbital/physics": ["@orbital/physics@workspace:packages/physics"],
 

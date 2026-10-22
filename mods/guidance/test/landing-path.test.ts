@@ -1,23 +1,26 @@
-/** Plans 347 and 366, ADRs 0296 and 0307: where a coasting vessel comes down, and when it shows. */
+/**
+ * The Guidance Landing tab's prediction (plan 372, ADR 0309; from the Trajectories mod of plans 347
+ * and 366): where a coasting vessel comes down, and when it shows.
+ */
 import { describe, expect, test } from 'bun:test';
 import { conicImpact, type Quat, type Vec3 } from '@orbital/core';
 import Stock from '@orbital/mod-stock';
 import { createSim, type Sim } from '@orbital/sim';
 import { orbitState } from '../../../packages/sim/test/helpers/measure.ts';
 import { probe, rapier } from '../../../packages/sim/test/helpers/vessels.ts';
-import Trajectories, {
+import GuidanceMod, {
 	CLEAR_TARGET,
 	PATH,
 	predict,
 	rotate,
 	arcPieces,
 	CLEAR_OF_VESSEL,
+	LandingTarget,
+	PathSettings,
 	PICK_TARGET,
-	SET_SETTINGS,
+	SET_PATH,
 	SET_TARGET,
-	Settings,
 	surfaceDistance,
-	Target,
 	visibility
 } from '../src/index.ts';
 
@@ -85,7 +88,7 @@ describe('predict (pure)', () => {
 });
 
 const make = () =>
-	createSim({ plugins: [Stock, Trajectories], backendFactory: rapier(16), seed: 4 });
+	createSim({ plugins: [Stock, GuidanceMod], backendFactory: rapier(16), seed: 4 });
 function drop(sim: Sim, alt: number, speedFactor: number): number {
 	const r = sim.dispatch({
 		type: 'load-vessel',
@@ -100,41 +103,40 @@ function drop(sim: Sim, alt: number, speedFactor: number): number {
 	return Number(r.vessel);
 }
 
-describe('when the path shows (plan 366: pad, ascent, orbit, re-entry, landed)', () => {
-	const both = Settings.initial;
+describe('when the path shows (ADR 0309 point 3: pad, ascent, orbit, re-entry, landed, programs)', () => {
+	const on = PathSettings.initial;
+	const off = { show: false };
 	const impact = { impact: { position: { x: R, y: 0, z: 0 }, time: 60, speed: 200 } };
-	const at = (situation: string, height: number, radial: number) => ({
+	const at = (situation: string, height: number, autopilot: string | null = null) => ({
 		situation: situation as never,
 		radarAltitude: height,
 		altitude: height,
-		position: { x: R + height, y: 0, z: 0 },
-		velocity: { x: radial, y: 0, z: 1_200 }
+		autopilot
 	});
-	test('never on the pad, landed or splashed', () => {
+	test('on by default; never on the pad, landed or splashed', () => {
+		expect(on.show).toBe(true);
 		for (const s of ['prelaunch', 'landed', 'splashed'])
-			expect(visibility(both, at(s, 0, 0), impact)).toEqual({ flight: 0, map: false });
+			expect(visibility(on, at(s, 0), impact)).toEqual({ flight: 0, map: false });
+		expect(visibility(on, at('landed', 0, 'guidance.land'), impact)).toEqual({ flight: 0, map: false });
 	});
 	test('ascent: hidden near the pad, fading in from 1 to 2 km, in the map whenever it comes down', () => {
-		expect(visibility(both, at('flying', 400, 150), impact)).toEqual({ flight: 0, map: true });
-		expect(visibility(both, at('flying', 1_500, 150), impact).flight).toBeCloseTo(0.5, 6);
-		expect(visibility(both, at('flying', 8_000, 150), impact)).toEqual({ flight: 1, map: true });
-		// only when descending: not on the way up
-		const down = { ...both, descendingOnly: true };
-		expect(visibility(down, at('flying', 8_000, 150), impact).map).toBe(false);
+		expect(visibility(on, at('flying', 400), impact)).toEqual({ flight: 0, map: true });
+		expect(visibility(on, at('flying', 1_500), impact).flight).toBeCloseTo(0.5, 6);
+		expect(visibility(on, at('flying', 8_000), impact)).toEqual({ flight: 1, map: true });
 	});
 	test('a stable orbit, or a path that never comes down, shows nothing', () => {
-		expect(visibility(both, at('orbiting', 100_000, 0), impact)).toEqual({ flight: 0, map: false });
-		expect(visibility(both, at('sub-orbital', 100_000, -50), { impact: null }).map).toBe(false);
+		expect(visibility(on, at('orbiting', 100_000), impact)).toEqual({ flight: 0, map: false });
+		expect(visibility(on, at('sub-orbital', 100_000), { impact: null }).map).toBe(false);
 	});
-	test('re-entry: coming down through the air it shows in both; map only and off', () => {
-		const reentry = at('sub-orbital', 60_000, -400);
-		expect(visibility(both, reentry, impact)).toEqual({ flight: 1, map: true });
-		expect(visibility({ ...both, descendingOnly: true }, reentry, impact).flight).toBe(1);
-		expect(visibility({ ...both, show: 'map' }, reentry, impact)).toEqual({ flight: 0, map: true });
-		expect(visibility({ ...both, show: 'off' }, reentry, impact)).toEqual({
-			flight: 0,
-			map: false
-		});
+	test('while Land flies it always shows; another Guidance program hides it; the toggle off hides it', () => {
+		const reentry = (autopilot: string | null) => at('sub-orbital', 60_000, autopilot);
+		expect(visibility(on, reentry(null), impact)).toEqual({ flight: 1, map: true });
+		expect(visibility(off, reentry(null), impact)).toEqual({ flight: 0, map: false });
+		expect(visibility(off, reentry('guidance.land'), impact)).toEqual({ flight: 1, map: true });
+		expect(visibility(on, reentry('guidance.ascent'), impact)).toEqual({ flight: 0, map: false });
+		expect(visibility(on, reentry('guidance.rendezvous'), impact)).toEqual({ flight: 0, map: false });
+		// a program of another mod does not hide it
+		expect(visibility(on, reentry('autodock.dock'), impact)).toEqual({ flight: 1, map: true });
 	});
 	test('the arc: nothing within 30 m of the vessel, faint near it, red where it is hot', () => {
 		const path = Array.from({ length: 50 }, (_, i) => ({
@@ -157,9 +159,9 @@ describe('when the path shows (plan 366: pad, ascent, orbit, re-entry, landed)',
 	});
 });
 
-describe('Trajectories in a sim', () => {
+describe('the landing path in a sim', () => {
 	const pathOf = (sim: Sim) => sim.snapshot().overlays?.[PATH.id];
-	test('on the pad nothing; on a stable orbit nothing; map only and off from the panel', async () => {
+	test('on the pad nothing; on a stable orbit nothing; a re-entry in both views; the toggle off hides it', async () => {
 		const sim = await make();
 		const pad = sim.dispatch({ type: 'load-vessel', design: probe() });
 		expect(pad.ok).toBe(true);
@@ -176,15 +178,10 @@ describe('Trajectories in a sim', () => {
 			.map((s) => s.views?.join('+'));
 		expect(views).toContain('flight+map');
 		expect(pathOf(sim)!.shapes.some((s) => Number(s.vessel) === orbit)).toBe(false);
-		// map only
-		expect(
-			sim.dispatch({ type: 'mod-key', key: SET_SETTINGS.id, vessel: id, data: { show: 'map' } }).ok
-		).toBe(true);
+		// the Landing tab's toggle off
+		expect(sim.dispatch({ type: 'mod-key', key: SET_PATH.id, vessel: id, data: { show: false } }).ok).toBe(true);
 		for (let i = 0; i < 15; i++) sim.step(0.02);
-		expect(sim.snapshot().stores?.[Settings.id]).toEqual({ show: 'map', descendingOnly: false });
-		expect(pathOf(sim)!.shapes.every((s) => s.views?.join('+') === 'map')).toBe(true);
-		sim.dispatch({ type: 'mod-key', key: SET_SETTINGS.id, data: { show: 'off' } });
-		for (let i = 0; i < 15; i++) sim.step(0.02);
+		expect(sim.snapshot().stores?.[PathSettings.id]).toEqual({ show: false });
 		expect(pathOf(sim)).toBeUndefined();
 		sim.dispose();
 	}, 120_000);
@@ -200,7 +197,7 @@ describe('Trajectories in a sim', () => {
 				data: { body: 'stock.home', x: 0, y: 1, z: 0 }
 			}).ok
 		).toBe(true);
-		expect(sim.snapshot().stores?.[Target.id]).toMatchObject({
+		expect(sim.snapshot().stores?.[LandingTarget.id]).toMatchObject({
 			body: 'stock.home',
 			lat: Math.PI / 2
 		});
@@ -232,7 +229,7 @@ describe('Trajectories in a sim', () => {
 			ok: true
 		});
 		for (let i = 0; i < 15; i++) sim.step(0.02);
-		expect(sim.snapshot().stores?.[Target.id]).toMatchObject({ body: 'stock.home' });
+		expect(sim.snapshot().stores?.[LandingTarget.id]).toMatchObject({ body: 'stock.home' });
 		const withTarget = sim.snapshot().overlays![PATH.id]!;
 		expect(withTarget.shapes.some((s) => s.kind === 'marker' && s.style === 'target')).toBe(true);
 		expect(withTarget.meta![`error:${id}`] as number).toBeLessThan(0.02 * flight + 50);
@@ -254,13 +251,13 @@ describe('Trajectories in a sim', () => {
 		expect(last).not.toBeNull();
 		const miss = surfaceDistance(last!, cross.position, R);
 		console.log(
-			`trajectories: predicted ${predictedTime} s over ${flight} m; flew ${Math.round(t - s0.t)} s; missed by ${Math.round(miss)} m`
+			`landing path: predicted ${predictedTime} s over ${flight} m; flew ${Math.round(t - s0.t)} s; missed by ${Math.round(miss)} m`
 		);
 		expect(miss).toBeLessThan(0.02 * flight + 100);
 		expect(Math.abs(t - s0.t - predictedTime)).toBeLessThan(0.05 * predictedTime + 2);
 
 		sim.dispatch({ type: 'mod-key', key: CLEAR_TARGET.id, vessel: id });
-		expect(sim.snapshot().stores?.[Target.id]).toBeNull();
+		expect(sim.snapshot().stores?.[LandingTarget.id]).toBeNull();
 		sim.dispose();
 	}, 120_000);
 });

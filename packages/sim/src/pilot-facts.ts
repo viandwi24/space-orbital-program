@@ -10,7 +10,7 @@ import {
 	type PilotFacts,
 	type PilotStage
 } from '@orbital/core';
-import { bodyOfVessel } from './bodies.ts';
+import { bodyOfVessel, rotationAt } from './bodies.ts';
 import { moduleDefOf, moduleState, partOf, totalMass, vesselOf, type SimCore } from './core.ts';
 
 export function pilotFacts(core: SimCore, id: EntityId): PilotFacts {
@@ -47,7 +47,8 @@ export function pilotFacts(core: SimCore, id: EntityId): PilotFacts {
 			mu: body.mu,
 			radius: body.def.radius,
 			atmosphereHeight: body.def.atmosphere?.height ?? 0,
-			angularVelocity: bodyAngularVelocity(body.def, core.t)
+			angularVelocity: bodyAngularVelocity(body.def, core.t),
+			rotation: rotationAt(body, core.t)
 		},
 		mass: totalMass(core, vessel.parts),
 		engines,

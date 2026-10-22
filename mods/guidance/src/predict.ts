@@ -1,10 +1,11 @@
 /**
- * The prediction (plan 347, ADR 0296 point 7): where a coasting vessel comes down. A point mass
- * under the body's gravity and drag, integrated with RK4 in the body-centred inertial frame. The
- * air turns with the body, so drag acts on the velocity relative to it (`v − Ω × r`), and the
- * drag area is the sim's own measurement (`WorldVessel.dragArea`) with its transonic rise. The
- * ground also turns: each point is taken back into the body's axes at the time it is reached, so
- * the arc and the impact sit where they will be on the ground. Pure: no SDK state, testable alone.
+ * The landing prediction (plan 347, ADR 0296 point 7; in the Guidance Computer since plan 372,
+ * ADR 0309): where a coasting vessel comes down. A point mass under the body's gravity and drag,
+ * integrated with RK4 in the body-centred inertial frame. The air turns with the body, so drag
+ * acts on the velocity relative to it (`v − Ω × r`), and the drag area is the sim's own
+ * measurement (`WorldVessel.dragArea`) with its transonic rise. The ground also turns: each point
+ * is taken back into the body's axes at the time it is reached, so the arc and the impact sit
+ * where they will be on the ground. Pure: no SDK state, testable alone.
  */
 
 export interface Vec3 {

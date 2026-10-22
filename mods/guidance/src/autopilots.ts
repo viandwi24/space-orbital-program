@@ -4,9 +4,17 @@
  * keeps its memory as plain JSON (a phase and a few numbers), so a world reopened mid-burn goes on.
  * The player takes any channel by touching it (ADR 0276); these loops have no integrators to reset.
  */
-import { defineAutopilot, type AutopilotStep, type Vec3, type VesselPilot } from '@orbital/sdk';
+import {
+	defineAutopilot,
+	type AutopilotStep,
+	type Quat,
+	type Vec3,
+	type VesselPilot
+} from '@orbital/sdk';
+import { pointAt as surfacePoint, rotate, surfaceDistance } from './predict.ts';
 import {
 	STANDARD_GRAVITY,
+	add,
 	angleBetween,
 	burnTime,
 	clamp,
@@ -370,6 +378,121 @@ export interface LandMemory {
 	stagedAt: number;
 	/** Touchdown speed, m/s (plan 332 setting); absent in older saves. */
 	touchdown?: number;
+	/** The landing target on the body's surface (plan 372, ADR 0309 point 4), rad; absent: anywhere. */
+	target?: { lat: number; lon: number };
+	/** Deorbit with a target: the along-track lead of the target over the impact a burn now gives, rad (null before). */
+	lead?: number | null;
+	/** The deorbit burn has started. */
+	burning?: boolean;
+	/** The wait for the deorbit burn was warped through. */
+	warped?: boolean;
+	/** The coast's last touchdown prediction: when, s, and the miss to the target (target minus touchdown, inertial, m). */
+	aimAt?: number;
+	fix?: { x: number; y: number; z: number; t: number } | null;
+}
+
+/** The deorbit lowers the periapsis this share of the height under the ground: a steep, short fall. */
+const DEORBIT_DEPTH = 0.5;
+/** The coast steers when the predicted touchdown misses the target by more than this, m. */
+const STEER_MISS = 300;
+/** The deorbit still burns when the impact has passed the target by less than this, rad. */
+const LATE = 0.02;
+/** Below this height the descent no longer leans toward the target: straight down, m. */
+const LEAN_FLOOR = 100;
+/** The descent leans toward the target at most this fast across the ground, m/s. */
+const LEAN_SPEED = 30;
+
+/** The rotation by `angle` about the unit `axis`. */
+const about = (axis: Vec3, angle: number): Quat => {
+	const sn = Math.sin(angle / 2);
+	return { x: axis.x * sn, y: axis.y * sn, z: axis.z * sn, w: Math.cos(angle / 2) };
+};
+
+/**
+ * Where a surface point (latitude, longitude, rad) is in inertial axes `dt` s from now: the
+ * body's axes now (`rotation`), turned on by its spin.
+ */
+export function surfaceInertial(
+	target: { lat: number; lon: number },
+	radius: number,
+	rotation: Quat,
+	spin: Vec3,
+	dt: number
+): Vec3 {
+	const w = length(spin);
+	const now = rotate(rotation, surfacePoint(target.lat, target.lon, radius));
+	return w > 0 ? rotate(about(scale(spin, 1 / w), w * dt), now) : now;
+}
+
+/**
+ * Where the descent from `(r, v)` touches down, as the Land autopilot flies it: a coast until the
+ * stopping height (as `step`'s rule), then the brake's speed profile (thrust up to `accel`, m/s²,
+ * against the velocity over the turning ground) until it is slow. Point mass, vacuum, Euler steps. Inertial position and time, or
+ * null when it does not come down within `limit` s.
+ */
+export function descentTouchdown(
+	r0: Vec3,
+	v0: Vec3,
+	mu: number,
+	radius: number,
+	spin: Vec3,
+	accel: number,
+	limit: number
+): { t: number; r: Vec3 } | null {
+	let r = r0;
+	let v = v0;
+	let t = 0;
+	let braking = false;
+	while (t < limit) {
+		const up = unit(r);
+		const height = length(r) - radius;
+		const g = mu / dot(r, r);
+		const surface = sub(v, cross(spin, r));
+		const speed = length(surface);
+		if (height <= 0 || (braking && speed < 3)) return { t, r: scale(up, radius) };
+		if (!braking && height <= ((speed * speed) / (2 * Math.max(0.85 * accel - g, 0.1))) * 1.1 + 30) braking = true;
+		const h = braking ? 0.1 : Math.min(2, Math.max(0.1, height / Math.max(speed, 1) / 4));
+		// the brake as `step` flies it: a speed for the height left, the thrust to hold it
+		let push = 0;
+		if (braking) {
+			const wanted = Math.max(TOUCHDOWN_SPEED, Math.min(Math.sqrt(2 * 0.5 * (accel - g) * Math.max(height, 0)), TOUCHDOWN_SPEED + 0.4 * height));
+			push = clamp(g + 3 * (speed - wanted), 0, accel);
+		}
+		const a = add(scale(r, -mu / length(r) ** 3), scale(unit(surface), -push));
+		v = add(v, scale(a, h));
+		r = add(r, scale(v, h));
+		t += h;
+	}
+	return null;
+}
+
+/**
+ * The deorbit burn now (impulsive, retrograde, periapsis `DEORBIT_DEPTH` of the height under the
+ * ground) and where the descent after it touches down (`descentTouchdown`): the touchdown's
+ * along-track angle behind the target then (positive: the target is still ahead), rad, and the
+ * miss, m. Null when it does not come down within an orbit.
+ */
+export function deorbitAim(
+	r: Vec3,
+	v: Vec3,
+	mu: number,
+	radius: number,
+	rotation: Quat,
+	spin: Vec3,
+	target: { lat: number; lon: number },
+	accel: number
+): { lead: number; miss: number; fall: number } | null {
+	const rr = length(r);
+	const rp = radius - DEORBIT_DEPTH * Math.max(0, rr - radius);
+	const after = scale(unit(v), visViva(mu, rr, (rr + rp) / 2));
+	const o = orbitOf(r, v, mu);
+	const turn = o.a > 0 ? 2 * Math.PI * Math.sqrt(o.a ** 3 / mu) : 3_600;
+	const hit = descentTouchdown(r, after, mu, radius, spin, accel, turn);
+	if (!hit) return null;
+	const goal = surfaceInertial(target, radius, rotation, spin, hit.t);
+	const h = unit(cross(r, v));
+	const lead = Math.atan2(dot(cross(hit.r, goal), h), dot(hit.r, goal));
+	return { lead, miss: surfaceDistance(hit.r, goal, radius), fall: hit.t };
 }
 
 /** Touchdown speed the final descent aims for, m/s. */
@@ -385,11 +508,21 @@ export const Land = defineAutopilot<LandMemory>({
 		if (typeof f === 'string') throw new Error(f);
 		if (pilot.vessel.surface === true) throw new Error('the vessel is on the ground');
 		if (pilot.maxThrust <= 0) throw new Error('no engine is burning: stage first');
-		const p = (params ?? {}) as { touchdown?: number };
+		const p = (params ?? {}) as {
+			touchdown?: number;
+			target?: { body?: string; lat?: number; lon?: number } | null;
+		};
+		const t = p.target;
+		// a target on this body (plan 372): the deorbit waits for it, the descent leans toward it
+		const target =
+			t && t.body === pilot.body?.id && Number.isFinite(t.lat) && Number.isFinite(t.lon)
+				? { lat: Number(t.lat), lon: Number(t.lon) }
+				: undefined;
 		return {
 			stage: 'deorbit',
 			stagedAt: -1e9,
-			touchdown: clamp(Number(p.touchdown ?? TOUCHDOWN_SPEED) || TOUCHDOWN_SPEED, 0.5, 3)
+			touchdown: clamp(Number(p.touchdown ?? TOUCHDOWN_SPEED) || TOUCHDOWN_SPEED, 0.5, 3),
+			...(target ? { target, lead: null, burning: false, warped: false } : {})
 		};
 	},
 	step(pilot, memory) {
@@ -409,28 +542,96 @@ export const Land = defineAutopilot<LandMemory>({
 		const climb = dot(surface, up);
 		const g = f.mu / dot(r, r);
 		const accel = thrust / f.mass;
-		const readouts = {
+		const readouts: Record<string, number | string> = {
 			Height: Math.round(height),
 			Speed: Math.round(speed * 10) / 10,
 			'Vertical speed': Math.round(climb * 10) / 10
 		};
 		if (accel <= g) return { phase: memory.stage, abort: 'the engines cannot hold the vessel up here' };
+		const rotation = pilot.body?.rotation;
+		const target = memory.target && rotation ? memory.target : undefined;
+		// the target's horizontal offset now, and its distance over the ground
+		let lean: Vec3 = { x: 0, y: 0, z: 0 };
+		if (target) {
+			const goal = surfaceInertial(target, f.radius, rotation!, spin, 0);
+			const off = sub(goal, r);
+			const across = sub(off, scale(up, dot(off, up)));
+			const distance = surfaceDistance(r, goal, f.radius);
+			readouts['Target distance'] = Math.round(distance);
+			// lean toward it at the speed that covers the distance in the time left, never near the ground
+			const left = Math.max(height, 0) / Math.max(-climb, 5);
+			if (height > LEAN_FLOOR) lean = scale(unit(across), Math.min(LEAN_SPEED, distance / Math.max(left, 1)));
+		}
 		if (memory.stage === 'deorbit') {
 			const o = orbitOf(r, pilot.vessel.velocity, f.mu);
-			if (o.periapsis - f.radius < 0) {
+			const back = unit(scale(pilot.vessel.velocity, -1));
+			if (target && !memory.burning && o.periapsis > f.radius) {
+				// wait until a burn now comes down on the target (ADR 0309 point 4)
+				const aim = deorbitAim(r, pilot.vessel.velocity, f.mu, f.radius, rotation!, spin, target, accel);
+				pilot.pointAt(back);
+				pilot.throttle(0);
+				if (aim) {
+					readouts['Target miss'] = Math.round(aim.miss);
+					memory.lead = aim.lead;
+					// the impact a burn now gives has just reached the target (or passed it by a little)
+					if (aim.lead <= 0 && aim.lead > -LATE) memory.burning = true;
+					else {
+						// the lead closes at the orbit's rate less the ground's: warp most of the wait
+						const rate = Math.sqrt(f.mu / length(r) ** 3) - dot(spin, unit(cross(r, pilot.vessel.velocity)));
+						const wait = (aim.lead > 0 ? aim.lead : aim.lead + 2 * Math.PI) / Math.max(rate, 1e-6);
+						if (!memory.warped && wait > 120) {
+							memory.warped = true;
+							pilot.warpTo(pilot.time + wait - 45);
+						}
+						return {
+							phase: 'deorbit',
+							status: `Deorbit over the target in ${Math.round(wait)} s`,
+							readouts
+						};
+					}
+				} else return { phase: 'deorbit', status: 'Waiting for a path down to the target', readouts };
+			}
+			const rp = target ? f.radius - DEORBIT_DEPTH * Math.max(0, length(r) - f.radius) : f.radius;
+			if (o.periapsis < rp) {
 				pilot.throttle(0);
 				memory.stage = 'coast';
 			} else {
-				const back = unit(scale(pilot.vessel.velocity, -1));
 				pilot.pointAt(back);
 				pilot.throttle(angleBetween(noseOf(pilot), back) < ALIGN ? 1 : 0);
 				return { phase: 'deorbit', status: 'Lowering the periapsis', readouts };
 			}
 		}
+		// with a target, brake against the velocity less the lean toward it
+		const steer = sub(surface, lean);
+		const steerSpeed = length(steer);
 		// the burn that stops the vessel just above the ground, with 15 % thrust in reserve
 		const stop = (speed * speed) / (2 * (0.85 * accel - g));
+		if (memory.stage === 'coast' && target) {
+			// steer the coast (plan 372): predict the touchdown twice a second and burn across toward the target
+			if (pilot.time - (memory.aimAt ?? -1e9) >= 0.5) {
+				memory.aimAt = pilot.time;
+				const td = descentTouchdown(r, pilot.vessel.velocity, f.mu, f.radius, spin, accel, 3_600);
+				if (td) {
+					const goal = surfaceInertial(target, f.radius, rotation!, spin, td.t);
+					const miss = sub(goal, td.r);
+					memory.fix = { ...miss, t: pilot.time + td.t };
+				} else memory.fix = null;
+			}
+			const fix = memory.fix;
+			const tgo = fix ? fix.t - pilot.time : 0;
+			const across = fix ? sub(fix, scale(up, dot(fix, up))) : { x: 0, y: 0, z: 0 };
+			const miss = length(across);
+			readouts['Target miss'] = Math.round(miss);
+			if (fix && miss > STEER_MISS && tgo > 30 && height > stop * 1.5 + 200) {
+				const dir = unit(across);
+				pilot.pointAt(dir);
+				const dv = miss / tgo;
+				pilot.throttle(angleBetween(noseOf(pilot), dir) < ALIGN ? clamp((dv * f.mass) / thrust, 0, 1) : 0);
+				return { phase: 'coast', status: `Steering to the target: ${Math.round(miss)} m off`, readouts };
+			}
+		}
 		if (memory.stage === 'coast') {
-			pilot.pointAt(unit(scale(surface, -1)));
+			pilot.pointAt(unit(scale(steer, -1)));
 			pilot.throttle(0);
 			if (height > stop * 1.1 + 30) {
 				return { phase: 'coast', status: `Burn in ${Math.round(height - stop)} m`, readouts };
@@ -445,9 +646,9 @@ export const Land = defineAutopilot<LandMemory>({
 				td,
 				Math.min(Math.sqrt(2 * 0.5 * (accel - g) * h), td + 0.4 * h)
 			);
-			pilot.pointAt(speed > 3 ? unit(scale(surface, -1)) : up);
+			pilot.pointAt(steerSpeed > 3 ? unit(scale(steer, -1)) : up);
 			const tilt = angleBetween(noseOf(pilot), up);
-			const need = g / Math.max(0.3, Math.cos(tilt)) + 3 * (speed - wanted);
+			const need = g / Math.max(0.3, Math.cos(tilt)) + 3 * (steerSpeed - wanted);
 			pilot.throttle(clamp((need * f.mass) / thrust, 0, 1));
 			if (height < 3 && speed < 3) memory.stage = 'touchdown';
 			return { phase: 'brake', status: `Braking to ${wanted.toFixed(1)} m/s`, readouts };

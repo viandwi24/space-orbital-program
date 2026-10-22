@@ -15,6 +15,19 @@ import {
 } from '@orbital/sdk';
 import { Ascent, Circularize, ExecuteNode, Land, TOUCHDOWN_SPEED } from './autopilots.ts';
 import {
+	CLEAR_TARGET,
+	PICK_TARGET,
+	SET_PATH,
+	SET_TARGET,
+	clock,
+	heatName,
+	kmText,
+	landingTargetOf,
+	pathKey,
+	pathMeta,
+	pathSettingsOf
+} from './landing-path.ts';
+import {
 	HOLD_DISTANCE,
 	MIN_STANDOFF,
 	Rendezvous,
@@ -136,15 +149,20 @@ const reading =
 
 const km = (m: number | null): number | null => (m === null ? null : Math.round(m / 100) / 10);
 
-function engage(label: string, id: string, params?: Record<string, unknown>): PanelNode {
+function engage(
+	label: string,
+	id: string,
+	params?: Record<string, unknown> | ((i: PanelInput) => Record<string, unknown> | undefined)
+): PanelNode {
 	return {
 		kind: 'button',
 		label,
 		tone: 'primary',
-		command: (i) =>
-			i.vessel && !blocked(i, id) && !i.vessel.autopilot
-				? { type: 'autopilot-engage', vessel: i.vessel.id, autopilot: id, ...(params ? { params } : {}) }
-				: null
+		command: (i) => {
+			if (!i.vessel || blocked(i, id) || i.vessel.autopilot) return null;
+			const p = typeof params === 'function' ? params(i) : params;
+			return { type: 'autopilot-engage', vessel: i.vessel.id, autopilot: id, ...(p ? { params: p } : {}) };
+		}
 	};
 }
 const abort = (...ids: string[]): PanelNode => ({
@@ -491,8 +509,98 @@ const landingTab: PanelNode[] = [
 			}
 		]
 	},
+	{
+		// the predicted path to the ground and the landing target (plan 372, ADR 0309)
+		kind: 'section',
+		title: 'Predicted landing',
+		children: [
+			{
+				kind: 'readout',
+				label: 'Impact in',
+				value: (i) => {
+					const t = pathMeta(i, 'time');
+					return t === null ? null : clock(t);
+				}
+			},
+			{
+				kind: 'readout',
+				label: 'Target error',
+				value: (i) => {
+					const e = pathMeta(i, 'error');
+					if (e !== null) return kmText(e);
+					return landingTargetOf(i) ? null : 'no target';
+				}
+			},
+			{
+				kind: 'readout',
+				label: 'Impact distance',
+				value: (i) => {
+					const d = pathMeta(i, 'distance');
+					return d === null ? null : kmText(d);
+				}
+			},
+			{ kind: 'readout', label: 'Speed at impact', unit: 'm/s', value: (i) => pathMeta(i, 'speed') },
+			{
+				kind: 'readout',
+				label: 'Peak heating',
+				value: (i) => {
+					const h = pathMeta(i, 'heat');
+					return h === null ? null : `${h.toFixed(2)} · ${heatName(h)}`;
+				}
+			}
+		]
+	},
+	{
+		kind: 'notice',
+		text: (i) =>
+			pathMeta(i, 'time') !== null
+				? null
+				: 'The path shows in the air once it comes down to the ground (not on the pad or a stable orbit).',
+		tone: () => 'info'
+	},
+	{
+		kind: 'section',
+		columns: 1,
+		children: [
+			{
+				kind: 'switch',
+				label: 'Show predicted path',
+				value: (i) => pathSettingsOf(i).show,
+				command: (i, on) => pathKey(i, SET_PATH.id, { show: on })
+			},
+			{
+				kind: 'pick',
+				label: 'Pick landing target on the map',
+				hint: 'Click the ground on the map to set the landing target',
+				command: (i, pick) =>
+					pathKey(i, PICK_TARGET.id, {
+						body: pick.body,
+						x: pick.direction.x,
+						y: pick.direction.y,
+						z: pick.direction.z
+					})
+			}
+		]
+	},
+	{
+		kind: 'button',
+		label: 'Target at impact',
+		command: (i) => (pathMeta(i, 'time') !== null ? pathKey(i, SET_TARGET.id) : null)
+	},
+	{
+		kind: 'button',
+		label: 'Clear target',
+		command: (i) => (landingTargetOf(i) ? pathKey(i, CLEAR_TARGET.id) : null)
+	},
 	{ kind: 'notice', text: () => 'Deploy the landing legs yourself: the computer does not.', tone: () => 'info' },
-	actions(engage('Engage', Land.id), abort(Land.id))
+	actions(
+		// with a landing target the deorbit waits for it and the descent leans toward it
+		engage('Engage', Land.id, (i) => {
+			const target = landingTargetOf(i);
+			return target ? { target } : undefined;
+		}),
+		abort(Land.id)
+	)
 ];
 
 const logTab: PanelNode[] = [

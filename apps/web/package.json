@@ -45,7 +45,6 @@
 		"@orbital/kepler": "workspace:*",
 		"@orbital/mod-autodock": "workspace:*",
 		"@orbital/mod-guidance": "workspace:*",
-		"@orbital/mod-trajectories": "workspace:*",
 		"@orbital/mod-sol": "workspace:*",
 		"@orbital/mod-stock": "workspace:*",
 		"@orbital/physics": "workspace:*",
