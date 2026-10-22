@@ -1144,15 +1144,16 @@ export const PartEscapeTower = definePart({
 export const PartOrbiterNose = definePart({
 	id: 'stock.orbiter-nose',
 	title: 'OrbitX UA-1 "Beak"',
-	mass: kg(9_000),
+	mass: kg(7_500),
 	crewCapacity: 4,
-	cost: partCost(9_000, 'command'),
+	cost: partCost(7_500, 'command'),
 	impactTolerance: 8,
 	maxTemperature: 2_200,
-	shape: cyl(1.25, 3),
+	// a long nose that slopes into the windscreen (plan 356)
+	shape: cyl(1.25, 4.2),
 	visual: { kind: 'orbiter-nose', palette: WHITE },
-	attach: bottomOnly(3, 2.5),
-	hatch: { pos: [1.2, -0.6, 0], dir: [1, 0, 0] },
+	attach: bottomOnly(4.2, 2.5),
+	hatch: { pos: [1.06, -1.2, 0], dir: [1, 0, 0] },
 	modules: [
 		[ModuleCommand, {}],
 		[ModuleReactionWheel, { torque: 30_000, chargeRate: 1.2 }],
@@ -1169,14 +1170,52 @@ export const PartOrbiterNose = definePart({
 	stagingIcon: 'command'
 });
 
+/**
+ * The orbiter's cargo bay (plan 356): 9 m of fuselage with two clamshell doors on top (+Z) that
+ * open along the length. Closed, it shields what it carries (ADR 0261). A keel node on the floor
+ * faces up out of the bay, for a docking port: the payload rides docked and leaves on Undock.
+ */
+export const PartOrbiterBay = definePart({
+	id: 'stock.orbiter-bay',
+	title: 'OrbitX UA-4 "Keel"',
+	mass: kg(2_500),
+	cost: partCost(2_500, 'structure'),
+	impactTolerance: 6,
+	maxTemperature: 2_000,
+	shape: cyl(1.25, 9),
+	visual: {
+		kind: 'orbiter-bay',
+		palette: WHITE,
+		deploy: { module: ModuleBay.id, flag: 'open', seconds: 6 }
+	},
+	attach: {
+		...stackNodes(9, 2.5),
+		keel: { pos: [0, 0, -0.94] as Vec3Tuple, dir: [0, 0, 1] as Vec3Tuple, size: 1.25 }
+	},
+	modules: [
+		[
+			ModuleBay,
+			{
+				profile: [
+					{ y: -4.4, r: 1 },
+					{ y: 4.4, r: 1 }
+				],
+				// the section's flat sides are 1.05 m from the axis (a rounded square)
+				walls: { x: 1.05, y: 4.5, z: 1.05 }
+			}
+		]
+	]
+});
+
 export const PartOrbiterAft = definePart({
 	id: 'stock.orbiter-aft',
 	title: 'OrbitX UA-3 "Tail"',
-	mass: kg(8_000),
-	cost: partCost(8_000, 'engine'),
+	mass: kg(8_500),
+	cost: partCost(8_500, 'engine'),
 	impactTolerance: 6,
 	maxTemperature: 2_000,
-	shape: cyl(1.8, 3.5),
+	// wider than the 2.5 m fuselage by the tail fin standing up out of its top (+Z)
+	shape: cyl(2.3, 3.5),
 	visual: {
 		kind: 'orbiter-aft',
 		palette: WHITE,
@@ -1205,7 +1244,10 @@ export const PartOrbiterAft = definePart({
 				propellants: lfox,
 				gimbal: { range: 6, rate: 12 }
 			}
-		]
+		],
+		// the OMS pods' propellant (plan 356): with the tank gone it circularizes (about 600 m/s after
+		// an ascent to 80 km), then deorbits and comes home
+		[ModuleResourceContainer, { contents: LFOX(540) }]
 	],
 	stagingIcon: 'engine'
 });
@@ -1219,10 +1261,11 @@ export const PartDeltaWing = definePart({
 	dragCoefficient: 0.05,
 	maxTemperature: 2_000,
 	shape: box(4, 6, 0.3),
-	visual: { kind: 'delta-wing', palette: WHITE },
+	// the tiles' face is a Hangar setting (plan 356): the far wing of a pair has them on top
+	visual: { kind: 'delta-wing', palette: WHITE, paramsFrom: ModuleWing.id },
 	attach: radialAt(2),
 	crossfeed: false,
-	modules: [[ModuleWing, { area: 14, aspectRatio: 2.2, centre: [0, -0.8, 0] }]],
+	modules: [[ModuleWing, { area: 14, aspectRatio: 2.2, centre: [0, -0.8, 0], tiled: true }]],
 	stagingIcon: 'fin'
 });
 
@@ -1343,5 +1386,7 @@ export const STOCK_MISSION_PARTS = [
 	PartOrbiterAft,
 	PartDeltaWing,
 	PartExternalTank,
-	PartSrbXl
+	PartSrbXl,
+	// plan 356, after every older part so their order stays
+	PartOrbiterBay
 ] as const;

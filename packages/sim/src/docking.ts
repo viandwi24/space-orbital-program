@@ -129,6 +129,14 @@ function pairs(core: SimCore, frame: FlightFrame): Pair[] {
 			const b = ports[j]!;
 			if (a.vessel === b.vessel || Math.abs(a.size - b.size) > 1e-3) continue;
 			const dist = length(sub(b.at, a.at));
+			// two ports that just parted ignore each other until they have been out of range
+			const pa = partOf(core, a.part);
+			const pb = partOf(core, b.part);
+			if (pa.portLeft === b.part || pb.portLeft === a.part) {
+				if (dist <= MAGNET_RANGE) continue;
+				delete pa.portLeft;
+				delete pb.portLeft;
+			}
 			if (dist > MAGNET_RANGE || !aligned(a, b)) continue;
 			const rel = sub(partVelocity(core, frame, b.part), partVelocity(core, frame, a.part));
 			out.push({ a, b, dist, rel });
@@ -217,6 +225,28 @@ export function capturePorts(core: SimCore): void {
 			if (!hit) break;
 			merge(core, frame, hit.a, hit.b);
 		}
+	}
+}
+
+/** The dock node of a part's port module, or undefined for a part without one. */
+function dockNode(core: SimCore, part: EntityId): string | undefined {
+	for (const m of partOf(core, part).modules) {
+		const dock = moduleDefOf(core, m.id).dock?.(m.config);
+		if (dock) return dock.node;
+	}
+	return undefined;
+}
+
+/**
+ * A vessel just built (plan 356, ADR 0300): two ports joined face to face in the Hangar start
+ * docked, so Undock sets the payload free as after a capture.
+ */
+export function dockBuiltPairs(core: SimCore, vesselId: EntityId): void {
+	for (const id of vesselOf(core, vesselId).parts) {
+		const node = dockNode(core, id);
+		if (node === undefined) continue;
+		const att = partOf(core, id).attachments.find((a) => a.node === node);
+		if (att && dockNode(core, att.peer) === att.peerNode) setDocked(core, id, true);
 	}
 }
 
@@ -410,7 +440,12 @@ export function restoreUndocked(
 	const i = docks.findIndex(
 		(d) => (d.port === partA && d.peerPort === partB) || (d.port === partB && d.peerPort === partA)
 	);
-	if (i < 0) return;
+	if (i < 0) {
+		// a pair built docked (ADR 0300) has no record: release both ports all the same
+		if (dockNode(core, partA) !== undefined && dockNode(core, partB) !== undefined)
+			release(core, partA, partB);
+		return;
+	}
 	const rec = docks[i]!;
 	// the combined vessel's type stays with the keeper's side, whichever entity that is now (plan 237)
 	const combinedType = keeper.type;
@@ -445,12 +480,22 @@ export function restoreUndocked(
 	if (rec.keeperDesign) home.design = rec.keeperDesign;
 	// the docked vessel's stages were appended after the keeper's own
 	if (home === keeper) home.stages = home.stages.slice(0, rec.keeperStages);
-	for (const p of [partA, partB]) {
-		setDocked(core, p, false);
-		partOf(core, p).portBlockedUntil = core.t + UNDOCK_COOLDOWN;
-	}
+	release(core, partA, partB);
 	reachMilestone(core, 'undock', home.soi, homeId);
 	core.events.emit('vessel:undocked', { vessel: homeId, restored: dockedId, name: rec.name });
+}
+
+/** Two ports just parted: no longer docked, no capture for a moment, nor with each other until apart. */
+function release(core: SimCore, a: EntityId, b: EntityId): void {
+	for (const [p, q] of [
+		[a, b],
+		[b, a]
+	] as const) {
+		setDocked(core, p, false);
+		const part = partOf(core, p);
+		part.portBlockedUntil = core.t + UNDOCK_COOLDOWN;
+		part.portLeft = q;
+	}
 }
 
 /** The alignment of `vesselId`'s port with the port its target names (plan 222), or undefined. */

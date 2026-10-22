@@ -285,6 +285,7 @@
 | 359 | [The status bar's programs list as a popover](plans/359-programs-popover.md) | done | ui-v3 session | ADR 0302. Owner feedback 2026-10-22. A modal popover over a glass backdrop, grouped by vessel; Open panel (the mod's panel, Script), Vessel (switch in Flight, else go fly it), Stop. Journal 359. |
 | 345 | [Single-use petals thrown off; Kronos V separates without a burn](plans/345-petals-jettison-and-kronos-staging.md) | done | part visuals session | Owner's reports: the payload looked flung (the service engine lit in the separation stage) and the petals should come off. `stock.bay` `jettison`: four panel debris, pushes that cancel; `deploy.gone`; the cargo bay keeps its doors. Journal 345. |
 | 355 | [Apollo visual pass: Paint setting, Saturn liveries, F-1 foil, SLA, CSM, LM](plans/355-apollo-visual-pass.md) | done | part visuals session | Owner's KSP Apollo references. Paint (`stock.paint`) on tanks, pods and engine plates; roll pattern, bands, service radiators, foil-wrapped F-1s; two-sided tan petals; an aluminium LM ascent stage. Journal 355. |
+| 356 | [Shuttle rebuild: lofted orbiter, cargo bay with clamshell doors, pre-docked ports](plans/356-shuttle-rebuild.md) | done | part visuals session | Owner's KSP shuttle references. A rounded-square lofted orbiter (nose, 9 m bay with doors and a keel port, aft with OMS pods and fin), tiled double-delta wings, ribbed tank; ADR 0300: docking faces meet face to face in the Hangar and start docked, undock lets the payload drift out of a hollow bay. Wayfarer flies to a 79 km orbit headless and releases its module. Journal 356. |
 | 357 | [Hangar: symmetry pivot (F) and re-rooting through side links](plans/357-symmetry-pivot-and-reroot-through-side-links.md) | done | hangar 348 follow-up session | ADR 0301. Follow-up of plan 348. F while placing switches symmetry copies between the parent's axis and the vessel's (copies about the vessel hang by surface links on whatever they touch; the pill and the context chip show it); the Root tool passes radial and surface links, tilts and offsets with a pose check, and refuses a decoupler held by its side (draft 358). Journal 357. |
 | 358 | [An inverse side link, so a booster on a radial decoupler can become the root](plans/358-inverse-side-link-for-reroot.md) | draft | | From plan 357: a core link where the child touches the parent's node with its own surface. |
 
@@ -356,6 +357,7 @@ Existing drafts realigned on 2026-10-17: 063 (runway building), 065, 066, 067, 0
 
 - [359 — The programs popover](journal/359-programs-popover.md)
 - [357 — Symmetry pivot and re-rooting through side links](journal/357-symmetry-pivot-and-reroot-through-side-links.md)
+- [356 — Shuttle rebuild](journal/356-shuttle-rebuild.md)
 - [355 — Apollo visual pass](journal/355-apollo-visual-pass.md)
 - [344 — Lessons overhaul](journal/344-lessons-overhaul.md)
 - [348 — Hangar placement UX](journal/348-hangar-placement-ux.md)

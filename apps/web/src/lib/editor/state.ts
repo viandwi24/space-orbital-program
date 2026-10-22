@@ -1599,6 +1599,9 @@ export function attachTargets(
 	const placed = layoutOf(design, parts);
 	if (!placed) return [];
 	const out: AttachTarget[] = [];
+	// parent nodes where a docking face meets a docking face (ADR 0300): only that match is offered
+	const flips = new Set<string>();
+	const flipped = new Set<AttachTarget>();
 	for (const p of design.parts) {
 		const raw = parts.get(p.part);
 		const def = raw && effectiveDef(raw, p.settings);
@@ -1610,11 +1613,20 @@ export function attachTargets(
 				const child = rootDef.attach?.[cn];
 				if (!child) continue;
 				// a node at right angles to this one (a hub's side port): turn the part onto it (plan
-				// 308), unless the picked part carries a tilt of its own; never flip a part over
+				// 308), unless the picked part carries a tilt of its own; never flip a part over but onto a
+				// docking face
 				let tilt = rootTiltOf(assembly);
 				let turn: DesignTilt | undefined;
 				const facing = dot(unit(parentNode.dir), unit(child.dir));
-				if (facing > -1 + 1e-6) {
+				// a docking face onto a docking face: the part turns (over, or onto its side) so the
+				// faces meet, a payload built docked (plan 356, ADR 0300)
+				const flip =
+					facing > -1 + 1e-6 && !tilt && parentNode.face === 'docking' && child.face === 'docking';
+				if (flip) {
+					const to = unit(parentNode.dir);
+					turn = tiltOfMatrix(rotationBetween(unit(child.dir), [-to[0], -to[1], -to[2]]));
+					tilt = turn;
+				} else if (facing > -1 + 1e-6) {
 					if (tilt || Math.abs(facing) > 1e-6) continue;
 					const from = unit(child.dir);
 					const to = unit(parentNode.dir);
@@ -1623,13 +1635,18 @@ export function attachTargets(
 				}
 				const here = placementOf(at);
 				const on = mat3Apply(here.rotation, parentNode.pos);
-				out.push({
+				const target: AttachTarget = {
 					parent: { index: p.index, parentNode: pn },
 					node: cn,
 					...(turn ? { tilt: turn } : {}),
 					position: placeStack(here, parentNode.pos, child.pos, tilt).position,
 					point: { x: at.position.x + on.x, y: at.position.y + on.y, z: at.position.z + on.z }
-				});
+				};
+				if (flip) {
+					flips.add(`${p.index}:${pn}`);
+					flipped.add(target);
+				}
+				out.push(target);
 			}
 		}
 	}
@@ -1655,7 +1672,11 @@ export function attachTargets(
 		out.filter((t) => !t.tilt).map((t) => `${t.parent!.index}:${t.parent!.parentNode}`)
 	);
 	return out
-		.filter((t) => !t.tilt || !straight.has(`${t.parent!.index}:${t.parent!.parentNode}`))
+		.filter((t) => {
+			const key = `${t.parent?.index}:${t.parent?.parentNode}`;
+			if (t.parent && flips.has(key)) return flipped.has(t);
+			return !t.tilt || !straight.has(key);
+		})
 		.sort(
 			(a, b) =>
 				b.point.y - a.point.y ||

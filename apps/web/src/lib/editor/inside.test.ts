@@ -28,10 +28,17 @@ describe('seeing inside (plan 315)', () => {
 		expect(inside).not.toContain(indexOf(d, 'stock.tank-3750'));
 	});
 
-	it('Wayfarer Shuttle: the cargo bay holds the satellite', () => {
+	it('Wayfarer Shuttle: the orbiter bay holds the docked module (plan 356)', () => {
 		const d = build('wayfarer-shuttle');
 		const shells = shellsOf(d, content.parts, content);
-		expect(shells.get(indexOf(d, 'stock.cargo-bay'))).toContain(indexOf(d, 'stock.satellite-bus'));
+		const inside = shells.get(indexOf(d, 'stock.orbiter-bay'))!;
+		for (const part of [
+			'stock.docking-port-side',
+			'stock.crew-cabin',
+			'stock.probe-core',
+			'stock.airlock'
+		])
+			expect(inside, part).toContain(indexOf(d, part));
 	});
 
 	it('a shell is see-through on hover, while a part inside is hovered, or with Show payload; not when open', () => {

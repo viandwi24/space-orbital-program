@@ -61,7 +61,7 @@ export const STOCK_FAIRING_PARTS = [
 ] as const;
 
 import { STOCK_CLASS_CONES } from './aero.ts';
-import { PartDockingPort3750 } from './docking.ts';
+import { PartDockingPort3750, PartDockingPortSide } from './docking.ts';
 import { STOCK_CLASS_HEAT_SHIELDS } from './recovery.ts';
 import { STOCK_CLASS_STRUCTURE } from './structure.ts';
 import { STOCK_CLASS_TANKS } from './tanks.ts';
@@ -75,5 +75,7 @@ export const STOCK_SIZE_CLASS_PARTS = [
 	...STOCK_CLASS_STRUCTURE,
 	...STOCK_CLASS_CONES,
 	...STOCK_CLASS_HEAT_SHIELDS,
-	PartDockingPort3750
+	PartDockingPort3750,
+	// plan 356: the side port for payloads lying in a cargo bay
+	PartDockingPortSide
 ] as const;

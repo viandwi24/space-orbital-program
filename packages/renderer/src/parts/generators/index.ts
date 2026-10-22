@@ -7,7 +7,7 @@ import { booster } from './booster.ts';
 import { controlSurface } from './control-surface.ts';
 import { fuelLine, strut } from './connector.ts';
 import { decoupler } from './decoupler.ts';
-import { dockingPort } from './docking-port.ts';
+import { dockingPort, sidePort } from './docking-port.ts';
 import { engine } from './engine.ts';
 import { engineCluster } from './engine-cluster.ts';
 import { flag, suit } from './eva.ts';
@@ -22,7 +22,14 @@ import { probe } from './probe.ts';
 import { antennaDish, antennaRelay, antennaWhip, container, instrument } from './comms.ts';
 import { coupler, hub, lattice, petals, serviceBay, truss, petalPanel } from './bays.ts';
 import { battery, fuelCell, rtg, solarArray, solarFlat, solarFold, solarWings } from './power.ts';
-import { deltaWing, escapeTower, externalTank, orbiterAft, orbiterNose } from './shuttle.ts';
+import {
+	deltaWing,
+	escapeTower,
+	externalTank,
+	orbiterAft,
+	orbiterBay,
+	orbiterNose
+} from './shuttle.ts';
 import { hingeJoint, pistonJoint, rotaryJoint } from './robotic.ts';
 import { roverChassis, roverWheel } from './rover-wheel.ts';
 import {
@@ -78,6 +85,7 @@ export function registerStockGenerators(): void {
 	registerPartGenerator('fairing', fairing);
 	registerPartGenerator('fairing-panel', fairingPanel);
 	registerPartGenerator('docking-port', dockingPort);
+	registerPartGenerator('side-port', sidePort);
 	registerPartGenerator('fin', fin);
 	registerPartGenerator('control-surface', controlSurface);
 	registerPartGenerator('wing', wing);
@@ -125,6 +133,7 @@ export function registerStockGenerators(): void {
 	// plan 295 and the escape tower (276)
 	registerPartGenerator('orbiter-nose', orbiterNose);
 	registerPartGenerator('orbiter-aft', orbiterAft);
+	registerPartGenerator('orbiter-bay', orbiterBay);
 	registerPartGenerator('delta-wing', deltaWing);
 	registerPartGenerator('external-tank', externalTank);
 	registerPartGenerator('escape-tower', escapeTower);

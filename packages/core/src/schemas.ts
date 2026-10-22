@@ -505,7 +505,12 @@ export const partDefinitionSchema = z.object({
 				dir: vec3Tuple,
 				size: z.number().positive().optional(),
 				/** The node sits at the top of the shell of this module (plan 243, ADR 0238); see `effectiveDef`. */
-				shellTop: z.string().min(1).optional()
+				shellTop: z.string().min(1).optional(),
+				/**
+				 * A docking face (plan 356, ADR 0300): the Hangar turns a part over to put one docking
+				 * face on another, and the sim starts such a built pair docked.
+				 */
+				face: z.enum(['docking']).optional()
 			})
 		)
 		.refine((a) => !('surface' in a), 'the node name "surface" is reserved for radial attachment')

@@ -75,6 +75,14 @@ export const bayConfigSchema = z.object({
 		.max(16),
 	/** Doors start open (a bay built open in the Hangar). */
 	open: z.boolean().default(false),
+	/**
+	 * A hollow bay (plan 356): instead of a solid box the part collides as four walls round its
+	 * axis, a square tube of these half sizes, m; the top (+Z) wall is the doors and is gone while
+	 * they are open. A payload set free inside then leaves through the top, not pushed out.
+	 */
+	walls: z
+		.object({ x: z.number().positive(), y: z.number().positive(), z: z.number().positive() })
+		.optional(),
 	stageable: z.boolean().default(false),
 	/**
 	 * Single use (plan 345): opening throws the panels off as debris, as the Apollo SLA's petals
@@ -185,6 +193,20 @@ export const ModuleBay = defineModule({
 		]
 	}),
 	shell: (config, state) => (state.open ? null : config.profile),
+	hollow: (config) => config.walls !== undefined,
+	colliders: (config, state) => {
+		const w = config.walls;
+		if (!w) return [];
+		const t = 0.05;
+		const walls = [
+			{ offset: { x: w.x - t, y: 0, z: 0 }, halfExtents: { x: t, y: w.y, z: w.z } },
+			{ offset: { x: -w.x + t, y: 0, z: 0 }, halfExtents: { x: t, y: w.y, z: w.z } },
+			{ offset: { x: 0, y: 0, z: -w.z + t }, halfExtents: { x: w.x, y: w.y, z: t } }
+		];
+		if (!state.open)
+			walls.push({ offset: { x: 0, y: 0, z: w.z - t }, halfExtents: { x: w.x, y: w.y, z: t } });
+		return walls;
+	},
 	mass: (config, state) => (config.jettison && !state.jettisoned ? config.jettison.mass : 0),
 	onStage(ctx) {
 		if (ctx.config.stageable) openBay(ctx);

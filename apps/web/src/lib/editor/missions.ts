@@ -235,23 +235,26 @@ export const MISSION_BLUEPRINTS: readonly MissionBlueprint[] = [
 		goal: 'orbit',
 		crew: 4,
 		summary:
-			'A winged orbiter with a satellite in its cargo bay, on a foam-covered tank between two solid boosters. The main engines are under the tank, so the thrust runs through the stack. In orbit the orbiter burns on its own engines; open the bay doors and stage to set the satellite free.',
+			'A winged orbiter on a foam-covered tank between two solid boosters, a station module docked in its cargo bay. The main engines are under the tank, so the thrust runs through the stack. In orbit the orbiter burns on its own engines; open the bay doors, then Undock the module (or stage) and it drifts out of the bay.',
 		build(content) {
 			const b = new Build(content, 'Wayfarer Shuttle', 'stock.orbiter-nose');
-			// the orbiter's own propellant behind the crew deck (the Shuttle's OMS): with the tank gone
-			// it still has to finish the orbit, deorbit and come home (it had none, 2026-10-22)
-			const oms = b.below('stock.tank-wide-short', 0);
-			const bay = b.below('stock.cargo-bay', oms);
-			// the satellite rides on a decoupler: open the bay doors, then stage to set it free
-			const satRelease = b.on('stock.decoupler', bay, 'inner');
-			const sat = b.above('stock.satellite-bus', satRelease);
-			b.above('stock.antenna-relay', sat);
-			b.side('stock.solar-flat', sat, 0, 0, 4);
+			// the orbiter (plan 356): nose, cargo bay, engine section; the OMS propellant is in the aft
+			const bay = b.below('stock.orbiter-bay', 0);
 			const aft = b.below('stock.orbiter-aft', bay);
-			// the wings far aft, behind the centre of mass (they sat ahead of it: "unstable")
-			b.side('stock.wing-delta', bay, Math.PI / 2, -0.85, 2);
-			b.side('stock.rcs-block', bay, Math.PI / 4, 0.8, 4);
-			const rd = b.side('stock.radial-decoupler', bay, Math.PI, 0);
+			// the payload, docked: a port on the bay's keel, the module's side port face to face on it
+			// (ADR 0300), the module lying along the bay
+			const keel = b.on('stock.docking-port', bay, 'keel', 'bottom');
+			const side = b.on('stock.docking-port-side', keel, 'top', 'side');
+			const cabin = b.on('stock.crew-cabin', side, 'bottom');
+			const core = b.on('stock.probe-core', side, 'top');
+			// a berth at the far end for whatever docks with it later
+			b.above('stock.docking-port-small', b.above('stock.airlock', core));
+			b.side('stock.solar-flat', cabin, Math.PI / 2, 0, 2);
+			// the wings far aft, behind the centre of mass, on the bay's aft end, either side (±X);
+			// the tank on the belly (-Z, an angle of pi/2), the bay doors (+Z) away from it
+			b.side('stock.wing-delta', bay, 0, -0.7, 2);
+			b.side('stock.rcs-block', bay, Math.PI / 4, 0.85, 4);
+			const rd = b.side('stock.radial-decoupler', bay, Math.PI / 2, -0.2);
 			const et = b.on('stock.external-tank', rd, 'outer');
 			b.side('stock.radial-decoupler', et, Math.PI / 2, -0.2, 2);
 			const srbDecs = b.s.design.parts
@@ -262,11 +265,24 @@ export const MISSION_BLUEPRINTS: readonly MissionBlueprint[] = [
 			const srbs = b.s.design.parts.filter((p) => p.part === 'stock.srb-xl').map((p) => p.index);
 			// the main engines sit under the tank, on the stack's axis (as Energia under Buran): the
 			// orbiter's own engines, 3 m off the centre of mass, would turn the stack over (plan 309)
-			const core = b.below('stock.engine-plate-8', et);
+			const mains = b.below('stock.engine-plate-8', et);
 			// core engines and boosters light together; the boosters drop; the tank drops and the
-			// orbiter's own engines light for the orbit burn (they never did before, 2026-10-22); then
-			// the satellite is released from the open bay
-			return b.done([[core, ...srbs], srbDecs, [rd, aft], [satRelease]]);
+			// orbiter's own engines light for the orbit burn; the module undocks from the open bay
+			const design = b.done([[mains, ...srbs], srbDecs, [rd, aft], [side]]);
+			// the far wing (symmetry turns it half round) has its tiles on its top face, so both
+			// wings show them underneath; the last stage undocks the module ("Undock on stage")
+			const farWing = (p: VesselDesign['parts'][number]) =>
+				p.part === 'stock.wing-delta' && Math.abs((p.parent?.radial?.angle ?? 0) - Math.PI) < 0.1;
+			return {
+				...design,
+				parts: design.parts.map((p) =>
+					p.index === side
+						? { ...p, settings: { ...p.settings, 'stock.docking-port': { stageUndock: true } } }
+						: farWing(p)
+							? { ...p, settings: { ...p.settings, 'stock.wing': { tilesUp: true } } }
+							: p
+				)
+			};
 		}
 	},
 	{

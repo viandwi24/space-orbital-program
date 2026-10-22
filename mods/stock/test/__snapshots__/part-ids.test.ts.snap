@@ -2309,6 +2309,20 @@ exports[`stock part ids, masses, costs and modules match the snapshot 1`] = `
     ],
   },
   {
+    "cost": 240,
+    "id": "stock.docking-port-side",
+    "mass": 120,
+    "modules": [
+      [
+        "stock.docking-port",
+        {
+          "node": "side",
+          "size": 1.25,
+        },
+      ],
+    ],
+  },
+  {
     "cost": 100,
     "id": "stock.solar-flat",
     "mass": 10,
@@ -3535,9 +3549,9 @@ exports[`stock part ids, masses, costs and modules match the snapshot 1`] = `
     ],
   },
   {
-    "cost": 90000,
+    "cost": 75000,
     "id": "stock.orbiter-nose",
-    "mass": 9000,
+    "mass": 7500,
     "modules": [
       [
         "stock.command",
@@ -3566,9 +3580,9 @@ exports[`stock part ids, masses, costs and modules match the snapshot 1`] = `
     ],
   },
   {
-    "cost": 48000,
+    "cost": 51000,
     "id": "stock.orbiter-aft",
-    "mass": 8000,
+    "mass": 8500,
     "modules": [
       [
         "stock.engine",
@@ -3592,6 +3606,19 @@ exports[`stock part ids, masses, costs and modules match the snapshot 1`] = `
           "thrust": 2100000,
         },
       ],
+      [
+        "stock.resource-container",
+        {
+          "contents": {
+            "stock.liquid-fuel": {
+              "capacity": 540,
+            },
+            "stock.oxidizer": {
+              "capacity": 660,
+            },
+          },
+        },
+      ],
     ],
   },
   {
@@ -3609,6 +3636,7 @@ exports[`stock part ids, masses, costs and modules match the snapshot 1`] = `
             -0.8,
             0,
           ],
+          "tiled": true,
         },
       ],
     ],
@@ -3664,6 +3692,33 @@ exports[`stock part ids, masses, costs and modules match the snapshot 1`] = `
             "stock.solid-fuel": {
               "capacity": 9000,
             },
+          },
+        },
+      ],
+    ],
+  },
+  {
+    "cost": 5000,
+    "id": "stock.orbiter-bay",
+    "mass": 2500,
+    "modules": [
+      [
+        "stock.bay",
+        {
+          "profile": [
+            {
+              "r": 1,
+              "y": -4.4,
+            },
+            {
+              "r": 1,
+              "y": 4.4,
+            },
+          ],
+          "walls": {
+            "x": 1.05,
+            "y": 4.5,
+            "z": 1.05,
           },
         },
       ],
