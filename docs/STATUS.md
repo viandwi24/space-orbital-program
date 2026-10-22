@@ -277,6 +277,7 @@
 | 343 | [Mod World API](plans/343-mod-world-api.md) | done | mod world API session | ADR 0292. One read-only World Query for systems, autopilots and panels (vessels by type, situation, SOI, distance; parts, resources, crew, orbit, comms; bodies, sites, roster, economy); commands with the program source, spawn and terminate only with debug tools; `defineStore` saved with the world; `SIM_EVENTS` and `vessel:situation-changed`; `defineKeybinding` under Controls → Mods; `ctx.notify` toasts; `examples/mod-world-api` (API 0.1.106). Journal 343. |
 | 344 | [Lessons overhaul](plans/344-lessons-overhaul.md) | in-progress | lessons session | ADR 0293. Lessons by level (Basics, Flight, Advanced), a start place, a wider observation, step targets checked by a test; lesson rockets from today's stock parts flown headless; new lessons from first launch to Auto Dock |
 | 346 | [Hangar header beside the time bar, a white LAUNCH, the Launch page and a vessel library](plans/346-hangar-header-launch-page-vessel-library.md) | done | ui-v3 session | ADR 0295. Owner feedback 2026-10-22. The name and AIRCRAFT go in one row beside the time warp (`pageShell.beside`); a white LAUNCH sits above Vessel; the Launch page has a hero, facility cards (free, or occupied with Recover/Terminate) and portrait seats with drag; the library merges copies, shows variants, and can search, filter, sort, rename, duplicate, delete and open in the Hangar. Journal 346. |
+| 349 | [Space Center: the Buildings list as a strip of cards along the bottom](plans/349-space-center-buildings-strip.md) | done | ui-v3 session | ADR 0298. Owner feedback 2026-10-22. The corner panel is now a strip in the build menu's look: thumbnail, status chip, level, a progress bar while work runs; hover boxes the building, a click frames it. Journal 349. |
 
 Statuses: `draft` (needs refinement before an agent takes it) · `ready` · `in-progress` · `done` · `blocked`.
 
@@ -344,6 +345,7 @@ Existing drafts realigned on 2026-10-17: 063 (runway building), 065, 066, 067, 0
 
 ## Recent journal entries
 
+- [349 — The Space Center's Buildings strip](journal/349-space-center-buildings-strip.md)
 - [346 — Hangar header, white LAUNCH, Launch page and vessel library](journal/346-hangar-header-launch-page-vessel-library.md)
 - [333 — Rendezvous readiness and the next step](journal/333-rendezvous-readiness-and-next-step.md)
 - [332 — Guidance Computer panel with tabs](journal/332-guidance-panel-tabs.md)
