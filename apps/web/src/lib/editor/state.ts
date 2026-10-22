@@ -40,6 +40,13 @@ import {
 import { emptyDesign, freeNodes, removePart, subtreeOf, withDanglingLinks } from '../design';
 import { autoStages, sameStages, type StagingContent } from './staging';
 import { partsOffParent } from './bounds';
+import {
+	mirroredAcrossAxis,
+	poseOf,
+	surfaceLinkOnto,
+	turnedAboutAxis,
+	type SurfaceLinkFit
+} from './frames';
 
 export interface Doc {
 	design: VesselDesign;
@@ -247,7 +254,14 @@ export const SYMMETRY_COUNTS = [1, 2, 3, 4, 5, 6, 7, 8] as const;
 export interface SymmetrySpec {
 	count: number;
 	mirror?: boolean;
+	/**
+	 * What the copies turn about (plan 357, ADR 0301 point 1): the parent's vertical axis (default),
+	 * or the vessel's, the root's vertical axis (a mirror: the parent's or the root's YZ plane).
+	 */
+	pivot?: SymmetryPivot;
 }
+
+export type SymmetryPivot = 'parent' | 'vessel';
 
 const specOf = (s: number | SymmetrySpec): SymmetrySpec =>
 	typeof s === 'number' ? { count: s } : s;
@@ -324,17 +338,29 @@ export function planAttachAssembly(
 	state: Pick<Doc, 'design' | 'loose' | 'nextIndex'>,
 	assembly: VesselDesign,
 	target: AttachTarget,
-	symmetry: number | SymmetrySpec = 1
+	symmetry: number | SymmetrySpec = 1,
+	parts?: PartLookup
 ): { design: VesselDesign; added: number[] } {
 	const spec = specOf(symmetry);
 	const base = state.nextIndex;
-	/** Each copy's target and whether it is the mirrored one of a mirror pair. */
-	const targets: Array<{ target: AttachTarget; mirrored: boolean }> = [];
+	/** Each copy's target, whether it is the mirrored one of a mirror pair, and a root tilt that replaces the assembly's. */
+	const targets: CopyTarget[] = [];
 	const parentGroup = target.parent ? groupOf(state.design, target.parent.index) : [];
 	const mirroredParent = (m: number): boolean =>
 		state.design.parts.find((p) => p.index === m)?.mirror === true;
 	const onSurface = target.radial !== undefined || target.surface !== undefined;
-	if (target.parent && onSurface && parentGroup.length > 1) {
+	const aboutVessel =
+		spec.pivot === 'vessel' &&
+		parts &&
+		target.parent &&
+		onSurface &&
+		parentGroup.length <= 1 &&
+		(spec.mirror || spec.count > 1)
+			? vesselCopies(state.design, assembly, target, spec, parts, base)
+			: null;
+	if (aboutVessel) {
+		targets.push(...aboutVessel);
+	} else if (target.parent && onSurface && parentGroup.length > 1) {
 		// inherited symmetry (ADR 0207 point 2): one copy on every member of the parent's group, at
 		// the same spot in each member's frame (reflected on the mirrored member of a mirror pair)
 		for (const m of parentGroup) {
@@ -380,9 +406,10 @@ export function planAttachAssembly(
 	}
 	let design = state.design;
 	const added: number[] = [];
-	targets.forEach(({ target: t, mirrored }, k) => {
+	targets.forEach(({ target: t, mirrored, rootTilt }, k) => {
 		const copy = reindex(assembly, base + k * size);
 		const own = new Map<number, number>();
+		const copyRoot = rootOf(copy);
 		const parts = copy.parts.map((p, j) => {
 			const old = sorted[j]!;
 			let group: number | undefined;
@@ -393,7 +420,12 @@ export function planAttachAssembly(
 				group = shared.get(old.index);
 			}
 			const { symmetry: _drop, mirror: _was, tilt, ...rest } = p;
-			const turned = mirrored ? mirrorTilt(tilt) : tilt;
+			const turned =
+				rootTilt !== undefined && p.index === copyRoot
+					? (rootTilt ?? undefined)
+					: mirrored
+						? mirrorTilt(tilt)
+						: tilt;
 			return {
 				...rest,
 				...(turned ? { tilt: turned } : {}),
@@ -412,9 +444,83 @@ export function planAttach(
 	state: Pick<Doc, 'design' | 'loose' | 'nextIndex'>,
 	part: string,
 	target: AttachTarget,
-	symmetry: number | SymmetrySpec = 1
+	symmetry: number | SymmetrySpec = 1,
+	parts?: PartLookup
 ): { design: VesselDesign; added: number[] } {
-	return planAttachAssembly(state, singlePart(part, state.nextIndex), target, symmetry);
+	return planAttachAssembly(state, singlePart(part, state.nextIndex), target, symmetry, parts);
+}
+
+/** One copy of a placement: where it goes; `rootTilt` (null: none) replaces the assembly root's tilt. */
+interface CopyTarget {
+	target: AttachTarget;
+	mirrored: boolean;
+	rootTilt?: DesignTilt | null;
+}
+
+/**
+ * The copies of a placement about the vessel's axis (plan 357, ADR 0301 point 2): the first copy
+ * as `target` gives it, each other one that pose turned about the root's vertical axis (or
+ * reflected across the root's YZ plane), hung by a surface link on the vessel part its attach
+ * node touches (the nearest surface); a copy that touches nothing is left out. Null when the
+ * parent stands on the vessel axis (the parent pivot gives the same copies) or nothing resolves.
+ */
+function vesselCopies(
+	design: VesselDesign,
+	assembly: VesselDesign,
+	target: AttachTarget,
+	spec: SymmetrySpec,
+	parts: PartLookup,
+	base: number
+): CopyTarget[] | null {
+	const before = layoutOf(design, parts);
+	const parentAt = target.parent && before?.get(target.parent.index);
+	if (!before || !parentAt) return null;
+	const pp = poseOf(parentAt);
+	const r = pp.rotation;
+	const onAxis =
+		Math.hypot(pp.position.x, pp.position.z) < 1e-6 &&
+		Math.abs(r[4] - 1) < 1e-9 &&
+		(!spec.mirror || Math.abs(Math.abs(r[0]) - 1) < 1e-9);
+	if (onAxis) return null;
+	const first = reindex(assembly, base);
+	const root = rootOf(first);
+	const at = layoutOf(join(design, first, target), parts)?.get(root);
+	const node = parts.get(first.parts.find((p) => p.index === root)!.part)?.attach?.[target.node];
+	if (!at || !node) return null;
+	const start = poseOf(at);
+	const poses = spec.mirror
+		? [{ pose: mirroredAcrossAxis(start, node.dir), mirrored: true }]
+		: Array.from({ length: spec.count - 1 }, (_, k) => ({
+				pose: turnedAboutAxis(start, (2 * Math.PI * (k + 1)) / spec.count),
+				mirrored: false
+			}));
+	const out: CopyTarget[] = [{ target, mirrored: false }];
+	for (const { pose, mirrored } of poses) {
+		let best: { index: number; fit: SurfaceLinkFit } | null = null;
+		for (const p of design.parts) {
+			const l = before.get(p.index);
+			const fit = l && surfaceLinkOnto(poseOf(l), parts.get(p.part)?.shape, pose, node);
+			if (fit && (!best || Math.abs(fit.gap) < Math.abs(best.fit.gap))) best = { index: p.index, fit };
+		}
+		if (!best) continue;
+		const touch = mat3Apply(pose.rotation, node.pos);
+		out.push({
+			target: {
+				parent: { index: best.index, parentNode: SURFACE_NODE },
+				surface: best.fit.surface,
+				node: target.node,
+				position: pose.position,
+				point: {
+					x: pose.position.x + touch.x,
+					y: pose.position.y + touch.y,
+					z: pose.position.z + touch.z
+				}
+			},
+			mirrored,
+			rootTilt: best.fit.tilt ?? null
+		});
+	}
+	return out;
 }
 
 /** Adds a catalogue part (and its symmetric copies). Throws when `target` is not one of `attachTargets` (callers pick from that list). */
@@ -426,7 +532,7 @@ export function attachNew(
 	symmetry: number | SymmetrySpec = 1
 ): EditorState {
 	if (!content.parts.get(part)) throw new Error(`unknown part "${part}"`);
-	const { design, added } = planAttach(state, part, target, symmetry);
+	const { design, added } = planAttach(state, part, target, symmetry, content.parts);
 	assertResolves(design, content);
 	return commit(state, { ...state, design, nextIndex: state.nextIndex + added.length }, content);
 }
@@ -443,7 +549,8 @@ export function attachAssembly(
 		state,
 		reindex(assembly, state.nextIndex),
 		target,
-		symmetry
+		symmetry,
+		content.parts
 	);
 	assertResolves(design, content);
 	return commit(state, { ...state, design, nextIndex: state.nextIndex + added.length }, content);

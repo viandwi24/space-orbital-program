@@ -241,6 +241,7 @@ export const ACTIONS = [
 	carry('yawRight', 'Turn the carried part: yaw right', 'KeyE'),
 	carry('turnReset', 'Reset the turn of the carried part', 'Space'),
 	carry('angleSnap', 'Angle snap on or off', 'KeyC'),
+	carry('symmetryPivot', 'Symmetry about the parent or the vessel axis', 'KeyF'),
 	tool('toolUp', 'Move up (+Y), or pitch (+X turn)', 'KeyW'),
 	tool('toolDown', 'Move down (-Y), or pitch back', 'KeyS'),
 	tool('toolLeft', 'Move left (-X), or roll (+Z turn)', 'KeyA'),
@@ -804,7 +805,11 @@ export const BINDING_GROUPS: readonly BindingGroup[] = [
 			{ actions: ['rollLeft', 'rollRight'], text: 'Roll it' },
 			{ actions: ['yawLeft', 'yawRight'], text: 'Yaw it' },
 			{ actions: ['turnReset'], text: 'Reset its turn' },
-			{ actions: ['angleSnap'], text: 'Angle snap on or off' }
+			{ actions: ['angleSnap'], text: 'Angle snap on or off' },
+			{
+				actions: ['symmetryPivot'],
+				text: 'Symmetry copies about the parent part or the vessel axis'
+			}
 		]
 	},
 	{

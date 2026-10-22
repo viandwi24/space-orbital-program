@@ -36,6 +36,13 @@
 						>and {vab.shown.followers.length} copies</span
 					>{/if}
 			{/if}
+			{#if armed.kind !== 'carry' && armed.kind !== 'connect' && vab.copies > 1}
+				<!-- the symmetry pivot (plan 357, ADR 0301) -->
+				<span class="dim" data-testid="context-pivot"
+					>×{vab.copies} about the {vab.symmetryPivot === 'vessel' ? 'vessel axis' : 'parent'}
+					(<Kbd>{key('symmetryPivot')}</Kbd>)</span
+				>
+			{/if}
 		</span>
 		<span class="hintline">
 			{#if armed.kind === 'connect'}
@@ -61,7 +68,7 @@
 	{#if !vab.armed && vab.tool === 'root'}
 		<!-- the Root tool (plan 348) -->
 		<span class="chip live" data-testid="tool-context">
-			Root: click a part of the stack to make it the root of the vessel
+			Root: click a part to make it the root of the vessel
 		</span>
 	{:else if !vab.armed && vab.tool !== 'place'}
 		<span class="chip live" data-testid="tool-context">
