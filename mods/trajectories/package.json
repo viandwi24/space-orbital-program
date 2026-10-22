@@ -1,0 +1,27 @@
+{
+	"name": "@orbital/mod-trajectories",
+	"version": "0.0.0",
+	"license": "Apache-2.0",
+	"private": true,
+	"description": "Trajectories (plan 347): the predicted path through the air to the ground with the impact point, drawn as a mod overlay; the reference example of the World API and overlays.",
+	"type": "module",
+	"exports": {
+		".": "./src/index.ts"
+	},
+	"types": "./src/index.ts",
+	"scripts": {
+		"typecheck": "tsc --noEmit -p tsconfig.json",
+		"test": "bun test"
+	},
+	"dependencies": {
+		"@orbital/sdk": "workspace:*"
+	},
+	"devDependencies": {
+		"@orbital/core": "workspace:*",
+		"@orbital/mod-stock": "workspace:*",
+		"@orbital/physics": "workspace:*",
+		"@orbital/sim": "workspace:*",
+		"@types/bun": "latest",
+		"typescript": "catalog:"
+	}
+}
