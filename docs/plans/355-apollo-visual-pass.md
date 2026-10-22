@@ -1,7 +1,7 @@
 ---
 id: 355
 title: "Apollo visual pass: a Paint setting, Saturn liveries, foil-wrapped F-1s, the SLA, the CSM and the LM"
-status: in-progress
+status: done
 owner: "part visuals session (Claude)"
 depends: [291, 303, 345]
 phase: 0
@@ -29,13 +29,14 @@ The owner (2026-10-22, with a KSP Apollo video and stills in `refs/apollo-ksp-re
 ## Acceptance criteria
 
 - [x] Paint: the stock and renderer tests (liveries stay within their barrel, triangle budgets) pass. Kronos V in the Hangar shows the roll pattern, the black bands, a silver CM on a striped SM, and foil-wrapped engines under fairings.
-- [ ] Petals and LM.
-- [ ] Before/after screenshots in the journal.
+- [x] Petals and LM.
+- [x] Before/after screenshots in the journal.
 
 ## Docs checklist
 
-- [ ] `docs/STATUS.md`, journal `355-apollo-visual-pass.md`.
+- [x] `docs/STATUS.md`, journal `355-apollo-visual-pass.md`.
 
 ## Log
 
 - 2026-10-22 — Step 1 done (paint); petals and LM next.
+- 2026-10-22 — Done.

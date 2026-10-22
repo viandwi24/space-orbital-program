@@ -127,25 +127,12 @@ export function petals(ctx: GenContext): GeneratedPart {
 		const mid = (i + 0.5) * sweep;
 		const hinge: [number, number, number] = [Math.sin(mid) * R * 0.99, 0, Math.cos(mid) * R * 0.99];
 		list.push({
-			build: (g) =>
-				g.revolveAt(
-					'paint-primary',
-					[
-						{ r: R * 0.99, y: 0 },
-						{ r: top * 0.99, y: H - band * 2 }
-					],
-					[-hinge[0], 0, -hinge[2]],
-					{
-						segments: Math.max(3, Math.round(g.segments / n)),
-						phiStart: mid - sweep / 2 + 0.005,
-						phiLength: sweep - 0.01
-					}
-				),
+			build: (g) => petalSkin(g, R, top, H - band * 2, mid, sweep, [-hinge[0], 0, -hinge[2]], n),
 			pose: (o, p) => {
 				const e = phase(p, 0, 1);
 				o.position.set(hinge[0], -h2 + band, hinge[2]);
 				o.rotation.set(0, 0, 0);
-				o.rotateOnAxis(new Vector3(Math.cos(mid), 0, -Math.sin(mid)), e * 1.2);
+				o.rotateOnAxis(new Vector3(Math.cos(mid), 0, -Math.sin(mid)), e * 0.8);
 			}
 		});
 	}
@@ -167,19 +154,76 @@ export function petalPanel(ctx: GenContext): void {
 	const sweep = Math.PI / 2;
 	const mid = (quarter + 0.5) * sweep;
 	const out = R + 0.45;
-	b.revolveAt(
-		'paint-primary',
-		[0, 1, 2, 3].map((k) => {
-			const t = k / 3;
-			return { r: (R + (top - R) * t) * 0.99, y: -H / 2 + band + (H - 2 * band) * t };
-		}),
-		[-Math.sin(mid) * out, 0, -Math.cos(mid) * out],
-		{
-			segments: Math.max(4, Math.round(b.segments / 3)),
-			phiStart: mid - sweep / 2 + 0.005,
-			phiLength: sweep - 0.01
-		}
+	petalSkin(
+		b,
+		R,
+		top,
+		H - 2 * band,
+		mid,
+		sweep,
+		[-Math.sin(mid) * out, -H / 2 + band, -Math.cos(mid) * out],
+		4
 	);
+}
+
+/**
+ * One petal of the SLA (plans 303, 355): a white outer skin, a tan inner one (the Apollo panels'
+ * inside, seen when they open), a hinge strip along the foot and a red ring marking near the tip.
+ * Drawn from the cone's foot (y 0) up `h`, shifted by `at`.
+ */
+function petalSkin(
+	g: GeometryBuilder,
+	R: number,
+	top: number,
+	h: number,
+	mid: number,
+	sweep: number,
+	at: readonly [number, number, number],
+	n: number
+): void {
+	const segments = Math.max(3, Math.round(g.segments / n));
+	const span = { segments, phiStart: mid - sweep / 2 + 0.005, phiLength: sweep - 0.01 };
+	g.revolveAt(
+		'paint-primary',
+		[
+			{ r: R * 0.99, y: 0 },
+			{ r: top * 0.99, y: h }
+		],
+		at,
+		span
+	);
+	// the inside, facing in (top down, as a nozzle's inner wall)
+	g.revolveAt(
+		'tan',
+		[
+			{ r: top * 0.97, y: h },
+			{ r: R * 0.97, y: 0 }
+		],
+		at,
+		span
+	);
+	if (g.segments >= 24) {
+		// the hinge along the foot: a chord inside the cone's foot
+		const hr = R * 0.9;
+		const chord = 2 * Math.sqrt(Math.max(0, (R * 0.98) ** 2 - hr ** 2));
+		g.cylinder(
+			'dark-metal',
+			0.035,
+			Math.min(chord, 2 * hr * Math.sin(sweep / 2) * 0.9),
+			[Math.sin(mid) * hr + at[0], at[1] + 0.04, Math.cos(mid) * hr + at[2]],
+			{ tiltZ: Math.PI / 2, turnY: mid, segments: 8 }
+		);
+		// a red ring near the tip, on the inside
+		const t = 0.82;
+		const rr = (R + (top - R) * t) * 0.96;
+		g.cylinder(
+			'paint-accent',
+			0.16,
+			0.012,
+			[Math.sin(mid) * rr + at[0], at[1] + h * t, Math.cos(mid) * rr + at[2]],
+			{ tiltZ: Math.PI / 2, turnY: mid - Math.PI / 2, segments: 16 }
+		);
+	}
 }
 
 /** A multi-coupler: a domed plate with `params.ways` skirts under it (2, 3 or 4). */

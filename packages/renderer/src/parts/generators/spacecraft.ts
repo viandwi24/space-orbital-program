@@ -443,11 +443,18 @@ export function ascentCabin(ctx: GenContext): void {
 	const up = new Quaternion().setFromAxisAngle(new Vector3(1, 0, 0), -Math.PI / 2);
 	const y0 = -h2 + 0.05;
 	const bodyH = H - 0.05 - 0.08 - 0.12;
+	// bare aluminium, as Apollo's ascent stage (plan 355), black panels round its lower faces
 	b.extrude(
-		'paint-primary',
+		'metal',
 		body,
 		bodyH,
 		new Matrix4().compose(new Vector3(0, y0, 0), up, new Vector3(1, 1, 1))
+	);
+	b.extrude(
+		'dark-metal',
+		body,
+		bodyH * 0.3,
+		new Matrix4().compose(new Vector3(0, y0 + 0.002, 0), up, new Vector3(1.012, 1, 1.012))
 	);
 	b.revolve('foil', [
 		{ r: top * 0.9, y: y0 + bodyH },

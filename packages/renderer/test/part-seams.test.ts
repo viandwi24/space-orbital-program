@@ -107,7 +107,8 @@ afterAll(() => {
 function windingProblems(entries: readonly Recorded[]): string[] {
 	const wrong: string[] = [];
 	for (const e of entries) {
-		const want = e.slot === 'nozzle-inner' ? 'down' : 'up';
+		// inner skins face in: a nozzle's wall, the SLA petals' tan inside (plan 355)
+		const want = e.slot === 'nozzle-inner' || e.slot === 'tan' ? 'down' : 'up';
 		const got = profileDirection(e.profile);
 		if (got !== 'level' && got !== want) {
 			wrong.push(`${e.kind} (${e.part}) profile #${e.index} ${e.slot}: runs ${got}`);
