@@ -34,7 +34,7 @@
 	import { categoryOf } from '../../../lib/editor/categories';
 	import { settings } from '../../../lib/settings/settings.svelte';
 	import { advance, currentStep, skip, stepLabel } from '../../../lib/onboarding/tutorial';
-	import { lessonVab } from '../../../lib/onboarding/lesson-gate.svelte';
+	import { lessonVab, runningLesson } from '../../../lib/onboarding/lesson-gate.svelte';
 
 	const vab = new VabController();
 	// the active world's tech tree flags locked parts (plan 105, ADR 0154 point 4)
@@ -77,6 +77,7 @@
 
 	// The first-flight guide watches what the design contains, by catalogue category (plan 023).
 	$effect(() => {
+		if (runningLesson()) return;
 		const categories = new Set(
 			vab.editor.design.parts.map((p) => {
 				const def = vab.defOf(p.part);
@@ -93,7 +94,9 @@
 		});
 		if (next !== settings.tutorial) settings.setTutorial(next);
 	});
-	const tutorialStep = $derived(currentStep(settings.tutorial, 'vab'));
+	// a lesson world teaches its own lesson, not the first flight (plan 229)
+	const inLesson = runningLesson() !== null;
+	const tutorialStep = $derived(inLesson ? null : currentStep(settings.tutorial, 'vab'));
 
 	// A lesson in the Hangar (plan 344, ADR 0293 point 3) reads the design, the checks and the Library.
 	$effect(() => {

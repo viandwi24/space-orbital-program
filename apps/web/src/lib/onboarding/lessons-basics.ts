@@ -133,12 +133,12 @@ export const BASIC_LESSONS: readonly Lesson[] = [
 				id: 'checks',
 				title: 'Clear the checks',
 				text: 'The Pre-flight checks on the right list what blocks a launch in red. Fix each one (staging, a part that does not fit) until they read Ready for launch.',
-				targets: { testids: ['preflight-verdict'] },
+				targets: { testids: ['preflight-verdict', 'menu-launch'] },
 				done: (o) => o.vab?.checksClear === true && (o.vab?.parts ?? 0) >= 5
 			}
 		],
 		debrief:
-			'Your rocket is ready to fly: a pod, a stack, fins and a parachute, staged and checked. Launch sits in the menu bar at the top right; the Launch screen then puts it on the pad.',
+			'Your rocket is ready to fly: a pod, a stack, fins and a parachute, staged and checked. Launch sits above the vessel stats on the right; the Launch screen then puts it on the pad.',
 		hint: 'In your world, build this rocket again and launch it, or start from a blueprint in the Library and change it.'
 	},
 	{

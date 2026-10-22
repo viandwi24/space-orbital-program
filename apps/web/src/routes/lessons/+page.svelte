@@ -334,6 +334,8 @@
 		color: var(--text-muted);
 	}
 	.details {
+		position: sticky;
+		top: var(--margin-hud);
 		display: grid;
 		gap: var(--s-3);
 		padding: var(--s-4);
@@ -378,6 +380,9 @@
 	@media (max-width: 760px) {
 		.layout {
 			grid-template-columns: 1fr;
+		}
+		.details {
+			position: static;
 		}
 	}
 </style>
