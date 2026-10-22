@@ -49,11 +49,48 @@ export function exhaustVelocity(pilot: VesselPilot): number {
 /** The control part's nose (+Y) in inertial axes. */
 export const noseOf = (pilot: VesselPilot): Vec3 => pilot.toWorld({ x: 0, y: 1, z: 0 });
 
-/** Stage when nothing burns or a burning engine ran dry; returns true when it staged. */
-function autoStage(pilot: VesselPilot, memory: { stagedAt: number }): boolean {
-	const dry = pilot.engines.some((e) => e.ignited && e.flameout);
-	if ((pilot.maxThrust > 0 && !dry) || pilot.time - memory.stagedAt < STAGE_GAP) return false;
+/** A spent engine is dropped this long after it burns out, s (MechJeb's autostage delay). */
+const SPENT_DELAY = 0.5;
+
+/**
+ * Stage (plan 360), as MechJeb's autostage does; returns true when it staged:
+ * - nothing burns: the next stage, when it lights an engine or drops a spent one while an engine
+ *   with propellant stays (or when the host gives no stage facts: the old rule);
+ * - spent boosters (solid motors burnt out, liquid ones with empty tanks) beside burning engines:
+ *   the next stage, half a second after they burn out, when it drops a spent engine and keeps
+ *   every burning one.
+ * It never drops a part with crew aboard, and stops when no stage is left.
+ */
+export function autoStage(pilot: VesselPilot, memory: { stagedAt: number; spentAt?: number }): boolean {
+	if (pilot.time - memory.stagedAt < STAGE_GAP) return false;
+	const next = pilot.nextStage;
+	if (next === null) return false; // nothing left to stage
+	// an engine that burnt out reads `flameout` (stock clears `ignited` then)
+	const spent = pilot.engines.filter((e) => e.flameout);
+	const burning = pilot.engines.filter((e) => e.ignited && !e.flameout);
+	const drops = new Set(next?.drops ?? []);
+	const crew = new Set((pilot.vessel.crew ?? []).map((c) => c.part));
+	if (next && next.drops.some((p) => crew.has(p))) return false;
+	let go: boolean;
+	if (burning.length === 0) {
+		go =
+			!next ||
+			next.ignites.length > 0 ||
+			(spent.some((e) => drops.has(e.part)) && pilot.engines.some((e) => !e.flameout && !drops.has(e.part)));
+	} else {
+		go =
+			next !== undefined &&
+			spent.some((e) => drops.has(e.part)) &&
+			burning.every((e) => !drops.has(e.part));
+		if (go) {
+			// wait a moment after the burn-out, so a booster on its last puff is not cut loose
+			if (!(memory.spentAt !== undefined && memory.spentAt >= 0)) memory.spentAt = pilot.time;
+			go = pilot.time - memory.spentAt >= SPENT_DELAY;
+		} else memory.spentAt = -1;
+	}
+	if (!go) return false;
 	memory.stagedAt = pilot.time;
+	memory.spentAt = -1;
 	pilot.stage();
 	return true;
 }
@@ -67,6 +104,8 @@ export interface NodeMemory {
 	stagedAt: number;
 	/** Stage when the engines run dry during the burn. */
 	autoStage: boolean;
+	/** When spent boosters were first seen beside burning engines, s (-1: none; absent in older saves). */
+	spentAt?: number;
 	/** The node's delta-v when it was first seen, m/s (-1 before): the burn's progress (plan 332). */
 	first?: number;
 }

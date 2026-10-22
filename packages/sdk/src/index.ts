@@ -322,6 +322,8 @@ export type {
 	DockingAlignment,
 	RelativeState,
 	VesselPilot,
+	PilotStage,
+	PilotEngine,
 	VesselSnapshot,
 	TargetSnapshot,
 	PanelCanvas,

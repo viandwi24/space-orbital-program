@@ -125,6 +125,78 @@ describe('mission flights (plans 307, 309)', () => {
 		}
 	}, 180_000);
 
+	it('Wayfarer under Guidance alone drops its burnt-out boosters and reaches orbit without them (plan 360)', async () => {
+		const sim = await createSim({
+			plugins: [Stock, Guidance],
+			backendFactory: () => createRapierBackend({ solverIterations: 16 }),
+			maxFlightFrames: 1
+		});
+		try {
+			const r = sim.dispatch({ type: 'load-vessel', design: blueprint('wayfarer-shuttle') });
+			if (!r.ok || r.vessel === undefined) throw new Error(r.ok ? 'no vessel' : r.reason);
+			const id = r.vessel;
+			const at = () => sim.snapshot().vessels.find((v) => v.id === id)!;
+			const srbs = () => at().parts.filter((p) => p.definition === 'stock.srb-xl').length;
+			expect(srbs()).toBe(2);
+			expect(
+				sim.dispatch({ type: 'autopilot-engage', vessel: id, autopilot: 'guidance.ascent', params: { altitude: 80_000 } }).ok
+			).toBe(true);
+			let ended = '';
+			const off = sim.events.on('autopilot:ended', (e) => {
+				if (e.vessel === id) ended = `${e.outcome}: ${e.reason}`;
+			});
+			let burnout = -1;
+			let dropped = -1;
+			let meco = false;
+			for (let t = 0; !ended && t < 1_500; t += 0.1) {
+				sim.step(0.1);
+				const v = at();
+				const spent = v.parts.some(
+					(p) =>
+						p.definition === 'stock.srb-xl' &&
+						(p.modules['stock.engine'] as { flameout?: boolean } | undefined)?.flameout
+				);
+				if (spent && burnout < 0) burnout = t;
+				if (dropped < 0 && srbs() === 0) dropped = t;
+				// the boosters are Guidance's; the tank at main engine cut-off is the player's, as in the
+				// test below: with the tank on, the stack cannot hold its attitude for the orbit burn
+				const phase = v.autopilot?.phase;
+				if (phase !== undefined && phase !== 'launch' && phase !== 'ascent' && v.nextStage === 2 && !meco) {
+					meco = true;
+					sim.dispatch({ type: 'stage', vessel: id });
+				}
+			}
+			off();
+			const v = at();
+			const home = registries.bodies.get('stock.home')!;
+			const mu = home.mass * 6.6743e-11;
+			const rr = len(v.position);
+			const speed = len(v.velocity);
+			const a = -mu / (2 * (speed ** 2 / 2 - mu / rr));
+			const h = len({
+				x: v.position.y * v.velocity.z - v.position.z * v.velocity.y,
+				y: v.position.z * v.velocity.x - v.position.x * v.velocity.z,
+				z: v.position.x * v.velocity.y - v.position.y * v.velocity.x
+			});
+			const periapsis = a * (1 - Math.sqrt(Math.max(0, 1 - (h * h) / (mu * a)))) - home.radius;
+			console.log(
+				`wayfarer autostage: boosters out at ${burnout.toFixed(1)} s, dropped at ${dropped.toFixed(1)} s; ${ended}, periapsis ${(periapsis / 1000).toFixed(1)} km`
+			);
+			expect(burnout).toBeGreaterThan(0);
+			expect(dropped).toBeGreaterThan(burnout);
+			expect(dropped - burnout).toBeLessThan(3);
+			expect(srbs()).toBe(0);
+			// the boosters went before the tank: Guidance staged them, not the cut-off
+			expect(dropped).toBeLessThan(100);
+			expect(ended).toMatch(/^done/);
+			expect(periapsis).toBeGreaterThan(70_000);
+			// the orbiter and its module are still there
+			expect(v.parts.some((p) => p.definition === 'stock.crew-cabin')).toBe(true);
+		} finally {
+			sim.dispose();
+		}
+	}, 600_000);
+
 	it('Wayfarer flies to orbit on the ascent autopilot, opens its bay and lets the module go (plan 356)', async () => {
 		const sim = await createSim({
 			plugins: [Stock, Guidance],

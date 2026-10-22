@@ -94,6 +94,18 @@ export interface PilotFacts {
 	 * point 4): the first burning engine's mix, limited by its scarcest resource; 0 when none burns.
 	 */
 	propellantMass?: number;
+	/**
+	 * What the next `stage` would do (plan 360): the parts its separators would drop (the side away
+	 * from the vessel's root, as the split keeps it) and the engines it would light. Null when no
+	 * stage is left.
+	 */
+	nextStage?: PilotStage | null;
+}
+
+/** The effect of the next stage (plan 360). */
+export interface PilotStage {
+	drops: EntityId[];
+	ignites: EntityId[];
 }
 
 export interface VesselPilot {
@@ -108,6 +120,8 @@ export interface VesselPilot {
 	readonly maxThrust: number;
 	/** Propellant the burning engines can draw, kg (ADR 0286); undefined without facts. */
 	readonly propellantMass: number | undefined;
+	/** What the next stage would drop and light (plan 360); null when none is left, undefined without facts. */
+	readonly nextStage: PilotStage | null | undefined;
 	readonly vessel: VesselSnapshot;
 	/** The part the vessel is controlled from: the chosen control part, or the root. */
 	readonly controlPart: EntityId;
@@ -223,6 +237,7 @@ export function createVesselPilot(
 		engines,
 		maxThrust: engines.reduce((sum, e) => sum + (e.ignited && !e.flameout ? e.thrustVacuum : 0), 0),
 		propellantMass: facts ? (facts.propellantMass ?? 0) : undefined,
+		nextStage: facts?.nextStage,
 		vessel,
 		controlPart,
 		controlOrientation,

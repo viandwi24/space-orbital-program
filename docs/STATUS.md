@@ -271,6 +271,7 @@
 | 331 | [Rendezvous autopilot](plans/331-rendezvous-autopilot.md) | done | rendezvous session | ADR 0286. `guidance.rendezvous` flies from anywhere in orbit to 100–200 m of a target at rest (plane, phasing or Hohmann, correction, match, close, hold), with a Rendezvous panel and a hand-over to Auto Dock; the pilot gets `warpTo`, `engage`, `propellantMass` (API 0.1.103). Journal 331. |
 | 332 | [Guidance Computer panel with tabs](plans/332-guidance-panel-tabs.md) | done | rendezvous session | ADR 0287. One Guidance panel with tabs Ascent / Orbit / Rendezvous / Landing / Log (settings, status line, progress, Engage/Abort; the engaged tab opens and shows ON); panel nodes `tabs`, `progress`, `number`, `notice`, button tones (API 0.1.104); ascent inclination, landing touchdown speed. Journal 332. |
 | 333 | [Rendezvous readiness and the next step](plans/333-rendezvous-readiness-and-next-step.md) | done | rendezvous session | ADR 0288. The true reason a rendezvous cannot start (periapsis with numbers, other body, landed, suborbital) with a button to Ascent or Orbit; delta-v while off; `PanelInput.body`/`.deltaV`, `notice.action` (API 0.1.105). Journal 333. |
+| 360 | [Guidance autostage drops spent boosters](plans/360-guidance-autostage-spent-boosters.md) | done | rendezvous session | Pilot `nextStage` (drops, lights); autostage drops burnt-out SRBs 0.5 s after burnout, never crew, a burning engine or past the last stage. Journal 360. |
 | 340 | [One renderer for the world session, warm-up at world load, loading screen](plans/340-world-renderer-warm-up-and-loading-screen.md) | done | world renderer session | ADR 0290. Flight, Mission Center and Space Center share one renderer and canvas owned by the `(world)` layout; every view is drawn once behind a loading screen when the world loads. Page switches went from 1.5–2.8 s (WebGPU) and 0.2–0.4 s (WebGL) worst frames to 19 ms. Journal 340. |
 | 341 | [Stylised crew character](plans/341-stylised-crew-character.md) | done | crew character session | ADR 0291. The NOVA chibi astronaut for every person: EVA suit, 10 Hangar walkers, 6 Space Center staff, one skinned mesh each on one material; 12 outfits as data, looks from the crew id, 8 expressions, 1.7 m tall; portraits in the Astronaut Complex and crew seats; `/dev/crew`. Journal 341. |
 | 342 | [The first map toggle and the last hitch after loading](plans/342-first-map-toggle-and-post-load-hitch.md) | draft | | Plan 340's leftovers: about 150 ms on the first Flight → Map, one 567 ms frame on WebGPU after the loading screen. |
@@ -355,6 +356,7 @@ Existing drafts realigned on 2026-10-17: 063 (runway building), 065, 066, 067, 0
 
 ## Recent journal entries
 
+- [360 — Guidance autostage drops spent boosters](journal/360-guidance-autostage-spent-boosters.md)
 - [359 — The programs popover](journal/359-programs-popover.md)
 - [357 — Symmetry pivot and re-rooting through side links](journal/357-symmetry-pivot-and-reroot-through-side-links.md)
 - [356 — Shuttle rebuild](journal/356-shuttle-rebuild.md)

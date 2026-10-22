@@ -7,7 +7,8 @@ import {
 	bodyAngularVelocity,
 	type EntityId,
 	type PilotEngine,
-	type PilotFacts
+	type PilotFacts,
+	type PilotStage
 } from '@orbital/core';
 import { bodyOfVessel } from './bodies.ts';
 import { moduleDefOf, moduleState, partOf, totalMass, vesselOf, type SimCore } from './core.ts';
@@ -50,8 +51,68 @@ export function pilotFacts(core: SimCore, id: EntityId): PilotFacts {
 		},
 		mass: totalMass(core, vessel.parts),
 		engines,
-		propellantMass: mix ? mixMass(core, vessel.parts, mix) : 0
+		propellantMass: mix ? mixMass(core, vessel.parts, mix) : 0,
+		nextStage: nextStageOf(core, id)
 	};
+}
+
+/**
+ * What the vessel's next stage would do (plan 360): the parts its separators would cut away (the
+ * side without the root, unless only the other side is controlled, as `splitVessel` keeps them)
+ * and the engines it would light. Null when no stage is left.
+ */
+function nextStageOf(core: SimCore, id: EntityId): PilotStage | null {
+	const vessel = vesselOf(core, id);
+	const stage = vessel.stages[vessel.nextStage];
+	if (!stage) return null;
+	const drops = new Set<EntityId>();
+	const ignites: EntityId[] = [];
+	const here = (p: EntityId) => core.world.hasEntity(p) && partOf(core, p).vessel === id;
+	const controlled = (side: readonly EntityId[]) =>
+		side.some((p) => partOf(core, p).modules.some((m) => moduleDefOf(core, m.id).controlSource === true));
+	/** Parts reachable from `start` without the edge `a`–`b`. */
+	const side = (start: EntityId, a: EntityId, b: EntityId): EntityId[] => {
+		const seen = new Set([start]);
+		const order = [start];
+		for (let k = 0; k < order.length; k++) {
+			const at = order[k]!;
+			for (const att of partOf(core, at).attachments) {
+				if ((at === a && att.peer === b) || (at === b && att.peer === a)) continue;
+				if (!seen.has(att.peer)) {
+					seen.add(att.peer);
+					order.push(att.peer);
+				}
+			}
+		}
+		return order;
+	};
+	for (const partId of stage) {
+		if (!here(partId)) continue;
+		for (const m of partOf(core, partId).modules) {
+			const def = moduleDefOf(core, m.id);
+			if (!def.describe) continue;
+			let info;
+			try {
+				info = def.describe(m.config as never, moduleState(core, partId, m.id) as never);
+			} catch {
+				continue;
+			}
+			if (info.engine && !info.engine.ignited) ignites.push(partId);
+			const sep = info.separator;
+			// a separator that staging does not fire (plan 241) cuts nothing
+			if (!sep || sep.done || (moduleState(core, partId, m.id) as { staged?: boolean }).staged === false)
+				continue;
+			for (const att of partOf(core, partId).attachments.filter((a) => a.node === sep.node)) {
+				const p = side(partId, partId, att.peer);
+				const q = side(att.peer, partId, att.peer);
+				const rootSide = p.includes(vessel.root) ? p : q;
+				const other = rootSide === p ? q : p;
+				const away = !controlled(rootSide) && controlled(other) ? rootSide : other;
+				for (const x of away) drops.add(x);
+			}
+		}
+	}
+	return { drops: [...drops].sort((a, b) => a - b), ignites };
 }
 
 /**
