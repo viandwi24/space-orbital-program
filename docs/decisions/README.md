@@ -286,3 +286,4 @@ An ADR records one decision, its context, and its consequences. ADRs are **appen
 | 0297 | [Hangar placement: the vessel never moves while carrying, snap by screen radius with hysteresis, a Root tool](0297-hangar-placement-never-moves-the-vessel.md) | accepted | 2026-10-22 |
 | 0298 | [The Space Center's Buildings list is a strip of cards along the bottom](0298-space-center-buildings-strip.md) | accepted | 2026-10-22 |
 | 0299 | [An empty Hangar opens with "Start a vessel": recommended blueprints or Build my own](0299-hangar-start-modal.md) | accepted | 2026-10-22 |
+| 0300 | [Pre-docked ports: a docking face node, built pairs start docked](0300-pre-docked-ports.md) | accepted | 2026-10-22 |
