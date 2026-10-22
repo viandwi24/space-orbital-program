@@ -276,5 +276,6 @@ An ADR records one decision, its context, and its consequences. ADRs are **appen
 | 0285 | [Autopilot settings and logs; mod panels: built-in nodes plus a mod's own UI in a sandboxed frame](0285-autopilot-settings-logs-and-mod-panel-ui.md) | accepted | 2026-10-22 |
 | 0286 | [A rendezvous autopilot in the Guidance Computer; the pilot warps, hands over and reads its propellant](0286-rendezvous-autopilot-and-pilot-warp-handover-propellant.md) | accepted | 2026-10-22 |
 | 0287 | [Mod panel nodes: tabs, progress, number fields, notices, button tones and one-column sections](0287-panel-tabs-progress-number-and-notice-nodes.md) | accepted | 2026-10-22 |
+| 0288 | [Panel input: the body and the HUD's delta-v; a notice can open a tab](0288-panel-input-body-and-delta-v-and-notice-actions.md) | accepted | 2026-10-22 |
 | 0290 | [One renderer for the world session, warmed up behind a loading screen](0290-one-world-renderer-warm-up-and-loading-screen.md) | accepted | 2026-10-22 |
 | 0291 | [One stylised crew character at true scale for EVA, the Hangar, the Space Center and portraits](0291-one-stylised-crew-character-at-true-scale.md) | accepted | 2026-10-22 |

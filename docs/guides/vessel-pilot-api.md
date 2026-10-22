@@ -107,7 +107,7 @@ Like MechJeb's rendezvous autopilot. Target a vessel or one of its docking ports
 4. **close** — flies the relative velocity toward the target, slowing to a stop at the standoff: the main engine out to 3 km, RCS translation inside 1 km;
 5. **hold** — at rest within 200 m until you stop it, press Abort, or engage Auto Dock. With **Dock when close** on and a port targeted, it controls from a free port of the same size and hands over to Auto Dock (`autodock.dock`) itself.
 
-Every far burn is a maneuver node (you see it on the map) flown by the node executor, and coasts longer than two minutes are warped through (setting **Warp through coasts**; stop the warp and it waits in real time). It aborts when the estimate (plus 10 %) is more than the delta-v left, when fuel and RCS propellant run out, when the vessel loses electric charge, on a collision course it cannot brake out of, and when four transfer plans miss. Settings: **Stop at** 100, 150 or 200 m, **Dock when close**, **Warp through coasts**. Both orbits must be closed and around the same body.
+Every far burn is a maneuver node (you see it on the map) flown by the node executor, and coasts longer than two minutes are warped through (setting **Warp through coasts**; stop the warp and it waits in real time). It aborts when the estimate (plus 10 %) is more than the delta-v left, when fuel and RCS propellant run out, when the vessel loses electric charge, on a collision course it cannot brake out of, and when four transfer plans miss. Settings: **Stop at** 100, 150 or 200 m, **Dock when close**, **Warp through coasts**. Before it starts (plan 333) it checks, and says with the numbers: a vessel target, both around one body, the vessel off the ground, its periapsis above the top of the air ("Reach a stable orbit first: periapsis 12 km, needs 70 km+. Circularize at the apoapsis.", with a button to the Orbit tab, or "Fly Ascent." with one to Ascent), and the target on a stable orbit too. While off, the tab shows the HUD's delta-v and an estimate of what the rendezvous needs.
 
 Headless (`mods/guidance/test/rendezvous.test.ts`): 20 km apart in one 100 km orbit, it holds at about 156 m and 0.15 m/s after about 20 m/s; from 100 km to a target at 150 km inclined 2°, about 170 m/s (78 of them for the plane); a nearly dry tank aborts with "Not enough delta-v"; "Dock when close" hands over to Auto Dock.
 
@@ -129,11 +129,13 @@ Plan 332 (ADR 0287) adds, for panels with several jobs:
 | `{ kind: 'tabs', label, tabs: [{ id, label, badge?(i), children }], active?(i) }` | a v3 tab strip and the open tab's nodes. The open tab is the host's UI state; when `active(i)` names a new tab (a program was engaged) it opens, and it gets an accent dot. `badge` marks a tab (`'ON'`, or null). Every tab is evaluated each update. |
 | `{ kind: 'progress', label, value(i), text?(i) }` | a bar, 0..1, with a caption; hidden while both are null |
 | `{ kind: 'number', label, unit?, min, max, step?, value(i), command(i, v) }` | a numeric field, clamped and rounded to `step`, sent on Enter or when the field loses focus; typing does not fire flight keys |
-| `{ kind: 'notice', text(i), tone?(i) }` | one line with a coloured edge: `info`, `warn` (why something is off), `active` (what is flying); hidden when the text is null |
+| `{ kind: 'notice', text(i), tone?(i), action?(i) }` | one line with a coloured edge: `info`, `warn` (why something is off), `active` (what is flying); hidden when the text is null. `action` (plan 333, ADR 0288) returns `{ label, tab }`: a button that opens that tab |
 | button `tone: 'primary' \| 'danger'` | the main action and a stop; toned buttons take one column, so two sit side by side |
 | section `columns: 1` | stacks its nodes instead of two per row |
 
 The Guidance Computer's panel is the worked example (`mods/guidance/src/panel.ts`).
+
+The panel input (ADR 0288) also carries `body` (`{ id, radius, mu, atmosphereHeight }` of the active vessel's sphere of influence) and `deltaV` (the HUD stage stack's figure), each null when the host does not know it: a panel can check an orbit and show delta-v without the sim's pilot facts.
 
 **Your own UI.** `definePanel({ ..., custom: { height, source } })`. `source` is the text of an ES module that exports `mount(root, host)`. It runs under the view in an iframe with `sandbox="allow-scripts"` (an opaque origin, no network). Its `host` is:
 
