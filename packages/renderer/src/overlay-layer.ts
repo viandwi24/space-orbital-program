@@ -67,12 +67,18 @@ function glyph(style: string): Texture | null {
 				g.beginPath();
 				if (style === 'cross' || style === 'target') {
 					const a = style === 'target' ? 12 : 6;
-					for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1]] as const) {
+					for (const [dx, dy] of [
+						[1, 0],
+						[-1, 0],
+						[0, 1],
+						[0, -1]
+					] as const) {
 						g.moveTo(c + dx * a, c + dy * a);
 						g.lineTo(c + dx * 28, c + dy * 28);
 					}
 				}
-				if (style === 'ring' || style === 'target') g.arc(c, c, style === 'target' ? 18 : 24, 0, Math.PI * 2);
+				if (style === 'ring' || style === 'target')
+					g.arc(c, c, style === 'target' ? 18 : 24, 0, Math.PI * 2);
 				g.stroke();
 				if (style === 'dot') {
 					g.beginPath();
@@ -148,7 +154,11 @@ export class OverlayLayer {
 		const anchor = anchorOf(shape);
 		let drawn: Drawn;
 		if (shape.kind === 'polyline') {
-			const rel = shape.points.map((p) => ({ x: p.x - anchor.x, y: p.y - anchor.y, z: p.z - anchor.z }));
+			const rel = shape.points.map((p) => ({
+				x: p.x - anchor.x,
+				y: p.y - anchor.y,
+				z: p.z - anchor.z
+			}));
 			const flat: number[] = [];
 			for (const p of dashSegments(rel, shape.dash)) flat.push(p.x, p.y, p.z);
 			const geometry = new LineSegmentsGeometry();
@@ -187,8 +197,8 @@ export class OverlayLayer {
 			material.toneMapped = false;
 			const sprite = new Sprite(material);
 			if (label) {
-				// the text starts just right of the point
-				sprite.center.set(-0.08, 0.5);
+				// the text sits above and right of the point, clear of a marker there
+				sprite.center.set(-0.04, -0.6);
 				sprite.userData.aspect = label.aspect;
 			}
 			drawn = {

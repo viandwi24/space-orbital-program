@@ -114,7 +114,10 @@ export const overlayShapeSchema = z.discriminatedUnion('kind', [
  * The shapes within the budgets (ADR 0296 point 2): invalid shapes are dropped, a label's text is
  * cut, and shapes past a budget are dropped. `dropped` says what went, for the mod author.
  */
-export function clampOverlay(raw: readonly unknown[]): { shapes: OverlayShape[]; dropped: string[] } {
+export function clampOverlay(raw: readonly unknown[]): {
+	shapes: OverlayShape[];
+	dropped: string[];
+} {
 	const shapes: OverlayShape[] = [];
 	const dropped: string[] = [];
 	let points = 0;
@@ -127,7 +130,9 @@ export function clampOverlay(raw: readonly unknown[]): { shapes: OverlayShape[];
 		const parsed = overlayShapeSchema.safeParse(item);
 		if (!parsed.success) {
 			const issue = parsed.error.issues[0];
-			dropped.push(`shape ${i}: ${issue ? `${issue.path.join('.') || '(shape)'}: ${issue.message}` : 'invalid'}`);
+			dropped.push(
+				`shape ${i}: ${issue ? `${issue.path.join('.') || '(shape)'}: ${issue.message}` : 'invalid'}`
+			);
 			continue;
 		}
 		const s = parsed.data as OverlayShape;
@@ -143,7 +148,8 @@ export function clampOverlay(raw: readonly unknown[]): { shapes: OverlayShape[];
 				continue;
 			}
 			labels++;
-			if (s.text.length > OVERLAY_LIMITS.text) shapes.push({ ...s, text: s.text.slice(0, OVERLAY_LIMITS.text) });
+			if (s.text.length > OVERLAY_LIMITS.text)
+				shapes.push({ ...s, text: s.text.slice(0, OVERLAY_LIMITS.text) });
 			else shapes.push(s);
 			continue;
 		}
@@ -164,7 +170,10 @@ export function cleanMeta(raw: unknown): Record<string, number | string> | undef
 }
 
 /** Points of a polyline cut into dashes (`on` metres drawn, `off` skipped), as pairs of segment ends. */
-export function dashSegments(points: readonly Vec3[], dash: { on: number; off: number } | undefined): Vec3[] {
+export function dashSegments(
+	points: readonly Vec3[],
+	dash: { on: number; off: number } | undefined
+): Vec3[] {
 	const out: Vec3[] = [];
 	if (!dash) {
 		for (let i = 1; i < points.length; i++) out.push(points[i - 1]!, points[i]!);

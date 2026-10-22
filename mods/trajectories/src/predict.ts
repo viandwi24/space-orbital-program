@@ -51,7 +51,11 @@ export interface Prediction {
 	end: 'ground' | 'soi' | 'time';
 }
 
-const add = (a: Vec3, b: Vec3, k = 1): Vec3 => ({ x: a.x + b.x * k, y: a.y + b.y * k, z: a.z + b.z * k });
+const add = (a: Vec3, b: Vec3, k = 1): Vec3 => ({
+	x: a.x + b.x * k,
+	y: a.y + b.y * k,
+	z: a.z + b.z * k
+});
 const len = (a: Vec3): number => Math.hypot(a.x, a.y, a.z);
 const cross = (a: Vec3, b: Vec3): Vec3 => ({
 	x: a.y * b.z - a.z * b.y,
@@ -81,7 +85,8 @@ const GROUND_CEILING = 12_000;
 export function predict(input: PredictInput): Prediction {
 	const { mu, radius, omega } = input;
 	const spin = len(omega);
-	const axis = spin > 0 ? { x: omega.x / spin, y: omega.y / spin, z: omega.z / spin } : { x: 0, y: 1, z: 0 };
+	const axis =
+		spin > 0 ? { x: omega.x / spin, y: omega.y / spin, z: omega.z / spin } : { x: 0, y: 1, z: 0 };
 	const toNow = conj(input.rotation);
 	/** An inertial point at time `t` from now, in the body's axes as they will be then. */
 	const fixedAt = (p: Vec3, t: number): Vec3 => rotate(toNow, rotate(about(axis, -spin * t), p));

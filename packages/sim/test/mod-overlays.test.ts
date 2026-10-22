@@ -15,7 +15,11 @@ const mod: Plugin = definePlugin({
 	setup(c) {
 		c.overlays.register(defineOverlay({ id: 'ovl.path', title: 'Path', defaultOn: true }));
 		c.systems.register(
-			defineSystem({ id: 'ovl.grab', phase: 'post-physics', update: (_w, _dt, x) => void (ctx = x) })
+			defineSystem({
+				id: 'ovl.grab',
+				phase: 'post-physics',
+				update: (_w, _dt, x) => void (ctx = x)
+			})
 		);
 	}
 });
@@ -32,7 +36,11 @@ const load = (sim: Sim, alt: number, speed = 1): EntityId => {
 	const r = sim.dispatch({
 		type: 'load-vessel',
 		design: probe(),
-		placement: { kind: 'state', ...orbitState(sim, alt, speed), orientation: { x: 0, y: 0, z: 0, w: 1 } }
+		placement: {
+			kind: 'state',
+			...orbitState(sim, alt, speed),
+			orientation: { x: 0, y: 0, z: 0, w: 1 }
+		}
 	});
 	if (!r.ok || r.vessel === undefined) throw new Error(r.ok ? 'no vessel' : r.reason);
 	return r.vessel;
@@ -50,8 +58,24 @@ describe('published overlays (plan 347)', () => {
 		const r = c.overlays.set(
 			'ovl.path',
 			[
-				{ kind: 'polyline', body: 'stock.home', frame: 'inertial', color: '#00ff00', points: [{ x: 0, y: 0, z: 0 }, { x: 1, y: 0, z: 0 }] },
-				{ kind: 'label', body: 'stock.home', frame: 'inertial', color: 'nope', position: { x: 0, y: 0, z: 0 }, text: 'x' } as never
+				{
+					kind: 'polyline',
+					body: 'stock.home',
+					frame: 'inertial',
+					color: '#00ff00',
+					points: [
+						{ x: 0, y: 0, z: 0 },
+						{ x: 1, y: 0, z: 0 }
+					]
+				},
+				{
+					kind: 'label',
+					body: 'stock.home',
+					frame: 'inertial',
+					color: 'nope',
+					position: { x: 0, y: 0, z: 0 },
+					text: 'x'
+				} as never
 			],
 			{ seconds: 12, bad: Number.NaN }
 		);

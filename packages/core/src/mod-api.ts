@@ -176,6 +176,10 @@ export interface ModOverlays {
 	 * Publish shapes for one of the plugin's overlays (replacing the last ones); `meta` is for its
 	 * panel. Shapes are checked and clamped; the result lists what was dropped. Not saved.
 	 */
-	set(id: string, shapes: readonly OverlayShape[], meta?: Record<string, number | string>): { dropped: string[] };
+	set(
+		id: string,
+		shapes: readonly OverlayShape[],
+		meta?: Record<string, number | string>
+	): { dropped: string[] };
 	clear(id: string): void;
 }

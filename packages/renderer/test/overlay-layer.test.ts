@@ -13,9 +13,35 @@ describe('overlay layer', () => {
 			{
 				id: 'm.path',
 				shapes: [
-					{ kind: 'polyline', body: 'home', frame: 'body-fixed', color: '#00ff00', points: [{ x: 600_000, y: 0, z: 0 }, { x: 600_000, y: 1_000, z: 0 }], dash: { on: 100, off: 100 } },
-					{ kind: 'marker', body: 'home', frame: 'inertial', color: '#ff000080', position: { x: 0, y: 600_000, z: 0 }, style: 'cross', size: 32, views: ['map'] },
-					{ kind: 'label', body: 'moon', frame: 'body-fixed', color: '#ffffff', position: { x: 1, y: 0, z: 0 }, text: 'gone' }
+					{
+						kind: 'polyline',
+						body: 'home',
+						frame: 'body-fixed',
+						color: '#00ff00',
+						points: [
+							{ x: 600_000, y: 0, z: 0 },
+							{ x: 600_000, y: 1_000, z: 0 }
+						],
+						dash: { on: 100, off: 100 }
+					},
+					{
+						kind: 'marker',
+						body: 'home',
+						frame: 'inertial',
+						color: '#ff000080',
+						position: { x: 0, y: 600_000, z: 0 },
+						style: 'cross',
+						size: 32,
+						views: ['map']
+					},
+					{
+						kind: 'label',
+						body: 'moon',
+						frame: 'body-fixed',
+						color: '#ffffff',
+						position: { x: 1, y: 0, z: 0 },
+						text: 'gone'
+					}
 				]
 			}
 		]);

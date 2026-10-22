@@ -30,7 +30,8 @@ export type { Prediction, PredictInput } from './predict.ts';
 export const PATH = defineOverlay({
 	id: 'trajectories.path',
 	title: 'Trajectories',
-	description: 'The predicted path through the air to the ground, the impact point and your landing target.',
+	description:
+		'The predicted path through the air to the ground, the impact point and your landing target.',
 	defaultOn: true
 });
 
@@ -59,7 +60,10 @@ const MAX_VESSELS = 4;
 const COLORS = { path: '#22c55e', impact: '#ff3b3b', target: '#ffb300' } as const;
 
 /** What one vessel's prediction needs from the world, or null (unknown body, no mass). */
-export function predictionFor(ctx: Pick<SystemContext, 'world'>, v: WorldVessel): Prediction | null {
+export function predictionFor(
+	ctx: Pick<SystemContext, 'world'>,
+	v: WorldVessel
+): Prediction | null {
 	const body = ctx.world.body(v.soi);
 	if (!body || body.radius === 0 || !v.mass) return null;
 	return predict({
@@ -105,8 +109,21 @@ function shapesOf(
 		meta[`distance:${v.id}`] = Math.round(distance);
 		meta[`speed:${v.id}`] = Math.round(p.impact.speed);
 		out.push(
-			{ ...common, kind: 'marker', position: p.impact.position, style: 'cross', color: COLORS.impact, size: 28 },
-			{ ...common, kind: 'label', position: p.impact.position, color: COLORS.impact, text: `Impact ${clock(p.impact.time)}` }
+			{
+				...common,
+				kind: 'marker',
+				position: p.impact.position,
+				style: 'cross',
+				color: COLORS.impact,
+				size: 28
+			},
+			{
+				...common,
+				kind: 'label',
+				position: p.impact.position,
+				color: COLORS.impact,
+				text: `Impact ${clock(p.impact.time)}`
+			}
 		);
 		const target = ctx.store(Target).get();
 		if (target && target.body === v.soi) {
@@ -116,9 +133,29 @@ function shapesOf(
 			const error = surfaceDistance(ground, p.impact.position, body.radius);
 			meta[`error:${v.id}`] = Math.round(error);
 			out.push(
-				{ ...common, kind: 'marker', position: ground, style: 'target', color: COLORS.target, size: 30 },
-				{ ...common, kind: 'polyline', points: [p.impact.position, ground], color: COLORS.target, width: 2, dash: { on: 60, off: 40 } },
-				{ ...common, kind: 'label', position: ground, color: COLORS.target, text: `Target ${km(error)} off` }
+				{
+					...common,
+					kind: 'marker',
+					position: ground,
+					style: 'target',
+					color: COLORS.target,
+					size: 30
+				},
+				{
+					...common,
+					kind: 'polyline',
+					points: [p.impact.position, ground],
+					color: COLORS.target,
+					width: 2,
+					dash: { on: 60, off: 40 }
+				},
+				{
+					...common,
+					kind: 'label',
+					position: ground,
+					color: COLORS.target,
+					text: `Target ${km(error)} off`
+				}
 			);
 		}
 	}
@@ -126,7 +163,9 @@ function shapesOf(
 }
 
 const clock = (s: number): string =>
-	s < 60 ? `${Math.round(s)} s` : `${Math.floor(s / 60)}:${String(Math.round(s % 60)).padStart(2, '0')}`;
+	s < 60
+		? `${Math.round(s)} s`
+		: `${Math.floor(s / 60)}:${String(Math.round(s % 60)).padStart(2, '0')}`;
 const km = (m: number): string => (m < 1000 ? `${Math.round(m)} m` : `${(m / 1000).toFixed(1)} km`);
 
 /** Sim time of the last prediction, per running sim (its event bus). Not saved: overlays are not. */
@@ -165,7 +204,10 @@ export const Predictor = defineSystem({
 				return;
 			}
 			ctx.store(Target).set({ body: v.soi, ...latLonOf(p.impact.position) });
-			ctx.notify('Landing target set at the predicted impact', { tone: 'success', vessel: e.vessel });
+			ctx.notify('Landing target set at the predicted impact', {
+				tone: 'success',
+				vessel: e.vessel
+			});
 		}
 	}
 });
@@ -176,7 +218,10 @@ const metaOf = (i: PanelInput, key: string): number | null => {
 	const value = id === undefined ? undefined : i.world?.overlay(PATH.id)?.meta?.[`${key}:${id}`];
 	return typeof value === 'number' ? value : null;
 };
-const vesselKey = (i: PanelInput, key: string): { type: 'mod-key'; key: string; vessel?: EntityId } | null =>
+const vesselKey = (
+	i: PanelInput,
+	key: string
+): { type: 'mod-key'; key: string; vessel?: EntityId } | null =>
 	i.vessel ? { type: 'mod-key', key, vessel: i.vessel.id } : null;
 
 export const TrajectoriesPanel = definePanel({
@@ -207,7 +252,12 @@ export const TrajectoriesPanel = definePanel({
 			{ kind: 'readout', label: 'Distance', value: (i) => metaOf(i, 'distance'), unit: 'm' },
 			{ kind: 'readout', label: 'Speed at impact', value: (i) => metaOf(i, 'speed'), unit: 'm/s' },
 			{ kind: 'readout', label: 'Target error', value: (i) => metaOf(i, 'error'), unit: 'm' },
-			{ kind: 'button', label: 'Set target at impact', tone: 'primary', command: (i) => vesselKey(i, SET_TARGET.id) },
+			{
+				kind: 'button',
+				label: 'Set target at impact',
+				tone: 'primary',
+				command: (i) => vesselKey(i, SET_TARGET.id)
+			},
 			{
 				kind: 'button',
 				label: 'Clear target',
