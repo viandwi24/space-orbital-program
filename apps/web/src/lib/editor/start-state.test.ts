@@ -25,7 +25,9 @@ describe('start state in the Hangar (plan 316)', () => {
 			buildRow({ parts: [one(part)] }, content, 0)!.controls.map((c) => c.label);
 		expect(controls('stock.solar-fold')).toContain('Solar panel');
 		expect(controls('stock.landing-legs')).toContain('Landing legs');
-		expect(controls('stock.payload-petals')).toContain('Bay doors');
+		expect(controls('stock.cargo-bay')).toContain('Bay doors');
+		// single-use petals (plan 345) have no start state: they are thrown off when opened
+		expect(controls('stock.payload-petals')).not.toContain('Bay doors');
 		expect(controls('stock.telescope').length).toBeGreaterThan(0);
 		expect(controls('stock.fuel-cell')).toContain('Fuel cell');
 	});

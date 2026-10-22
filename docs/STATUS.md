@@ -279,6 +279,7 @@
 | 346 | [Hangar header beside the time bar, a white LAUNCH, the Launch page and a vessel library](plans/346-hangar-header-launch-page-vessel-library.md) | done | ui-v3 session | ADR 0295. Owner feedback 2026-10-22. The name and AIRCRAFT go in one row beside the time warp (`pageShell.beside`); a white LAUNCH sits above Vessel; the Launch page has a hero, facility cards (free, or occupied with Recover/Terminate) and portrait seats with drag; the library merges copies, shows variants, and can search, filter, sort, rename, duplicate, delete and open in the Hangar. Journal 346. |
 | 349 | [Space Center: the Buildings list as a strip of cards along the bottom](plans/349-space-center-buildings-strip.md) | done | ui-v3 session | ADR 0298. Owner feedback 2026-10-22. The corner panel is now a strip in the build menu's look: thumbnail, status chip, level, a progress bar while work runs; hover boxes the building, a click frames it. Journal 349. |
 | 350 | [Hangar: a "Start a vessel" modal with recommended blueprints and Build my own](plans/350-hangar-start-modal.md) | done | ui-v3 session | ADR 0299. Owner feedback 2026-10-22. An empty Hangar opens a modal: four Recommended blueprints, Open the Library, Build my own (and Esc or a click outside), which shows a coach mark at the parts list; Don't show again is remembered; not in lessons. Journal 350. |
+| 345 | [Single-use petals thrown off; Kronos V separates without a burn](plans/345-petals-jettison-and-kronos-staging.md) | done | part visuals session | Owner's reports: the payload looked flung (the service engine lit in the separation stage) and the petals should come off. `stock.bay` `jettison`: four panel debris, pushes that cancel; `deploy.gone`; the cargo bay keeps its doors. Journal 345. |
 
 Statuses: `draft` (needs refinement before an agent takes it) · `ready` · `in-progress` · `done` · `blocked`.
 
@@ -349,6 +350,7 @@ Existing drafts realigned on 2026-10-17: 063 (runway building), 065, 066, 067, 0
 - [350 — Start a vessel](journal/350-hangar-start-modal.md)
 - [349 — The Space Center's Buildings strip](journal/349-space-center-buildings-strip.md)
 - [346 — Hangar header, white LAUNCH, Launch page and vessel library](journal/346-hangar-header-launch-page-vessel-library.md)
+- [345 — Petals thrown off](journal/345-petals-jettison-and-kronos-staging.md)
 - [333 — Rendezvous readiness and the next step](journal/333-rendezvous-readiness-and-next-step.md)
 - [332 — Guidance Computer panel with tabs](journal/332-guidance-panel-tabs.md)
 - [340 — One renderer for the world, warm-up and a loading screen](journal/340-world-renderer-warm-up-and-loading-screen.md)
