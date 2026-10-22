@@ -333,6 +333,7 @@ export type {
 	PanelNode,
 	PanelTone,
 	PanelNoticeAction,
+	MapPick,
 	ExperimentDefinition,
 	ExperimentStatus,
 	ScienceSubject,

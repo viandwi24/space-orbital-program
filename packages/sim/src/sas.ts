@@ -5,7 +5,14 @@
  * a pure function of sim state.
  */
 import { isFailed } from './reliability.ts';
-import { PHYSICS_WARP_MAX, type EntityId, type Quat, type SasMode, type Vec3 } from '@orbital/core';
+import {
+	PHYSICS_WARP_MAX,
+	REENTRY_AOA,
+	type EntityId,
+	type Quat,
+	type SasMode,
+	type Vec3
+} from '@orbital/core';
 import { cross, dot, length, normalize, scale, sub } from '@orbital/kepler';
 import { bodyOfVessel, spinAt } from './bodies.ts';
 import { isControlled, moduleDefOf, partOf, vesselIds, vesselOf, type SimCore } from './core.ts';
@@ -80,6 +87,36 @@ function aimOf(core: SimCore, vessel: VesselState): Vec3 | undefined {
 	}
 }
 
+/** The control part's top (+Z) in the vessel's body axes: "up" for its roll (plan 361). */
+export function controlTop(core: SimCore, vessel: VesselState): Vec3 {
+	const top = { x: 0, y: 0, z: 1 };
+	if (vessel.controlPart === undefined || !core.world.hasEntity(vessel.controlPart)) return top;
+	return qRotate(partRotation(partOf(core, vessel.controlPart)), top);
+}
+
+/** Modes that fly along the velocity: in the air they also level the wings (plan 361). */
+const ALONG_PATH: ReadonlySet<SasMode> = new Set(['prograde', 'retrograde', 'reentry']);
+/** The nose this far from the vertical (cosine) or more counts as flying, not climbing. */
+const LEVEL_COS = 0.87;
+
+/**
+ * The control part's roll about the nose from local `up` (rad, positive turning the top toward the
+ * right wing), or undefined when the nose is near the vertical and up has no direction across it.
+ */
+function rollFromUp(orientation: Quat, noseBody: Vec3, topBody: Vec3, up: Vec3): number | undefined {
+	const nose = qRotate(orientation, noseBody);
+	const across = (v: Vec3): Vec3 | undefined => {
+		const p = sub(v, scale(nose, dot(v, nose)));
+		return length(p) < 0.05 ? undefined : normalize(p);
+	};
+	const top = across(qRotate(orientation, topBody));
+	const ref = across(up);
+	if (!top || !ref) return undefined;
+	return Math.atan2(dot(cross(ref, top), nose), dot(ref, top));
+}
+
+const wrapAngle = (a: number): number => Math.atan2(Math.sin(a), Math.cos(a));
+
 /** Pointing modes (the ones with a direction). */
 export const isPointing = (mode: SasMode): boolean =>
 	mode !== 'off' && mode !== 'hold' && mode !== 'level';
@@ -123,6 +160,20 @@ export function targetDirection(
 	switch (sas.mode) {
 		case 'prograde':
 			return along(ref, 1);
+		case 'reentry': {
+			// the airflow's direction pitched up by the angle of attack, in the vertical plane
+			if (length(surface) < MIN_SPEED) return undefined;
+			const vHat = normalize(surface);
+			const lift = cross(cross(vHat, normalize(r)), vHat);
+			if (length(lift) < 1e-6) return vHat;
+			const up = normalize(lift);
+			const a = (REENTRY_AOA * Math.PI) / 180;
+			return normalize({
+				x: vHat.x * Math.cos(a) + up.x * Math.sin(a),
+				y: vHat.y * Math.cos(a) + up.y * Math.sin(a),
+				z: vHat.z * Math.cos(a) + up.z * Math.sin(a)
+			});
+		}
 		case 'retrograde':
 			return along(ref, -1);
 		case 'normal':
@@ -247,6 +298,7 @@ export function stepSas(
 	if (inputHeld(vessel)) {
 		// The player steers: the assist steps aside and follows (hold) or waits (pointing modes).
 		sas.hold = orientation;
+		delete sas.roll; // the roll they leave is the one kept
 		sas.settling = sas.mode === 'hold';
 		sas.integral = { ...ZERO };
 		sas.error = 0;
@@ -273,8 +325,40 @@ export function stepSas(
 			vessel.velocity,
 			aimOf(core, vessel)
 		);
-		if (d) error = pointError(orientation, d, controlNose(core, vessel));
-		else settle = true;
+		const noseBody = controlNose(core, vessel);
+		if (d) {
+			error = pointError(orientation, d, noseBody);
+			// and the roll in the air (plan 361, ADR 0303): wings level along the path, else the roll
+			// from local up it had when the mode took over
+			const topBody = controlTop(core, vessel);
+			const up = normalize(vessel.com);
+			const nose = qRotate(orientation, noseBody);
+			const body = bodyOfVessel(core, vessel);
+			const air = body.def.atmosphere?.height ?? 0;
+			const inAir = length(vessel.com) - body.def.radius < air;
+			// in space the roll is only damped, as before: a vessel holding prograde round its orbit
+			// settles and goes on rails
+			const now =
+				inAir || sas.mode === 'reentry'
+					? rollFromUp(orientation, noseBody, topBody, up)
+					: undefined;
+			if (now !== undefined) {
+				// re-entry keeps the wings level from orbit down; prograde and retrograde in the air
+				const levelled = sas.mode === 'reentry' || inAir;
+				let want: number;
+				if (ALONG_PATH.has(sas.mode) && levelled && Math.abs(dot(nose, up)) < LEVEL_COS) want = 0;
+				else {
+					sas.roll ??= now;
+					want = sas.roll;
+				}
+				const r = wrapAngle(want - now);
+				error = { ...error };
+				// a turn about the nose by r takes the top from its roll now to the one wanted
+				error.x += noseBody.x * r;
+				error.y += noseBody.y * r;
+				error.z += noseBody.z * r;
+			}
+		} else settle = true;
 	}
 
 	const authority = vesselAuthority(core, vesselId);
@@ -334,6 +418,7 @@ export function sasLevelNeeded(mode: SasMode): number {
 			return 0;
 		case 'prograde':
 		case 'retrograde':
+		case 'reentry':
 			return 1;
 		case 'normal':
 		case 'antinormal':

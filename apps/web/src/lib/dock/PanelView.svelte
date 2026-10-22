@@ -10,6 +10,7 @@
 	import PanelTabs from './PanelTabs.svelte';
 	import { getContext } from 'svelte';
 	import { OPEN_TAB, clampEntry, type ShownNode } from './evaluate';
+	import { pickTool } from './pick-tool.svelte';
 
 	let {
 		node,
@@ -22,6 +23,9 @@
 		 */
 		onaction: (path: string, on?: boolean | string | number) => void;
 	} = $props();
+
+	/** A `pick` button at `path` is the armed map pick (plan 366). */
+	const armedHere = (path: string): boolean => pickTool.armed?.key.endsWith(`/${path}`) === true;
 
 	/** The nearest tabs' opener, for a notice's button (ADR 0288). */
 	const openTab = getContext<((id: string) => void) | undefined>(OPEN_TAB);
@@ -131,8 +135,13 @@
 			variant={node.tone ?? 'default'}
 			disabled={!node.enabled}
 			onclick={() => onaction(node.path)}
-			data-testid="panel-button-{node.path}">{node.label}</Button
+			aria-pressed={node.pick !== undefined ? armedHere(node.path) : undefined}
+			data-testid="panel-button-{node.path}"
+			>{node.pick !== undefined && armedHere(node.path) ? 'Cancel pick' : node.label}</Button
 		>
+		{#if node.pick !== undefined && armedHere(node.path)}
+			<p class="pickhint" role="status">{node.pick}</p>
+		{/if}
 	</div>
 {:else if node.kind === 'list'}
 	<div class="wide">
@@ -326,5 +335,11 @@
 		display: flex;
 		gap: 0.25rem;
 		margin-left: auto;
+	}
+	.pickhint {
+		grid-column: 1 / -1;
+		margin: 0.25rem 0 0;
+		font-size: var(--t-small);
+		color: var(--accent, #7cc4ff);
 	}
 </style>

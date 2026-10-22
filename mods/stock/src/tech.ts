@@ -449,6 +449,10 @@ export const STOCK_TECH = [
 			'stock.orbiter-nose',
 			'stock.orbiter-aft',
 			'stock.orbiter-bay',
+			// plan 361
+			'stock.orbiter-gear',
+			'stock.orbiter-gear-nose',
+			'stock.drag-chute',
 			'stock.wing-delta'
 		]
 	})

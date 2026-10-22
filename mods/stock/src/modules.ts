@@ -1416,7 +1416,15 @@ export const wheelConfigSchema = z.object({
 	/** The motor's force fades to nothing at this rolling speed, m/s (plan 307; 0: no limit). */
 	topSpeed: z.number().nonnegative().default(0),
 	/** The motor starts on (plan 307: a rover wheel; landing gear starts off). */
-	motorOn: z.boolean().default(false)
+	motorOn: z.boolean().default(false),
+	/**
+	 * Retractable gear (plan 361): stowed, the wheel has no collider and the strut is folded away;
+	 * the Landing gear group (G) lowers and raises it. `deployed` is how it is built.
+	 */
+	retractable: z.boolean().default(false),
+	deployed: z.boolean().default(false),
+	/** Above this airspeed it will not lower, m/s (0: no limit). */
+	deploySpeed: z.number().nonnegative().default(0)
 });
 export type WheelConfig = z.output<typeof wheelConfigSchema>;
 export interface WheelState {
@@ -1433,7 +1441,15 @@ export interface WheelState {
 	reverse?: boolean;
 	/** The share of the electric charge it asked for that it got last step (absent: 1). */
 	powered?: number;
+	/** Retractable gear (plan 361): lowered. Absent on a fixed wheel. */
+	deployed?: boolean;
+	/** Too fast to lower the gear now (plan 361). */
+	tooFast?: boolean;
 }
+
+/** A fixed wheel is always down; retractable gear only when lowered (plan 361). */
+const wheelDown = (config: Pick<WheelConfig, 'retractable'>, state: WheelState): boolean =>
+	!config.retractable || state.deployed === true;
 
 /** The motor's force at full throttle, N: 0 while it is off, powerless or absent (plan 260). */
 export const wheelDrive = (
@@ -1455,10 +1471,32 @@ export const wheelSteerSign = (config: Pick<WheelConfig, 'steer'>, state: WheelS
 export const ModuleWheel = defineModule({
 	id: 'stock.wheel',
 	config: wheelConfigSchema,
-	state: (config): WheelState => ({ brakes: false, ...(config.motorOn ? { motor: true } : {}) }),
+	state: (config): WheelState => ({
+		brakes: false,
+		...(config.motorOn ? { motor: true } : {}),
+		...(config.retractable ? { deployed: config.deployed } : {})
+	}),
 	describe: (config, state) => ({
 		category: 'landing',
 		actions: [
+			...(config.retractable
+				? [
+						{
+							id: 'setDeployed',
+							label: 'Landing gear',
+							kind: 'toggle' as const,
+							value: state.deployed === true,
+							enabled: state.deployed === true || state.tooFast !== true,
+							...(state.deployed !== true && state.tooFast === true
+								? { reason: `too fast to lower it (above ${config.deploySpeed} m/s)` }
+								: {}),
+							group: 'stock.landing-gear',
+							icon: 'legs' as const,
+							// the Hangar sets how it is built (plan 316)
+							build: 'deployed'
+						}
+					]
+				: []),
 			{
 				id: 'setBrakes',
 				label: config.steer > 0 ? 'Brakes (steering wheel)' : 'Brakes',
@@ -1520,7 +1558,8 @@ export const ModuleWheel = defineModule({
 				: [])
 		]
 	}),
-	colliders: (config, state) => [
+	colliders: (config, state) =>
+		wheelDown(config, state) ? [
 		{
 			offset: { x: config.offset[0], y: config.offset[1], z: config.offset[2] },
 			// the rolling direction (+Y) and out (+X) span the wheel's disc; its width is along Z
@@ -1534,10 +1573,14 @@ export const ModuleWheel = defineModule({
 				...(config.topSpeed > 0 ? { topSpeed: config.topSpeed } : {})
 			}
 		}
-	],
+	] : [],
 	/** The motor draws electric charge in proportion to the throttle and its limit (plan 260). */
 	update(ctx, dt) {
 		const { config, state, vessel } = ctx;
+		if (config.retractable && config.deploySpeed > 0) {
+			const air = vessel.airVelocity();
+			state.tooFast = Math.hypot(air.x, air.y, air.z) > config.deploySpeed;
+		}
 		if (config.driveForce <= 0 || state.motor !== true) {
 			delete state.powered;
 			return;
@@ -1567,6 +1610,13 @@ export const ModuleWheel = defineModule({
 			const [on] = z.tuple([z.boolean()]).parse(args);
 			ctx.state.reverse = on;
 		},
+		/** `(down)`: lowers or raises retractable gear; it will not lower when too fast (plan 361). */
+		setDeployed: (ctx, ...args) => {
+			const [down] = z.tuple([z.boolean()]).parse(args);
+			if (!ctx.config.retractable) return;
+			if (down && ctx.state.tooFast === true) return;
+			ctx.state.deployed = down;
+		},
 		/** `(on)`: the brakes. */
 		setBrakes: (ctx, ...args) => {
 			const [on] = z.tuple([z.boolean()]).parse(args);
@@ -1585,7 +1635,8 @@ export const ModuleWheel = defineModule({
 	},
 	snapshot: (state) => ({
 		brakes: state.brakes,
-		...(state.steering === false ? { steering: false } : {}),
+		...(state.deployed !== undefined ? { deployed: state.deployed } : {}),
+		...(state.tooFast === true ? { tooFast: true } : {}),
 		...(state.invert === true ? { invert: true } : {}),
 		...(state.motor === true ? { motor: true } : {}),
 		...(state.motorLimit !== undefined && state.motorLimit !== 1

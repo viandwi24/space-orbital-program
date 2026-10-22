@@ -15,6 +15,7 @@ import type { ReplayFile } from '@orbital/core';
 import { panelInputOf } from './dock/panel-input';
 import { modKeyCommand, modKeyFor, type ModKeyRow } from './mod-keys';
 import { createOverlayHost, type OverlayHost, type OverlayToggles } from './mod-overlays';
+import { pickTool } from './dock/pick-tool.svelte';
 import { createAchievementTracker, type AchievementTracker } from './achievements/tracker';
 import type { ProfileStore } from './achievements/store';
 import {
@@ -914,6 +915,12 @@ export function startFlight(options: FlightOptions): Flight {
 
 	function onKeyDown(e: KeyboardEvent): void {
 		dropStaleModifiers(held, e); // a stuck Shift is a throttle that climbs by itself (plan 262)
+		if (e.key === 'Escape' && !e.repeat && pickTool.armed) {
+			// Escape drops an armed map pick first (plan 366)
+			e.preventDefault();
+			pickTool.cancel();
+			return;
+		}
 		if (e.key === 'Escape' && !e.repeat) {
 			// The dialog closes itself on Escape; this only opens the menu.
 			if (!modal) {
@@ -1206,6 +1213,11 @@ export function startFlight(options: FlightOptions): Flight {
 			const box = canvas.getBoundingClientRect();
 			const x = e.clientX - box.left;
 			const y = e.clientY - box.top;
+			// an armed panel pick (plan 366, ADR 0307) takes the click: a body point, or a cancel
+			if (renderer?.isMapView && pickTool.armed) {
+				pickTool.take(renderer.bodyDirectionAt(x, y));
+				return;
+			}
 			if (renderer?.isMapView) {
 				// A body disc or a vessel dot first, then the vessel's own path (a node), then an orbit line.
 				const mark = targetView?.pick(x, y, false);
@@ -1727,6 +1739,12 @@ export function startFlight(options: FlightOptions): Flight {
 	let homeBody: string | undefined;
 
 	// --- boot --------------------------------------------------------------------------------
+	// a panel's map pick opens the map (plan 366, ADR 0307)
+	offClient.push(
+		pickTool.onArm(() => {
+			if (renderer && !renderer.isMapView) toggleMap();
+		})
+	);
 	offClient.push(
 		client.onSnapshot((s, simWarp) => {
 			snap = s;

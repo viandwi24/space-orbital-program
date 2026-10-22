@@ -240,3 +240,43 @@ export const PartParachuteRing = definePart({
 	],
 	stagingIcon: 'parachute'
 });
+
+/**
+ * A drag chute (plan 361): the orbiter's brake chute, in a pack at the base of the tail. Armed on
+ * the runway (or below 120 m/s, "Deploy when safe"), it opens at once near the ground and slows
+ * the roll-out; Cut lets it go. Mount it turned over so its canopy streams aft.
+ */
+export const PartDragChute = definePart({
+	id: 'stock.drag-chute',
+	title: 'OrbitX PR-D "Anchor"',
+	mass: kg(120),
+	cost: partCost(120, 'gear'),
+	impactTolerance: 12,
+	maxTemperature: 2_000,
+	shape: { kind: 'box', size: [0.3, 0.6, 0.4] },
+	visual: {
+		kind: 'parachute',
+		palette: { primary: '#e9ebee', secondary: '#2a2e35', accent: '#d9552b' },
+		params: { canopy: 6, radial: true },
+		deploy: canopy
+	},
+	attach: { radial: { pos: [-0.15, 0, 0], dir: [-1, 0, 0] } },
+	crossfeed: false,
+	modules: [
+		[
+			ModuleParachute,
+			{
+				semiDragArea: 12,
+				fullDragArea: 90,
+				semiSeconds: 0.5,
+				fullSeconds: 1.5,
+				minPressure: 0.3,
+				deployHeight: 100,
+				riskySpeed: 100,
+				unsafeSpeed: 120,
+				anchor: [0, 0.3, 0] as [number, number, number]
+			}
+		]
+	],
+	stagingIcon: 'parachute'
+});
