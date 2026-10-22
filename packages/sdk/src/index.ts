@@ -77,6 +77,40 @@ export {
 	type StateVector
 } from '@orbital/kepler';
 export { poleQuaternion } from '@orbital/core';
+// The mod World API (plan 343, ADR 0292): the query facade, stores, the events catalogue.
+export {
+	classifySituation,
+	createWorldQuery,
+	SIM_EVENTS,
+	situationOfVessel,
+	STORE_MAX_BYTES,
+	storeProblem,
+	VESSEL_SITUATIONS
+} from '@orbital/core';
+export type {
+	KeybindingDefinition,
+	ModCommands,
+	ModContext,
+	NodeBurn,
+	NoticeTone,
+	SimEventGroup,
+	SimEventInfo,
+	SituationFacts,
+	Store,
+	StoreDefinition,
+	SystemEventHandlers,
+	VesselFilter,
+	VesselSituation,
+	WorldBody,
+	WorldCommsLink,
+	WorldCrewMember,
+	WorldEconomy,
+	WorldPart,
+	WorldQuery,
+	WorldQueryOptions,
+	WorldSite,
+	WorldVessel
+} from '@orbital/core';
 export {
 	buildingCategoryOf,
 	categoryIdOf,

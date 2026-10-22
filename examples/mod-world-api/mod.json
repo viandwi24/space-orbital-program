@@ -1,0 +1,10 @@
+{
+	"id": "world-api",
+	"version": "1.0.0",
+	"api": "^0.1.106",
+	"title": "Flight log (World API sample)",
+	"description": "Counts landings and SOI changes in a saved log, toasts them, targets the nearest vessel on Alt+N and lists the fleet by situation. The reference for the World API.",
+	"author": "Orbital",
+	"licence": "Apache-2.0",
+	"dependencies": { "stock": "*" }
+}

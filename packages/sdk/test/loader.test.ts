@@ -273,7 +273,9 @@ describe('registration and report', () => {
 			blueprint: [],
 			'tech-node': [],
 			commodity: [],
-			recipe: []
+			recipe: [],
+			store: [],
+			keybinding: []
 		});
 	});
 

@@ -236,6 +236,8 @@ export interface SimSave {
 	reliability?: SaveReliability;
 	/** User alarms (plan 224, ADR 0223); optional, absent = none set yet. */
 	alarms?: SaveAlarms;
+	/** Mod stores by id (plan 343, ADR 0292 point 4); optional, absent = none written. */
+	stores?: Record<string, unknown>;
 	world: WorldData;
 	frames: SaveFrame[];
 	/** Hash of everything above; detects truncated or edited files (not tamper-proof). */
@@ -343,6 +345,7 @@ export const simSaveSchema = z.object({
 			)
 		})
 		.optional(),
+	stores: z.record(z.string().min(1), z.unknown()).optional(),
 	world: worldDataSchema,
 	frames: z.array(saveFrameSchema),
 	checksum: z.string().min(1)

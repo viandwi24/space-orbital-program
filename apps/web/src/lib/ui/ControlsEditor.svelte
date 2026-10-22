@@ -9,6 +9,7 @@
 		KEY_PROFILES,
 		KEY_PROFILE_LABEL,
 		actionSpec,
+		bindableKey,
 		chordIdOf,
 		keyLabel,
 		scopeOf,
@@ -17,6 +18,9 @@
 		type KeyProfile
 	} from '../keybindings';
 	import { settings } from '../settings/settings.svelte';
+	import { loadKeybindings } from '../catalog';
+	import { modKeyRows, rebindModKey } from '../mod-keys';
+	import type { KeybindingDefinition } from '@orbital/core';
 
 	/** The Controls tab of the settings (plan 053, ADR 0061): every action with its keys, click to rebind. */
 	let mode = $state<BindingMode>('flight');
@@ -99,6 +103,38 @@
 		capturing = null;
 		clash = null;
 		refused = null;
+	});
+
+	// Mod keybindings (plan 343, ADR 0292 point 6): listed under Mods, the game's keys win a clash.
+	let modDefs = $state<KeybindingDefinition[]>([]);
+	$effect(() => {
+		try {
+			modDefs = loadKeybindings();
+		} catch {
+			modDefs = [];
+		}
+	});
+	const modRows = $derived(modKeyRows(modDefs, settings.modKeys, settings.keymap));
+	let capturingMod = $state<string | null>(null);
+	function onModKey(e: KeyboardEvent): void {
+		if (capturingMod === null) return;
+		e.preventDefault();
+		e.stopPropagation();
+		if (e.repeat) return;
+		const def = modDefs.find((d) => d.id === capturingMod);
+		capturingMod = null;
+		if (e.key === 'Escape' || !def) return;
+		const key = chordIdOf(e);
+		if (!bindableKey(key)) {
+			refused = `${keyLabel(key) || 'That key'} is reserved and cannot be used.`;
+			return;
+		}
+		settings.setModKeys(rebindModKey(settings.modKeys, def, [key]));
+	}
+	$effect(() => {
+		if (capturingMod === null) return;
+		window.addEventListener('keydown', onModKey, { capture: true });
+		return () => window.removeEventListener('keydown', onModKey, { capture: true });
 	});
 
 	const changed = (id: ActionId): boolean => settings.bindings[id] !== undefined;
@@ -228,6 +264,40 @@
 			</ul>
 		</section>
 	{/each}
+	{#if (mode === 'flight' || mode === 'map') && modRows.some((r) => (r.def.mode ?? 'flight') === mode)}
+		<section data-testid="mod-keys">
+			<h3>Mods</h3>
+			<ul>
+				{#each modRows.filter((r) => (r.def.mode ?? 'flight') === mode) as r (r.def.id)}
+					<li>
+						<span class="what">{r.def.label}</span>
+						<button
+							type="button"
+							class="cap"
+							class:waiting={capturingMod === r.def.id}
+							class:changed={settings.modKeys[r.def.id] !== undefined}
+							class:clash={r.clashes.length > 0}
+							aria-label="{r.def.label}: {r.keys.map(keyLabel).join(' or ') || 'unbound'}. Change key"
+							data-tip={r.clashes.length > 0 ? 'Also a game key: rebind it to use it' : undefined}
+							data-testid="mod-bind-{r.def.id}"
+							onclick={() => (capturingMod = r.def.id)}
+						>
+							{#if capturingMod === r.def.id}…{:else}{r.keys.map(keyLabel).join(' / ') || '—'}{/if}
+						</button>
+						<button
+							type="button"
+							class="reset"
+							disabled={settings.modKeys[r.def.id] === undefined}
+							aria-label="Reset {r.def.label} to its default"
+							data-tip="Reset to the default"
+							onclick={() => settings.setModKeys(rebindModKey(settings.modKeys, r.def, r.def.defaults))}
+							>↺</button
+						>
+					</li>
+				{/each}
+			</ul>
+		</section>
+	{/if}
 	<section>
 		<h3>Fixed</h3>
 		<ul>
@@ -340,6 +410,9 @@
 	}
 	.cap.changed {
 		color: var(--c-accent);
+	}
+	.cap.clash {
+		border-color: var(--c-danger, #e05555);
 	}
 	.cap.waiting {
 		color: var(--c-ink);
