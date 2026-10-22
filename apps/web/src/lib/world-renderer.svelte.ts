@@ -21,6 +21,7 @@ import { graphicsStart, rendererBackend } from './graphics';
 import type { Catalog } from './messages';
 import { modelProviders } from './mods/asset-models';
 import type { SimClient } from './sim-client';
+import { primePlanetMaps, storePlanetMaps } from './planet-map-cache';
 
 /** Where the world's loading stands, in order; `ready` once a frame was drawn after the warm-up. */
 export type WorldLoadStep = 'sim' | 'device' | 'programs' | 'views' | 'frame' | 'ready';
@@ -149,8 +150,11 @@ class WorldRenderer {
 			this.teardown();
 			this.step = 'device';
 			const backend = await rendererBackend();
+			// the biome maps this world's renderer made last time (plan 364): no noise on this thread
+			const stored = await primePlanetMaps(key);
 			if (generation !== this.generation) throw new Error('the world ended');
 			const r = createRenderer(configOf(c, this.canvas, backend));
+			if (stored === 0) void storePlanetMaps(key);
 			this.renderer = r;
 			this.key = key;
 			this.follow(client);

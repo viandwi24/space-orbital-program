@@ -166,17 +166,54 @@ export function sampleMap(
 
 const cache = new Map<string, PlanetMap>();
 
-/** `generatePlanetMap` memoised per size, seed and sites (deterministic, treated as read-only). */
-export function cachedPlanetMap(width: number, options: PlanetMapOptions = {}): PlanetMap {
+/**
+ * Format of the generated map: bump it whenever `generatePlanetMap` changes its output, so a copy
+ * stored by a client (plan 364: IndexedDB) is never read for the new generator.
+ */
+export const PLANET_MAP_VERSION = 1;
+
+/** The cache key of a map: version, size, seed and cleared sites. */
+export function planetMapKey(width: number, options: PlanetMapOptions = {}): string {
 	const seed = options.seed ?? LEGACY_TERRAIN_SEED;
 	const sites = (options.zones ?? [{ latitude: 0, longitude: 0 }])
 		.map((z) => `${z.latitude},${z.longitude}`)
 		.join(';');
-	const key = `${width}|${seed}|${sites}`;
+	return `v${PLANET_MAP_VERSION}|${width}|${seed}|${sites}`;
+}
+
+/** `generatePlanetMap` memoised per size, seed and sites (deterministic, treated as read-only). */
+export function cachedPlanetMap(width: number, options: PlanetMapOptions = {}): PlanetMap {
+	const key = planetMapKey(width, options);
 	let map = cache.get(key);
 	if (!map) {
 		map = generatePlanetMap(width, options);
 		cache.set(key, map);
 	}
 	return map;
+}
+
+/** Every map generated (or imported) so far, for a client to store (plan 364). */
+export function exportPlanetMaps(): { key: string; map: PlanetMap }[] {
+	return [...cache].map(([key, map]) => ({ key, map }));
+}
+
+/**
+ * Maps a client stored before: each is taken when its key has this version and its size is whole
+ * (width × width/2 × 4 bytes), so `cachedPlanetMap` returns it without generating. Returns how many.
+ */
+export function importPlanetMaps(entries: readonly { key: string; map: PlanetMap }[]): number {
+	let n = 0;
+	for (const { key, map } of entries) {
+		if (!key.startsWith(`v${PLANET_MAP_VERSION}|`) || cache.has(key)) continue;
+		const width = Number(key.split('|')[1]);
+		if (
+			map.width !== width ||
+			map.height !== Math.max(1, Math.floor(width / 2)) ||
+			map.data.length !== map.width * map.height * 4
+		)
+			continue;
+		cache.set(key, map);
+		n++;
+	}
+	return n;
 }

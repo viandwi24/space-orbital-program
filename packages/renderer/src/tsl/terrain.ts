@@ -91,6 +91,8 @@ export interface TerrainSampler {
 	heightAndSlope(pI: N): N;
 	/** Height (x, m) and body-fixed tangent gradient (yzw) at a planet-centred inertial position. */
 	terrainAt(pI: N): N;
+	/** The cube alone at a unit body-fixed direction: height (x, m) and tangent gradient (yzw) (plan 364's bake). */
+	cubeAt(nB: N): N;
 }
 
 export class TerrainTSL {
@@ -696,6 +698,11 @@ export class TerrainTSL {
 		return {
 			heightAndSlope: (p: N) => heightAndSlope(p),
 			terrainAt: (p: N) => terrainAt(p),
+			cubeAt: (nB: N) => {
+				const t1 = tangent1(nB);
+				const c = cube(nB);
+				return vec4(c.r.add(c.g), t1.mul(c.b).add(cross(nB, t1).mul(c.a)));
+			},
 			cubeHeight: (nB: N) => {
 				const c = cube(nB);
 				return c.r.add(c.g);

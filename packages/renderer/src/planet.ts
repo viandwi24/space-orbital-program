@@ -79,6 +79,14 @@ import {
 } from './terrain-patch.ts';
 import { CLOUD_MAP_H, CLOUD_MAP_OCTAVES, CLOUD_MAP_W, shaftStrength } from './light-shaft.ts';
 import { cloudMapFragment } from './shaders/cloud-field.glsl.ts';
+import { skyBakeFragment, skyBakeVertex } from './shaders/starfield.glsl.ts';
+import { skyMapSize, skyTexelAngle } from './sky-model.ts';
+import { DETAIL_SIZE, detailImage } from './detail-textures.ts';
+import {
+	SCALED_PASSES_PER_FRAME,
+	scaledSpaceSize,
+	scaledTexelMetres
+} from './scaled-space-model.ts';
 import { WAVES, WAVE_PERIOD, waveNumber } from './water-model.ts';
 
 type U<T> = Uniform<T>;
@@ -102,6 +110,18 @@ export interface AtmosphereUniforms {
 }
 
 const sunDepthTextures = new Map<string, DataTexture>();
+/** The ground detail maps as a tiling, mipmapped RGBA8 texture (plan 364), one per pass. */
+function detailTexture(): DataTexture {
+	const t = new DataTexture(detailImage(), DETAIL_SIZE, DETAIL_SIZE, RGBAFormat, UnsignedByteType);
+	t.wrapS = t.wrapT = RepeatWrapping;
+	t.minFilter = LinearMipmapLinearFilter;
+	t.magFilter = LinearFilter;
+	t.generateMipmaps = true;
+	t.colorSpace = NoColorSpace;
+	t.needsUpdate = true;
+	return t;
+}
+
 /** The table of an atmosphere as a half-float RGBA texture (Rayleigh, Mie, ozone), baked once per atmosphere (about 25 ms). */
 function sunDepthTexture(atm: Atmosphere): DataTexture {
 	const key = [atm.radius, atm.height, atm.rayleighHeight, atm.mieHeight, ...atm.betaOzone].join(
@@ -237,8 +257,38 @@ export class PlanetPass {
 		material: ShaderMaterial;
 		cover: number;
 	};
+	/**
+	 * The night sky's octahedral map (plan 364, ADR 0306): the Milky Way, nebulae and haze, baked once
+	 * (again when the preset wants another size); `size` is the size baked (0: none yet).
+	 */
+	private readonly skyBake: {
+		target: WebGLRenderTarget | null;
+		scene: Scene;
+		camera: OrthographicCamera;
+		size: number;
+		wanted: number;
+	};
+	/**
+	 * The scaled-space bake (plan 364, ADR 0306): albedo and normal cube maps of the whole planet from
+	 * `surfaceAt`, a face's two maps a frame; `next` is the next pass (face × 2 + map), 12 when done.
+	 */
+	private readonly scaledBake: {
+		material: ShaderMaterial;
+		scene: Scene;
+		camera: OrthographicCamera;
+		albedo: WebGLCubeRenderTarget | null;
+		normal: WebGLCubeRenderTarget | null;
+		size: number;
+		key: string;
+		next: number;
+	};
 	/** The cloud map is kept up to date (shafts or map shadows on); otherwise it is baked once. */
 	private shaftsWanted: boolean;
+	/**
+	 * Counts the height cube's bakes (a new site, seed or size): the scaled-space bake (plan 364)
+	 * follows the heights, so it bakes again when this moves.
+	 */
+	terrainEpoch = 0;
 	private readonly patches: { fine: PatchSlot; mid: PatchSlot };
 	/** The march prepass (plan 039): the planet pass's per-block start distances, and the size of the target it matches. */
 	private readonly marchPass: { scene: Scene; material: ShaderMaterial };
@@ -362,6 +412,18 @@ export class PlanetPass {
 				uAuroraTime: u(0),
 				uCirrusAlt: u(atm.radius + CIRRUS_ALTITUDE),
 				uStarBright: u(1),
+				uSkyMap: u<unknown>(null),
+				uScaledA: u<unknown>(null),
+				uScaledN: u<unknown>(null),
+				uScaledTexelM: u(scaledTexelMetres(atm.radius, scaledSpaceSize(settings))),
+				uScaledOn: u(0),
+				uScaledMode: u(1),
+				uDetailOn: u(1),
+				uDetail: u(detailTexture()),
+				uBakeFace: u(0),
+				uBakeWhat: u(0),
+				uBakeSize: u(1),
+				uSkyTexel: u(skyTexelAngle(skyMapSize(settings.mapWidth))),
 				uShadowOn: u(0),
 				uShadowMap: u(this.dummyShadow),
 				uShadowMatrix: u(new Matrix4()),
@@ -524,6 +586,50 @@ export class PlanetPass {
 			wrapT: ClampToEdgeWrapping
 		});
 		this.material.uniforms.uCloudMap!.value = cloudMapTarget.texture;
+		const scaledMaterial = new ShaderMaterial({
+			name: 'planet-scaled-bake',
+			vertexShader: planetVertex,
+			fragmentShader: planetFragment,
+			defines: { ...this.definesFor(settings), SCALED_BAKE: 1 },
+			// the bake reads the noise at absolute body-fixed positions: its own anchor at zero
+			uniforms: { ...this.material.uniforms, uAnchorCell: u(new Vector3()) },
+			depthTest: false,
+			depthWrite: false
+		});
+		const scaledScene = new Scene();
+		const scaledMesh = new Mesh(geometry, scaledMaterial);
+		scaledMesh.frustumCulled = false;
+		scaledScene.add(scaledMesh);
+		this.scaledBake = {
+			material: scaledMaterial,
+			scene: scaledScene,
+			camera: new OrthographicCamera(-1, 1, 1, -1, 0, 1),
+			albedo: null,
+			normal: null,
+			size: 0,
+			key: '',
+			next: 12
+		};
+		const skyScene = new Scene();
+		const skyMesh = new Mesh(
+			geometry,
+			new ShaderMaterial({
+				name: 'sky-map-bake',
+				vertexShader: skyBakeVertex,
+				fragmentShader: skyBakeFragment,
+				depthTest: false,
+				depthWrite: false
+			})
+		);
+		skyMesh.frustumCulled = false;
+		skyScene.add(skyMesh);
+		this.skyBake = {
+			target: null,
+			scene: skyScene,
+			camera: new OrthographicCamera(-1, 1, 1, -1, 0, 1),
+			size: 0,
+			wanted: skyMapSize(settings.mapWidth)
+		};
 		this.cloudMap = {
 			target: cloudMapTarget,
 			scene: cloudMapScene,
@@ -638,6 +744,88 @@ export class PlanetPass {
 		map.cover = cover;
 	}
 
+	/**
+	 * The scaled-space bake: once the heights are baked, again when they or the map change; two passes
+	 * a frame (a face's albedo and normal). The ground reads it once every face is done.
+	 */
+	private bakeScaled(gl: WebGLRenderer): void {
+		const b = this.scaledBake;
+		const un = this.material.uniforms;
+		if (this.terrainSize > 0 && (un.uTerrainOn!.value as number) < 0.5) return;
+		const size = scaledSpaceSize(this.current);
+		const key = `${this.terrainEpoch}:${this.map.uuid}:${this.terrainSize > 0}`;
+		if (size !== b.size || key !== b.key) {
+			if (size !== b.size) {
+				b.albedo?.dispose();
+				b.normal?.dispose();
+				const make = (): WebGLCubeRenderTarget =>
+					new WebGLCubeRenderTarget(size, {
+						type: UnsignedByteType,
+						format: RGBAFormat,
+						generateMipmaps: true,
+						minFilter: LinearMipmapLinearFilter,
+						magFilter: LinearFilter,
+						depthBuffer: false
+					});
+				b.albedo = make();
+				b.normal = make();
+			}
+			b.size = size;
+			b.key = key;
+			b.next = 0;
+			un.uScaledOn!.value = 0;
+			un.uScaledTexelM!.value = scaledTexelMetres(this.radius, size);
+		}
+		if (b.next >= 12) return;
+		const previous = gl.getRenderTarget();
+		const autoClear = gl.autoClear;
+		gl.autoClear = false;
+		const bu = b.material.uniforms;
+		bu.uBakeSize!.value = size;
+		for (let i = 0; i < SCALED_PASSES_PER_FRAME && b.next < 12; i++, b.next++) {
+			const face = b.next >> 1;
+			const what = b.next & 1;
+			bu.uBakeFace!.value = face;
+			bu.uBakeWhat!.value = what;
+			gl.setRenderTarget(what === 0 ? b.albedo : b.normal, face);
+			gl.render(b.scene, b.camera);
+		}
+		gl.setRenderTarget(previous);
+		gl.autoClear = autoClear;
+		if (b.next >= 12) {
+			un.uScaledA!.value = b.albedo!.texture;
+			un.uScaledN!.value = b.normal!.texture;
+			un.uScaledOn!.value = 1;
+		}
+	}
+
+	/** Bakes the sky's map at the first frame and when the preset wants another size (a few ms). */
+	private bakeSkyMap(gl: WebGLRenderer): void {
+		const sky = this.skyBake;
+		if (sky.size === sky.wanted) return;
+		sky.target?.dispose();
+		sky.target = new WebGLRenderTarget(sky.wanted, sky.wanted, {
+			type: HalfFloatType,
+			format: RGBAFormat,
+			depthBuffer: false,
+			generateMipmaps: true,
+			minFilter: LinearMipmapLinearFilter,
+			magFilter: LinearFilter,
+			wrapS: ClampToEdgeWrapping,
+			wrapT: ClampToEdgeWrapping
+		});
+		const previous = gl.getRenderTarget();
+		const autoClear = gl.autoClear;
+		gl.autoClear = false;
+		gl.setRenderTarget(sky.target);
+		gl.render(sky.scene, sky.camera);
+		gl.setRenderTarget(previous);
+		gl.autoClear = autoClear;
+		sky.size = sky.wanted;
+		this.material.uniforms.uSkyMap!.value = sky.target.texture;
+		this.material.uniforms.uSkyTexel!.value = skyTexelAngle(sky.wanted);
+	}
+
 	private resetPatches(): void {
 		for (const slot of [this.patches.fine, this.patches.mid]) {
 			slot.frame = null;
@@ -654,7 +842,11 @@ export class PlanetPass {
 	 */
 	bakeTerrain(gl: WebGLRenderer): void {
 		this.bakeCloudMap(gl);
-		if (this.terrainSize <= 0) return;
+		this.bakeSkyMap(gl);
+		if (this.terrainSize <= 0) {
+			this.bakeScaled(gl);
+			return;
+		}
 		const previous = gl.getRenderTarget();
 		const autoClear = gl.autoClear;
 		gl.autoClear = false;
@@ -677,6 +869,8 @@ export class PlanetPass {
 		}
 		gl.setRenderTarget(previous);
 		gl.autoClear = autoClear;
+		// after the heights it reads (plan 364)
+		this.bakeScaled(gl);
 	}
 
 	private newCubeTarget(size: number): WebGLCubeRenderTarget {
@@ -709,6 +903,7 @@ export class PlanetPass {
 		for (let face = 0; face < 6; face++) this.bakeFace(gl, this.terrainTarget, face);
 		this.terrainDirty = false;
 		this.material.uniforms.uTerrainOn!.value = 1;
+		this.terrainEpoch++;
 	}
 
 	/** One face of the cube map of the new size, when the preset changed it; swaps when all six are done. True when it baked one. */
@@ -727,6 +922,7 @@ export class PlanetPass {
 		this.terrainTarget = job.target;
 		this.material.uniforms.uTerrain!.value = job.target.texture;
 		this.cubeJob = null;
+		this.terrainEpoch++;
 		return true;
 	}
 
@@ -764,6 +960,7 @@ export class PlanetPass {
 
 	/** The cube of `terrainJobs` is baked: the march may read the heights. */
 	markCubeBaked(): void {
+		this.terrainEpoch++;
 		this.terrainDirty = false;
 		this.material.uniforms.uTerrainOn!.value = 1;
 	}
@@ -835,6 +1032,17 @@ export class PlanetPass {
 	 * differences of before plan 068, two extra heights per texel) or `none` (one height, no gradient).
 	 */
 	/** Plan 133: the silhouette coverage on (the shipped default) or off, for before/after screenshots. */
+	/** Plan 364: the scaled-space bake as drawn (`on`), never (`off`) or for every ground pixel (`only`). */
+	debugScaledSpace(mode: 'on' | 'off' | 'only'): void {
+		(this.material.uniforms['uScaledMode'] as { value: number }).value =
+			mode === 'off' ? 0 : mode === 'only' ? 2 : 1;
+	}
+
+	/** Plan 364: the triplanar ground detail on or off (its cost and look). */
+	debugGroundDetail(on: boolean): void {
+		(this.material.uniforms['uDetailOn'] as { value: number }).value = on ? 1 : 0;
+	}
+
 	debugSilhouetteAA(on: boolean): void {
 		(this.material.uniforms['uSilhouetteAA'] as { value: number }).value = on ? 1 : 0;
 	}
@@ -1182,9 +1390,12 @@ export class PlanetPass {
 		this.shaftsWanted = settings.shaftSteps > 0 || settings.cloudShadowMap;
 		this.auroraSteps = settings.auroraSteps;
 		this.current = settings;
+		this.skyBake.wanted = skyMapSize(settings.mapWidth);
 		this.material.defines = this.definesFor(settings);
 		this.material.needsUpdate = true;
 		this.edge.defines = this.definesFor(settings);
+		this.scaledBake.material.defines = { ...this.definesFor(settings), SCALED_BAKE: 1 };
+		this.scaledBake.material.needsUpdate = true;
 		this.edge.needsUpdate = true;
 		this.marchPass.material.defines = this.marchDefines(settings);
 		this.marchPass.material.needsUpdate = true;
@@ -1347,6 +1558,10 @@ export class PlanetPass {
 		this.marchPass.material.dispose();
 		this.bake.material.dispose();
 		this.patchBake.material.dispose();
+		this.skyBake.target?.dispose();
+		this.scaledBake.albedo?.dispose();
+		this.scaledBake.normal?.dispose();
+		this.scaledBake.material.dispose();
 		this.patches.fine.target?.dispose();
 		this.patches.mid.target?.dispose();
 		this.terrainMap?.dispose();

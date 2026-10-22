@@ -278,6 +278,7 @@
 | 367 | [Vessel parts merged per material](plans/367-vessel-parts-merged-per-material.md) | draft | — | From plan 363's ranking: ~350 draw calls for Kronos V. |
 | 368 | [The Retina frame end on Apple GPUs](plans/368-retina-frame-end-on-apple-gpus.md) | draft | — | From plans 362/363: the cost the timestamps do not see. |
 | 369 | [Cached shadow maps for the static site](plans/369-cached-shadow-maps-for-the-static-site.md) | draft | — | From plan 363's ranking. |
+| 364 | [Planet textures and sky like KSP](plans/364-planet-textures-and-sky.md) | done | planet-sky session | ADR 0306. Baked Milky Way sky with stars that never twinkle; a scaled-space albedo and normal bake of the planet from its own `surfaceAt` for orbit and map views; mid octaves for fractal coasts; triplanar ground detail; biome maps cached in IndexedDB. Journal 364. |
 | 340 | [One renderer for the world session, warm-up at world load, loading screen](plans/340-world-renderer-warm-up-and-loading-screen.md) | done | world renderer session | ADR 0290. Flight, Mission Center and Space Center share one renderer and canvas owned by the `(world)` layout; every view is drawn once behind a loading screen when the world loads. Page switches went from 1.5–2.8 s (WebGPU) and 0.2–0.4 s (WebGL) worst frames to 19 ms. Journal 340. |
 | 341 | [Stylised crew character](plans/341-stylised-crew-character.md) | done | crew character session | ADR 0291. The NOVA chibi astronaut for every person: EVA suit, 10 Hangar walkers, 6 Space Center staff, one skinned mesh each on one material; 12 outfits as data, looks from the crew id, 8 expressions, 1.7 m tall; portraits in the Astronaut Complex and crew seats; `/dev/crew`. Journal 341. |
 | 342 | [The first map toggle and the last hitch after loading](plans/342-first-map-toggle-and-post-load-hitch.md) | draft | | Plan 340's leftovers: about 150 ms on the first Flight → Map, one 567 ms frame on WebGPU after the loading screen. |
@@ -366,6 +367,7 @@ Existing drafts realigned on 2026-10-17: 063 (runway building), 065, 066, 067, 0
 
 - [363 — Frame budget research and the first cuts](journal/363-frame-budget-research-and-first-cuts.md)
 - [362 — Automatic quality that matches a fixed preset](journal/362-auto-quality-fix.md)
+- [364 — Planet textures and sky like KSP](journal/364-planet-textures-and-sky.md)
 - [360 — Guidance autostage drops spent boosters](journal/360-guidance-autostage-spent-boosters.md)
 - [359 — The programs popover](journal/359-programs-popover.md)
 - [357 — Symmetry pivot and re-rooting through side links](journal/357-symmetry-pivot-and-reroot-through-side-links.md)
