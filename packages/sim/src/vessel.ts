@@ -2,7 +2,7 @@
  * Vessel lifecycle: assembly from a resolved design, placement, splitting at a node (staging) and
  * destruction. Vessels and parts are world entities holding plain-data components (state.ts).
  */
-import { restoreUndocked } from './docking.ts';
+import { dockBuiltPairs, restoreUndocked } from './docking.ts';
 import {
 	cloneData,
 	debrisName,
@@ -156,6 +156,7 @@ export function spawnVessel(core: SimCore, design: VesselDesign, resolved: Resol
 		rest: 0
 	};
 	world.add(vesselId, VESSEL, state);
+	dockBuiltPairs(core, vesselId);
 	core.events.emit('vessel:created', { vessel: vesselId });
 	return vesselId;
 }

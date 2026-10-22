@@ -162,6 +162,14 @@ export class MaterialLibrary {
 					normalMap: t.hullNormal,
 					normalScale: new Vector2(0.4, 0.4)
 				});
+			case 'liner':
+				return new MeshStandardMaterial({
+					color: 0xd9b23c,
+					metalness: 0.2,
+					roughness: 0.62,
+					normalMap: t.hullNormal,
+					normalScale: new Vector2(0.5, 0.5)
+				});
 			case 'tile':
 				return new MeshStandardMaterial({
 					color: 0x1c1d20,

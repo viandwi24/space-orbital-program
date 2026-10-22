@@ -335,6 +335,12 @@ export interface PartState {
 	 * longer after the faces met too fast.
 	 */
 	portBlockedUntil?: number;
+	/**
+	 * The port this one undocked from (plan 356, ADR 0300): the two neither pull nor capture each
+	 * other again until their faces have been beyond the magnet range, so a payload set free drifts
+	 * away instead of being pulled back.
+	 */
+	portLeft?: EntityId;
 	/** Net flow of each resource through the part's stores, units/s, smoothed over about 1 s (plan 213). */
 	rates?: Record<string, number>;
 	/** The amounts and time of the part's last rate sample (plan 213). */

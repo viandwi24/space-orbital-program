@@ -528,6 +528,12 @@ export interface ModuleDefinition<In = unknown, Out = In, State = unknown> {
 	 */
 	colliders?: Bivariant<(config: Out, state: State) => readonly ModuleCollider[]>;
 	/**
+	 * The part is hollow (plan 356): its own collision boxes are left out and only the modules'
+	 * `colliders` remain, its walls. A cargo bay, so a payload set free inside it is not pushed out
+	 * of a solid box. Pure function of the config.
+	 */
+	hollow?: Bivariant<(config: Out) => boolean>;
+	/**
 	 * A robotic joint (plan 306, ADR 0269): where the module's moving side is now. Pure; null while
 	 * the module moves nothing.
 	 */

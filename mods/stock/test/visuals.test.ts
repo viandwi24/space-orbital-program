@@ -18,6 +18,7 @@ const KINDS = [
 	'adapter',
 	'rcs-block',
 	'docking-port',
+	'side-port',
 	// plan 210
 	'launch-clamp',
 	// plan 219
@@ -73,6 +74,7 @@ const KINDS = [
 	'single-leg',
 	'orbiter-nose',
 	'orbiter-aft',
+	'orbiter-bay',
 	'delta-wing',
 	'external-tank',
 	'escape-tower',

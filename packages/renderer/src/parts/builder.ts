@@ -34,6 +34,8 @@ export type SlotName =
 	// plan 355: the silver insulation blankets on big engines, an adapter's tan inner skin
 	| 'blanket'
 	| 'tan'
+	// plan 356: the orbiter cargo bay's yellow lining
+	| 'liner'
 	// plan 341: the crew character on the EVA suit (ADR 0291)
 	| 'skin'
 	| 'hair'

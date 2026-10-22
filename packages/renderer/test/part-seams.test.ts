@@ -55,6 +55,9 @@ const NOT_A_FLAT_JOINT: Record<string, string> = {
 	'stock.hub/south': 'a side port: its collar faces sideways, not along the axis',
 	'stock.payload-petals/inner': 'a payload seat on the floor inside the shell, not a face',
 	'stock.cargo-bay/inner': 'a payload seat on the floor inside the bay, not a face',
+	// plan 356
+	'stock.orbiter-bay/keel': 'a payload seat on the keel inside the bay, not a face',
+	'stock.docking-port-side/side': 'a side port: its ring faces sideways, not along the axis',
 	'stock.lander-descent/bottom': "a bell: the lander's engine is under the stage"
 };
 
@@ -165,7 +168,10 @@ describe('part seams', () => {
 					// a quarter cone, no full revolve (plan 345)
 					'petal-panel',
 					// the crew character: spheres, lathes and capsules, no revolve (plan 341)
-					'suit'
+					'suit',
+					// the orbiter's lofted hull (plan 356): no revolve
+					'orbiter-nose',
+					'orbiter-bay'
 				].includes(visual.kind)
 			)
 				continue;

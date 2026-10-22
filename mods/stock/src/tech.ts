@@ -306,6 +306,7 @@ export const STOCK_TECH = [
 			'stock.docking-port',
 			'stock.docking-port-large',
 			'stock.docking-port-3750',
+			'stock.docking-port-side',
 			'stock.hub',
 			'stock.crew-cabin'
 		]
@@ -444,6 +445,7 @@ export const STOCK_TECH = [
 			'stock.srb-xl',
 			'stock.orbiter-nose',
 			'stock.orbiter-aft',
+			'stock.orbiter-bay',
 			'stock.wing-delta'
 		]
 	})

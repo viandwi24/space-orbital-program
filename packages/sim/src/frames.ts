@@ -232,7 +232,9 @@ export function collectColliders(
 		const part = partOf(core, id);
 		const at = sub(part.designPos, rootDesign);
 		const turn = isTurned(part) ? partRotation(part) : undefined;
-		for (const box of colliderBoxes(partDefOf(core, part))) {
+		// a hollow part (a cargo bay, plan 356) has only its modules' walls
+		const hollow = part.modules.some((m) => moduleDefOf(core, m.id).hollow?.(m.config) === true);
+		for (const box of hollow ? [] : colliderBoxes(partDefOf(core, part))) {
 			const rotation =
 				box.yaw === 0 ? turn : turn ? qMul(turn, qAboutY(box.yaw)) : qAboutY(box.yaw);
 			shapes.push({

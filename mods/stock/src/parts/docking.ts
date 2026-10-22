@@ -17,7 +17,11 @@ const port = (id: string, title: string, size: number, height: number, massKg: n
 			kind: 'docking-port',
 			palette: { primary: '#d5d8dc', secondary: '#2a2e35', accent: '#e3a61f' }
 		},
-		attach: stackNodes(height, size),
+		// the top node is a docking face (plan 356, ADR 0300): another port goes on it face to face
+		attach: (() => {
+			const n = stackNodes(height, size);
+			return { ...n, top: { ...n.top, face: 'docking' as const } };
+		})(),
 		modules: [[ModuleDockingPort, { size }]],
 		stagingIcon: 'docking'
 	});
@@ -46,6 +50,30 @@ export const PartDockingPort3750 = port(
 	0.5,
 	350
 );
+
+/**
+ * A side port (plan 356, ADR 0300): a 1.25 m stack segment with a docking face on its side (+Z),
+ * so a station module lies along a cargo bay docked to the keel port, and leaves it sideways.
+ */
+export const PartDockingPortSide = definePart({
+	id: 'stock.docking-port-side',
+	title: 'OrbitX DP-12S "Sidecar"',
+	mass: kg(120),
+	cost: partCost(120, 'structure'),
+	impactTolerance: 10,
+	// as wide as the ring standing out of the side
+	shape: { kind: 'cylinder', radius: 0.76, height: 1.5 },
+	visual: {
+		kind: 'side-port',
+		palette: { primary: '#d5d8dc', secondary: '#2a2e35', accent: '#e3a61f' }
+	},
+	attach: {
+		...stackNodes(1.5, 1.25),
+		side: { pos: [0, 0, 0.69], dir: [0, 0, 1], size: 1.25, face: 'docking' }
+	},
+	modules: [[ModuleDockingPort, { size: 1.25, node: 'side' }]],
+	stagingIcon: 'docking'
+});
 
 export const STOCK_DOCKING_PARTS = [
 	PartDockingPortSmall,

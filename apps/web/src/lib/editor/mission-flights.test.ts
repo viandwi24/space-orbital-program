@@ -3,6 +3,7 @@
  * only; the full flights are the players'.
  */
 import { loadPlugins, type Quat, type Vec3, type VesselDesign } from '@orbital/core';
+import Guidance from '@orbital/mod-guidance';
 import Stock from '@orbital/mod-stock';
 import { createRapierBackend } from '@orbital/physics';
 import { createSim, type Sim } from '@orbital/sim';
@@ -123,6 +124,114 @@ describe('mission flights (plans 307, 309)', () => {
 			sim.dispose();
 		}
 	}, 180_000);
+
+	it('Wayfarer flies to orbit on the ascent autopilot, opens its bay and lets the module go (plan 356)', async () => {
+		const sim = await createSim({
+			plugins: [Stock, Guidance],
+			backendFactory: () => createRapierBackend({ solverIterations: 16 }),
+			maxFlightFrames: 1
+		});
+		try {
+			const r = sim.dispatch({ type: 'load-vessel', design: blueprint('wayfarer-shuttle') });
+			if (!r.ok || r.vessel === undefined) throw new Error(r.ok ? 'no vessel' : r.reason);
+			const id = r.vessel;
+			const at = () => sim.snapshot().vessels.find((v) => v.id === id)!;
+			const engaged = sim.dispatch({
+				type: 'autopilot-engage',
+				vessel: id,
+				autopilot: 'guidance.ascent',
+				params: { altitude: 80_000 }
+			});
+			expect(engaged.ok ? '' : engaged.reason).toBe('');
+			let ended = '';
+			const off = sim.events.on('autopilot:ended', (e) => {
+				if (e.vessel === id) ended = `${e.outcome}: ${e.reason}`;
+			});
+			// the autopilot stages only once every engine is out (guidance's dry check never sees a
+			// flameout: the engine clears `ignited` as it flames out); here a burnt-out booster or the
+			// tank running dry drops at once, as a player would stage
+			let stagedAt = -1e9;
+			for (let t = 0; !ended && t < 1_500; t += 0.1) {
+				sim.step(0.1);
+				const out = at().parts.some(
+					(p) => (p.modules['stock.engine'] as { flameout?: boolean } | undefined)?.flameout
+				);
+				// main engine cut-off: past the ascent the tank goes and the orbiter circularizes on its
+				// own engines, as the Shuttle did
+				const phase = (at().autopilot as { phase?: string } | undefined)?.phase;
+				const meco = phase !== undefined && phase !== 'launch' && phase !== 'ascent';
+				if (meco && (at().nextStage ?? 0) === 2 && t - stagedAt > 1) {
+					stagedAt = t;
+					sim.dispatch({ type: 'stage', vessel: id });
+				}
+				if (out && t - stagedAt > 1 && (at().nextStage ?? 0) < 3) {
+					stagedAt = t;
+					sim.dispatch({ type: 'stage', vessel: id });
+				}
+			}
+			off();
+			const home = registries.bodies.get('stock.home')!;
+			const v = at();
+			const rr = len(v.position);
+			const speed = len(v.velocity);
+			// the orbit's periapsis from the vis-viva energy and the angular momentum
+			const mu = home.mass * 6.6743e-11;
+			const energy = speed ** 2 / 2 - mu / rr;
+			const a = -mu / (2 * energy);
+			const h = len({
+				x: v.position.y * v.velocity.z - v.position.z * v.velocity.y,
+				y: v.position.z * v.velocity.x - v.position.x * v.velocity.z,
+				z: v.position.x * v.velocity.y - v.position.y * v.velocity.x
+			});
+			const e = Math.sqrt(Math.max(0, 1 - (h * h) / (mu * a)));
+			const periapsis = a * (1 - e) - home.radius;
+			console.log(`wayfarer: ${ended}, periapsis ${(periapsis / 1000).toFixed(1)} km`);
+			expect(ended).toMatch(/^done/);
+			expect(periapsis).toBeGreaterThan(70_000);
+			// the orbiter keeps its module docked through the ascent
+			const parts = (d: string) => v.parts.filter((p) => p.definition === d);
+			expect(parts('stock.docking-port-side')).toHaveLength(1);
+			const bay = parts('stock.orbiter-bay')[0]!;
+			expect(
+				sim.dispatch({
+					type: 'action',
+					vessel: id,
+					part: bay.id,
+					module: 'stock.bay',
+					action: 'open'
+				}).ok
+			).toBe(true);
+			run(sim, 7);
+			const before = sim.snapshot().vessels.length;
+			const side = parts('stock.docking-port-side')[0]!;
+			expect(
+				sim.dispatch({
+					type: 'action',
+					vessel: id,
+					part: side.id,
+					module: 'stock.docking-port',
+					action: 'undock'
+				}).ok
+			).toBe(true);
+			run(sim, 20);
+			const all = sim.snapshot().vessels;
+			expect(all).toHaveLength(before + 1);
+			const module = all.find((x) => x.parts.some((p) => p.definition === 'stock.crew-cabin'))!;
+			expect(module.id).not.toBe(id);
+			const o = at();
+			const rel = len({
+				x: module.velocity.x - o.velocity.x,
+				y: module.velocity.y - o.velocity.y,
+				z: module.velocity.z - o.velocity.z
+			});
+			console.log(`wayfarer: the module drifts off at ${rel.toFixed(3)} m/s 20 s after the undock`);
+			// out of the bay on the port's gentle push: not flung, not caught again
+			expect(rel).toBeGreaterThan(0.01);
+			expect(rel).toBeLessThan(0.3);
+		} finally {
+			sim.dispose();
+		}
+	}, 600_000);
 
 	it('the Kronos capsule comes home: a shallow entry at 2 km/s, down under its chutes', async () => {
 		const design = blueprint('kronos-selene');

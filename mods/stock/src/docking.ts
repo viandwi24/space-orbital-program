@@ -15,7 +15,9 @@ export const dockingPortConfigSchema = z.object({
 	/** The attach node that is the docking face. */
 	node: z.string().min(1).default('top'),
 	/** Crossfeed it starts with (plan 218: set per part in the Hangar). */
-	crossfeed: z.boolean().default(true)
+	crossfeed: z.boolean().default(true),
+	/** Staging undocks it (plan 356, ADR 0300): a payload built docked leaves on a stage. */
+	stageUndock: z.boolean().default(false)
 });
 
 export interface DockingPortState {
@@ -35,7 +37,7 @@ export const ModuleDockingPort = defineModule({
 		docked: false,
 		crossfeed: config.crossfeed
 	}),
-	describe: (_config, state) => ({
+	describe: (config, state) => ({
 		category: 'structural',
 		actions: [
 			{
@@ -54,14 +56,29 @@ export const ModuleDockingPort = defineModule({
 				value: state.crossfeed,
 				enabled: true,
 				build: 'crossfeed'
+			},
+			{
+				id: 'setStageUndock',
+				label: 'Undock on stage',
+				kind: 'toggle',
+				value: config.stageUndock,
+				enabled: true,
+				buildOnly: true,
+				build: 'stageUndock'
 			}
 		]
 	}),
+	onStage(ctx) {
+		if (ctx.config.stageUndock && ctx.state.docked)
+			ctx.vessel.detach(ctx.config.node, UNDOCK_IMPULSE);
+	},
 	actions: {
 		undock: (ctx) => {
 			if (!ctx.state.docked) return;
 			ctx.vessel.detach(ctx.config.node, UNDOCK_IMPULSE);
 		},
+		// a build setting only (the Hangar writes `stageUndock`); in flight it does nothing
+		setStageUndock: () => {},
 		setCrossfeed: (ctx, ...args) => {
 			const [on] = z.tuple([z.boolean()]).parse(args);
 			ctx.state.crossfeed = on;

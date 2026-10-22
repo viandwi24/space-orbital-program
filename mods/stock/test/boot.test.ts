@@ -111,6 +111,7 @@ describe('stock boots through the loader', () => {
 			'stock.docking-port',
 			'stock.docking-port-3750',
 			'stock.docking-port-large',
+			'stock.docking-port-side',
 			'stock.docking-port-small',
 			'stock.drill',
 			'stock.drogue-chute',
@@ -182,6 +183,7 @@ describe('stock boots through the loader', () => {
 			'stock.nose-cone-small',
 			'stock.orbital-module',
 			'stock.orbiter-aft',
+			'stock.orbiter-bay',
 			'stock.orbiter-nose',
 			'stock.parachute',
 			'stock.parachute-ring',
@@ -403,7 +405,9 @@ describe('stock boots through the loader', () => {
 			'stock.light-angled',
 			'stock.light-nav-red',
 			'stock.light-nav-green',
-			'stock.light-nav-white'
+			'stock.light-nav-white',
+			// a side port: a docking face on its side (plan 356)
+			'stock.docking-port-side'
 		]);
 		// the mission parts of plans 276–300 with other node sets: radial-only, bottom-only, a
 		// hub's side ports, a coupler's several bottoms

@@ -1208,12 +1208,20 @@ export const wingConfigSchema = z.object({
 	 */
 	flapLift: z.number().nonnegative().default(0),
 	flapDrag: z.number().nonnegative().default(0),
-	flapStall: z.number().nonnegative().max(20).default(0)
+	flapStall: z.number().nonnegative().max(20).default(0),
+	/**
+	 * A wing with heat tiles under it (plan 356, the orbiter's): a Hangar setting turns the tiles
+	 * to the part's other face, for the copy on the far side, which symmetry turns half round.
+	 */
+	tiled: z.boolean().default(false),
+	tilesUp: z.boolean().default(false)
 });
 export type WingConfig = z.output<typeof wingConfigSchema>;
 export interface WingState {
 	/** 0, 0.5 or 1 of full flap. */
 	flap: number;
+	/** The tiles are on the part's +Z face (a tiled wing, plan 356). */
+	tilesUp?: boolean;
 }
 
 /** Thin-airfoil slope of a flat plate, per radian (`a0 = 2 pi`). */
@@ -1293,37 +1301,58 @@ const wingInfo = (config: WingConfig): ModuleInfo => ({
 export const ModuleWing = defineModule({
 	id: 'stock.wing',
 	config: wingConfigSchema,
-	state: (): WingState => ({ flap: 0 }),
+	state: (config): WingState => ({ flap: 0, ...(config.tiled ? { tilesUp: config.tilesUp } : {}) }),
 	describe: (config, state) => ({
 		...wingInfo(config),
-		...(config.flapLift > 0
+		...(config.tiled
 			? {
 					actions: [
 						{
-							id: 'setFlaps',
-							label: 'Flaps',
-							kind: 'mode' as const,
-							value: String(state.flap ?? 0),
-							options: [
-								{ value: '0', label: 'Up' },
-								{ value: '0.5', label: 'Half' },
-								{ value: '1', label: 'Full' }
-							],
+							id: 'setTilesUp',
+							label: 'Heat tiles on top (the far wing)',
+							kind: 'toggle' as const,
+							value: config.tilesUp,
 							enabled: true,
-							group: 'stock.flaps',
-							icon: 'wing'
+							icon: 'wing',
+							buildOnly: true,
+							build: 'tilesUp'
 						}
 					]
 				}
-			: {})
+			: config.flapLift > 0
+				? {
+						actions: [
+							{
+								id: 'setFlaps',
+								label: 'Flaps',
+								kind: 'mode' as const,
+								value: String(state.flap ?? 0),
+								options: [
+									{ value: '0', label: 'Up' },
+									{ value: '0.5', label: 'Half' },
+									{ value: '1', label: 'Full' }
+								],
+								enabled: true,
+								group: 'stock.flaps',
+								icon: 'wing'
+							}
+						]
+					}
+				: {})
 	}),
 	actions: {
 		/** `('0' | '0.5' | '1')`: the flap setting (plan 063, ADR 0161 point 4). */
 		setFlaps: (ctx, ...args) => {
 			const [value] = z.tuple([z.enum(['0', '0.5', '1'])]).parse(args);
 			if (ctx.config.flapLift > 0) ctx.state.flap = Number(value);
-		}
+		},
+		// a build setting only (the Hangar writes `tilesUp`)
+		setTilesUp: () => {}
 	},
+	snapshot: (state) => ({
+		flap: state.flap,
+		...(state.tilesUp !== undefined ? { tilesUp: state.tilesUp } : {})
+	}),
 	update(ctx) {
 		const { config, vessel } = ctx;
 		const rho = vessel.ambient.density;
