@@ -2472,11 +2472,22 @@ exports[`stock part ids, masses, costs and modules match the snapshot 1`] = `
   {
     "cost": 2400,
     "id": "stock.payload-petals",
-    "mass": 1200,
+    "mass": 300,
     "modules": [
       [
         "stock.bay",
         {
+          "jettison": {
+            "mass": 900,
+            "panels": [
+              "stock.petal-panel-0",
+              "stock.petal-panel-1",
+              "stock.petal-panel-2",
+              "stock.petal-panel-3",
+            ],
+            "push": 0.8,
+            "radius": 2.325,
+          },
           "profile": [
             {
               "r": 1.7,
@@ -2491,6 +2502,30 @@ exports[`stock part ids, masses, costs and modules match the snapshot 1`] = `
         },
       ],
     ],
+  },
+  {
+    "cost": 0,
+    "id": "stock.petal-panel-0",
+    "mass": 225,
+    "modules": [],
+  },
+  {
+    "cost": 0,
+    "id": "stock.petal-panel-1",
+    "mass": 225,
+    "modules": [],
+  },
+  {
+    "cost": 0,
+    "id": "stock.petal-panel-2",
+    "mass": 225,
+    "modules": [],
+  },
+  {
+    "cost": 0,
+    "id": "stock.petal-panel-3",
+    "mass": 225,
+    "modules": [],
   },
   {
     "cost": 400,

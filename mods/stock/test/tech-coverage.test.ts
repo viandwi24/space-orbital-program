@@ -10,7 +10,16 @@ import Stock from '../src/index.ts';
 const { registries } = loadPlugins([Stock]);
 const nodes = registries.techNodes.list();
 /** Never built: the suit is the crew outside, the flag is planted, the panel is thrown-off debris. */
-const NOT_BUILT = ['stock.eva-suit', 'stock.fairing-panel', 'stock.flag'];
+// thrown-off pieces and EVA things are never built (plans 219, 345)
+const NOT_BUILT = [
+	'stock.eva-suit',
+	'stock.fairing-panel',
+	'stock.flag',
+	'stock.petal-panel-0',
+	'stock.petal-panel-1',
+	'stock.petal-panel-2',
+	'stock.petal-panel-3'
+];
 
 describe('stock tech coverage', () => {
 	test('every stock part is in exactly one node', () => {

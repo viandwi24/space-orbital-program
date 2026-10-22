@@ -343,7 +343,12 @@ export const partVisualSchema = z.object({
 			flag: z.string().min(1),
 			seconds: z.number().positive().optional(),
 			/** A model part plays this glTF animation by the deploy progress (default `deploy`; ADR 0160). */
-			clip: z.string().min(1).optional()
+			clip: z.string().min(1).optional(),
+			/**
+			 * A snapshot flag of the same module that, once true, hides the moving pieces for good
+			 * (plan 345: petals thrown off as debris).
+			 */
+			gone: z.string().min(1).optional()
 		})
 		.optional(),
 	/**

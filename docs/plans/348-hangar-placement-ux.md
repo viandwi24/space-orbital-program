@@ -1,7 +1,7 @@
 ---
 id: 348
 title: "Hangar placement UX: no vessel jump while carrying, screen-radius snap with hysteresis, Root tool, right-click drop, keys overlay"
-status: in-progress
+status: done
 owner: "hangar placement UX session (Claude, 2026-10-22)"
 depends: [217, 244, 279]
 phase: 7
@@ -38,11 +38,11 @@ Out: re-rooting through radial or surface links; symmetry around the vessel vers
 
 ## Acceptance criteria
 
-- [ ] `bun test packages/renderer` passes a test that a ghost or free part below the vessel does not change the group's floor shift.
-- [ ] `cd apps/web && bunx vitest run src/lib/vab/placement-pick.test.ts` passes tests for: node within snap radius snaps; no node in radius → surface site, else free point; over the ghost keeps the previous; hysteresis keeps a ring until 1.5× radius; a much nearer ring takes over.
-- [ ] `cd apps/web && bunx vitest run src/lib/editor/reroot.test.ts` passes: a stack path turns over, the layout keeps every part's relative position, a radial path is refused.
-- [ ] Headless repro in the dev Hangar with `window.__orbitalVab`: the main group's height stays the same while the pointer moves beside the booster.
-- [ ] `bun run typecheck`, `bun run docs:check`, `bun run build` pass.
+- [x] `bun test packages/renderer` passes a test that a ghost or free part below the vessel does not change the group's floor shift.
+- [x] `cd apps/web && bunx vitest run src/lib/vab/placement-pick.test.ts` passes tests for: node within snap radius snaps; no node in radius → surface site, else free point; over the ghost keeps the previous; hysteresis keeps a ring until 1.5× radius; a much nearer ring takes over.
+- [x] `cd apps/web && bunx vitest run src/lib/editor/reroot.test.ts` passes: a stack path turns over, the layout keeps every part's relative position, a radial path is refused.
+- [x] Headless repro in the dev Hangar with `window.__orbitalVab`: the main group's height stays the same while the pointer moves beside the booster.
+- [x] `bun run typecheck`, `bun run docs:check`, `bun run build` pass.
 
 ## Docs checklist
 
@@ -54,3 +54,4 @@ Out: re-rooting through radial or surface links; symmetry around the vessel vers
 ## Log
 
 - 2026-10-22: written; research done (web, KSP wiki key list and forums).
+- 2026-10-22: done. Renderer vab tests 19 pass; web vitest (placement-pick 8, reroot 3, keybindings, vab, scene, carry) 90 pass; svelte-check 0 errors in 2189 files, renderer tsc clean. Dev Hangar: over a pointer sweep beside the booster the old floor rule gave 9 heights, the new one 1; Root on a core tank works, on a booster is refused; right click lets go; the keys overlay opens.

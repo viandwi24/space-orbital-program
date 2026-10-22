@@ -161,6 +161,8 @@ describe('part seams', () => {
 					'light-panel',
 					'light-angled',
 					'light-nav',
+					// a quarter cone, no full revolve (plan 345)
+					'petal-panel',
 					// the crew character: spheres, lathes and capsules, no revolve (plan 341)
 					'suit'
 				].includes(visual.kind)

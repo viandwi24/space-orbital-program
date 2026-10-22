@@ -88,12 +88,17 @@ for (const [width, height] of [
 			timeout: 60_000
 		});
 		await bars(page, width, height);
-		// v3 (plan 273, V3 §1): the context bar at bottom 52; the Buildings list at top 80, right 24, 280 wide
+		// v3 (plan 273, V3 §1): the context bar at bottom 52; the Buildings strip (plan 349) 8 above
+		// it, centred and as wide as the build bar
 		const context = await box(page, '[data-testid="sc-overview-bar"]');
 		expect([height - context.bottom, context.height]).toEqual([52, 44]);
 		await page.getByTestId('sc-buildings').click();
-		const side = await box(page, '[data-testid="sc-buildings-list"]');
-		expect([side.top, width - side.right, side.width]).toEqual([80, 24, 280]);
+		const strip = await box(page, '[data-testid="sc-buildings-list"]');
+		expect([
+			Math.round(context.top - strip.bottom),
+			Math.round(strip.left + strip.width / 2),
+			Math.round(strip.width)
+		]).toEqual([8, width / 2, Math.min(1040, width - 48)]);
 		await expect(page.getByTestId('nav-space-center')).toHaveAttribute('aria-current', 'page');
 		await expect(page.getByTestId('nav-mission-center')).toBeVisible();
 		await expect(page.getByTestId('status-location')).toContainText('Space Center');

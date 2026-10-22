@@ -185,6 +185,10 @@ describe('stock boots through the loader', () => {
 			'stock.parachute',
 			'stock.parachute-ring',
 			'stock.payload-petals',
+			'stock.petal-panel-0',
+			'stock.petal-panel-1',
+			'stock.petal-panel-2',
+			'stock.petal-panel-3',
 			'stock.piston-m',
 			'stock.piston-s',
 			'stock.pod-3',
@@ -346,8 +350,12 @@ describe('stock boots through the loader', () => {
 			'stock.srb-large',
 			// the launch clamp: one radial node (plan 210)
 			'stock.launch-clamp',
-			// a thrown-off fairing panel has no nodes (plan 219)
+			// a thrown-off fairing panel has no nodes (plan 219), nor a thrown-off petal (plan 345)
 			'stock.fairing-panel',
+			'stock.petal-panel-0',
+			'stock.petal-panel-1',
+			'stock.petal-panel-2',
+			'stock.petal-panel-3',
 			'stock.rcs-block',
 			'stock.rcs-cold-gas',
 			// the RCS thrusters of plan 277

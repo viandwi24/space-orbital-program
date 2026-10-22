@@ -15,7 +15,20 @@ export default defineConfig({
 	// on the pad was a page bug, fixed in plan 047; it is not what this is for.)
 	retries: 1,
 	reporter: [['list']],
-	use: { baseURL: `http://localhost:${port}`, trace: 'retain-on-failure' },
+	use: {
+		baseURL: `http://localhost:${port}`,
+		trace: 'retain-on-failure',
+		// the Hangar's "Start a vessel" modal (plan 350) is off for the suite; its own spec turns it on
+		storageState: {
+			cookies: [],
+			origins: [
+				{
+					origin: `http://localhost:${port}`,
+					localStorage: [{ name: 'orbital.vab.hideStart', value: '1' }]
+				}
+			]
+		}
+	},
 	projects: [
 		{
 			name: 'chromium',

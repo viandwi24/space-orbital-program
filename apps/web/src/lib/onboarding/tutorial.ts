@@ -89,7 +89,7 @@ export const TUTORIAL_STEPS: readonly TutorialStep[] = [
 		id: 'launch',
 		scene: 'vab',
 		title: 'Launch it',
-		text: 'The Pre-flight checks on the right should show no red items. Press Launch above the vessel stats on the right, then Launch from pad. The Library has a Two-stage starter that reaches orbit.',
+		text: 'The Pre-flight checks on the right should show no red items. Press the white LAUNCH above the vessel stats on the right, then LAUNCH on the launch screen. The Library has a Two-stage starter that reaches orbit.',
 		done: (o) => o.scene === 'flight'
 	},
 	{

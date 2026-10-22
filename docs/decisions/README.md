@@ -281,4 +281,7 @@ An ADR records one decision, its context, and its consequences. ADRs are **appen
 | 0291 | [One stylised crew character at true scale for EVA, the Hangar, the Space Center and portraits](0291-one-stylised-crew-character-at-true-scale.md) | accepted | 2026-10-22 |
 | 0292 | [The mod World API: one query facade, gated commands, stores, an events catalogue, keys and notices](0292-mod-world-api.md) | accepted | 2026-10-22 |
 | 0293 | [Lessons by level, with a start place, a wider observation and checked targets](0293-lessons-by-level-with-start-place-and-checked-targets.md) | accepted | 2026-10-22 |
+| 0295 | [Hangar header beside the time bar, LAUNCH above Vessel, a Launch page with a hero, and a vessel library](0295-hangar-header-launch-button-launch-page-and-vessel-library.md) | accepted | 2026-10-22 |
 | 0297 | [Hangar placement: the vessel never moves while carrying, snap by screen radius with hysteresis, a Root tool](0297-hangar-placement-never-moves-the-vessel.md) | accepted | 2026-10-22 |
+| 0298 | [The Space Center's Buildings list is a strip of cards along the bottom](0298-space-center-buildings-strip.md) | accepted | 2026-10-22 |
+| 0299 | [An empty Hangar opens with "Start a vessel": recommended blueprints or Build my own](0299-hangar-start-modal.md) | accepted | 2026-10-22 |

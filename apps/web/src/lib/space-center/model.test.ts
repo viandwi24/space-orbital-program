@@ -15,6 +15,7 @@ import {
 	siteViews,
 	spreadLabels,
 	statusTextOf,
+	progressOf,
 	upkeepWarning,
 	marketRows,
 	productionNote,
@@ -407,5 +408,27 @@ describe('a base in the Space Center (plan 128, ADR 0125 point 7)', () => {
 			'Hangar 1,200'
 		]);
 		expect(capacityLines(undefined)).toEqual([]);
+	});
+});
+
+describe('the Buildings strip (plan 349)', () => {
+	const levels = [{ buildDays: 10 }, { buildDays: 20 }];
+	it('construction and upgrades show how far they have come; a running building shows none', () => {
+		expect(progressOf({ state: 'active', level: 0 }, levels, 5)).toBeNull();
+		expect(progressOf({ state: 'building', level: 0, readyDay: 15 }, levels, 10)).toBeCloseTo(0.5);
+		expect(progressOf({ state: 'upgrading', level: 0, readyDay: 25 }, levels, 10)).toBeCloseTo(
+			0.25
+		);
+		expect(progressOf({ state: 'building', level: 0, readyDay: 15 }, levels, 99)).toBe(1);
+		expect(progressOf({ state: 'building', level: 0 }, levels, undefined)).toBe(0);
+	});
+	it('each row carries its thumbnail generator and footprint', () => {
+		for (const r of buildingRows(site, reg)) {
+			expect(r.size.w).toBeGreaterThan(0);
+			expect(r.progress).toBeNull();
+		}
+		const html = render(SpaceCenterOverlay, { props: props() }).body;
+		expect(html).toContain('data-testid="sc-buildings-list"');
+		expect(html).toContain('>running<');
 	});
 });
