@@ -21,6 +21,7 @@
 		saveRendererChoice,
 		saveAutoQuality,
 		saveGraphicsPreset,
+		emitGraphicsChange,
 		type PresetChoice
 	} from '../graphics';
 	import type { RendererChoice } from '@orbital/renderer/backend';
@@ -78,6 +79,7 @@
 		if (choice === 'auto') clearGraphicsPreset();
 		else saveGraphicsPreset(choice);
 		onpreset?.(choice);
+		emitGraphicsChange({ kind: 'preset', choice });
 	}
 	function chooseRenderer(choice: RendererChoice): void {
 		rendererChoice = choice;
@@ -87,11 +89,13 @@
 		frameCap = choice;
 		saveFrameCap(choice);
 		onframecap?.(choice);
+		emitGraphicsChange({ kind: 'frameCap', choice });
 	}
 	function chooseAuto(on: boolean): void {
 		auto = on;
 		saveAutoQuality(on);
 		onautoquality?.(on);
+		emitGraphicsChange({ kind: 'auto', on });
 	}
 
 	const tabs: { id: Tab; label: string }[] = [
@@ -208,9 +212,7 @@
 			<div class="row">
 				<div class="what">
 					<h3>Frame rate limit</h3>
-					<p>
-						Display draws as fast as your screen refreshes. 60 or 30 save battery and heat.
-					</p>
+					<p>Display draws as fast as your screen refreshes. 60 or 30 save battery and heat.</p>
 				</div>
 				<Segmented
 					label="Frame rate limit"

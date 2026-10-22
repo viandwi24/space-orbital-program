@@ -4,6 +4,7 @@
  * each frame a projection for the overlay's labels and network lines. A click is handed to the page,
  * which picks with `map-pick.ts`.
  */
+import { onGraphicsChange, probeCapabilities, startPreset } from '../graphics';
 import type {
 	Command,
 	CommandResult,
@@ -135,6 +136,13 @@ export function startMissionCenter(options: MissionCenterOptions): MissionCenter
 	// the world's renderer (plan 340, ADR 0290): the canvas moves here now; no device, bake or
 	// shader is built for this page
 	const acquired = worldRenderer.acquire(options.host, client);
+	// a preset chosen in Settings applies at once on this page too (owner, 2026-10-22)
+	const offGraphics = onGraphicsChange((change) => {
+		if (change.kind !== 'preset' || !renderer) return;
+		renderer.setPreset(
+			change.choice === 'auto' ? startPreset(null, null, probeCapabilities()) : change.choice
+		);
+	});
 	client.ready.then(
 		async (c) => {
 			const shared = await acquired.catch(() => null);
@@ -185,6 +193,7 @@ export function startMissionCenter(options: MissionCenterOptions): MissionCenter
 			cancelAnimationFrame(raf);
 			observer.disconnect();
 			offSnapshot();
+			offGraphics();
 			canvas.removeEventListener('pointerdown', onDown);
 			canvas.removeEventListener('pointermove', onMove);
 			canvas.removeEventListener('pointerup', onUp);

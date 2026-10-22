@@ -4,6 +4,7 @@
  * each frame the label positions of the buildings for the overlay. Build mode's ghost is drawn
  * from what the page decides; the pointer's site point comes from `pick`.
  */
+import { onGraphicsChange, probeCapabilities, startPreset } from '../graphics';
 import type { Command, CommandResult, SimSave, Snapshot, WorldInfo } from '@orbital/core';
 import type { Renderer, SiteBuildingView } from '@orbital/renderer';
 import { worldRenderer } from '../world-renderer.svelte';
@@ -139,6 +140,13 @@ export function startSpaceCenter(options: SpaceCenterOptions): SpaceCenter {
 	// the world's renderer (plan 340, ADR 0290): the canvas moves here now; no device, bake or
 	// shader is built for this page
 	const acquired = worldRenderer.acquire(options.host, client);
+	// a preset chosen in Settings applies at once on this page too (owner, 2026-10-22)
+	const offGraphics = onGraphicsChange((change) => {
+		if (change.kind !== 'preset' || !renderer) return;
+		renderer.setPreset(
+			change.choice === 'auto' ? startPreset(null, null, probeCapabilities()) : change.choice
+		);
+	});
 	client.ready.then(
 		async () => {
 			const shared = await acquired.catch(() => null);
@@ -181,6 +189,7 @@ export function startSpaceCenter(options: SpaceCenterOptions): SpaceCenter {
 			cancelAnimationFrame(raf);
 			observer.disconnect();
 			offSnapshot();
+			offGraphics();
 			canvas.removeEventListener('pointerdown', onDown);
 			canvas.removeEventListener('pointermove', onMove);
 			canvas.removeEventListener('pointerup', onUp);

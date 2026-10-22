@@ -247,7 +247,10 @@ export function graphicsStart(backend: string): {
 	const saved = loadGraphicsPreset();
 	const preset = startPreset(saved, saved ? null : loadLearnedLevel(backend), probeCapabilities());
 	const adjust = loadAutoQuality();
-	return { preset, warmPresets: warmPresetsFor(preset, adjust, governorCeiling(saved, adjust, preset)) };
+	return {
+		preset,
+		warmPresets: warmPresetsFor(preset, adjust, governorCeiling(saved, adjust, preset))
+	};
 }
 
 /** The preset the flight view should start with (`backend`: the learned level's key). */
@@ -309,4 +312,28 @@ export async function rendererBackend(): Promise<RendererBackend> {
 		loadRendererChoice(),
 		await hasWebGPUAdapter()
 	);
+}
+
+/** A graphics setting the player changed in Settings, wherever the dialog was opened. */
+export type GraphicsChange =
+	| { kind: 'preset'; choice: PresetChoice }
+	| { kind: 'auto'; on: boolean }
+	| { kind: 'frameCap'; choice: FrameCapChoice };
+
+const changes = new EventTarget();
+
+/**
+ * Tell the page drawing now that a graphics setting changed, so it applies at once. The world's
+ * Settings dialog can be opened from any page (the layout's menu), and only the page's own loop
+ * knows its renderer and governor (owner, 2026-10-22: changes only applied after a reload).
+ */
+export function emitGraphicsChange(change: GraphicsChange): void {
+	changes.dispatchEvent(new CustomEvent('change', { detail: change }));
+}
+
+/** Listen for graphics changes; returns the unsubscribe. */
+export function onGraphicsChange(listener: (change: GraphicsChange) => void): () => void {
+	const handler = (e: Event): void => listener((e as CustomEvent<GraphicsChange>).detail);
+	changes.addEventListener('change', handler);
+	return () => changes.removeEventListener('change', handler);
 }

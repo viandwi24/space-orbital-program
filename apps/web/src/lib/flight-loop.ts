@@ -69,6 +69,7 @@ import {
 	loadFrameCap,
 	loadGraphicsPreset,
 	loadLearnedLevel,
+	onGraphicsChange,
 	probeCapabilities,
 	saveAutoQuality,
 	saveFrameCap,
@@ -1089,8 +1090,7 @@ export function startFlight(options: FlightOptions): Flight {
 				// in the map a selected node goes first (Delete removes it, ADR 0061); otherwise the
 				// kill switch (plan 320, ADR 0276 point 5): every program of the flown vessel stops
 				if (renderer?.isMapView && maneuverCtl?.key('nodeDelete', {})) e.preventDefault();
-				else if (vessel !== null)
-					void send({ type: 'program-stop', vessel, reason: 'Delete key' });
+				else if (vessel !== null) void send({ type: 'program-stop', vessel, reason: 'Delete key' });
 				break;
 			case 'map':
 				toggleMap();
@@ -1551,7 +1551,8 @@ export function startFlight(options: FlightOptions): Flight {
 		ceiling: GraphicsPreset;
 	} {
 		const saved = loadGraphicsPreset();
-		const learned = saved || !renderer ? null : loadLearnedLevel(renderer.debug.counters().renderer);
+		const learned =
+			saved || !renderer ? null : loadLearnedLevel(renderer.debug.counters().renderer);
 		const start = startPreset(saved, learned, probeCapabilities());
 		return { saved, learned, start, ceiling: governorCeiling(saved, autoQuality, start) };
 	}
@@ -1788,7 +1789,8 @@ export function startFlight(options: FlightOptions): Flight {
 				(event.type === 'docked' && (active === event.vessel || active === event.absorbed)) ||
 				(event.type === 'undocked' && active === event.vessel);
 			if (follow) void switchVessel(event.vessel, true).then(() => hudCtl?.simEvent(event));
-			else if (event.type === 'mod-focus') void switchVessel(event.vessel); // ADR 0292 point 3
+			else if (event.type === 'mod-focus')
+				void switchVessel(event.vessel); // ADR 0292 point 3
 			else hudCtl?.simEvent(event);
 			if (event.type === 'milestone') void achievements?.check([event]);
 			// a challenge world scores the run when its goal is reached (plan 131, ADR 0159 point 6)
@@ -2029,7 +2031,8 @@ export function startFlight(options: FlightOptions): Flight {
 			governor: () =>
 				governor && {
 					history: governor.history.map(
-						(c) => `${c.at.toFixed(1)}s ${c.level.preset} ${Math.round(c.level.scale * 100)}%${c.level.planetScale < 1 ? ' half' : ''} — ${c.reason}`
+						(c) =>
+							`${c.at.toFixed(1)}s ${c.level.preset} ${Math.round(c.level.scale * 100)}%${c.level.planetScale < 1 ? ' half' : ''} — ${c.reason}`
 					),
 					targetFps: governor.targetFps,
 					displayHz: governor.displayRate,
@@ -2087,7 +2090,7 @@ export function startFlight(options: FlightOptions): Flight {
 		};
 	}
 
-	return {
+	const flightApi: Flight = {
 		panelInput: currentPanelInput,
 		highlightPart: (part) => renderer?.highlightPart(part),
 		partAt: (x, y) => renderer?.partAt(x, y) ?? null,
@@ -2217,8 +2220,7 @@ export function startFlight(options: FlightOptions): Flight {
 						// the programs list names the script after its vessel (plan 320)
 						const name = client.latest?.vessels.find((v) => Number(v.id) === target)?.name;
 						client.startScript(source, target, port, name ? `${name} script` : undefined);
-					}
-					else port.close();
+					} else port.close();
 				},
 				(error: unknown) => {
 					// A newer Run (or Stop) closed this sandbox while it started: nothing to report.
@@ -2402,4 +2404,13 @@ export function startFlight(options: FlightOptions): Flight {
 			// running script and its sandbox (point 9, plan 239)
 		}
 	};
+	// Settings opened from any menu of the world (the layout's dialog) apply at once (owner, 2026-10-22)
+	offClient.push(
+		onGraphicsChange((change) => {
+			if (change.kind === 'preset') flightApi.setGraphicsPreset(change.choice);
+			else if (change.kind === 'auto') flightApi.setAutoQuality(change.on);
+			else flightApi.setFrameCap(change.choice);
+		})
+	);
+	return flightApi;
 }
