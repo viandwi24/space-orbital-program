@@ -75,54 +75,133 @@ export const bayConfigSchema = z.object({
 		.max(16),
 	/** Doors start open (a bay built open in the Hangar). */
 	open: z.boolean().default(false),
-	stageable: z.boolean().default(false)
+	stageable: z.boolean().default(false),
+	/**
+	 * Single use (plan 345): opening throws the panels off as debris, as the Apollo SLA's petals
+	 * and a fairing do; a cargo bay's doors (absent) stay on their hinges and close again.
+	 */
+	jettison: z
+		.object({
+			/** One debris part per panel, round the axis from +Z, each centred on its own sector. */
+			panels: z.array(z.string().min(1)).min(1).max(8),
+			/** The panels' mass together, kg: it leaves the part with them. */
+			mass: z.number().nonnegative(),
+			/** How far from the axis the panels' centres start, m (just outside the shell). */
+			radius: z.number().positive(),
+			/** Their speed away from the axis, m/s: a gentle spring push. */
+			push: z.number().nonnegative().default(0.8)
+		})
+		.optional()
 });
 export type BayConfig = z.output<typeof bayConfigSchema>;
 export interface BayState {
 	open: boolean;
+	/** The panels are gone (a single-use bay, plan 345). */
+	jettisoned?: boolean;
+}
+
+type BayContext = {
+	config: BayConfig;
+	state: BayState;
+	vessel: {
+		spawnDebris?(spec: {
+			part: string;
+			offset: { x: number; y: number; z: number };
+			velocity: { x: number; y: number; z: number };
+		}): void;
+	};
+};
+
+/**
+ * Open the doors; a single-use bay throws its panels off at once (plan 345): each leaves from its
+ * own sector, outside the shell so it starts clear of the payload, pushed straight out. The pushes
+ * cancel, so the vessel and what it carries keep their motion.
+ */
+function openBay(ctx: BayContext): void {
+	const { config, state } = ctx;
+	state.open = true;
+	const j = config.jettison;
+	if (!j || state.jettisoned) return;
+	state.jettisoned = true;
+	const n = j.panels.length;
+	j.panels.forEach((part, i) => {
+		const a = ((i + 0.5) / n) * Math.PI * 2;
+		const out = { x: Math.sin(a), y: 0, z: Math.cos(a) };
+		ctx.vessel.spawnDebris?.({
+			part,
+			offset: { x: out.x * j.radius, y: 0, z: out.z * j.radius },
+			velocity: { x: out.x * j.push, y: 0, z: out.z * j.push }
+		});
+	});
 }
 
 /**
  * A bay with doors (plan 302, ADR 0261). While its doors are closed it is a closed shell: the parts
- * inside take no drag and no convective heat, as inside a fairing.
+ * inside take no drag and no convective heat, as inside a fairing. A single-use bay (plan 345)
+ * throws its panels off when it opens.
  */
 export const ModuleBay = defineModule({
 	id: 'stock.bay',
 	config: bayConfigSchema,
-	state: (config): BayState => ({ open: config.open }),
-	describe: (_config, state) => ({
+	state: (config): BayState => ({
+		open: config.open,
+		...(config.jettison ? { jettisoned: false } : {})
+	}),
+	describe: (config, state) => ({
 		category: 'stock.other',
+		...(config.jettison
+			? {
+					readouts: [
+						{
+							id: 'jettison',
+							label: 'Panels',
+							value: state.jettisoned ? 'Thrown off' : 'Thrown off when opened (single use)'
+						}
+					]
+				}
+			: {}),
 		actions: [
-			{
-				id: 'setOpen',
-				label: 'Bay doors',
-				kind: 'toggle',
-				value: state.open,
-				enabled: true,
-				group: 'stock.bay',
-				icon: 'deploy',
-				// the Hangar sets how it starts (plan 316)
-				build: 'open'
-			}
+			config.jettison
+				? {
+						id: 'open',
+						label: state.jettisoned ? 'Panels thrown off' : 'Jettison panels',
+						kind: 'trigger',
+						enabled: !state.jettisoned,
+						...(state.jettisoned ? { reason: 'already thrown off' } : {}),
+						group: 'stock.bay',
+						icon: 'deploy'
+					}
+				: {
+						id: 'setOpen',
+						label: 'Bay doors',
+						kind: 'toggle',
+						value: state.open,
+						enabled: true,
+						group: 'stock.bay',
+						icon: 'deploy',
+						// the Hangar sets how it starts (plan 316)
+						build: 'open'
+					}
 		]
 	}),
 	shell: (config, state) => (state.open ? null : config.profile),
+	mass: (config, state) => (config.jettison && !state.jettisoned ? config.jettison.mass : 0),
 	onStage(ctx) {
-		if (ctx.config.stageable) ctx.state.open = true;
+		if (ctx.config.stageable) openBay(ctx);
 	},
 	actions: {
-		open: (ctx) => {
-			ctx.state.open = true;
-		},
+		open: (ctx) => openBay(ctx),
 		close: (ctx) => {
-			ctx.state.open = false;
+			// thrown-off panels do not come back
+			if (!ctx.config.jettison) ctx.state.open = false;
 		},
 		setOpen: (ctx, ...args) => {
 			const [open] = z.tuple([z.boolean()]).parse(args);
-			ctx.state.open = open;
+			if (open) openBay(ctx);
+			else if (!ctx.config.jettison) ctx.state.open = false;
 		}
 	},
-	snapshot: (state) => ({ open: state.open })
+	snapshot: (state) => ({ open: state.open, ...(state.jettisoned ? { jettisoned: true } : {}) })
 });
 
 export const fuelCellConfigSchema = z.object({

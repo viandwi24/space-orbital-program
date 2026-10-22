@@ -23,7 +23,7 @@ The owner found the Hangar's name capsule and the Launch icon far from where the
    - **Crew seats:** they are `CrewPortrait`s. A crew member goes to a seat by a click on their row, or by dragging the row onto a seat.
 5. **A picture for every design.** A record's saved 3D thumbnail is used when it has one. Otherwise `design-profile.ts` draws a flat side outline from the resolved layout and the parts' shapes (cylinder or box), as SVG. It is pure, cheap, and needs no WebGL on the Launch page.
 6. **The library merges copies and groups variants.**
-   - Two records are the same design when their designs serialise the same apart from the name. Only the newest record is shown, with a "×n copies" note, and deleting it offers to delete the copies too.
+   - Two records are copies when they have the same name (ignoring case) and their designs serialise the same apart from the name. A renamed or duplicated record is the player's own entry and stays. Only the newest record is shown, with a "×n copies" note, and deleting it offers to delete the copies too.
    - Different designs that share a name are variants. They are shown together, newest first, each marked "v2", "v3" and so on with its date.
    - The Hangar's working design is a group of its own ("In the Hangar") above the Library.
    - Search matches the name. The filter is All, Rockets, Aircraft or Crewed. Sorting is by recent edit, name, mass or cost.

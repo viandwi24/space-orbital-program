@@ -17,6 +17,8 @@
 	import StatsStrip from '../../../lib/vab/StatsStrip.svelte';
 	import VesselName from '../../../lib/vab/VesselName.svelte';
 	import LaunchButton from '../../../lib/vab/LaunchButton.svelte';
+	import StartVessel from '../../../lib/vab/StartVessel.svelte';
+	import { loadFlag } from '../../../lib/storage';
 	import BuildContext from '../../../lib/vab/BuildContext.svelte';
 	import { pageShell } from '../../../lib/layout/page-actions.svelte';
 	import ToolPill from '../../../lib/vab/ToolPill.svelte';
@@ -71,7 +73,7 @@
 		if (new URLSearchParams(location.search).has('library')) {
 			history.replaceState(null, '', location.pathname);
 			void vab.openLibrary();
-		}
+		} else offerStart();
 		return stop;
 	});
 
@@ -127,6 +129,31 @@
 		vab.editor.design.parts.length === 0 && !vab.armed && vab.editor.loose.length === 0
 	);
 
+	// "Start a vessel" (plan 350, ADR 0299): an empty Hangar opens with recommended blueprints or
+	// Build my own; Build my own (or the modal turned off) points at the parts list instead.
+	let startOpen = $state(false);
+	let coach = $state(false);
+	let coachAt = $state({ x: 0, y: 0 });
+	function offerStart(): void {
+		if (!emptyHangar || runningLesson()) return;
+		if (loadFlag('hideStart')) showCoach();
+		else startOpen = true;
+	}
+	function showCoach(): void {
+		const r = left?.getBoundingClientRect();
+		const host = stage?.getBoundingClientRect();
+		coachAt =
+			r && host ? { x: r.right - host.left + 14, y: r.top - host.top + 110 } : { x: 380, y: 180 };
+		coach = true;
+	}
+	// the first part (or a loaded design) ends both
+	$effect(() => {
+		if (!emptyHangar) {
+			startOpen = false;
+			coach = false;
+		}
+	});
+
 	// The drawers (narrow windows) change which panels take room; the view re-centres the vessel.
 	$effect(() => {
 		void vab.drawer;
@@ -141,7 +168,10 @@
 				icon: 'new',
 				title: 'A new, empty vessel',
 				testid: 'menu-new',
-				onclick: () => vab.newVessel()
+				onclick: () => {
+					vab.newVessel();
+					offerStart();
+				}
 			},
 			{
 				id: 'open',
@@ -316,6 +346,25 @@
 			<ToolPill {vab} />
 		</div>
 
+		{#if coach && emptyHangar}
+			<div
+				class="coach"
+				role="status"
+				data-testid="vab-coach"
+				style="left:{coachAt.x}px;top:{coachAt.y}px"
+			>
+				<span class="arrow" aria-hidden="true"></span>
+				<strong>Build your own</strong>
+				<span
+					>Pick a command pod in the parts list, then click the glowing ring on the platform. Add
+					tanks and an engine below it.</span
+				>
+				<button type="button" aria-label="Got it" class="x" onclick={() => (coach = false)}
+					>Got it</button
+				>
+			</div>
+		{/if}
+
 		{#if tutorialStep && !emptyHangar}
 			<div class="guide">
 				<TutorialCard
@@ -326,7 +375,8 @@
 			</div>
 		{/if}
 
-		{#if emptyHangar}
+		<!-- a lesson keeps the inline card its steps point at (plan 344); elsewhere the start modal -->
+		{#if emptyHangar && inLesson}
 			<div class="welcome">
 				<h2>Build a vessel</h2>
 				<p>
@@ -359,6 +409,15 @@
 	<div class="sr-only" aria-live="polite" role="status">{vab.announce}</div>
 	<p class="sr-only" id="stack-description">{vab.stackText}</p>
 
+	<StartVessel
+		{vab}
+		open={startOpen}
+		featured={FEATURED}
+		onclose={(how) => {
+			startOpen = false;
+			if (how === 'build') showCoach();
+		}}
+	/>
 	<LibraryDialog {vab} />
 	<BlueprintLibrary {vab} />
 
@@ -547,6 +606,60 @@
 		margin-top: 3rem;
 		align-self: start;
 		justify-self: center;
+	}
+	/* the coach mark beside the parts list (plan 350) */
+	.coach {
+		position: absolute;
+		z-index: 5;
+		display: grid;
+		gap: 0.375rem;
+		width: 15rem;
+		padding: 0.75rem 0.875rem;
+		border-radius: 0.875rem;
+		background: #f4f4f5;
+		color: #0b0b0c;
+		box-shadow: 0 12px 40px rgb(0 0 0 / 0.45);
+		animation: nudge 1.6s ease-in-out infinite;
+	}
+	.coach strong {
+		font-size: var(--t-button);
+	}
+	.coach span {
+		font-size: var(--t-small);
+		line-height: 1.4;
+	}
+	.coach .arrow {
+		position: absolute;
+		left: -7px;
+		top: 1.125rem;
+		width: 14px;
+		height: 14px;
+		background: inherit;
+		transform: rotate(45deg);
+		border-radius: 2px;
+	}
+	.coach .x {
+		justify-self: end;
+		height: 1.75rem;
+		padding: 0 0.75rem;
+		border: 0;
+		border-radius: var(--radius-pill);
+		background: #0b0b0c;
+		color: #fff;
+		font: inherit;
+		font-size: var(--t-small);
+		font-weight: 700;
+		cursor: pointer;
+	}
+	@keyframes nudge {
+		50% {
+			transform: translateX(-4px);
+		}
+	}
+	@media (prefers-reduced-motion: reduce) {
+		.coach {
+			animation: none;
+		}
 	}
 	.welcome {
 		position: absolute;

@@ -7,6 +7,7 @@ import {
 	facilitiesOf,
 	placementOf,
 	saveLaunchChoice,
+	seatIn,
 	seatsOf,
 	takeLaunchChoice,
 	toggleSeat
@@ -134,5 +135,21 @@ describe('seats (plan 108)', () => {
 		]);
 		expect(toggleSeat(s, seats, 'c4')).toEqual(s);
 		expect(toggleSeat(s, seats, 'c2').map((x) => x.member)).toEqual(['c1', 'c3']);
+	});
+});
+
+describe('seatIn (plan 346)', () => {
+	const seats = [
+		{ part: 0, title: 'Pod', capacity: 1 },
+		{ part: 3, title: 'Cabin', capacity: 2 }
+	];
+	it('moves a member to the seat they were dropped on', () => {
+		expect(seatIn([{ member: 'a', part: 0 }], seats, 'a', 3)).toEqual([{ member: 'a', part: 3 }]);
+	});
+	it('a full part lets its last occupant go', () => {
+		expect(seatIn([{ member: 'a', part: 0 }], seats, 'b', 0)).toEqual([{ member: 'b', part: 0 }]);
+	});
+	it('a part that is not a seat changes nothing', () => {
+		expect(seatIn([{ member: 'a', part: 0 }], seats, 'b', 9)).toEqual([{ member: 'a', part: 0 }]);
 	});
 });

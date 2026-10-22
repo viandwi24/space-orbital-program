@@ -220,6 +220,13 @@ class ProceduralModel implements PartModel {
 			this.target =
 				flag === true ? 1 : typeof flag === 'number' ? Math.min(1, Math.max(0, flag)) : 0;
 			if (this.fresh) this.progress = this.target;
+			// thrown off (plan 345): the pieces are debris of their own now
+			const gone = this.deploy.gone
+				? (state.modules[this.deploy.module] as Record<string, unknown> | undefined)?.[
+						this.deploy.gone
+					]
+				: undefined;
+			if (this.dynamic) this.dynamic.object.visible = gone !== true;
 		}
 		this.fresh = false;
 		this.pressure = state.ambientPressure ?? 0;

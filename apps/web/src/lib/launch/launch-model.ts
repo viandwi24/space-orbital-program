@@ -173,3 +173,21 @@ export function toggleSeat(
 	const free = seats.find((p) => seated.filter((s) => s.part === p.part).length < p.capacity);
 	return free ? [...seated, { member, part: free.part }] : [...seated];
 }
+
+/**
+ * Puts `member` in a seat of `part` (plan 346: a crew row dropped on a seat). They leave any other
+ * seat first; when the part is full, its last occupant makes room.
+ */
+export function seatIn(
+	seated: readonly { member: string; part: number }[],
+	seats: readonly SeatPart[],
+	member: string,
+	part: number
+): { member: string; part: number }[] {
+	const target = seats.find((p) => p.part === part);
+	if (!target) return [...seated];
+	const rest = seated.filter((s) => s.member !== member);
+	const there = rest.filter((s) => s.part === part);
+	const out = there.length >= target.capacity ? rest.filter((s) => s !== there.at(-1)) : rest;
+	return [...out, { member, part }];
+}
