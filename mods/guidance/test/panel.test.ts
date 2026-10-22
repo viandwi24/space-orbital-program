@@ -194,7 +194,7 @@ describe('Guidance Computer panel (plan 332)', () => {
 				return n?.kind === 'readout' ? n.value(r.i) : undefined;
 			};
 			expect(readout('Delta-v left')).toBe(3391.9);
-			// both modes before engaging (plan 361): ETA and delta-v
+			// both modes before engaging (plan 371): ETA and delta-v
 			expect(String(readout('Efficient: ETA · delta-v'))).toMatch(/^(\d+ h \d+ min|\d+ min|\d+ s|long wait) · \d+ m\/s$/);
 			expect(String(readout('Fast: ETA · delta-v'))).toMatch(/m\/s \(cap \d+\)$|^none within the cap$/);
 			const mode = nodesOf('rendezvous').find((x) => x.kind === 'select' && x.label === 'Mode');

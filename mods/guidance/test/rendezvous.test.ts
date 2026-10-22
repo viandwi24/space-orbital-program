@@ -282,7 +282,7 @@ describe('Rendezvous autopilot (plan 331)', () => {
 		sim.dispose();
 	}, 240_000);
 
-	test('fast mode (cap 400 m/s) reaches the standoff far sooner than efficient, on more delta-v within the cap (plan 361)', async () => {
+	test('fast mode (cap 400 m/s) reaches the standoff far sooner than efficient, on more delta-v within the cap (plan 371)', async () => {
 		const flyIt = async (mode: string) => {
 			// the target 50 km higher and 30° behind: the efficient Hohmann waits most of a synodic period
 			const { sim, a } = await scene(150_000, -0.5, 0);

@@ -292,7 +292,7 @@ const duration = (s: number): string =>
 /** The last preview: the search is a few thousand propagations, so it is kept for 5 s of sim time. */
 let previewCache: { key: string; preview: ModePreview | null } | null = null;
 
-/** Both modes' ETA and delta-v from the panel's snapshot (plan 361), or null when it cannot plan. */
+/** Both modes' ETA and delta-v from the panel's snapshot (plan 371), or null when it cannot plan. */
 function previewOf(i: PanelInput): ModePreview | null {
 	const v = i.vessel;
 	const t = v?.target;

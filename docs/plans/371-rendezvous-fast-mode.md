@@ -1,5 +1,5 @@
 ---
-id: 361
+id: 371
 title: "Rendezvous Fast mode: a direct intercept under a delta-v cap, with ETA and delta-v for both modes"
 status: done
 owner: "rendezvous session (Claude)"
@@ -9,7 +9,7 @@ created: 2026-10-22
 updated: 2026-10-22
 ---
 
-# 361 — Rendezvous Fast mode
+# 371 — Rendezvous Fast mode
 
 ## Goal
 
@@ -28,7 +28,7 @@ The owner asked for a fast rendezvous ("ga bisa ada mode fast kah biar mempercep
 ## Docs checklist
 
 - [x] `docs/STATUS.md` board row.
-- [x] `docs/journal/361-rendezvous-fast-mode.md`.
+- [x] `docs/journal/371-rendezvous-fast-mode.md`.
 - [x] Guide: the Rendezvous modes.
 
 ## Log

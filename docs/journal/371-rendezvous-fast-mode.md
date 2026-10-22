@@ -1,6 +1,6 @@
-# 361 — Rendezvous Fast mode
+# 371 — Rendezvous Fast mode
 
-**Plan:** [plans/361-rendezvous-fast-mode.md](../plans/361-rendezvous-fast-mode.md) · **Session:** rendezvous session (Claude) · **Date:** 2026-10-22
+**Plan:** [plans/371-rendezvous-fast-mode.md](../plans/371-rendezvous-fast-mode.md) · **Session:** rendezvous session (Claude) · **Date:** 2026-10-22
 
 ## What was done
 

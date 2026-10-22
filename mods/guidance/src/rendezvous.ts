@@ -76,7 +76,7 @@ const NEAR_WARP_ALIGN = 2 * DEG;
 const MAX_PLANS = 4;
 /** Mid-course corrections per transfer. */
 const MAX_CORRECTIONS = 2;
-/** Fast mode (plan 361): one correction, aimed closer, a quicker close phase. */
+/** Fast mode (plan 371): one correction, aimed closer, a quicker close phase. */
 const FAST_CORRECTIONS = 1;
 const FAST_AIM_ABOVE = 150;
 /** Fast mode's transfer times, as shares of the vessel's orbital period, and how many it tries. */
@@ -150,7 +150,7 @@ export interface RendezvousMemory extends NodeMemory {
 	noRcs: boolean;
 	/** Last try to hand over to Auto Dock, sim time. */
 	dockTriedAt: number;
-	/** Fast mode (plan 361): a direct intercept, fewer corrections, a quicker close phase. Absent: efficient. */
+	/** Fast mode (plan 371): a direct intercept, fewer corrections, a quicker close phase. Absent: efficient. */
 	fast?: boolean;
 	/** Fast mode's delta-v cap, m/s; 0: twice the efficient estimate. */
 	cap?: number;
@@ -163,7 +163,7 @@ export interface RendezvousParams {
 	warp?: boolean | string;
 	/** Standoff distance, m (10–200). */
 	standoff?: number | string;
-	/** `efficient` (default: Hohmann and phasing, the least delta-v) or `fast` (a direct intercept, plan 361). */
+	/** `efficient` (default: Hohmann and phasing, the least delta-v) or `fast` (a direct intercept, plan 371). */
 	mode?: string;
 	/** Fast mode's delta-v cap, m/s; 0 or absent: twice the efficient estimate. */
 	cap?: number | string;
@@ -403,7 +403,7 @@ export function phasingBurn(
 export const tooLowToPhase = (floorAltitude: number): string =>
 	`Too low to phase: raise your orbit above ${Math.ceil((floorAltitude + 20_000) / 1000)} km first (Orbit tab).`;
 
-/** A direct intercept (plan 361): the burn at `tb` and the arrival at `tca`. */
+/** A direct intercept (plan 371): the burn at `tb` and the arrival at `tca`. */
 export interface FastIntercept {
 	tb: number;
 	tca: number;
@@ -416,7 +416,7 @@ export interface FastIntercept {
 }
 
 /**
- * The soonest direct intercept within `cap` m/s (plan 361), Lambert-style: for transfer times
+ * The soonest direct intercept within `cap` m/s (plan 371), Lambert-style: for transfer times
  * from a quarter of the vessel's orbit to a whole one, the burn `LEAD` s from now that reaches a
  * point `FAST_AIM_ABOVE` m above the target then (a damped Newton, `aimBurn`), plus the burn that
  * matches its velocity there; the path's periapsis must stay above `floor`. Null when none fits.
@@ -462,14 +462,14 @@ export function fastIntercept(
 	return best;
 }
 
-/** What each mode would take from here (plan 361): seconds to the standoff and delta-v, or null. */
+/** What each mode would take from here (plan 371): seconds to the standoff and delta-v, or null. */
 export interface ModePreview {
 	efficient: { eta: number | null; dv: number };
 	fast: { eta: number; dv: number; cap: number } | null;
 }
 
 /**
- * Both modes' estimates from two states about one body (plan 361), for the panel and the
+ * Both modes' estimates from two states about one body (plan 371), for the panel and the
  * autopilot: the efficient plan's wait (phasing or Hohmann) and delta-v, and the soonest direct
  * intercept within the cap (`capSetting`, or twice the efficient delta-v; never more than `left`
  * less 10 %).
@@ -980,7 +980,7 @@ function close(pilot: VesselPilot, m: RendezvousMemory, mass: number, target: Ta
 	const dir = unit(p);
 	const useRcs = d < RCS_RANGE && rcsLeft(pilot) && !m.noRcs;
 	const accelMain = pilot.maxThrust / mass;
-	// fast mode (plan 361): twice the speed far out, braking harder and later
+	// fast mode (plan 371): twice the speed far out, braking harder and later
 	const brake = useRcs
 		? (m.fast ? 0.7 : 0.5) * m.accel
 		: Math.min((m.fast ? 0.4 : 0.25) * accelMain, m.fast ? 4 : 2);
