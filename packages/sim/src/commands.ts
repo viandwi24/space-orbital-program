@@ -890,6 +890,17 @@ export function dispatch(
 			};
 			return accept();
 		}
+		case 'mod-key': {
+			// a mod keybinding without a command (plan 343, ADR 0292 point 6)
+			if (!core.registries.keybindings.has(command.key))
+				return refuse(`unknown keybinding "${command.key}"`);
+			core.events.emit('mod:key', {
+				key: command.key,
+				...(command.vessel !== undefined ? { vessel: command.vessel as EntityId } : {}),
+				time: core.t
+			});
+			return { ok: true };
+		}
 		case 'autopilot-disengage': {
 			const v = core.world.get(command.vessel, VESSEL);
 			if (!v) return refuse(`unknown vessel ${command.vessel}`);

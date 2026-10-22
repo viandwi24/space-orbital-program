@@ -121,6 +121,8 @@
 
 <div class="page" class:immersive={isImmersive(path)}>{@render children()}</div>
 
+<!-- the time bar and, right of it, the page's own row (ADR 0295 point 1: the Hangar's name) -->
+<div class="topleft">
 <TimeBar
 	t={snapshot?.t ?? 0}
 	{paused}
@@ -139,6 +141,8 @@
 	catchUp={time?.catchUp}
 	oncatchup={time?.oncatchup}
 />
+{#if pageShell.beside}{@render pageShell.beside()}{/if}
+</div>
 <MenuBar
 	actions={pageShell.actions}
 	custom={pageShell.current ?? undefined}
@@ -217,6 +221,22 @@
 <StatusBar {snapshot} {focus} {world} {system} {location} {savedAt} {mods} {bell} {onstopprogram} />
 
 <style>
+	.topleft {
+		position: fixed;
+		z-index: 40;
+		left: calc(1.5rem + var(--safe-left));
+		top: calc(1.5rem + var(--safe-top));
+		display: flex;
+		align-items: center;
+		gap: 0.5rem;
+		pointer-events: none;
+	}
+	.topleft > :global(*) {
+		pointer-events: auto;
+	}
+	.topleft :global(.bar) {
+		position: static;
+	}
 	/* F2 in flight (plan 226): the bars and the menu step aside with the rest of the interface */
 	:global(html[data-ui-hidden] [data-testid='time-bar']),
 	:global(html[data-ui-hidden] [data-testid='menu-bar']),

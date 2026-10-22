@@ -174,6 +174,18 @@ export function toastForSimEvent(event: SimEvent, ctx: ToastContext): Toast | nu
 			return ctx.isActiveVessel(event.vessel)
 				? { kind: 'warning', title: 'Programs stopped', detail: event.reason, key: 'program' }
 				: null;
+		// a mod's notice (plan 343, ADR 0292 point 6); one at a time per mod
+		case 'mod-notice':
+			return event.vessel === null || ctx.isActiveVessel(event.vessel)
+				? {
+						kind: event.tone,
+						title: event.text,
+						...(event.detail !== undefined ? { detail: event.detail } : {}),
+						key: `mod:${event.plugin}`
+					}
+				: null;
+		case 'mod-focus':
+			return null; // the flight loop switches vessels
 	}
 }
 

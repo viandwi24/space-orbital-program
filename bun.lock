@@ -62,6 +62,22 @@
         "@orbital/sdk": "workspace:*",
       },
     },
+    "examples/mod-world-api": {
+      "name": "@orbital/example-mod-world-api",
+      "version": "0.0.0",
+      "devDependencies": {
+        "@orbital/core": "workspace:*",
+        "@orbital/mod-stock": "workspace:*",
+        "@orbital/physics": "workspace:*",
+        "@orbital/sdk": "workspace:*",
+        "@orbital/sim": "workspace:*",
+        "@types/bun": "latest",
+        "typescript": "catalog:",
+      },
+      "peerDependencies": {
+        "@orbital/sdk": "workspace:*",
+      },
+    },
     "mods/autodock": {
       "name": "@orbital/mod-autodock",
       "version": "0.0.0",
@@ -275,6 +291,8 @@
     "@orbital/core": ["@orbital/core@workspace:packages/core"],
 
     "@orbital/example-mod-sample": ["@orbital/example-mod-sample@workspace:examples/mod-sample"],
+
+    "@orbital/example-mod-world-api": ["@orbital/example-mod-world-api@workspace:examples/mod-world-api"],
 
     "@orbital/kepler": ["@orbital/kepler@workspace:packages/kepler"],
 

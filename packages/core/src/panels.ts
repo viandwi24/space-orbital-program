@@ -7,6 +7,7 @@ import * as z from 'zod';
 import { categoryIconSchema, type CategoryIcon } from './categories.ts';
 import { DEFINITION_ID_PATTERN } from './ids.ts';
 import type { Command, Snapshot, VesselSnapshot } from './protocol.ts';
+import type { WorldQuery } from './world-query.ts';
 
 export const PANEL_CONTEXTS = ['flight', 'map', 'mission-center'] as const;
 export type PanelContext = (typeof PANEL_CONTEXTS)[number];
@@ -29,6 +30,8 @@ export interface PanelInput {
 	body?: { id: string; radius: number; mu: number; atmosphereHeight: number } | null;
 	/** The active vessel's delta-v as the HUD's stage stack shows it, m/s (ADR 0288); absent when unknown. */
 	deltaV?: number | null;
+	/** The World Query over `snapshot` (plan 343, ADR 0292 point 1), built on first read; absent from older hosts. */
+	world?: WorldQuery;
 }
 
 /** A notice's button (ADR 0288): opens a tab of the panel's `tabs`. */

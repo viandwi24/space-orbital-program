@@ -60,6 +60,8 @@ import { terrainUnder } from './terrain.ts';
 import { economySnapshot, quoteRecovery, recoveryBlocker } from './economy.ts';
 import { marketSnapshot } from './market.ts';
 import { sitesSnapshot } from './buildings.ts';
+import { vesselSituationNow } from './situation.ts';
+import { storesSnapshot } from './mod-runtime.ts';
 
 /** The part's failure temperature, K (its definition's, else the default; plan 212). */
 const maxTemperatureOf = (core: SimCore, part: EntityId): number =>
@@ -163,6 +165,7 @@ export function vesselSnapshot(core: SimCore, id: EntityId): VesselSnapshot {
 		nextStage: vessel.nextStage,
 		...(vessel.launchedAt !== undefined ? { launchedAt: vessel.launchedAt } : {}),
 		...(situationView(core, id).splashed ? { splashed: true } : {}),
+		situation: vesselSituationNow(core, id),
 		...(vessel.trim || vessel.trimYaw || vessel.trimRoll
 			? { trim: { pitch: vessel.trim ?? 0, yaw: vessel.trimYaw ?? 0, roll: vessel.trimRoll ?? 0 } }
 			: {}),
@@ -274,6 +277,7 @@ export function takeSnapshot(core: SimCore): Snapshot {
 			rotation: rotationAt(body, core.t)
 		})),
 		rules: rulesView(core),
+		...withStores(core),
 		debug: debugSnapshot(core),
 		warpLimit: warpLimit(core),
 		...(core.paused ? { paused: true } : {}),
@@ -294,6 +298,12 @@ export function takeSnapshot(core: SimCore): Snapshot {
 		...(reliability ? { reliability } : {}),
 		...(roster ? { crew: roster } : {})
 	};
+}
+
+/** `{ stores }` once a mod wrote one (ADR 0292 point 4). */
+function withStores(core: SimCore): { stores?: Readonly<Record<string, unknown>> } {
+	const stores = storesSnapshot(core);
+	return stores ? { stores } : {};
 }
 
 /** Registered rules' values, rebuilt only after a `set-rule` (ADR 0111 point 5). */

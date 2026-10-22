@@ -151,7 +151,12 @@ const settingsV4 = settingsV3.extend({
 	keyProfile: z.enum(KEY_PROFILES).catch(DEFAULT_KEY_PROFILE),
 	keyNotice: z.boolean().catch(false),
 	/** Lesson progress (plan 229): additive in format 4, none when absent. */
-	lessons: lessonsSchema
+	lessons: lessonsSchema,
+	/** Mod keybindings (plan 343): additive in format 4, none when absent. */
+	modKeys: z
+		.record(z.string().min(1).max(200), z.array(z.string().min(1).max(32)).max(2))
+		.catch({})
+		.default({})
 });
 
 /** Format 1 (plan 023): units and tutorial only; migrated by taking the new fields' defaults. */
@@ -183,6 +188,8 @@ export interface Settings {
 	keyNotice: boolean;
 	/** Lesson progress by lesson id (plan 229). */
 	lessons: Record<string, LessonProgress>;
+	/** Mod keybindings the player changed (plan 343, ADR 0292 point 6): keybinding id to key ids. */
+	modKeys: Record<string, string[]>;
 }
 export type TutorialProgress = Settings['tutorial'];
 export interface LessonProgress {
@@ -205,7 +212,8 @@ export const defaultSettings = (): Settings => ({
 	time: defaultTime(),
 	keyProfile: DEFAULT_KEY_PROFILE,
 	keyNotice: false,
-	lessons: {}
+	lessons: {},
+	modKeys: {}
 });
 
 /**
@@ -240,7 +248,8 @@ export function parseSettings(text: string | null): Settings {
 			v: 4,
 			...profile,
 			bindings: repairBindings(v3.data.bindings, profile.keyProfile),
-			lessons: {}
+			lessons: {},
+			modKeys: {}
 		};
 	}
 	const v2 = settingsV2.safeParse(raw);
@@ -255,7 +264,8 @@ export function parseSettings(text: string | null): Settings {
 			dock: defaultDock(),
 			debug: false,
 			time: defaultTime(),
-			lessons: {}
+			lessons: {},
+			modKeys: {}
 		};
 	}
 	const v1 = settingsV1.safeParse(raw);

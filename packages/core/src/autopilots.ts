@@ -6,6 +6,7 @@
 import * as z from 'zod';
 import { DEFINITION_ID_PATTERN } from './ids.ts';
 import type { VesselPilot } from './vessel-pilot.ts';
+import type { ModContext } from './mod-api.ts';
 
 /** What one step reports. */
 export interface AutopilotStep {
@@ -34,9 +35,12 @@ export interface AutopilotDefinition<Memory = unknown> {
 	 * Called by `autopilot-engage`: checks the vessel and returns the memory (plain JSON). Throwing
 	 * refuses the command with the error's message.
 	 */
-	start(ctrl: VesselPilot, params: unknown): Memory;
-	/** One step: read, send controls, report. `dt` is the sim time since the last step. */
-	step(ctrl: VesselPilot, memory: Memory, dt: number): AutopilotStep;
+	start(ctrl: VesselPilot, params: unknown, ctx: ModContext): Memory;
+	/**
+	 * One step: read, send controls, report. `dt` is the sim time since the last step. `ctx` is the
+	 * mod World API (plan 343, ADR 0292): the whole world, commands, the plugin's stores, notices.
+	 */
+	step(ctrl: VesselPilot, memory: Memory, dt: number, ctx: ModContext): AutopilotStep;
 }
 
 /** The autopilot state the snapshot reports for a vessel (ADR 0271 point 5). */
