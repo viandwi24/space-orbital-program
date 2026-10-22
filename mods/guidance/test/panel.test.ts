@@ -194,6 +194,13 @@ describe('Guidance Computer panel (plan 332)', () => {
 				return n?.kind === 'readout' ? n.value(r.i) : undefined;
 			};
 			expect(readout('Delta-v left')).toBe(3391.9);
+			// both modes before engaging (plan 361): ETA and delta-v
+			expect(String(readout('Efficient: ETA · delta-v'))).toMatch(/^(\d+ h \d+ min|\d+ min|\d+ s|long wait) · \d+ m\/s$/);
+			expect(String(readout('Fast: ETA · delta-v'))).toMatch(/m\/s \(cap \d+\)$|^none within the cap$/);
+			const mode = nodesOf('rendezvous').find((x) => x.kind === 'select' && x.label === 'Mode');
+			if (mode?.kind !== 'select') throw new Error('no mode select');
+			expect(mode.value(r.i)).toBe('efficient');
+			expect(mode.command(r.i, 'fast')).toMatchObject({ type: 'autopilot-settings', settings: { mode: 'fast' } });
 			const estimate = Number(readout('Delta-v estimate'));
 			expect(estimate).toBeGreaterThan(50);
 			expect(estimate).toBeLessThan(300);

@@ -14,7 +14,17 @@ import {
 	type PanelTone
 } from '@orbital/sdk';
 import { Ascent, Circularize, ExecuteNode, Land, TOUCHDOWN_SPEED } from './autopilots.ts';
-import { HOLD_DISTANCE, MIN_STANDOFF, Rendezvous, STANDOFF, readiness, rendezvousEstimate, type Readiness } from './rendezvous.ts';
+import {
+	HOLD_DISTANCE,
+	MIN_STANDOFF,
+	Rendezvous,
+	STANDOFF,
+	previewModes,
+	readiness,
+	rendezvousEstimate,
+	type ModePreview,
+	type Readiness
+} from './rendezvous.ts';
 
 /** Which tab each program lives in. */
 const TAB_OF: Record<string, string> = {
@@ -270,6 +280,45 @@ const orbitTab: PanelNode[] = [
 ];
 
 const RDV = [Rendezvous.id];
+
+/** "1 h 12 min", "34 min", "45 s". */
+const duration = (s: number): string =>
+	s >= 3_600
+		? `${Math.floor(s / 3_600)} h ${Math.round((s % 3_600) / 60)} min`
+		: s >= 120
+			? `${Math.round(s / 60)} min`
+			: `${Math.round(s)} s`;
+
+/** The last preview: the search is a few thousand propagations, so it is kept for 5 s of sim time. */
+let previewCache: { key: string; preview: ModePreview | null } | null = null;
+
+/** Both modes' ETA and delta-v from the panel's snapshot (plan 361), or null when it cannot plan. */
+function previewOf(i: PanelInput): ModePreview | null {
+	const v = i.vessel;
+	const t = v?.target;
+	if (!v || !t || !i.body || flying(i, ...RDV) || rdvReadiness(i).problem) return null;
+	const cap = Number(settingsOf(i, Rendezvous.id).cap ?? 0) || 0;
+	const key = `${v.id}:${t.id}:${Math.floor(i.time / 5)}:${cap}:${i.deltaV === null ? '' : Math.round(i.deltaV ?? 0)}`;
+	if (previewCache?.key === key) return previewCache.preview;
+	const own = { r: v.position, v: v.velocity };
+	const target = {
+		r: { x: v.position.x + t.position.x, y: v.position.y + t.position.y, z: v.position.z + t.position.z },
+		v: { x: v.velocity.x + t.velocity.x, y: v.velocity.y + t.velocity.y, z: v.velocity.z + t.velocity.z }
+	};
+	const floor = i.body.radius + Math.max(10_000, i.body.atmosphereHeight + 10_000);
+	const preview = previewModes(own, target, t.distance, i.body.mu, floor, i.time, i.deltaV ?? null, cap);
+	previewCache = { key, preview };
+	return preview;
+}
+
+function previewText(i: PanelInput, mode: 'efficient' | 'fast'): string | null {
+	const p = previewOf(i);
+	if (!p) return null;
+	if (mode === 'efficient')
+		return `${p.efficient.eta === null ? 'long wait' : duration(p.efficient.eta)} · ${Math.round(p.efficient.dv)} m/s`;
+	if (!p.fast) return 'none within the cap';
+	return `${duration(p.fast.eta)} · ${Math.round(p.fast.dv)} m/s (cap ${Math.round(p.fast.cap)})`;
+}
 const RDV_STEPS = ['plane', 'transfer', 'match', 'close', 'hold'];
 const rdvStep = (phase: string): number =>
 	phase === 'phasing' || phase === 'correct' ? 1 : Math.max(0, RDV_STEPS.indexOf(phase));
@@ -359,6 +408,36 @@ const rendezvousTab: PanelNode[] = [
 				step: 5,
 				value: (i) => Number(settingsOf(i, Rendezvous.id).standoff ?? STANDOFF),
 				command: (i, v) => setting(i, Rendezvous.id, 'standoff', v)
+			}
+		]
+	},
+	{
+		kind: 'select',
+		label: 'Mode',
+		options: [
+			{ value: 'efficient', label: 'Efficient' },
+			{ value: 'fast', label: 'Fast' }
+		],
+		value: (i) => String(settingsOf(i, Rendezvous.id).mode ?? 'efficient'),
+		command: (i, v) => setting(i, Rendezvous.id, 'mode', v)
+	},
+	{
+		kind: 'section',
+		title: 'Before you engage',
+		columns: 1,
+		children: [
+			{ kind: 'readout', label: 'Efficient: ETA · delta-v', value: (i) => previewText(i, 'efficient') },
+			{ kind: 'readout', label: 'Fast: ETA · delta-v', value: (i) => previewText(i, 'fast') },
+			{
+				// the fast mode's delta-v budget; 0 lets it spend up to twice the efficient plan
+				kind: 'number',
+				label: 'Fast: use up to (0 = 2× efficient)',
+				unit: 'm/s',
+				min: 0,
+				max: 5_000,
+				step: 10,
+				value: (i) => Number(settingsOf(i, Rendezvous.id).cap ?? 0),
+				command: (i, v) => setting(i, Rendezvous.id, 'cap', v)
 			}
 		]
 	},

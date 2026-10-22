@@ -272,6 +272,7 @@
 | 332 | [Guidance Computer panel with tabs](plans/332-guidance-panel-tabs.md) | done | rendezvous session | ADR 0287. One Guidance panel with tabs Ascent / Orbit / Rendezvous / Landing / Log (settings, status line, progress, Engage/Abort; the engaged tab opens and shows ON); panel nodes `tabs`, `progress`, `number`, `notice`, button tones (API 0.1.104); ascent inclination, landing touchdown speed. Journal 332. |
 | 333 | [Rendezvous readiness and the next step](plans/333-rendezvous-readiness-and-next-step.md) | done | rendezvous session | ADR 0288. The true reason a rendezvous cannot start (periapsis with numbers, other body, landed, suborbital) with a button to Ascent or Orbit; delta-v while off; `PanelInput.body`/`.deltaV`, `notice.action` (API 0.1.105). Journal 333. |
 | 360 | [Guidance autostage drops spent boosters](plans/360-guidance-autostage-spent-boosters.md) | done | rendezvous session | Pilot `nextStage` (drops, lights); autostage drops burnt-out SRBs 0.5 s after burnout, never crew, a burning engine or past the last stage. Journal 360. |
+| 361 | [Rendezvous Fast mode](plans/361-rendezvous-fast-mode.md) | done | rendezvous session | Efficient or Fast: a direct intercept under a delta-v cap, quicker close; ETA and delta-v for both in the tab. Journal 361. |
 | 362 | [Automatic quality: preset steps on WebGPU, a resolution floor per preset, a learned start, a frame-rate limit](plans/362-auto-quality-fix.md) | done | perf session | ADR 0304. Owner report 2026-10-22: Automatic fell to 25 fps in orbit where Medium held 100. M2: high+adjust 39 fps locked to 30 → medium 60 fps; switch stalls 1.5 s → 0.08 s. Journal 362. |
 | 363 | [Frame budget research and the first cuts](plans/363-frame-budget-research-and-first-cuts.md) | done | perf session | Owner request 2026-10-22: deep research on efficient rendering. `profile-frame.ts`, research doc; allocation 1143 → 951 KB a frame (navball, config parses). Journal 363. |
 | 365 | [Snapshot transport: fewer bytes and less parsing per frame](plans/365-snapshot-transport.md) | draft | — | From plan 363's ranking. |
@@ -366,6 +367,7 @@ Existing drafts realigned on 2026-10-17: 063 (runway building), 065, 066, 067, 0
 
 ## Recent journal entries
 
+- [361 — Rendezvous Fast mode](journal/361-rendezvous-fast-mode.md)
 - [363 — Frame budget research and the first cuts](journal/363-frame-budget-research-and-first-cuts.md)
 - [362 — Automatic quality that matches a fixed preset](journal/362-auto-quality-fix.md)
 - [364 — Planet textures and sky like KSP](journal/364-planet-textures-and-sky.md)

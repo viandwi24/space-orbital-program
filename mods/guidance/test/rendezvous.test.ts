@@ -282,6 +282,37 @@ describe('Rendezvous autopilot (plan 331)', () => {
 		sim.dispose();
 	}, 240_000);
 
+	test('fast mode (cap 400 m/s) reaches the standoff far sooner than efficient, on more delta-v within the cap (plan 361)', async () => {
+		const flyIt = async (mode: string) => {
+			// the target 50 km higher and 30° behind: the efficient Hohmann waits most of a synodic period
+			const { sim, a } = await scene(150_000, -0.5, 0);
+			sim.dispatch({ type: 'autopilot-settings', vessel: a, autopilot: 'guidance.rendezvous', settings: { mode, cap: 400 } });
+			const t0 = sim.time;
+			expect(sim.dispatch({ type: 'autopilot-engage', vessel: a, autopilot: 'guidance.rendezvous' }).ok).toBe(true);
+			const r = run(sim, a, 24 * 3_600);
+			const v = vesselOf(sim, a);
+			const used = Number(v.autopilot?.readouts['Delta-v used']);
+			const took = sim.time - t0;
+			if (r.result !== 'holding') console.log(mode, r);
+			if (process.env.RDV_TRACE) console.log(r.log);
+			console.log(`${mode}: ${r.result} after ${Math.round(took)} s, ${used} m/s, ${r.distance.toFixed(0)} m, ${r.speed.toFixed(2)} m/s`);
+			sim.dispose();
+			return { ...r, took, used, log: r.log };
+		};
+		const efficient = await flyIt('efficient');
+		const fast = await flyIt('fast');
+		for (const r of [efficient, fast]) {
+			expect(r.result).toBe('holding');
+			expect(r.distance).toBeLessThan(HOLD_DISTANCE);
+			expect(r.speed).toBeLessThan(0.5);
+		}
+		expect(fast.log.some((l) => l.includes('fast: a direct intercept'))).toBe(true);
+		expect(fast.took).toBeLessThan(0.6 * efficient.took);
+		expect(fast.used).toBeGreaterThan(efficient.used);
+		// within the cap set (the close phase's share included)
+		expect(fast.used).toBeLessThan(400);
+	}, 300_000);
+
 	test('50 km higher and 2° inclined: ends within 200 m at under 0.5 m/s', async () => {
 		const { sim, a } = await scene(150_000, 1.2, (2 * Math.PI) / 180);
 		expect(sim.dispatch({ type: 'autopilot-engage', vessel: a, autopilot: 'guidance.rendezvous' }).ok).toBe(true);

@@ -76,6 +76,18 @@ const NEAR_WARP_ALIGN = 2 * DEG;
 const MAX_PLANS = 4;
 /** Mid-course corrections per transfer. */
 const MAX_CORRECTIONS = 2;
+/** Fast mode (plan 361): one correction, aimed closer, a quicker close phase. */
+const FAST_CORRECTIONS = 1;
+const FAST_AIM_ABOVE = 150;
+/** Fast mode's transfer times, as shares of the vessel's orbital period, and how many it tries. */
+const FAST_SHORTEST = 0.25;
+const FAST_LONGEST = 1;
+const FAST_TRIES = 16;
+/** Departure times it tries, spread over one orbit. */
+const FAST_DEPARTURES = 8;
+/** The close phase's allowance in an estimate: time, s, and delta-v, m/s. */
+const CLOSE_TIME = 300;
+const CLOSE_DV = 55;
 /** Plane changes before it goes on with the planes as they are. */
 const MAX_PLANE_TRIES = 3;
 /** It aborts when the estimate times this, plus the reserve, is more than the delta-v left. */
@@ -138,6 +150,10 @@ export interface RendezvousMemory extends NodeMemory {
 	noRcs: boolean;
 	/** Last try to hand over to Auto Dock, sim time. */
 	dockTriedAt: number;
+	/** Fast mode (plan 361): a direct intercept, fewer corrections, a quicker close phase. Absent: efficient. */
+	fast?: boolean;
+	/** Fast mode's delta-v cap, m/s; 0: twice the efficient estimate. */
+	cap?: number;
 }
 
 export interface RendezvousParams {
@@ -145,8 +161,12 @@ export interface RendezvousParams {
 	dock?: boolean | string;
 	/** Warp through the coasts (default on). */
 	warp?: boolean | string;
-	/** Standoff distance, m (100–200). */
+	/** Standoff distance, m (10–200). */
 	standoff?: number | string;
+	/** `efficient` (default: Hohmann and phasing, the least delta-v) or `fast` (a direct intercept, plan 361). */
+	mode?: string;
+	/** Fast mode's delta-v cap, m/s; 0 or absent: twice the efficient estimate. */
+	cap?: number | string;
 }
 
 const flag = (v: unknown, fallback: boolean): boolean =>
@@ -299,10 +319,11 @@ export function aimBurn(
 	before: StateVector,
 	aim: Vec3,
 	mu: number,
-	flight: number
+	flight: number,
+	guess: Vec3 = { x: 0, y: 0, z: 0 }
 ): { burn: Vec3; miss: number } {
 	const missOf = (dv: Vec3): Vec3 => sub(propagateUniversal(before.r, add(before.v, dv), mu, flight).r, aim);
-	let dv: Vec3 = { x: 0, y: 0, z: 0 };
+	let dv: Vec3 = guess;
 	let m0 = missOf(dv);
 	for (let k = 0; k < 10 && length(m0) > 1; k++) {
 		const h = 0.05;
@@ -382,6 +403,110 @@ export function phasingBurn(
 export const tooLowToPhase = (floorAltitude: number): string =>
 	`Too low to phase: raise your orbit above ${Math.ceil((floorAltitude + 20_000) / 1000)} km first (Orbit tab).`;
 
+/** A direct intercept (plan 361): the burn at `tb` and the arrival at `tca`. */
+export interface FastIntercept {
+	tb: number;
+	tca: number;
+	before: StateVector;
+	burn: Vec3;
+	/** The match burn at the arrival, m/s. */
+	match: number;
+	/** Both burns, m/s. */
+	total: number;
+}
+
+/**
+ * The soonest direct intercept within `cap` m/s (plan 361), Lambert-style: for transfer times
+ * from a quarter of the vessel's orbit to a whole one, the burn `LEAD` s from now that reaches a
+ * point `FAST_AIM_ABOVE` m above the target then (a damped Newton, `aimBurn`), plus the burn that
+ * matches its velocity there; the path's periapsis must stay above `floor`. Null when none fits.
+ */
+export function fastIntercept(
+	own: StateVector,
+	target: StateVector,
+	mu: number,
+	now: number,
+	floor: number,
+	cap: number
+): FastIntercept | null {
+	const o = orbitOf(own.r, own.v, mu);
+	if (!(o.e < 1) || !(cap > 0)) return null;
+	const turn = period(o.a, mu);
+	let best: FastIntercept | null = null;
+	// departures over most of an orbit, transfers from a quarter to a whole one: the soonest arrival
+	for (let j = 0; j < FAST_DEPARTURES; j++) {
+		const tb = now + LEAD + (j * turn) / FAST_DEPARTURES;
+		if (best && tb >= best.tca) break;
+		const before = at(own, mu, tb - now);
+		for (let k = 0; k < FAST_TRIES; k++) {
+			const tof = turn * (FAST_SHORTEST + ((FAST_LONGEST - FAST_SHORTEST) * k) / (FAST_TRIES - 1));
+			const tca = tb + tof;
+			if (best && tca >= best.tca) break;
+			const there = at(target, mu, tca - now);
+			const aim = add(there.r, scale(unit(there.r), FAST_AIM_ABOVE));
+			// a prograde first guess: the Hohmann-like speed change to the target's height
+			const rb = length(before.r);
+			const vb = length(before.v);
+			const guess = scale(unit(before.v), visViva(mu, rb, (rb + length(aim)) / 2) - vb);
+			const fix = aimBurn(before, aim, mu, tof, guess);
+			if (fix.miss > 50) continue;
+			const after = { r: before.r, v: add(before.v, fix.burn) };
+			const path = orbitOf(after.r, after.v, mu);
+			if (!(path.e < 1) || path.periapsis < floor) continue;
+			const arrive = at(after, mu, tof);
+			const match = length(sub(there.v, arrive.v));
+			const total = length(fix.burn) + match;
+			if (total <= cap) best = { tb, tca, before, burn: fix.burn, match, total };
+		}
+	}
+	return best;
+}
+
+/** What each mode would take from here (plan 361): seconds to the standoff and delta-v, or null. */
+export interface ModePreview {
+	efficient: { eta: number | null; dv: number };
+	fast: { eta: number; dv: number; cap: number } | null;
+}
+
+/**
+ * Both modes' estimates from two states about one body (plan 361), for the panel and the
+ * autopilot: the efficient plan's wait (phasing or Hohmann) and delta-v, and the soonest direct
+ * intercept within the cap (`capSetting`, or twice the efficient delta-v; never more than `left`
+ * less 10 %).
+ */
+export function previewModes(
+	own: StateVector,
+	target: StateVector,
+	distance: number,
+	mu: number,
+	floor: number,
+	now: number,
+	left: number | null,
+	capSetting = 0
+): ModePreview {
+	const dv = rendezvousEstimate(own, target, distance, mu);
+	let eta: number | null = null;
+	const oOwn = orbitOf(own.r, own.v, mu);
+	const oT = orbitOf(target.r, target.v, mu);
+	if (distance < CLOSE_RANGE) eta = CLOSE_TIME;
+	else if (oOwn.e < 1 && oT.e < 1) {
+		if (Math.abs(oOwn.a - oT.a) / oT.a < COORBITAL) {
+			const p = phasingBurn(at(own, mu, LEAD), at(target, mu, LEAD), mu, oT.a, floor);
+			if (p) eta = LEAD + p.flight + CLOSE_TIME;
+		} else {
+			const h = hohmannToTarget(own, target, mu, now, LEAD);
+			if (h) eta = h.wait + h.transferTime + CLOSE_TIME;
+		}
+	}
+	let cap = capSetting > 0 ? capSetting : 2 * dv;
+	if (left !== null) cap = Math.min(cap, 0.9 * left);
+	const f = distance < CLOSE_RANGE ? null : fastIntercept(own, target, mu, now, floor, cap - CLOSE_DV);
+	return {
+		efficient: { eta, dv },
+		fast: f ? { eta: f.tca - now + CLOSE_TIME, dv: f.total + CLOSE_DV, cap } : null
+	};
+}
+
 /** Rough delta-v still needed from here: plane, transfer, match and the close phase, m/s. */
 function estimateNeeded(own: StateVector, target: Target, mu: number): number {
 	const n1 = cross(own.r, own.v);
@@ -450,7 +575,9 @@ export function newRendezvousMemory(pilot: VesselPilot, params: RendezvousParams
 		windowAt: pilot.time,
 		windowVelocity: null,
 		noRcs: false,
-		dockTriedAt: -1e9
+		dockTriedAt: -1e9,
+		fast: params.mode === 'fast',
+		cap: Math.max(0, Number(params.cap ?? 0) || 0)
 	};
 }
 
@@ -636,7 +763,8 @@ function plan(
 
 	// 1. the plane
 	const angle = angleBetween(cross(own.r, own.v), cross(target.state.r, target.state.v));
-	if (angle > PLANE_TOLERANCE && m.planeTries < MAX_PLANE_TRIES && m.arrival < now) {
+	// fast mode leaves the plane to its direct intercept
+	if (!m.fast && angle > PLANE_TOLERANCE && m.planeTries < MAX_PLANE_TRIES && m.arrival < now) {
 		const node = relativeNodes(own, target.state, mu, now, LEAD)[0];
 		if (node) {
 			m.planeTries++;
@@ -654,7 +782,7 @@ function plan(
 	const ownAt = (t: number) => at(own, mu, t - now);
 	const targetAt = (t: number) => at(target.state, mu, t - now);
 	const ca = closestApproach(ownAt, targetAt, now + LEAD, now + horizon, Math.ceil((horizon / turn) * 180));
-	const correctionsLeft = m.arrival > now + 600 && m.corrections < MAX_CORRECTIONS;
+	const correctionsLeft = m.arrival > now + 600 && m.corrections < (m.fast ? FAST_CORRECTIONS : MAX_CORRECTIONS);
 	if (ca.distance < INTERCEPT || (ca.distance < FAR_MATCH && m.arrival > now && !correctionsLeft)) {
 		const early = Math.sqrt(Math.max(0, MATCH_AHEAD ** 2 - ca.distance ** 2)) / Math.max(ca.relativeSpeed, 0.1);
 		const tm = Math.max(now + LEAD, ca.t - Math.min(early, 0.1 * turn));
@@ -672,7 +800,7 @@ function plan(
 		const tb = now + Math.max(LEAD, 0.25 * (tca - now));
 		const before = ownAt(tb);
 		const aimAt = targetAt(tca).r;
-		const aim = add(aimAt, scale(unit(aimAt), AIM_ABOVE));
+		const aim = add(aimAt, scale(unit(aimAt), m.fast ? FAST_AIM_ABOVE : AIM_ABOVE));
 		const fix = aimBurn(before, aim, mu, tca - tb);
 		m.corrections++;
 		if (fix.miss < 0.5 * ca.distance && length(fix.burn) < 0.2 * length(own.v)) {
@@ -690,6 +818,27 @@ function plan(
 	if (m.plans >= MAX_PLANS) return { phase: 'plan', abort: 'Could not find an intercept with the target.' };
 	m.plans++;
 	m.corrections = 0;
+	if (m.fast) {
+		// the soonest direct intercept within the cap (twice the efficient plan unless set)
+		const capped = Math.min(m.cap && m.cap > 0 ? m.cap : 2 * m.estimate, 0.9 * left) - CLOSE_DV;
+		const f = fastIntercept(own, target.state, mu, now, floor, capped);
+		if (f) {
+			addBurn(pilot, f.tb, f.before, f.burn);
+			m.arrival = f.tca;
+			m.estimate = f.total + CLOSE_DV;
+			m.usedAtEstimate = m.used;
+			return planned(
+				'transfer',
+				'plan',
+				`fast: a direct intercept, ${length(f.burn).toFixed(1)} m/s now, at the target in ${Math.round(f.tca - now)} s (${Math.round(f.total)} m/s with the match)`
+			);
+		}
+		// none within the cap: the efficient plan, from the next step
+		m.fast = false;
+		m.plans--;
+		const line = `fast: no direct intercept within ${Math.round(capped + CLOSE_DV)} m/s: the efficient plan instead`;
+		return { phase: 'plan', status: line, log: line };
+	}
 	if (Math.abs(oOwn.a - oT.a) / oT.a < COORBITAL && oOwn.e < 0.01) {
 		const tb = now + LEAD;
 		const phasing = phasingBurn(ownAt(tb), targetAt(tb), mu, oT.a, floor);
@@ -831,9 +980,15 @@ function close(pilot: VesselPilot, m: RendezvousMemory, mass: number, target: Ta
 	const dir = unit(p);
 	const useRcs = d < RCS_RANGE && rcsLeft(pilot) && !m.noRcs;
 	const accelMain = pilot.maxThrust / mass;
-	const brake = useRcs ? 0.5 * m.accel : Math.min(0.25 * accelMain, 2);
+	// fast mode (plan 361): twice the speed far out, braking harder and later
+	const brake = useRcs
+		? (m.fast ? 0.7 : 0.5) * m.accel
+		: Math.min((m.fast ? 0.4 : 0.25) * accelMain, m.fast ? 4 : 2);
 	const gap = Math.max(0, d - standoff);
-	const wanted = gap > 0 ? Math.min(clamp(d / 120, 0.5, 50), gap / 30, Math.sqrt(2 * brake * gap)) : 0;
+	const wanted =
+		gap > 0
+			? Math.min(clamp(d / (m.fast ? 60 : 120), 0.5, m.fast ? 100 : 50), gap / (m.fast ? 15 : 30), Math.sqrt(2 * brake * gap))
+			: 0;
 	const want = scale(dir, wanted);
 	let error: number;
 	if (useRcs) {
