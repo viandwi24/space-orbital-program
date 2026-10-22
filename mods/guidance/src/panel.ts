@@ -25,6 +25,7 @@ import {
 	landingTargetOf,
 	pathKey,
 	pathMeta,
+	pathModeOf,
 	pathSettingsOf
 } from './landing-path.ts';
 import {
@@ -552,10 +553,13 @@ const landingTab: PanelNode[] = [
 	},
 	{
 		kind: 'notice',
-		text: (i) =>
-			pathMeta(i, 'time') !== null
-				? null
-				: 'The path shows in the air once it comes down to the ground (not on the pad or a stable orbit).',
+		text: (i) => {
+			if (pathMeta(i, 'time') !== null) return null;
+			const mode = pathModeOf(pathSettingsOf(i));
+			return mode === 'off'
+				? 'The predicted path is off.'
+				: 'The path shows in the air once it comes down to the ground (not on the pad or a stable orbit).';
+		},
 		tone: () => 'info'
 	},
 	{
@@ -563,10 +567,16 @@ const landingTab: PanelNode[] = [
 		columns: 1,
 		children: [
 			{
-				kind: 'switch',
-				label: 'Show predicted path',
-				value: (i) => pathSettingsOf(i).show,
-				command: (i, on) => pathKey(i, SET_PATH.id, { show: on })
+				// Auto: while landing or coming down; Always: whenever it comes down, manual flight too
+				kind: 'select',
+				label: 'Predicted path',
+				options: [
+					{ value: 'auto', label: 'Auto' },
+					{ value: 'always', label: 'Always' },
+					{ value: 'off', label: 'Off' }
+				],
+				value: (i) => pathModeOf(pathSettingsOf(i)),
+				command: (i, mode) => pathKey(i, SET_PATH.id, { mode })
 			},
 			{
 				kind: 'pick',

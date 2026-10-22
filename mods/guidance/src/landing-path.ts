@@ -37,13 +37,22 @@ export const PATH = defineOverlay({
 	defaultOn: true
 });
 
-/** The Landing tab's "Show predicted path" (on by default). */
+/**
+ * The Landing tab's "Predicted path" (plan 372 follow-up): `auto` (the rules below, the default),
+ * `always` (whenever there is a predicted impact, also in manual flight), `off`. Saved with the
+ * world. A save from before keeps `{ show }`: on reads as auto, off as off.
+ */
+export const PATH_MODES = ['auto', 'always', 'off'] as const;
+export type PathMode = (typeof PATH_MODES)[number];
 export const PathSettings = defineStore({
 	id: 'guidance.path-settings',
-	schema: z.object({ show: z.boolean() }),
-	initial: { show: true }
+	schema: z.object({ mode: z.enum(PATH_MODES).optional(), show: z.boolean().optional() }),
+	initial: { mode: 'auto' as PathMode }
 });
 export type PathSettingsValue = z.infer<typeof PathSettings.schema>;
+/** The mode a stored value means. */
+export const pathModeOf = (s: PathSettingsValue | null | undefined): PathMode =>
+	s?.mode ?? (s?.show === false ? 'off' : 'auto');
 
 /** The landing target: a point on a body's surface, latitude and longitude in rad. */
 export const LandingTarget = defineStore({
@@ -64,7 +73,7 @@ export const CLEAR_TARGET = defineKeybinding({
 	label: 'Guidance: clear the landing target',
 	defaults: []
 });
-/** A map pick (`data`: body and direction) and the toggle (`data`: show). */
+/** A map pick (`data`: body and direction) and the display mode (`data`: mode). */
 export const PICK_TARGET = defineKeybinding({
 	id: 'guidance.landing-target-pick',
 	label: 'Guidance: landing target picked on the map',
@@ -73,7 +82,7 @@ export const PICK_TARGET = defineKeybinding({
 });
 export const SET_PATH = defineKeybinding({
 	id: 'guidance.path-show',
-	label: 'Guidance: show the predicted path',
+	label: 'Guidance: predicted path display',
 	defaults: [],
 	hidden: true
 });
@@ -97,21 +106,22 @@ export interface Visibility {
 const HIDDEN: Visibility = { flight: 0, map: false };
 
 /**
- * Where `v`'s path shows: never on the ground or the pad, never on a stable orbit or without an
- * impact; while Land flies it always; else with the toggle on and no other Guidance program
- * flying it. In Flight the arc fades in from 1 to 2 km above the ground; the map shows it whole.
+ * Where `v`'s path shows. Never without an impact, on the ground or on the pad. `off`: nowhere.
+ * `always`: in Flight and the map whenever it comes down, also in manual flight or under another
+ * program. `auto`: not on a stable orbit; while Land flies, or no other Guidance program flies it;
+ * in Flight the arc fades in from 1 to 2 km above the ground; the map shows it whole.
  */
 export function visibility(
 	settings: PathSettingsValue,
 	v: Pick<WorldVessel, 'situation' | 'radarAltitude' | 'altitude' | 'autopilot'>,
 	p: Pick<Prediction, 'impact'> | null
 ): Visibility {
+	const mode = pathModeOf(settings);
+	if (mode === 'off' || !p?.impact) return HIDDEN;
+	if (v.situation === 'prelaunch' || v.situation === 'landed' || v.situation === 'splashed') return HIDDEN;
+	if (mode === 'always') return { flight: 1, map: true };
 	if (v.situation !== 'flying' && v.situation !== 'sub-orbital') return HIDDEN;
-	if (!p?.impact) return HIDDEN;
-	if (v.autopilot !== LAND) {
-		if (!settings.show) return HIDDEN;
-		if (v.autopilot?.startsWith('guidance.')) return HIDDEN; // another program's flight
-	}
+	if (v.autopilot !== LAND && v.autopilot?.startsWith('guidance.')) return HIDDEN; // another program's flight
 	const height = v.radarAltitude ?? v.altitude ?? 0;
 	return { flight: Math.min(1, Math.max(0, (height - FADE_FROM) / (FADE_TO - FADE_FROM))), map: true };
 }
@@ -298,7 +308,7 @@ export const Predictor = defineSystem({
 		const meta: Record<string, number | string> = {};
 		for (const v of candidates(ctx)) {
 			// only when it could show: the prediction is the cost
-			if (!settings.show && v.autopilot !== LAND) continue;
+			if (pathModeOf(settings) === 'off') continue;
 			const p = predictionFor(ctx, v);
 			const seen = visibility(settings, v, p);
 			if (p && (seen.map || seen.flight > 0)) shapes.push(...shapesOf(ctx, v, p, seen, meta));
@@ -311,7 +321,8 @@ export const Predictor = defineSystem({
 		'mod:key': (e, ctx) => {
 			const redraw = (): void => void last.delete(ctx.events);
 			if (e.key === SET_PATH.id) {
-				if (typeof e.data?.show === 'boolean') ctx.store(PathSettings).set({ show: e.data.show });
+				const mode = PATH_MODES.find((m) => m === e.data?.mode);
+				if (mode) ctx.store(PathSettings).set({ mode });
 				return redraw();
 			}
 			if (e.key === CLEAR_TARGET.id) {

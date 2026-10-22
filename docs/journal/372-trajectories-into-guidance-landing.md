@@ -28,3 +28,7 @@ web vitest mods + dock: 52 pass; svelte-check: 0 errors; bun run build: done (no
 ## Open questions
 
 - On a body with air the deorbit model has no drag; the coast steering stops at the brake, so expect a larger miss on the home planet.
+
+## Follow-up: Auto / Always / Off (same day)
+
+The owner: "di guidance bisa di force muncul terus juga ga harus pas auto landing yah". The Landing tab's switch became **Predicted path**: `Auto` (the ADR 0309 point 3 rules, the default), `Always` (Flight and map whenever the path comes down, from the first metre of a manual flight and under other programs; never landed, on the pad or splashed), `Off` (nowhere, Land included). Stored in `guidance.path-settings` as `{ mode }`, saved with the world; a save with the old `{ show }` reads on as Auto, off as Off. Test: Always, a 900 m manual hop with no program engaged draws the arc in Flight and the map. `bun test mods/guidance`: 49 pass.
