@@ -13,6 +13,7 @@ import { bookStore, finishRun, scoreText } from './challenges/challenge-model';
 import { designStats } from './editor/stats';
 import type { ReplayFile } from '@orbital/core';
 import { panelInputOf } from './dock/panel-input';
+import { modKeyCommand, modKeyFor, type ModKeyRow } from './mod-keys';
 import { createAchievementTracker, type AchievementTracker } from './achievements/tracker';
 import type { ProfileStore } from './achievements/store';
 import {
@@ -212,6 +213,8 @@ export interface FlightOptions {
 	onFrame?(frame: FrameData): void;
 	/** The key map in force (plan 053, ADR 0061); read on every key event, so rebinding applies at once. */
 	keymap?: () => Keymap;
+	/** Mod keybindings with the player's keys (plan 343, ADR 0292 point 6); read on every key event. */
+	modKeys?: () => readonly ModKeyRow[];
 	/** Esc (pause menu), help, quicksave and quickload were pressed (by their keys now in force). */
 	onKey?(
 		key: 'escape' | 'help' | 'quicksave' | 'quickload' | 'debug' | 'hideUi' | 'screenshot'
@@ -874,6 +877,13 @@ export function startFlight(options: FlightOptions): Flight {
 	const typingInField = (e: KeyboardEvent): boolean =>
 		e.target instanceof HTMLElement && isTypingTarget(e.target);
 
+	/** What panels and mod keys read now (ADR 0149 point 2), or null before the first snapshot. */
+	function currentPanelInput(): PanelInput | null {
+		return snap && catalog
+			? panelInputOf(snap, vessel, catalog.bodies, hud.model?.stages.total ?? null)
+			: null;
+	}
+
 	function onKeyDown(e: KeyboardEvent): void {
 		dropStaleModifiers(held, e); // a stuck Shift is a throttle that climbs by itself (plan 262)
 		if (e.key === 'Escape' && !e.repeat) {
@@ -908,6 +918,18 @@ export function startFlight(options: FlightOptions): Flight {
 		// A chord bound to an action is that action; an unbound chord is its plain key (Alt+W pitches).
 		const chordAction = chord === id ? null : km.actionFor('flight', chord);
 		const action = chordAction ?? km.actionFor('flight', id);
+		// a key the game does not use may be a mod's (plan 343, ADR 0292 point 6)
+		if (action === null && options.modKeys) {
+			const rows = options.modKeys();
+			const mode = renderer?.isMapView ? 'map' : 'flight';
+			const def = modKeyFor(rows, mode, chord) ?? modKeyFor(rows, mode, id);
+			if (def) {
+				e.preventDefault();
+				const command = modKeyCommand(def, currentPanelInput(), vessel);
+				if (command) void send(command);
+				return;
+			}
+		}
 		if (chordAction) e.preventDefault();
 		else held.add(id);
 		switch (action) {
@@ -1689,6 +1711,7 @@ export function startFlight(options: FlightOptions): Flight {
 				(event.type === 'docked' && (active === event.vessel || active === event.absorbed)) ||
 				(event.type === 'undocked' && active === event.vessel);
 			if (follow) void switchVessel(event.vessel, true).then(() => hudCtl?.simEvent(event));
+			else if (event.type === 'mod-focus') void switchVessel(event.vessel); // ADR 0292 point 3
 			else hudCtl?.simEvent(event);
 			if (event.type === 'milestone') void achievements?.check([event]);
 			// a challenge world scores the run when its goal is reached (plan 131, ADR 0159 point 6)
@@ -1977,10 +2000,7 @@ export function startFlight(options: FlightOptions): Flight {
 	}
 
 	return {
-		panelInput: () =>
-			snap && catalog
-				? panelInputOf(snap, vessel, catalog.bodies, hud.model?.stages.total ?? null)
-				: null,
+		panelInput: currentPanelInput,
 		highlightPart: (part) => renderer?.highlightPart(part),
 		partAt: (x, y) => renderer?.partAt(x, y) ?? null,
 		vesselAt(x, y) {

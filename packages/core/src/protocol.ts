@@ -15,6 +15,7 @@ import type { OrbitalElements } from '@orbital/kepler';
 import type { BodyId, EntityId, PartId } from './ids.ts';
 import type { Quat, Vec3 } from './math.ts';
 import type { AutopilotLast, AutopilotSettingValue, AutopilotSnapshot } from './autopilots.ts';
+import type { VesselSituation } from './world-query.ts';
 
 export type VesselMode = 'flight' | 'on-rails';
 
@@ -318,6 +319,8 @@ export interface VesselSnapshot {
 	launchedAt?: number;
 	/** Resting on water (plan 246): a splashdown, not a landing; absent otherwise. */
 	splashed?: boolean;
+	/** The coarse situation (plan 343, ADR 0292 point 2). Always set by the sim; optional for older fixtures. */
+	situation?: VesselSituation;
 	/** The trim on each axis, -1..1 (plan 245); absent while all three are zero. */
 	trim?: { pitch: number; yaw: number; roll: number };
 	/**
@@ -429,6 +432,8 @@ export interface Snapshot {
 	debug?: DebugSnapshot;
 	/** The world's rule values, every registered rule (plan 078); the same object until a change. */
 	rules?: Readonly<Record<string, boolean | number | string>>;
+	/** Mod stores by id (plan 343, ADR 0292 point 4); absent while none was written. */
+	stores?: Readonly<Record<string, unknown>>;
 	/** Contract slots, offers and accepted generated contracts (plan 099, ADR 0186); absent before any. */
 	contracts?: ContractsSnapshot;
 	/** Strategy slots, multipliers and the strategies on offer (plan 101, ADR 0187); with the economy on. */
@@ -847,6 +852,8 @@ export type Command =
 	  }
 	/** Stop the vessel's autopilot (outcome `disengaged`). */
 	| { type: 'autopilot-disengage'; vessel: EntityId }
+	/** A mod keybinding without a command was pressed (plan 343, ADR 0292 point 6): emits `mod:key`. */
+	| { type: 'mod-key'; key: string; vessel?: EntityId }
 	| {
 			type: 'action';
 			vessel: EntityId;

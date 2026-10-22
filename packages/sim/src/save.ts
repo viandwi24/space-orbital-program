@@ -11,6 +11,7 @@ import { saveMilestones } from './milestones.ts';
 import { saveRange } from './range.ts';
 import { saveReliability } from './reliability.ts';
 import { saveAlarms } from './alarms.ts';
+import { saveStores } from './mod-runtime.ts';
 import {
 	cloneData,
 	SIM_SAVE_FORMAT,
@@ -198,6 +199,7 @@ export function writeSave({ core, mods, seed }: WriteSaveInput): SimSave {
 	const range = saveRange(core);
 	const reliability = saveReliability(core);
 	const alarms = saveAlarms(core);
+	const stores = saveStores(core);
 	const unsigned: Omit<SimSave, 'checksum'> = {
 		format: SIM_SAVE_FORMAT,
 		formatVersion: SIM_SAVE_VERSION,
@@ -228,6 +230,7 @@ export function writeSave({ core, mods, seed }: WriteSaveInput): SimSave {
 		...(range ? { range } : {}),
 		...(reliability ? { reliability } : {}),
 		...(alarms ? { alarms } : {}),
+		...(stores ? { stores } : {}),
 		world: core.world.serialize(),
 		frames
 	};

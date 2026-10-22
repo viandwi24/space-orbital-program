@@ -14,7 +14,8 @@ import {
 	type SaveWorldTick,
 	type SystemContext,
 	type SystemDefinition,
-	type WorldInfo
+	type WorldInfo,
+	type WorldTick
 } from '@orbital/core';
 import { moduleDefOf, partOf, vesselIds, vesselOf, type SimCore } from './core.ts';
 import { notePower } from './power.ts';
@@ -117,7 +118,10 @@ export const atBoundary = (t: number, boundary: number): boolean =>
  * Runs every tick whose boundary is at or before `core.t`, in order. Each runs background
  * operations, then the systems, then emits `world:tick` with the exact boundary time.
  */
-export function runDueTicks(core: SimCore, base: Omit<SystemContext, 'tick'>): void {
+export function runDueTicks(
+	core: SimCore,
+	contextOf: (system: SystemDefinition, tick: WorldTick) => SystemContext
+): void {
 	const length = dayLength(core);
 	for (;;) {
 		const day = core.ticks.lastDay + 1;
@@ -126,10 +130,11 @@ export function runDueTicks(core: SimCore, base: Omit<SystemContext, 'tick'>): v
 		core.ticks.lastDay = day;
 		runAllBackground(core);
 		for (const s of core.ticks.systems) {
-			s.update(core.world, length, {
-				...base,
-				tick: { day, time, rng: core.ticks.streams.get(s.id)! }
-			});
+			s.update?.(
+				core.world,
+				length,
+				contextOf(s, { day, time, rng: core.ticks.streams.get(s.id)! })
+			);
 		}
 		// construction done and upkeep (plan 096, ADR 0123); comms stations follow the sites
 		if (buildingsTick(core, day)) resetStations(core);

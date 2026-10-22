@@ -161,6 +161,8 @@
 	import PrecompileBadge from '../../../lib/ui/PrecompileBadge.svelte';
 	import type { PrecompileProgress } from '@orbital/renderer/precompile-progress';
 	import { loadContent, partLookup } from '../../../lib/catalog';
+	import { modKeyRows } from '../../../lib/mod-keys';
+	import type { KeybindingDefinition } from '@orbital/core';
 	import type { SimSave, VesselDesign, VesselPlacement } from '@orbital/core';
 	import { parseDesign } from '../../../lib/design';
 	import { startFlight, type Flight, type FlightHud } from '../../../lib/flight-loop';
@@ -779,12 +781,14 @@
 			catalog,
 			content,
 			panels,
+			keybindings,
 			missions,
 			objectiveLabels,
 			actionGroups,
 			categories,
 			world: worldContent
 		} = loadContent();
+		modKeybindings = keybindings;
 		siteBuildings = worldContent.buildings;
 		vesselContent = {
 			parts: content.parts,
@@ -835,6 +839,8 @@
 	 */
 	/** The world's buildings, so the launch site draws what the player built (ADR 0117). */
 	let siteBuildings: ReturnType<typeof loadContent>['world']['buildings'] | undefined;
+	/** Mod keybindings of the loaded content (plan 343). */
+	let modKeybindings: KeybindingDefinition[] = [];
 
 	async function startFlightOf(
 		loadId: string | null,
@@ -1053,6 +1059,8 @@
 				lesson
 					? lessonKeymap(settings.keymap, lesson, (reason) => lessonNotice.show(reason))
 					: settings.keymap,
+			// mod keys with the player's overrides (plan 343, ADR 0292 point 6)
+			modKeys: () => modKeyRows(modKeybindings, settings.modKeys, settings.keymap),
 			cameraMode: loadCameraMode(),
 			...(start
 				? {}

@@ -13,6 +13,12 @@ import { scenarioDefinitionSchema, type ScenarioDefinition } from './scenarios.t
 import { blueprintDefinitionSchema, type BlueprintDefinition } from './blueprints.ts';
 import { panelDefinitionSchema, type PanelDefinition } from './panels.ts';
 import { autopilotDefinitionSchema, type AutopilotDefinition } from './autopilots.ts';
+import {
+	keybindingDefinitionSchema,
+	storeDefinitionSchema,
+	type KeybindingDefinition,
+	type StoreDefinition
+} from './mod-api.ts';
 import { categoryDefinitionSchema, type CategoryDefinition } from './categories.ts';
 import { achievementDefinitionSchema, type AchievementDefinition } from './milestones.ts';
 import { failureModeDefinitionSchema, type FailureModeDefinition } from './reliability.ts';
@@ -304,6 +310,8 @@ export interface Registries {
 	panels: Registry<PanelDefinition>;
 	/** Autopilots (plan 310, ADR 0271). */
 	autopilots: Registry<AutopilotDefinition>;
+	stores: Registry<StoreDefinition>;
+	keybindings: Registry<KeybindingDefinition>;
 	/** Crew traits and name syllables (plan 106, ADR 0176). */
 	crewTraits: Registry<CrewTraitDefinition>;
 	crewNames: Registry<CrewNamesDefinition>;
@@ -370,6 +378,10 @@ export function createRegistries(): Registries {
 		panels: createRegistry<PanelDefinition>('panel', { schema: panelDefinitionSchema }),
 		autopilots: createRegistry<AutopilotDefinition>('autopilot', {
 			schema: autopilotDefinitionSchema
+		}),
+		stores: createRegistry<StoreDefinition>('store', { schema: storeDefinitionSchema }),
+		keybindings: createRegistry<KeybindingDefinition>('keybinding', {
+			schema: keybindingDefinitionSchema
 		}),
 		scenarios: createRegistry<ScenarioDefinition>('scenario', { schema: scenarioDefinitionSchema }),
 		blueprints: createRegistry<BlueprintDefinition>('blueprint', {
