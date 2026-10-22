@@ -45,6 +45,8 @@ export interface TutorialStep {
 	touchText?: string;
 	/** Actions whose keys show as key caps next to the text. */
 	actions?: readonly ActionId[];
+	/** The test id of the control the step talks about: the guide highlights it (plan 344). */
+	point?: string;
 	done(o: Observation): boolean;
 }
 
@@ -95,6 +97,7 @@ export const TUTORIAL_STEPS: readonly TutorialStep[] = [
 	{
 		id: 'throttle',
 		scene: 'flight',
+		point: 'hud-throttle',
 		title: 'Throttle up',
 		text: 'Press {key:throttleFull} for full throttle. {key:throttleUp} and {key:throttleDown} change it gradually; {key:throttleCut} cuts it.',
 		touchText: 'Drag the throttle slider up, or tap Full. Tap Cut to close it again.',
@@ -104,6 +107,7 @@ export const TUTORIAL_STEPS: readonly TutorialStep[] = [
 	{
 		id: 'stage',
 		scene: 'flight',
+		point: 'stage-go',
 		title: 'Light the engine',
 		text: 'Press {key:stage} to fire the first stage. It fires the next stage every time; the stage stack on the right shows what is left.',
 		touchText:
@@ -114,6 +118,7 @@ export const TUTORIAL_STEPS: readonly TutorialStep[] = [
 	{
 		id: 'climb',
 		scene: 'flight',
+		point: 'hud-sas',
 		title: 'Hold it steady',
 		text: 'Press {key:sasToggle} to switch on the stability assist (SAS) so the rocket holds its heading. Climb straight up until about 10 km.',
 		touchText:
@@ -124,6 +129,7 @@ export const TUTORIAL_STEPS: readonly TutorialStep[] = [
 	{
 		id: 'turn',
 		scene: 'flight',
+		point: 'sas-prograde',
 		title: 'Follow the arc',
 		text: 'Tilt the nose a few degrees towards heading 090 (east) with {key:pitchPlus}, {key:pitchMinus}, {key:yawMinus} and {key:yawPlus}, then press {key:sasPrograde}: SAS keeps the nose on the prograde marker (the yellow ring on the navball) and the rocket follows its own arc.',
 		touchText:
@@ -134,6 +140,7 @@ export const TUTORIAL_STEPS: readonly TutorialStep[] = [
 	{
 		id: 'apoapsis',
 		scene: 'flight',
+		point: 'dock-tab-host.orbit',
 		title: 'Raise the apoapsis',
 		text: 'Burn until Ap (the top of your orbit, in the Orbit panel on the left) passes 70 km. Press {key:stage} to drop an empty stage. {key:throttleCut} cuts the engine.',
 		touchText:
@@ -144,6 +151,7 @@ export const TUTORIAL_STEPS: readonly TutorialStep[] = [
 	{
 		id: 'map',
 		scene: 'flight',
+		point: 'nav-map',
 		title: 'Open the map',
 		text: 'Press {key:map}. The map shows your orbit with Ap and Pe markers. Press {key:map} again to come back.',
 		touchText:
@@ -154,6 +162,7 @@ export const TUTORIAL_STEPS: readonly TutorialStep[] = [
 	{
 		id: 'circularise',
 		scene: 'flight',
+		point: 'hud-warp',
 		title: 'Circularise',
 		text: 'Coast up to the Ap marker (the {key:warpDown} and {key:warpUp} keys warp time), then burn with SAS on prograde until Pe is above 70 km too.',
 		touchText:

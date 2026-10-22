@@ -10,6 +10,7 @@ import type { BlueprintDefinition } from './blueprints.ts';
 import type { PanelDefinition } from './panels.ts';
 import type { AutopilotDefinition } from './autopilots.ts';
 import type { KeybindingDefinition, StoreDefinition } from './mod-api.ts';
+import type { OverlayDefinition } from './overlays.ts';
 import type { CategoryDefinition } from './categories.ts';
 import type { AchievementDefinition } from './milestones.ts';
 import type { FailureModeDefinition } from './reliability.ts';
@@ -171,6 +172,8 @@ export interface BasePluginContext {
 	readonly stores: Registrar<StoreDefinition>;
 	/** Keys the player can rebind under Controls → Mods (ADR 0292 point 6). */
 	readonly keybindings: Registrar<KeybindingDefinition>;
+	/** World-space shapes the renderer draws (plan 347, ADR 0296). */
+	readonly overlays: Registrar<OverlayDefinition>;
 	/** Crew traits and name syllables (plan 106, ADR 0176). */
 	readonly crewTraits: Registrar<CrewTraitDefinition>;
 	readonly crewNames: Registrar<CrewNamesDefinition>;
@@ -238,7 +241,8 @@ export const REGISTRY_KINDS = [
 	'crew-trait',
 	'crew-names',
 	'store',
-	'keybinding'
+	'keybinding',
+	'overlay'
 ] as const;
 export type RegistryKind = (typeof REGISTRY_KINDS)[number];
 
@@ -317,6 +321,7 @@ const RESERVED_KEYS: ReadonlySet<string> = new Set([
 	'autopilots',
 	'stores',
 	'keybindings',
+	'overlays',
 	'crewTraits',
 	'crewNames',
 	'patches',
@@ -524,6 +529,7 @@ export function loadPlugins(plugins: readonly Plugin[], options: LoadOptions = {
 			autopilots: registrar(registries.autopilots),
 			stores: registrar(registries.stores),
 			keybindings: registrar(registries.keybindings),
+			overlays: registrar(registries.overlays),
 			crewTraits: registrar(registries.crewTraits),
 			crewNames: registrar(registries.crewNames),
 			patches: {
@@ -716,7 +722,8 @@ export function loadPlugins(plugins: readonly Plugin[], options: LoadOptions = {
 				'crew-trait': section(registries.crewTraits),
 				'crew-names': section(registries.crewNames),
 				store: section(registries.stores),
-				keybinding: section(registries.keybindings)
+				keybinding: section(registries.keybindings),
+				overlay: section(registries.overlays)
 			},
 			patches: patched.patches,
 			provenance: patched.provenance

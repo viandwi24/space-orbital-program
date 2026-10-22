@@ -1,7 +1,7 @@
 ---
 id: 344
 title: "Lessons overhaul: today's game, sensible lesson rockets, more lessons, grouped Lessons page"
-status: in-progress
+status: done
 owner: "lessons session (Claude)"
 depends: [229, 331, 310, 318]
 phase: 0
@@ -30,6 +30,7 @@ Every lesson matches the game as it is today, flies a rocket that looks and flie
 - The lesson card on the Hangar and Space Center pages (the world layout), the flight card unchanged.
 - Lesson vessels built from today's stock parts with the editor's operations; each passes the pre-flight checks.
 - Audit and fix the four lessons and the first-flight guide text.
+- The guide card (first flight and lessons) in Flight's bottom-left corner, beside the dock and above the navball module where they meet; compact, with a minimise pill, Skip, and a highlight on the control a step names (owner, 2026-10-22).
 - New lessons: first launch, Hangar, orbit by hand, ascent with Guidance, re-entry, Space Center, science, comms and relays, EVA and flag, rendezvous, Auto Dock, rover, robotics, Mission Center.
 - Lessons page grouped by level with progress and completion marks.
 - Unit tests (designs, checks, targets, step machines) and headless flights of the lesson rockets (orbit, landing, re-entry, rendezvous, docking).
@@ -47,17 +48,20 @@ Every lesson matches the game as it is today, flies a rocket that looks and flie
 
 ## Acceptance criteria
 
-- [ ] Web vitest `src/lib/onboarding`: every lesson's design resolves against stock, has no error or no-go check, liftoff TWR above 1.2 where it launches from the pad; every step's keys, test ids, panels and commands exist; each lesson's run completes its steps in order.
-- [ ] Headless flights: the orbit lesson rocket reaches orbit on Guidance Ascent; the lander lands on Cinder on Guidance Landing; the re-entry capsule lands under parachutes with every part; the rendezvous chaser holds within 200 m; the docking chaser docks on Auto Dock.
-- [ ] Lessons page: groups Basics, Flight, Advanced with done counts and marks (screenshot).
-- [ ] `bun run typecheck`, `bun run docs:check`, `bun run build` pass.
+- [x] Web vitest `src/lib/onboarding`: every lesson's design resolves against stock, has no error or no-go check, liftoff TWR above 1.2 where it launches from the pad; every step's keys, test ids, panels and commands exist; each lesson's run completes its steps in order.
+- [x] Headless flights (`lesson-flights.test.ts`): Skylark hops past 20 km and lands under its parachute; Pathfinder reaches orbit on Guidance Ascent; the capsule deorbits and lands whole under its parachute; the Lark lander lands on Cinder on Guidance Landing; Kestrel holds within 300 m of Beacon Station on Rendezvous; Kestrel docks on Auto Dock.
+- [x] Guide card bottom left, compact, minimise pill, Skip, highlight; checked at 1280×800 and 1920×1080 with the dock panel open (short and tall) and closed (screenshots).
+- [x] Lessons page: groups Basics, Flight, Advanced with done counts and marks (screenshot).
+- [x] `bun run typecheck`, `bun run docs:check`, `bun run build` pass.
 
 ## Docs checklist
 
-- [ ] `docs/STATUS.md` board row.
-- [ ] `docs/journal/344-lessons-overhaul.md`.
-- [ ] ADR 0293 in the index.
+- [x] `docs/STATUS.md` board row.
+- [x] `docs/journal/344-lessons-overhaul.md`.
+- [x] ADR 0293 in the index.
+- [x] `docs/architecture/overview.md` Lessons section.
 
 ## Log
 
 - 2026-10-22 — Plan written in the lessons session.
+- 2026-10-22 — Done. Web vitest `src/lib/onboarding` + `src/lib/hud` + tutorial: 163 pass; `lesson-flights.test.ts`: 6 pass (Pathfinder ascent 84 × 75 km after the service module took the LV-T30: the 60 kN vacuum engine circularised at 95 × 65 km); svelte-check 0 errors. Pushed c00ebd7a (lessons) and the guide-card commit.

@@ -210,6 +210,11 @@ export interface VesselState {
 	/** Settings by autopilot id (ADR 0285 point 3). Saved. */
 	autopilotSettings?: Record<string, Record<string, AutopilotSettingValue>>;
 	/**
+	 * The running average of the drag area measured in air (plan 347, ADR 0296 point 6), m², and
+	 * the sim time of its last sample. Saved, so a resumed run reports the same `aero`.
+	 */
+	dragArea?: { area: number; t: number };
+	/**
 	 * Vessels docked into this one (plan 222, ADR 0218), newest last: what an undock at the port pair
 	 * gives back to the side that came from the other vessel.
 	 */

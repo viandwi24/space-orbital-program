@@ -12,7 +12,13 @@ import {
 	addPanelStep,
 	closedPlaces
 } from './lesson-kit';
-import { lander, pathfinder, pathfinderCapsule, relayProbe, relaySatellite } from './lesson-vessels';
+import {
+	lander,
+	pathfinder,
+	pathfinderCapsule,
+	relayProbe,
+	relaySatellite
+} from './lesson-vessels';
 
 /** The comms lesson's relay altitude, m: high enough to see both the probe and the ground station. */
 export const RELAY_ALTITUDE = 3_000_000;
@@ -28,14 +34,18 @@ export const FLIGHT_LESSONS: readonly Lesson[] = [
 		setup: [],
 		blocked: { actions: {}, places: closedPlaces() },
 		steps: [
-			addPanelStep(
-				'panel',
-				'guidance.panel',
-				'Guidance Computer',
-				'It flies programs for you: ascent, orbit changes, rendezvous and landing.'
-			),
+			{
+				...addPanelStep(
+					'panel',
+					'guidance.panel',
+					'Guidance Computer',
+					'It flies programs for you: ascent, orbit changes, rendezvous and landing.'
+				),
+				point: 'dock-library'
+			},
 			{
 				id: 'open',
+				point: 'dock-tab-guidance.panel',
 				title: 'Open it',
 				text: 'Click its icon on the rail: the panel opens with a tab per program. Ascent is the first.',
 				targets: { panels: ['guidance.panel'] },
@@ -68,19 +78,18 @@ export const FLIGHT_LESSONS: readonly Lesson[] = [
 		summary:
 			'From a parking orbit: target the moon, place a node where the dashed line meets it, warp, burn, and change sphere of influence.',
 		design: pathfinderCapsule,
-		setup: [
-			IN_PARKING_ORBIT,
-			LIGHT
-		],
+		setup: [IN_PARKING_ORBIT, LIGHT],
 		blocked: {
 			actions: {
-				stage: 'Staging now would drop the service module with its engine: nothing to drop in this lesson.'
+				stage:
+					'Staging now would drop the service module with its engine: nothing to drop in this lesson.'
 			},
 			places: closedPlaces()
 		},
 		steps: [
 			{
 				id: 'map',
+				point: 'nav-map',
 				title: 'Open the map',
 				text: 'Press {key:map} and find Cinder, the moon, on its own orbit around Home.',
 				touchText: 'Tap Map and find Cinder, the moon, on its own orbit around Home.',
@@ -96,6 +105,7 @@ export const FLIGHT_LESSONS: readonly Lesson[] = [
 			},
 			{
 				id: 'node',
+				point: 'maneuver-expand',
 				title: 'Place the node',
 				text: 'Click your orbit to add a node and give it about 860 m/s prograde (Edit the burn). Drag the node along your orbit until the dashed line meets Cinder’s circle and shows an encounter.',
 				targets: { testids: ['maneuver-expand', 'node-*'] },
@@ -103,6 +113,7 @@ export const FLIGHT_LESSONS: readonly Lesson[] = [
 			},
 			{
 				id: 'warp',
+				point: 'maneuver-warp',
 				title: 'Warp to the node',
 				text: 'Press {key:warpUp} to speed up time, or Warp to the burn on the node card. Warp stops before the node.',
 				actions: ['warpUp'],
@@ -111,6 +122,7 @@ export const FLIGHT_LESSONS: readonly Lesson[] = [
 			},
 			{
 				id: 'burn',
+				point: 'maneuver-point',
 				title: 'Burn',
 				text: 'Point at the node with {key:sasManeuver} and burn at full throttle until the node has no Δv left.',
 				actions: ['sasManeuver'],
@@ -163,6 +175,7 @@ export const FLIGHT_LESSONS: readonly Lesson[] = [
 		steps: [
 			{
 				id: 'retrograde',
+				point: 'sas-retrograde',
 				title: 'Point retrograde',
 				text: 'You are falling towards Cinder with the engine lit and the throttle closed. Press {key:sasRetrograde}: SAS turns the engine to face the way you are moving, so a burn slows you down.',
 				touchText:
@@ -180,6 +193,7 @@ export const FLIGHT_LESSONS: readonly Lesson[] = [
 			},
 			{
 				id: 'slow',
+				point: 'hud-radar',
 				title: 'Slow before the ground',
 				text: 'Get below 50 m/s before 5 km. Ease off with {key:throttleDown} as the speed drops, and press {key:gear} to lower the legs.',
 				touchText:
@@ -221,6 +235,7 @@ export const FLIGHT_LESSONS: readonly Lesson[] = [
 		steps: [
 			{
 				id: 'crew',
+				point: 'dock-tab-host.crew',
 				title: 'Open the Crew panel',
 				text: 'Open Crew on the dock’s rail: who is aboard, and the EVA button for each seat.',
 				targets: { panels: ['host.crew'] },
@@ -242,6 +257,7 @@ export const FLIGHT_LESSONS: readonly Lesson[] = [
 			},
 			{
 				id: 'flag',
+				point: 'eva-flag',
 				title: 'Plant a flag',
 				text: 'Press Plant flag in the suit’s panel. The flag stays: it shows in the Mission Center like any vessel.',
 				targets: { testids: ['eva-flag'], commands: ['plant-flag'] },
@@ -249,6 +265,7 @@ export const FLIGHT_LESSONS: readonly Lesson[] = [
 			},
 			{
 				id: 'board',
+				point: 'eva-board',
 				title: 'Climb back in',
 				text: 'Walk back to the lander and press Board (or {key:evaBoard}) when you are beside it.',
 				actions: ['evaBoard'],
@@ -266,18 +283,23 @@ export const FLIGHT_LESSONS: readonly Lesson[] = [
 		title: 'Science',
 		summary:
 			'The Aurora research satellite on the pad: add the Science panel, run an experiment, transmit the result home.',
-		design: (content) => MISSION_BLUEPRINTS.find((m) => m.id === 'aurora-satellite')!.build(content),
+		design: (content) =>
+			MISSION_BLUEPRINTS.find((m) => m.id === 'aurora-satellite')!.build(content),
 		setup: [],
 		blocked: { actions: {}, places: closedPlaces() },
 		steps: [
-			addPanelStep(
-				'panel',
-				'stock.science',
-				'Science panel',
-				'It lists the experiments aboard and the results you hold.'
-			),
+			{
+				...addPanelStep(
+					'panel',
+					'stock.science',
+					'Science panel',
+					'It lists the experiments aboard and the results you hold.'
+				),
+				point: 'dock-library'
+			},
 			{
 				id: 'run',
+				point: 'dock-tab-stock.science',
 				title: 'Run an experiment',
 				text: 'Open the Science panel and press Run the next experiment. A result is worth the most the first time, in each place: on the pad, in the air, in space, at each body.',
 				targets: { panels: ['stock.science'] },
@@ -325,6 +347,7 @@ export const FLIGHT_LESSONS: readonly Lesson[] = [
 		steps: [
 			{
 				id: 'panel',
+				point: 'dock-tab-host.comms',
 				title: 'Open the Comms panel',
 				text: 'Open Comms on the dock’s rail: your probe’s link, its route and its signal. A probe without a link cannot be controlled in Career.',
 				targets: { panels: ['host.comms'] },

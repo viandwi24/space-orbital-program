@@ -18,6 +18,7 @@ import type {
 	WarpTarget
 } from './protocol.ts';
 import type { WorldQuery } from './world-query.ts';
+import type { OverlayShape } from './overlays.ts';
 
 // ---------------------------------------------------------------------------------------------
 // Stores (ADR 0292 point 4)
@@ -166,4 +167,19 @@ export interface ModContext {
 	store<T>(def: StoreDefinition<T> | string): Store<T>;
 	/** A toast on the page (`mod:notice`); with `vessel`, only while the player flies it. */
 	notify(text: string, options?: { tone?: NoticeTone; vessel?: EntityId; detail?: string }): void;
+	/** The plugin's overlays (plan 347, ADR 0296 point 3): shown on the page until replaced or cleared. */
+	readonly overlays: ModOverlays;
+}
+
+export interface ModOverlays {
+	/**
+	 * Publish shapes for one of the plugin's overlays (replacing the last ones); `meta` is for its
+	 * panel. Shapes are checked and clamped; the result lists what was dropped. Not saved.
+	 */
+	set(
+		id: string,
+		shapes: readonly OverlayShape[],
+		meta?: Record<string, number | string>
+	): { dropped: string[] };
+	clear(id: string): void;
 }

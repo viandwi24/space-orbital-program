@@ -85,20 +85,20 @@ Every in-world page sits in the SvelteKit route group `apps/web/src/routes/(worl
 
 Flight takes the session's client (`FlightOptions.client`): a launch adds the design to the running world, coming back without a launch takes up the focus vessel (`attach`), and leaving the page leaves the vessel flying.
 
-### Lessons (plan 229)
+### Lessons (plans 229, 344, ADR 0293)
 
-The lessons after the first orbit are data in `apps/web/src/lib/onboarding/lessons.ts`. Each lesson has:
-- a design;
-- setup calls, which are `DebugApi` functions by name with their arguments;
+The lessons are data in `apps/web/src/lib/onboarding/`: the model and step machine in `lessons.ts`, the lessons in `lessons-basics.ts`, `lessons-flight.ts` and `lessons-advanced.ts`, shared numbers and steps in `lesson-kit.ts`, and their vessels in `lesson-vessels.ts` (built with the mission blueprints' `Build` helper, so they are valid by construction). Each lesson has:
+- a level (Basics, Flight, Advanced) and a start place (Flight, the Hangar or the Space Center);
+- for a Flight lesson, `design(content)` and setup calls, which are `DebugApi` functions by name with their arguments (a function of the content when a call spawns a design; `FOCUS` stands for the lesson vessel's id);
 - blocked actions and places, each with a reason;
-- steps on the first-flight guide's observation model, and a goal.
+- steps on one `LessonObservation` for every page, each step naming its `targets` (test ids, dock panels, commands), and an optional goal.
 
-`advanceLesson` completes one step per observation, and the goal ends the lesson at once. Progress is `settings.lessons`.
+`advanceLesson` completes one step per observation; the goal, or the last step, ends the lesson. Progress is `settings.lessons`. Flight observes the HUD model, the vessel snapshot and the dock; every other in-world page is observed by the world layout's `LessonOverlay` (the page name, the world's snapshot and the Hangar's design through `lessonVab`), which also draws the card there. `lessons.test.ts` checks every design against the stock catalogue and the Hangar's pre-flight checks, and every target, panel, command and key; `lesson-flights.test.ts` flies the vessels through their goals in a headless sim.
 
 - **The lesson world** (`lesson-world.ts`): Start on the Lessons page (`/lessons`) creates a Sandbox world with a fixed seed, marked `WorldRecord.lesson`.
   - `Worlds.list()` leaves it out, so the Worlds page, Continue and unique names never see it.
   - The session (`orbital.lesson`) remembers the player's active world, which comes back on leaving.
-  - Flight takes the lesson's design when it has no focus vessel. On the first flying HUD it runs the setup through `createDebugApi` (Sandbox allows it).
+  - A Flight lesson's page takes the lesson's design when it has no focus vessel. On the first flying HUD it runs the setup through `createDebugApi` (Sandbox allows it). A Hangar or Space Center lesson opens that page; a Hangar lesson keeps the player's draft aside and puts it back when the session ends.
   - The Lessons, Home and Worlds pages end a session left running and remove lesson worlds. Leaving the world saves first, so the removal happens after it.
 - **Permissions** (`lesson-gate.svelte.ts`) are a filter, not a sim change:
   - `lessonKeymap` takes the blocked actions out of the keymap. Their keys and held axes do nothing, and a try shows the reason on the lesson card.

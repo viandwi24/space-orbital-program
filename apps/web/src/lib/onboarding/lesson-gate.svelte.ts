@@ -4,13 +4,7 @@
  * the world layout show with its reason.
  */
 import type { ActionId, Keymap } from '../keybindings';
-import {
-	blockedAction,
-	blockedPlace,
-	lessonOf,
-	type Lesson,
-	type VabLessonState
-} from './lessons';
+import { blockedAction, blockedPlace, lessonOf, type Lesson, type VabLessonState } from './lessons';
 import { activeLesson } from './lesson-world';
 
 /**

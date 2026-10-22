@@ -19,6 +19,7 @@ import {
 	type KeybindingDefinition,
 	type StoreDefinition
 } from './mod-api.ts';
+import { overlayDefinitionSchema, type OverlayDefinition } from './overlays.ts';
 import { categoryDefinitionSchema, type CategoryDefinition } from './categories.ts';
 import { achievementDefinitionSchema, type AchievementDefinition } from './milestones.ts';
 import { failureModeDefinitionSchema, type FailureModeDefinition } from './reliability.ts';
@@ -312,6 +313,7 @@ export interface Registries {
 	autopilots: Registry<AutopilotDefinition>;
 	stores: Registry<StoreDefinition>;
 	keybindings: Registry<KeybindingDefinition>;
+	overlays: Registry<OverlayDefinition>;
 	/** Crew traits and name syllables (plan 106, ADR 0176). */
 	crewTraits: Registry<CrewTraitDefinition>;
 	crewNames: Registry<CrewNamesDefinition>;
@@ -383,6 +385,7 @@ export function createRegistries(): Registries {
 		keybindings: createRegistry<KeybindingDefinition>('keybinding', {
 			schema: keybindingDefinitionSchema
 		}),
+		overlays: createRegistry<OverlayDefinition>('overlay', { schema: overlayDefinitionSchema }),
 		scenarios: createRegistry<ScenarioDefinition>('scenario', { schema: scenarioDefinitionSchema }),
 		blueprints: createRegistry<BlueprintDefinition>('blueprint', {
 			schema: blueprintDefinitionSchema

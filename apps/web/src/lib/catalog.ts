@@ -5,6 +5,7 @@ import {
 	type CategoryDefinition,
 	type FailureModeDefinition,
 	type KeybindingDefinition,
+	type OverlayDefinition,
 	type MissionDefinition,
 	type PanelDefinition,
 	type PartLookup,
@@ -44,6 +45,11 @@ export function loadKeybindings(system: SystemChoice = STOCK_CHOICE): Keybinding
 	return loadPlugins([...BUILTIN_PLUGINS, ...activePlugins()], { system }).registries.keybindings.list();
 }
 
+/** The loaded mods' overlays (plan 347), for Settings → Overlays outside a world. */
+export function loadOverlays(system: SystemChoice = STOCK_CHOICE): OverlayDefinition[] {
+	return loadPlugins([...BUILTIN_PLUGINS, ...activePlugins()], { system }).registries.overlays.list();
+}
+
 export function loadContent(system: SystemChoice = STOCK_CHOICE): {
 	catalog: Catalog;
 	content: ContentLookups;
@@ -67,6 +73,8 @@ export function loadContent(system: SystemChoice = STOCK_CHOICE): {
 	world: Pick<Registries, 'buildings' | 'rules' | 'presets' | 'charges' | 'strategies'>;
 	/** Mod keybindings (plan 343, ADR 0292 point 6). */
 	keybindings: KeybindingDefinition[];
+	/** Mod overlays (plan 347, ADR 0296). */
+	overlays: OverlayDefinition[];
 	/** Mods' blueprints for the Hangar's Library (plan 285, ADR 0263). */
 	blueprints: BlueprintDefinition[];
 } {
@@ -82,6 +90,7 @@ export function loadContent(system: SystemChoice = STOCK_CHOICE): {
 		actionGroups: registries.actionGroups.list(),
 		panels: registries.panels.list(),
 		keybindings: registries.keybindings.list(),
+		overlays: registries.overlays.list(),
 		missions: registries.missions.list(),
 		objectiveLabels: Object.fromEntries(registries.objectives.list().map((o) => [o.id, o.label])),
 		techNodes: registries.techNodes.list(),

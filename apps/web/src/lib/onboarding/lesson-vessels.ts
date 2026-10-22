@@ -40,14 +40,15 @@ export function skylark(content: Content): VesselDesign {
 }
 
 /**
- * The service module under a capsule: a reaction wheel, a battery, a medium tank and the
- * vacuum engine (about 3 km/s under the capsule). Returns the engine.
+ * The service module under a capsule: a reaction wheel, batteries, a small tank and the LV-T30
+ * (about 2.7 km/s under the capsule, and thrust enough to circularise in a short burn). Returns
+ * the engine.
  */
 function serviceModule(b: Build, release: number): number {
 	const wheel = b.below('stock.reaction-wheel', release);
 	b.side('stock.battery-radial', wheel, 0, 0, 2);
 	const tank = b.below('stock.tank-small', wheel);
-	return b.below('stock.engine-vacuum', tank);
+	return b.below('stock.engine-lv', tank);
 }
 
 /**

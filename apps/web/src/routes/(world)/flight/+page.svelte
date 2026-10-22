@@ -118,11 +118,13 @@
 	import PerfOverlay from '../../../lib/perf/PerfOverlay.svelte';
 	import { createDebugApi, flightDebug, type DebugHost } from '../../../lib/debug/api';
 	import LessonCard from '../../../lib/hud/LessonCard.svelte';
+	import GuidePointer from '../../../lib/hud/GuidePointer.svelte';
 	import {
 		advanceLesson,
 		lessonOf,
 		lessonStart,
 		lessonStep,
+		skipStep,
 		NEW_LESSON,
 		observeLesson,
 		runLessonSetup,
@@ -163,7 +165,7 @@
 	import type { PrecompileProgress } from '@orbital/renderer/precompile-progress';
 	import { loadContent, partLookup } from '../../../lib/catalog';
 	import { modKeyRows } from '../../../lib/mod-keys';
-	import type { KeybindingDefinition } from '@orbital/core';
+	import type { KeybindingDefinition, OverlayDefinition } from '@orbital/core';
 	import type { SimSave, VesselDesign, VesselPlacement } from '@orbital/core';
 	import { parseDesign } from '../../../lib/design';
 	import { startFlight, type Flight, type FlightHud } from '../../../lib/flight-loop';
@@ -787,6 +789,7 @@
 			content,
 			panels,
 			keybindings,
+			overlays,
 			missions,
 			objectiveLabels,
 			actionGroups,
@@ -794,6 +797,7 @@
 			world: worldContent
 		} = loadContent();
 		modKeybindings = keybindings;
+		modOverlays = overlays;
 		siteBuildings = worldContent.buildings;
 		vesselContent = {
 			parts: content.parts,
@@ -846,6 +850,8 @@
 	let siteBuildings: ReturnType<typeof loadContent>['world']['buildings'] | undefined;
 	/** Mod keybindings of the loaded content (plan 343). */
 	let modKeybindings: KeybindingDefinition[] = [];
+	/** Mod overlays of the loaded content (plan 347). */
+	let modOverlays: OverlayDefinition[] = [];
 
 	async function startFlightOf(
 		loadId: string | null,
@@ -1067,6 +1073,8 @@
 					: settings.keymap,
 			// mod keys with the player's overrides (plan 343, ADR 0292 point 6)
 			modKeys: () => modKeyRows(modKeybindings, settings.modKeys, settings.keymap),
+			// mod overlays and the player's toggles (plan 347, ADR 0296)
+			overlays: () => ({ defs: modOverlays, toggles: settings.overlays }),
 			cameraMode: loadCameraMode(),
 			...(start
 				? {}
@@ -1355,6 +1363,20 @@
 	let leftStackBottom = $state(0);
 	/** Right edge of the open dock panel, 0 when none is open (plan 112). */
 	let dockRight = $state(0);
+	/** Where the guide card stands (plan 344): px from the left, and from the bottom when it must clear the navball module. */
+	let guideLeft = $state<number | null>(null);
+	let guideBottom = $state<number | null>(null);
+	let guideEl = $state<HTMLDivElement>();
+	$effect(() => {
+		// the card changes size with its step, the dock with its panel: measure again then
+		const el = guideEl;
+		const tl = document.querySelector('.ui > .tl');
+		if (!el || typeof ResizeObserver === 'undefined') return;
+		const ro = new ResizeObserver(() => queueMicrotask(updateInsets));
+		ro.observe(el);
+		if (tl) ro.observe(tl);
+		return () => ro.disconnect();
+	});
 	/** The open dock panel reaches the navball module's left edge (a wide dock or a narrow window). */
 	let dockMeetsDeck = $state(false);
 	let viewport = $state({ width: 1440, height: 900 });
@@ -1415,6 +1437,21 @@
 		dockRight = open && open.width > 0 && left ? Math.round(Math.max(open.right, left.right)) : 0;
 		// a wide dock would run under the module: it stops above it then (ADR 0253 point 8)
 		dockMeetsDeck = !!deck && deck.height > 0 && dockRight > deck.left - 8;
+		// the guide card (plan 344): bottom left, beside the dock's rail or open panel, lifted above
+		// the navball module where the two would meet
+		const rail = box('.tl .dock');
+		const besideDock = Math.max(dockRight, rail && rail.width > 0 ? rail.right : 0);
+		const guide = box('.ui > .guide');
+		const gap = 12;
+		// in the corner under a short dock; beside it when the dock reaches down to the card
+		const guideTop = frame.height - statusHeight - 24 - (guide?.height ?? 200);
+		const dockBottom = rail && rail.height > 0 ? rail.bottom : 0;
+		guideLeft = besideDock > 0 && dockBottom > guideTop - gap ? Math.round(besideDock + gap) : null;
+		const from = guideLeft ?? 24;
+		guideBottom =
+			deck && deck.height > 0 && from + (guide?.width ?? 272) + gap > deck.left
+				? Math.round(frame.height - deck.top + gap)
+				: null;
 		const staging = box('.ui > .br');
 		stagingTop = staging && staging.height > 0 ? Math.round(staging.top) : 0;
 		const top = box('.tl')?.top;
@@ -1442,6 +1479,7 @@
 		void settings.dock.open;
 		void dockShown;
 		void tutorialStep;
+		void lessonShown;
 		void hud?.status;
 		void settings.ui.centreVessel;
 		void settings.ui.scale;
@@ -1793,29 +1831,48 @@
 			style:--script-w="{scriptPanelWidth(viewport.width)}px"
 		>
 			<div class="tl">
-				{#if lessonShown}
-					<LessonCard
-						lesson={lessonShown}
-						step={lessonStep(lessonShown, lessonProgress)}
-						progress={lessonProgress}
-						keymap={settings.keymap}
-						touch={touchOn}
-						notice={lessonProblem ?? lessonNotice.reason}
-						waiting={lessonReady && !lessonBegun}
-						onbegin={beginLesson}
-						onleave={leaveLessonToList}
-					/>
-				{/if}
-				{#if tutorialStep}
-					<TutorialCard
-						step={tutorialStep}
-						label={stepLabel(settings.tutorial, 'flight')}
-						touch={touchOn}
-						onskip={() => settings.setTutorial(skip(settings.tutorial))}
-					/>
-				{/if}
 				{@render dock('left')}
 			</div>
+
+			{#if lessonShown || tutorialStep}
+				<!-- the guide (plan 344, owner 2026-10-22): the bottom-left corner, beside the dock,
+				     above the navball module where they would meet; it points at what it talks about -->
+				<div
+					class="guide"
+					bind:this={guideEl}
+					style:left={guideLeft === null ? null : `${guideLeft}px`}
+					style:bottom={guideBottom === null ? null : `${guideBottom}px`}
+				>
+					{#if lessonShown}
+						<LessonCard
+							lesson={lessonShown}
+							step={lessonStep(lessonShown, lessonProgress)}
+							progress={lessonProgress}
+							keymap={settings.keymap}
+							touch={touchOn}
+							notice={lessonProblem ?? lessonNotice.reason}
+							waiting={lessonReady && !lessonBegun}
+							onbegin={beginLesson}
+							onleave={leaveLessonToList}
+							onskip={() =>
+								lesson && settings.setLesson(lesson.id, skipStep(lesson, lessonProgress))}
+						/>
+					{/if}
+					{#if tutorialStep}
+						<TutorialCard
+							step={tutorialStep}
+							label={stepLabel(settings.tutorial, 'flight')}
+							touch={touchOn}
+							onskip={() => settings.setTutorial(skip(settings.tutorial))}
+						/>
+					{/if}
+				</div>
+				<GuidePointer
+					testid={lessonShown
+						? (lessonStep(lessonShown, lessonProgress)?.point ?? null)
+						: (tutorialStep?.point ?? null)}
+				/>
+			{/if}
 
 			<div class="tc" class:on-bars={hud.map}>
 				{#if hud.map}
@@ -2255,6 +2312,17 @@
 			100% - var(--margin-hud) * 2 - var(--capsule) - var(--panel-gap) - var(--safe-top) -
 				var(--safe-bottom)
 		);
+	}
+	/* the guide (plan 344): bottom left over the status bar, beside the dock (its left and, near the
+	   navball module, its bottom are measured) */
+	.guide {
+		left: calc(var(--margin-hud) + var(--safe-left));
+		bottom: calc(var(--margin-hud) + var(--safe-bottom));
+		display: flex;
+		flex-direction: column;
+		align-items: flex-start;
+		gap: var(--s-2);
+		z-index: 2;
 	}
 	.ui.narrow .tl,
 	.ui.dock-meets-deck .tl {

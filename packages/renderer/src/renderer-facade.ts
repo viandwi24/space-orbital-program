@@ -22,6 +22,7 @@ export type SceneFacade = Pick<
 	| 'setMapHighlight'
 	| 'setMapLayers'
 	| 'setRegionOverlay'
+	| 'setOverlays'
 	| 'bodyDirectionAt'
 	| 'bodyIds'
 	| 'toggleMapView'
@@ -77,6 +78,7 @@ export function sceneFacade(model: SceneModel): SceneFacade {
 		setMapHighlight: (key) => model.setMapHighlight(key),
 		setMapLayers: (layers) => model.setMapLayers(layers),
 		setRegionOverlay: (bodies) => model.setRegionOverlay(bodies),
+		setOverlays: (layers) => model.setOverlays(layers),
 		bodyDirectionAt: (x, y) => model.bodyDirectionAt(x, y),
 		get mapFocus() {
 			return model.mapFocusBody;

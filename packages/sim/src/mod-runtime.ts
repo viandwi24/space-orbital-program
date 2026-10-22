@@ -11,6 +11,10 @@ import {
 	type EntityId,
 	type ModCommands,
 	type ModContext,
+	type ModOverlays,
+	type OverlayLayer,
+	clampOverlay,
+	cleanMeta,
 	type NoticeTone,
 	type Store,
 	type StoreDefinition,
@@ -25,6 +29,7 @@ import { vesselIds, vesselOf, type SimCore } from './core.ts';
 import { debugAllowed } from './debug.ts';
 import { takeSnapshot } from './snapshot.ts';
 import { vesselSituationNow } from './situation.ts';
+import { terrainUnder } from './terrain.ts';
 import { VESSEL } from './state.ts';
 
 /** Commands a mod may send (ADR 0292 point 3). */
@@ -107,6 +112,9 @@ interface ModState {
 	/** The world query of the current sim time. */
 	query: { t: number; world: WorldQuery } | null;
 	contexts: Map<string, ModContext>;
+	/** Published overlays by id (ADR 0296 point 3), and the snapshot's view of them. */
+	overlays: Map<string, OverlayLayer>;
+	overlayView: Readonly<Record<string, OverlayLayer>> | null;
 	systems: Map<string, SystemContext>;
 	situations: Map<number, SituationMark>;
 	/** Pass counter of `updateSituations`: marks of vessels that are gone keep an older one. */
@@ -125,6 +133,8 @@ function stateOf(core: SimCore): ModState {
 			view: null,
 			query: null,
 			contexts: new Map(),
+			overlays: new Map(),
+			overlayView: null,
 			systems: new Map(),
 			situations: new Map(),
 			pass: 0,
@@ -173,13 +183,60 @@ export function storesSnapshot(core: SimCore): Readonly<Record<string, unknown>>
 	return (s.view ??= Object.freeze(Object.fromEntries(s.stores)));
 }
 
-/** The world query of now, built once per sim time (ADR 0292 point 1). */
+/** The world query of now, built once per sim time (ADR 0292 point 1), with the sim's terrain. */
 export function worldQueryOf(core: SimCore): WorldQuery {
 	const s = stateOf(core);
 	if (s.query?.t !== core.t) {
-		s.query = { t: core.t, world: createWorldQuery(takeSnapshot(core), { bodies: core.registries.bodies }) };
+		s.query = {
+			t: core.t,
+			world: createWorldQuery(takeSnapshot(core), {
+				bodies: core.registries.bodies,
+				ground: (id, position) => {
+					const body = core.bodies.get(id);
+					return body ? terrainUnder(core, body, position) : 0;
+				}
+			})
+		};
 	}
 	return s.query.world;
+}
+
+/** The snapshot's `overlays` (the same object until a publish), or undefined. */
+export function overlaysSnapshot(
+	core: SimCore
+): Readonly<Record<string, OverlayLayer>> | undefined {
+	const s = states.get(core);
+	if (!s || s.overlays.size === 0) return undefined;
+	return (s.overlayView ??= Object.freeze(Object.fromEntries(s.overlays)));
+}
+
+function overlaysFor(core: SimCore, plugin: string): ModOverlays {
+	const own = (id: string): void => {
+		if (!core.registries.overlays.has(id))
+			throw new RangeError(`overlay "${id}" is not registered`);
+		const owner = core.registries.overlays.owner(id);
+		if (owner !== plugin) throw new RangeError(`overlay "${id}" belongs to "${owner}"`);
+	};
+	return {
+		set(id, shapes, meta) {
+			own(id);
+			const { shapes: kept, dropped } = clampOverlay(shapes);
+			const clean = cleanMeta(meta);
+			const s = stateOf(core);
+			s.overlays.set(id, clean ? { shapes: kept, meta: clean } : { shapes: kept });
+			s.overlayView = null;
+			s.query = null;
+			return { dropped };
+		},
+		clear(id) {
+			own(id);
+			const s = stateOf(core);
+			if (s.overlays.delete(id)) {
+				s.overlayView = null;
+				s.query = null;
+			}
+		}
+	};
 }
 
 const refuse = (reason: string): CommandResult => ({ ok: false, reason });
@@ -215,11 +272,17 @@ function commandsFor(core: SimCore, plugin: string): ModCommands {
 					: { type: 'warp-to', target: to, factor }
 			),
 		placeNode: (vessel, node) => send({ type: 'node-set', vessel, ...node }),
-		removeNode: (vessel, id) => send({ type: 'node-remove', vessel, ...(id !== undefined ? { id } : {}) }),
+		removeNode: (vessel, id) =>
+			send({ type: 'node-remove', vessel, ...(id !== undefined ? { id } : {}) }),
 		addAlarm: (alarm) => send({ type: 'add-alarm', ...alarm }),
 		rename: (vessel, name) => send({ type: 'rename-vessel', vessel, name }),
 		engage: (vessel, autopilot, params) =>
-			send({ type: 'autopilot-engage', vessel, autopilot, ...(params !== undefined ? { params } : {}) }),
+			send({
+				type: 'autopilot-engage',
+				vessel,
+				autopilot,
+				...(params !== undefined ? { params } : {})
+			}),
 		disengage: (vessel) => send({ type: 'autopilot-disengage', vessel }),
 		spawn: (design, placement) =>
 			send({ type: 'load-vessel', design, ...(placement ? { placement } : {}) }),
@@ -239,7 +302,9 @@ function storeFor<T>(core: SimCore, plugin: string, ref: StoreDefinition<T> | st
 	if (!def) throw new RangeError(`store "${id}" is not registered`);
 	const owner = core.registries.stores.owner(id);
 	if (owner !== plugin)
-		throw new RangeError(`store "${id}" belongs to "${owner}"; "${plugin}" may only read it through ctx.world.store`);
+		throw new RangeError(
+			`store "${id}" belongs to "${owner}"; "${plugin}" may only read it through ctx.world.store`
+		);
 	const s = stateOf(core);
 	const get = (): T => (s.stores.has(id) ? (s.stores.get(id) as T) : def.initial);
 	const set = (value: T): void => {
@@ -264,8 +329,12 @@ export function modContextOf(core: SimCore, plugin: string): ModContext {
 				return worldQueryOf(core);
 			},
 			commands,
+			overlays: overlaysFor(core, plugin),
 			store: <T>(def: StoreDefinition<T> | string) => storeFor<T>(core, plugin, def),
-			notify(text: string, options: { tone?: NoticeTone; vessel?: EntityId; detail?: string } = {}) {
+			notify(
+				text: string,
+				options: { tone?: NoticeTone; vessel?: EntityId; detail?: string } = {}
+			) {
 				core.events.emit('mod:notice', {
 					plugin,
 					text: String(text).slice(0, 200),
@@ -281,7 +350,8 @@ export function modContextOf(core: SimCore, plugin: string): ModContext {
 }
 
 /** The plugin that registered system `id` (`?` when unknown). */
-const ownerOfSystem = (core: SimCore, id: string): string => core.registries.systems.owner(id) ?? '?';
+const ownerOfSystem = (core: SimCore, id: string): string =>
+	core.registries.systems.owner(id) ?? '?';
 
 /** A system's context: its plugin's mod context plus registries, events, rules and the tick. */
 export function systemContextOf(
@@ -304,6 +374,7 @@ export function systemContextOf(
 			return mod.world;
 		},
 		commands: mod.commands,
+		overlays: mod.overlays,
 		store: mod.store,
 		notify: mod.notify
 	};
@@ -323,7 +394,10 @@ export function subscribeSystems(
 			if (typeof handler !== 'function') continue;
 			core.events.on(name as 'world:tick', (payload) => {
 				try {
-					(handler as (p: unknown, c: SystemContext) => void)(payload, systemContextOf(core, system, rules));
+					(handler as (p: unknown, c: SystemContext) => void)(
+						payload,
+						systemContextOf(core, system, rules)
+					);
 				} catch {
 					// a broken mod never stops the game (ADR 0271 point 5)
 				}
@@ -378,7 +452,8 @@ export function updateSituations(core: SimCore): void {
 		const v = vesselOf(core, id);
 		const last = s.situations.get(id);
 		const rails = v.rails;
-		const fixed = rails?.kind === 'elements' || rails?.kind === 'surface' || rails?.kind === 'frozen';
+		const fixed =
+			rails?.kind === 'elements' || rails?.kind === 'surface' || rails?.kind === 'frozen';
 		const a = rails?.kind === 'elements' ? rails.elements.a : 0;
 		const e = rails?.kind === 'elements' ? rails.elements.e : 0;
 		if (last && last.soi === v.soi && last.mode === v.mode) {

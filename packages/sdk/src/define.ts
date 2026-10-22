@@ -52,7 +52,8 @@ import type {
 	RuleDefinition,
 	SystemDefinition,
 	StoreDefinition,
-	KeybindingDefinition
+	KeybindingDefinition,
+	OverlayDefinition
 } from '@orbital/core';
 
 // ---------------------------------------------------------------------------------------------
@@ -188,6 +189,12 @@ export const defineStore = <T>(def: StoreDefinition<T>): StoreDefinition<T> => d
 
 /** A key the player can rebind under Controls → Mods; `command(input)` or a `mod:key` event. */
 export const defineKeybinding = (def: KeybindingDefinition): KeybindingDefinition => def;
+
+/**
+ * World-space shapes the renderer draws in Flight and the map (plan 347, ADR 0296): `draw(input)`
+ * on the page, or `ctx.overlays.set(id, shapes)` from the plugin's sim systems.
+ */
+export const defineOverlay = (def: OverlayDefinition): OverlayDefinition => def;
 
 // ---------------------------------------------------------------------------------------------
 // defineRule / definePreset

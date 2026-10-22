@@ -17,7 +17,6 @@ import {
 } from './lesson-kit';
 import { arm, beacon, chaser, pathfinderCapsule, spentStage } from './lesson-vessels';
 
-
 /** The chaser in the parking orbit, lit, and `design` `lead` metres ahead on the same orbit. */
 const meet =
 	(lead: number, design: (content: Content) => unknown) =>
@@ -58,6 +57,7 @@ export const ADVANCED_LESSONS: readonly Lesson[] = [
 		steps: [
 			{
 				id: 'target',
+				point: 'dock-tab-host.target',
 				title: 'Target the station',
 				text: 'Press {key:targetNext} until the target is Beacon Station (or click it and choose Set as target). The Target panel shows its distance and relative speed.',
 				actions: ['targetNext'],
@@ -66,19 +66,24 @@ export const ADVANCED_LESSONS: readonly Lesson[] = [
 			},
 			{
 				id: 'approach',
+				point: 'nav-map',
 				title: 'Read the closest approach',
 				text: 'Open the map with {key:map}. The two closest-approach markers show where the orbits come nearest and how far apart you will be: a burn that brings them together is a rendezvous.',
 				actions: ['map'],
 				done: (o) => o.map
 			},
-			addPanelStep(
-				'panel',
-				'guidance.panel',
-				'Guidance Computer',
-				'Its Rendezvous tab plans the phasing burns for you.'
-			),
+			{
+				...addPanelStep(
+					'panel',
+					'guidance.panel',
+					'Guidance Computer',
+					'Its Rendezvous tab plans the phasing burns for you.'
+				),
+				point: 'dock-library'
+			},
 			{
 				id: 'engage',
+				point: 'dock-tab-guidance.panel',
 				title: 'Engage Rendezvous',
 				text: 'Open the Guidance Computer, go to its Rendezvous tab and press Engage. It drops to a lower, faster orbit to catch up, climbs back and brakes near the station. Warp through coasts is on: it warps the long waits.',
 				targets: { commands: ['autopilot-engage'] },
@@ -100,7 +105,7 @@ export const ADVANCED_LESSONS: readonly Lesson[] = [
 		level: 'advanced',
 		title: 'Docking by hand',
 		summary:
-			'Kestrel 250 m behind Beacon Station: target its port, switch on RCS, point at it and translate in at under half a metre per second until the ports capture.',
+			'Kestrel 200 m behind Beacon Station: target its port, switch on RCS, point at it and translate in at under half a metre per second until the ports capture.',
 		design: chaser,
 		setup: meet(TARGET_LEAD, beacon),
 		blocked: {
@@ -120,6 +125,7 @@ export const ADVANCED_LESSONS: readonly Lesson[] = [
 			},
 			{
 				id: 'rcs',
+				point: 'hud-rcs',
 				title: 'Switch on RCS',
 				text: 'Press {key:rcsToggle}. The four RCS blocks push Kestrel without turning it, on monopropellant, for the last metres.',
 				actions: ['rcsToggle'],
@@ -127,6 +133,7 @@ export const ADVANCED_LESSONS: readonly Lesson[] = [
 			},
 			{
 				id: 'point',
+				point: 'sas-target',
 				title: 'Point at the port',
 				text: 'Press {key:sasTarget}: SAS turns the nose, and the docking port on it, towards the target port.',
 				actions: ['sasTarget'],
@@ -167,12 +174,15 @@ export const ADVANCED_LESSONS: readonly Lesson[] = [
 			places: closedPlaces()
 		},
 		steps: [
-			addPanelStep(
-				'panel',
-				'autodock.panel',
-				'Auto Dock panel',
-				'It flies the last few hundred metres on RCS.'
-			),
+			{
+				...addPanelStep(
+					'panel',
+					'autodock.panel',
+					'Auto Dock panel',
+					'It flies the last few hundred metres on RCS.'
+				),
+				point: 'dock-library'
+			},
 			{
 				id: 'target',
 				title: 'Target the port',
@@ -181,9 +191,18 @@ export const ADVANCED_LESSONS: readonly Lesson[] = [
 				done: (o) => o.targetPort
 			},
 			{
+				id: 'control',
+				point: 'dock-tab-host.parts',
+				title: 'Control from your port',
+				text: 'Open Parts on the dock’s rail, find Kestrel’s docking port and press Control from here (the navball icon on its row): the navball and the autopilot now look out of the port.',
+				targets: { panels: ['host.parts'], testids: ['part-*'], commands: ['set-control-part'] },
+				done: (o) => o.controlPort
+			},
+			{
 				id: 'engage',
+				point: 'dock-tab-autodock.panel',
 				title: 'Engage',
-				text: 'Open Auto Dock and press Engage. It switches on RCS, controls from your port, lines up on the station’s port axis and approaches.',
+				text: 'Open Auto Dock and press Engage. It switches on RCS, lines up on the station’s port axis and approaches.',
 				targets: { panels: ['autodock.panel'], commands: ['autopilot-engage'] },
 				done: (o) => o.autopilot === 'autodock.dock'
 			},
@@ -206,7 +225,8 @@ export const ADVANCED_LESSONS: readonly Lesson[] = [
 		title: 'Driving a rover',
 		summary:
 			'The Trailblazer rover on the pad: drive mode, throttle the wheels, steer, and brake to a stop.',
-		design: (content) => MISSION_BLUEPRINTS.find((m) => m.id === 'trailblazer-rover')!.build(content),
+		design: (content) =>
+			MISSION_BLUEPRINTS.find((m) => m.id === 'trailblazer-rover')!.build(content),
 		setup: [],
 		blocked: { actions: { stage: 'A rover has no stages.' }, places: closedPlaces() },
 		steps: [
@@ -248,6 +268,7 @@ export const ADVANCED_LESSONS: readonly Lesson[] = [
 		steps: [
 			{
 				id: 'parts',
+				point: 'dock-tab-host.parts',
 				title: 'Open Parts',
 				text: 'Open Parts on the dock’s rail: every part with something to do, and its controls.',
 				targets: { panels: ['host.parts'] },

@@ -4,6 +4,9 @@
 	import ControlsEditor from './ControlsEditor.svelte';
 	import Segmented from './Segmented.svelte';
 	import Switch from './Switch.svelte';
+	import { loadOverlays } from '../catalog';
+	import { overlayOn } from '../mod-overlays';
+	import type { OverlayDefinition } from '@orbital/core';
 	import { pageAudio } from '../audio/audio';
 	import SavesPanel from '../save/SavesPanel.svelte';
 	import { DEBRIS_CAPS, UI_SCALES, type TouchChoice } from '../settings/settings';
@@ -41,6 +44,15 @@
 
 	type Tab = 'graphics' | 'interface' | 'game' | 'time' | 'controls' | 'audio' | 'saves';
 	let tab = $state<Tab>('graphics');
+	/** The loaded mods' overlays (plan 347), listed under Interface. */
+	let modOverlays = $state<OverlayDefinition[]>([]);
+	$effect(() => {
+		try {
+			modOverlays = loadOverlays();
+		} catch {
+			modOverlays = [];
+		}
+	});
 	let preset = $state<PresetChoice>('auto');
 	let auto = $state(true);
 	let rendererChoice = $state<RendererChoice>('auto');
@@ -190,6 +202,21 @@
 				/>
 			</label>
 		{:else if tab === 'interface'}
+			{#each modOverlays as o (o.id)}
+				<!-- mod overlays (plan 347, ADR 0296 point 5) -->
+				<div class="row">
+					<div class="what">
+						<h3>{o.title}</h3>
+						<p>{o.description ?? 'A mod overlay in Flight and the map.'}</p>
+					</div>
+					<Switch
+						checked={overlayOn(o, settings.overlays)}
+						label={o.title}
+						onchange={(on) => settings.setOverlay(o.id, on)}
+						testid="setting-overlay-{o.id}"
+					/>
+				</div>
+			{/each}
 			<div class="row">
 				<div class="what">
 					<h3>Interface size</h3>

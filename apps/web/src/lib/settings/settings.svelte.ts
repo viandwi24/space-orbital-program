@@ -57,6 +57,8 @@ class SettingsStore {
 	lessons = $state<Record<string, LessonProgress>>({});
 	/** Mod keybindings the player changed (plan 343, ADR 0292 point 6). */
 	modKeys = $state.raw<Record<string, string[]>>({});
+	/** Mod overlays on or off (plan 347, ADR 0296 point 5). */
+	overlays = $state.raw<Record<string, boolean>>({});
 	/** Handlers read this; it follows `bindings` and the profile. */
 	keymap = $derived<Keymap>(createKeymap(this.bindings, this.keyProfile));
 	#started = false;
@@ -82,6 +84,7 @@ class SettingsStore {
 		this.keyNotice = settings.keyNotice;
 		this.lessons = settings.lessons;
 		this.modKeys = settings.modKeys;
+		this.overlays = settings.overlays;
 		setUnitSystem(settings.units);
 		this.#applyInterface();
 	}
@@ -105,7 +108,8 @@ class SettingsStore {
 			keyProfile: this.keyProfile,
 			keyNotice: this.keyNotice,
 			lessons: Object.fromEntries(Object.entries(this.lessons).map(([k, p]) => [k, { ...p }])),
-			modKeys: Object.fromEntries(Object.entries(this.modKeys).map(([k, v]) => [k, [...v]]))
+			modKeys: Object.fromEntries(Object.entries(this.modKeys).map(([k, v]) => [k, [...v]])),
+			overlays: { ...this.overlays }
 		};
 	}
 
@@ -127,6 +131,12 @@ class SettingsStore {
 	/** Bind a mod keybinding (plan 343): the keys it should have; its defaults drop the override. */
 	setModKeys(overrides: Readonly<Record<string, readonly string[]>>): void {
 		this.modKeys = Object.fromEntries(Object.entries(overrides).map(([k, v]) => [k, [...v]]));
+		this.#save();
+	}
+
+	/** Turn a mod overlay on or off (plan 347). */
+	setOverlay(id: string, on: boolean): void {
+		this.overlays = { ...this.overlays, [id]: on };
 		this.#save();
 	}
 

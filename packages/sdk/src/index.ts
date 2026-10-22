@@ -87,6 +87,22 @@ export {
 	storeProblem,
 	VESSEL_SITUATIONS
 } from '@orbital/core';
+// Overlays and the air (plan 347, ADR 0296).
+export {
+	ambientAt,
+	bodyAngularVelocity,
+	clampOverlay,
+	dashSegments,
+	machDragFactor,
+	OVERLAY_LIMITS
+} from '@orbital/core';
+export type {
+	ModOverlays,
+	OverlayDefinition,
+	OverlayFrame,
+	OverlayLayer,
+	OverlayShape
+} from '@orbital/core';
 export type {
 	KeybindingDefinition,
 	ModCommands,

@@ -13,7 +13,13 @@ import {
 	zoom
 } from '../src/vab/orbit-camera.ts';
 import { pickNode, raySphere, toNdc } from '../src/vab/picking.ts';
-import { diffParts, floorShift, unionExtent, type VabPart } from '../src/vab/scene-model.ts';
+import {
+	diffParts,
+	floorShift,
+	standingLows,
+	unionExtent,
+	type VabPart
+} from '../src/vab/scene-model.ts';
 
 const L = VAB_CAMERA_LIMITS;
 
@@ -218,5 +224,27 @@ describe('icon framing', () => {
 			}
 			expect(extent).toBeGreaterThan(0.85);
 		}
+	});
+});
+
+describe('standingLows (plan 348, ADR 0297)', () => {
+	const part = (key: string, y: number, role: 'solid' | 'ghost' | 'free', group = 'main') => ({
+		key,
+		group,
+		role,
+		position: [0, y, 0] as const
+	});
+	const low = () => -1;
+	it('a ghost or the free part below the vessel never moves the vessel', () => {
+		const solid = [part('0', 0, 'solid'), part('1', -3, 'solid')];
+		const base = floorShift(standingLows(solid, 'main', low));
+		const carrying = [...solid, part('g2', -10, 'ghost'), part('f2', -20, 'free')];
+		expect(floorShift(standingLows(carrying, 'main', low))).toBe(base);
+		expect(base).toBe(4);
+	});
+	it('counts only the group asked for and skips parts not built yet', () => {
+		const parts = [part('0', 0, 'solid'), part('a0', -5, 'solid', 'loose-1')];
+		expect(standingLows(parts, 'main', (k) => (k === '0' ? -1 : undefined))).toEqual([-1]);
+		expect(standingLows(parts, 'main', () => undefined)).toEqual([]);
 	});
 });
