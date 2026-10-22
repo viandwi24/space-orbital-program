@@ -63,3 +63,4 @@ Both are slow on huge, loop-heavy shaders such as the planet pass. ADR 0308 has 
 ## Log
 
 - 2026-10-22 — Written and started (ADR 0308).
+- 2026-10-22 — Measured on the M2 (Chrome 156, WebGPU): 11.2 MB of WGSL at load, the planet fragment shader 932 KB. After laid-out noise, one build per preset, separate placeholders and stable names: 3.6 MB; load 22.2 → 7.0 s (auto), 30.7 → 9.1 s (high); 0 of 164 modules changed between two loads. No implicit-derivative sample in a loop, so step 4's first item needed no change. The low boot preset of step 5 is deferred until the owner's Windows report shows it is needed. Journal 370, research `shader-compile-windows.md`.

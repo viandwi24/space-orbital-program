@@ -368,6 +368,7 @@ Existing drafts realigned on 2026-10-17: 063 (runway building), 065, 066, 067, 0
 
 ## Recent journal entries
 
+- [370 — Shader compile at world load](journal/370-shader-compile-at-world-load.md)
 - [371 — Rendezvous Fast mode](journal/371-rendezvous-fast-mode.md)
 - [363 — Frame budget research and the first cuts](journal/363-frame-budget-research-and-first-cuts.md)
 - [362 — Automatic quality that matches a fixed preset](journal/362-auto-quality-fix.md)

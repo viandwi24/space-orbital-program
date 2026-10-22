@@ -238,7 +238,6 @@ export class PlanetPassTSL {
 	 * 2 to 4 s freeze each time the governor moved (plan 261).
 	 */
 	private readonly variants = new Map<string, Variant>();
-	private variantContext = '';
 	private readonly pixelAngle = uniform(0.001);
 	/** The half-size pass's pixel angle (the full one over the scale). */
 	private readonly pixelAngleHalf = uniform(0.002);
@@ -291,6 +290,13 @@ export class PlanetPassTSL {
 	/** The sun's shadow map the shader samples (three's, once it exists), or null before. */
 	private builtShadow: unknown = null;
 	private needsBuild = true;
+	/**
+	 * The node every variant samples the sun's shadow map through (plan 370): a new or resized map
+	 * (another preset's size) is swapped into it instead of rebuilding every variant.
+	 */
+	private shadowNode: N = null;
+	/** Frames the first build has waited for the shadow map (plan 370). */
+	private shadowWait = 0;
 	private baked = false;
 	private terrain: TerrainTSL | null = null;
 	private cloudMap: CloudMapTSL | null = null;
@@ -334,6 +340,15 @@ export class PlanetPassTSL {
 		this.edgeMesh.renderOrder = planet.mesh.renderOrder + 1;
 		this.edgeMesh.name = 'planet-pass-tsl-edge';
 		this.meshes = [this.mesh, this.upMesh, this.edgeMesh];
+	}
+
+	/**
+	 * The full-screen quads drawn every frame (the march prepass, the half-size pass): their pipelines
+	 * may be built async while the world loads (plan 370), a skipped draw is redrawn next frame. The
+	 * one-shot bakes are not in it: a skipped bake would stay unbaked.
+	 */
+	isFrameQuad(object: unknown): boolean {
+		return object === this.halfQuad || object === this.preQuad;
 	}
 
 	/** Plan 068's bake measurement on WebGPU (`debug.bakeMode`). */
@@ -386,7 +401,13 @@ export class PlanetPassTSL {
 		this.terrain.bake(renderer);
 		this.cloudMap ??= new CloudMapTSL(R);
 		this.cloudMap.update(renderer, u.uCloudCover!.value as number);
+		// the first build waits a few frames for the sun's shadow map (three makes it at the first shadow
+		// pass): built before it, every variant was built again once it came (plan 370)
+		if (this.builtMap === null && this.planet.shadowWanted && !this.shadowMap() && this.shadowWait++ < 8)
+			return;
 		if (this.needsBuild || this.builtMap === null || this.shadowChanged()) this.build();
+		const shadow = this.shadowMap();
+		if (shadow && this.shadowNode) this.shadowNode.value = shadow;
 		for (const s of this.syncs) s();
 		// the biome map is replaced at a preset change: the shader reads it through one node
 		if (this.mapNode) this.mapNode.value = u.uMap!.value;
@@ -472,8 +493,8 @@ export class PlanetPassTSL {
 	 * not recompile every planet shader (a 1–2 s freeze while warping across the terminator).
 	 */
 	private shadowChanged(): boolean {
-		const map = this.shadowMap();
-		return map !== null && map !== this.builtShadow;
+		// a wanted map after none: the shaders gain the shadow taps; another map is swapped into `shadowNode`
+		return this.builtShadow === null && this.planet.shadowWanted && this.shadowMap() !== null;
 	}
 
 	/**
@@ -546,17 +567,16 @@ export class PlanetPassTSL {
 		const U = this.planet.material.uniforms;
 		this.builtMap = U.uMap!.value as DataTexture;
 		this.builtTerrain = this.terrain?.version ?? -1;
-		this.builtShadow = this.shadowMap() ?? this.builtShadow;
 		this.needsBuild = false;
-		// the map and the terrain targets are read through swapped nodes; only a new shadow map changes the shaders
-		const context = `${(this.builtShadow as { uuid?: string } | null)?.uuid}`;
-		if (context !== this.variantContext) {
-			// the map, the terrain targets or the shadow map changed: every variant reads the old ones
-			for (const v of this.variants.values()) if (v.full !== this.material) disposeVariant(v);
-			this.variants.clear();
-			this.variantContext = context;
-		}
-		const key = PlanetPassTSL.variantKey(this.settings);
+		// The map, the terrain targets and the shadow map are read through swapped nodes; only whether
+		// the shaders have the shadow taps is part of a variant (plan 370: a preset without shadows, or
+		// a new map's size, rebuilt every variant). Without the shadow wanted, a variant with the taps is
+		// as good (`uShadowOn` is 0): night or a preset without shadows keeps it, no rebuild.
+		const base = PlanetPassTSL.variantKey(this.settings);
+		const map = this.shadowMap();
+		const shadowed = this.planet.shadowWanted && map !== null;
+		const key = shadowed || this.variants.has(`${base}:s`) ? `${base}:s` : base;
+		this.builtShadow = key.endsWith(':s') ? (map ?? this.builtShadow) : null;
 		const hit = this.variants.get(key);
 		if (hit) {
 			this.use(hit);
@@ -633,7 +653,7 @@ export class PlanetPassTSL {
 			const uSkipR = this.link('uSkipR');
 			const uMarchSteps = this.uMarchSteps;
 			const uSilhouetteAA = this.link('uSilhouetteAA');
-			const shadowTex = this.builtShadow;
+			const shadowTex = this.builtShadow ? (this.shadowNode ??= texture(this.builtShadow)) : null;
 			const uShadowOn = this.link('uShadowOn');
 			const uShadowMatrix = this.link('uShadowMatrix');
 			const uShadowBias = this.link('uShadowBias');

@@ -25,6 +25,7 @@ import { PostChain } from './post.ts';
 import { MIN_RENDER_SCALE, debugFacade, sceneFacade, withShared } from './renderer-facade.ts';
 import { createWebGPURenderer } from './renderer-webgpu.ts';
 import { PrecompileTracker, type PrecompileProgress } from './precompile-progress.ts';
+import { CompileReport } from './compile-report.ts';
 import { FEATURE_NAMES, FeatureSwitches, type FeatureName } from './feature-switches.ts';
 import {
 	GRAPHICS_PRESETS,
@@ -330,6 +331,11 @@ export interface Renderer {
 	precompile(onProgress?: (progress: PrecompileProgress) => void): Promise<void>;
 	/** WebGL capability facts for `selectPreset`. */
 	capabilities(): { gpu?: string; maxTextureSize: number };
+	/**
+	 * Every shader module and pipeline (or program) this renderer built, with sizes and compile times
+	 * where the browser tells (plan 370, ADR 0308): the loading screen's count and the load report.
+	 */
+	readonly compiles: CompileReport;
 	readonly debug: RendererDebug;
 	dispose(): void;
 }
@@ -346,6 +352,10 @@ export function createRenderer(config: RendererConfig): Renderer {
 		powerPreference: 'high-performance'
 	});
 	gl.toneMapping = ACESFilmicToneMapping;
+	// every program's source size and, with KHR_parallel_shader_compile, its time (plan 370)
+	const compiles = new CompileReport();
+	compiles.keepSources = globalThis.localStorage?.getItem?.('orbital.debug.shaderSources') === '1';
+	compiles.watchWebGL(gl.getContext() as WebGL2RenderingContext);
 	gl.shadowMap.enabled = true;
 	gl.shadowMap.type = PCFShadowMap;
 	const model = new SceneModel(config);
@@ -687,6 +697,7 @@ export function createRenderer(config: RendererConfig): Renderer {
 			capabilities() {
 				return { gpu: gpuName(), maxTextureSize: gl.capabilities.maxTextureSize };
 			},
+			compiles,
 			debug: debugApi,
 			dispose() {
 				for (const v of variants) v.dispose();

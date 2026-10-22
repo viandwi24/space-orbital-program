@@ -18,6 +18,7 @@ export * from './renderer.ts';
 export * from './presets.ts';
 export * from './quality-governor.ts';
 export * from './precompile-progress.ts';
+export * from './compile-report.ts';
 export * from './sun.ts';
 export * from './atmosphere-model.ts';
 export * from './camera-presets.ts';

@@ -12,6 +12,10 @@ const T = TSL as any;
 const { Fn, float, int, ivec3, uvec3, vec2, vec3, floor, mix, dot, clamp, asin, atan, max, cos } =
 	T;
 
+// The noise is called hundreds of times per planet shader: laid out (`setLayout`), each helper is one
+// WGSL function instead of its body inlined at every call (plan 370: the planet pass's fragment
+// shaders were 16,700 lines, about 900 KB, with 791 inlined copies of pcg3d). They read no uniforms,
+// so the r186 naming issue of uniforms inside laid-out functions (terrain.ts) does not apply.
 const pcg3d = Fn(([v0]: N[]) => {
 	const v = v0.mul(1664525).add(1013904223).toVar();
 	v.x.addAssign(v.y.mul(v.z));
@@ -22,7 +26,7 @@ const pcg3d = Fn(([v0]: N[]) => {
 	v.y.addAssign(v.z.mul(v.x));
 	v.z.addAssign(v.x.mul(v.y));
 	return v;
-});
+}).setLayout({ name: 'orbitalPcg3d', type: 'uvec3', inputs: [{ name: 'v0', type: 'uvec3' }] });
 
 /** A lattice cell (ivec3) to one value in [0, 1]. */
 export const hash13i = (c: N): N =>
@@ -44,6 +48,13 @@ export const valueNoiseCell = Fn(([c, f0]: N[]) => {
 	const cc = mix(I(0, 0, 1), I(1, 0, 1), f.x);
 	const d = mix(I(0, 1, 1), I(1, 1, 1), f.x);
 	return mix(mix(a, b, f.y), mix(cc, d, f.y), f.z);
+}).setLayout({
+	name: 'orbitalValueNoise',
+	type: 'float',
+	inputs: [
+		{ name: 'c', type: 'ivec3' },
+		{ name: 'f0', type: 'vec3' }
+	]
 });
 
 /** Plain float-position noise (stars, clouds). */
@@ -67,7 +78,7 @@ export const noiseF3 = Fn(([p]: N[]) => {
 	const cc = mix(I(0, 0, 1), I(1, 0, 1), f.x);
 	const d = mix(I(0, 1, 1), I(1, 1, 1), f.x);
 	return mix(mix(a, b, f.y), mix(cc, d, f.y), f.z);
-});
+}).setLayout({ name: 'orbitalNoiseF3', type: 'vec3', inputs: [{ name: 'p', type: 'vec3' }] });
 
 /** The octave rotation of core's terrain (rows), applied between octaves. */
 export const octaveRotate = (p: N): N => {

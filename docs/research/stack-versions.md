@@ -51,4 +51,4 @@ Always re-check the docs linked above before running: flags change.
 
 - **`@dimforge/rapier3d-compat` 0.21.0** (root catalog `^0.21.0`; `RAPIER.version()` 0.21.0). Typings `dist/dynamics/impulse_joint.d.ts`, `multibody_joint.d.ts`, `pipeline/world.d.ts`, read 2026-10-21. Guide https://rapier.rs/docs/user_guides/javascript/joints.
 - **Impulse joints** have `configureMotorModel`, `configureMotorPosition`, `configureMotorVelocity`, `configureMotor` and `setLimits`. **Multibody joints** have no motor and no limit setter in the JS build, which `RawMultibodyJointSet` confirms. There is no `maxForce` on either kind. Details in `docs/research/rapier-joints.md`.
-
+- **Chrome WebGPU on Windows** (plan 370, checked 2026-10-22): Chrome 121 compiles WGSL → HLSL with DXC on D3D12 SM 6 hardware (FXC before); WebGL goes through ANGLE D3D11 and FXC. Source https://developer.chrome.com/blog/new-in-webgpu-121. three r186: `Pipelines.getForRender(renderObject, promises)` with an array builds via `createRenderPipelineAsync` and `isReady` skips the draw until built; a TSL `Fn` without `setLayout` is inlined at each call. Details in `docs/research/shader-compile-windows.md`.

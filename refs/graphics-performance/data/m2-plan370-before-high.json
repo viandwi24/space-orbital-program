@@ -1,0 +1,48 @@
+{
+ "when": "2026-10-22T11:31:58.254Z",
+ "backend": "webgpu",
+ "preset": "high",
+ "notes": "",
+ "runs": [
+  {
+   "load": 1,
+   "loadMs": 30706,
+   "log": {
+    "modules": 182,
+    "moduleBytes": 11107937,
+    "largest": [
+     "fragment_planet-pass-tsl-edge 989 KB",
+     "fragment_planet-pass-tsl-edge 986 KB",
+     "fragment 983 KB",
+     "fragment 979 KB",
+     "fragment_planet-pass-tsl-edge 936 KB",
+     "fragment_planet-pass-tsl 932 KB",
+     "fragment 929 KB",
+     "fragment_planet-scaled-bake 616 KB",
+     "fragment_planet-scaled-bake 602 KB",
+     "fragment_sky-map-bake 209 KB",
+     "fragment 168 KB",
+     "fragment 168 KB"
+    ],
+    "pipelines": 148,
+    "sync": 128,
+    "async": 20,
+    "slowest": [
+     "renderPipeline_MeshStandardMaterial_104 6843 ms",
+     "renderPipeline_MeshBasicMaterial_70 6010 ms",
+     "renderPipeline_MeshLambertNodeMaterial_131 264 ms",
+     "renderPipeline_MeshStandardNodeMaterial_142 168 ms",
+     "renderPipeline_MeshStandardNodeMaterial_139 138 ms",
+     "renderPipeline_MeshStandardNodeMaterial_141 134 ms",
+     "renderPipeline_crew_106 133 ms",
+     "renderPipeline_MeshStandardNodeMaterial_140 131 ms",
+     "renderPipeline_MeshBasicNodeMaterial_132 121 ms",
+     "renderPipeline_MeshBasicMaterial_101 109 ms",
+     "renderPipeline_MeshStandardMaterial_99 102 ms",
+     "renderPipeline_MeshStandardNodeMaterial_135 97 ms"
+    ]
+   },
+   "report": null
+  }
+ ]
+}
