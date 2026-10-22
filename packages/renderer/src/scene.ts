@@ -2154,6 +2154,7 @@ export class SceneModel {
 		let entry = this.vessels.get(id);
 		if (!entry) {
 			const group = new Group();
+			group.name = `vessel-${id}`; // tests and Debug find a vessel's group by it
 			entry = {
 				group,
 				parts: new Map(),

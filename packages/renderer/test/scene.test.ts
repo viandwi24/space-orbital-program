@@ -65,12 +65,15 @@ const shapes = new Map<string, PartShape>([
 
 const make = () => new SceneModel({ bodies: [{ id: BODY, radius: R }], partShapes: shapes });
 
+/** A vessel's group in the scene (named `vessel-<id>`; overlays and the site have groups too). */
+const isVesselGroup = (c: { name: string }): boolean => c.name.startsWith('vessel-');
+
 describe('SceneModel', () => {
 	test('places body and vessel in render space near zero despite a 1.5e11 m world offset', () => {
 		const m = make();
 		const s = deepFreeze(snap(0, vessel(1, R + 100, 0, 0)));
 		m.sync(s); // frozen deep: any mutation would throw in strict mode
-		const group = m.scene.children.find((c) => c.type === 'Group')!;
+		const group = m.scene.children.find(isVesselGroup)!;
 		const body = m.bodyObject(BODY)!;
 		// origin snapped to the 1024 m grid near the vessel, so everything is small
 		expect(Math.abs(group.position.x)).toBeLessThan(1024);
@@ -162,7 +165,7 @@ describe('SceneModel', () => {
 		const m = make();
 		m.sync(snap(0, vessel(1, 0, 0, R + 100)));
 		expect(m.camera.up.z).toBeCloseTo(1, 9);
-		const target = m.scene.children.find((c) => c.type === 'Group')!.position;
+		const target = m.scene.children.find(isVesselGroup)!.position;
 		// the camera sits on the outside of the vessel, not below the surface
 		expect(m.camera.position.z).toBeGreaterThan(target.z);
 		m.setMapView(true);
@@ -176,7 +179,7 @@ describe('SceneModel', () => {
 			partShapes: new Map([[POD, shapes.get(POD)!]])
 		});
 		m.sync(snap(0, vessel(1, R + 100, 0, 0)));
-		const group = m.scene.children.find((c) => c.type === 'Group')!;
+		const group = m.scene.children.find(isVesselGroup)!;
 		const [pod, tank] = group.children as Mesh[];
 		expect(pod!.geometry).toBeInstanceOf(BoxGeometry);
 		expect((pod!.geometry as BoxGeometry).parameters).toMatchObject({
@@ -191,7 +194,7 @@ describe('SceneModel', () => {
 		});
 		const m2 = make();
 		m2.sync(snap(0, vessel(1, R + 100, 0, 0)));
-		const tank2 = m2.scene.children.find((c) => c.type === 'Group')!.children[1] as Mesh;
+		const tank2 = m2.scene.children.find(isVesselGroup)!.children[1] as Mesh;
 		expect(tank2.geometry).toBeInstanceOf(CylinderGeometry);
 		expect(tank2.position.y).toBe(-2);
 	});
@@ -204,14 +207,14 @@ describe('SceneModel', () => {
 		expect(m.originPosition).toBe(o1);
 		m.sync(snap(2, vessel(1, R + 20_000, 0, 0)));
 		expect(m.originPosition).not.toBe(o1);
-		const group = m.scene.children.find((c) => c.type === 'Group')!;
+		const group = m.scene.children.find(isVesselGroup)!;
 		expect(Math.abs(group.position.x)).toBeLessThan(1024);
 	});
 
 	test('map view hides parts, shows marker and orbit line, and follows the SOI body', () => {
 		const m = make();
 		m.sync(snap(0, vessel(1, R + 100, 0, 0), vessel(2, R + 200, 0, 0, false)));
-		const group = () => m.scene.children.filter((c) => c.type === 'Group');
+		const group = () => m.scene.children.filter(isVesselGroup);
 		expect(group().every((g) => g.visible)).toBe(true);
 		expect(m.toggleMapView()).toBe(true);
 		m.sync(snap(0, vessel(1, R + 100, 0, 0), vessel(2, R + 200, 0, 0, false)));
@@ -228,9 +231,9 @@ describe('SceneModel', () => {
 	test('removes vessels that vanish from the snapshot and throws on an unknown SOI', () => {
 		const m = make();
 		m.sync(snap(0, vessel(1, R, 0, 0), vessel(2, R, 50, 0)));
-		expect(m.scene.children.filter((c) => c.type === 'Group').length).toBe(2);
+		expect(m.scene.children.filter(isVesselGroup).length).toBe(2);
 		m.sync(snap(1, vessel(2, R, 50, 0)));
-		expect(m.scene.children.filter((c) => c.type === 'Group').length).toBe(1);
+		expect(m.scene.children.filter(isVesselGroup).length).toBe(1);
 		const bad = { ...vessel(3, 0, 0, 0), soi: 'stock.nowhere' as BodyId };
 		expect(() => m.sync(snap(2, bad))).toThrow(/unknown SOI body "stock.nowhere"/);
 	});
@@ -240,7 +243,7 @@ describe('SceneModel', () => {
 		const s = snap(0, vessel(1, R, 0, 0), vessel(2, R + 5_000, 0, 0));
 		m.setActiveVessel(id(2));
 		m.sync(s);
-		const groups = m.scene.children.filter((c) => c.type === 'Group');
+		const groups = m.scene.children.filter(isVesselGroup);
 		expect(m.camera.position.distanceTo(lookAt(groups[1]!.position, s.vessels[1]!))).toBeCloseTo(
 			25,
 			6
@@ -274,7 +277,7 @@ describe('SceneModel environment (plan 019)', () => {
 		m.sync(s);
 		const pad = m.environment.site.root;
 		m.prepareFrame(0.016);
-		const vesselGroup = m.scene.children.find((c) => c.type === 'Group')!;
+		const vesselGroup = m.scene.children.find(isVesselGroup)!;
 		// the site root is exactly 10 m below the vessel's root origin: right under it
 		expect(pad.position.distanceTo(vesselGroup.position)).toBeCloseTo(10, 4);
 	});

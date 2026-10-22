@@ -83,7 +83,7 @@ describe('SceneModel with part visuals (plan 020)', () => {
 	test('parts with descriptors are procedural models, one per part, in the vessel group', () => {
 		const m = make();
 		m.sync(snap(0, vessel(1, stack())));
-		const group = m.scene.children.find((c) => c.type === 'Group')!;
+		const group = m.scene.children.find((c) => c.name.startsWith('vessel-'))!;
 		expect(group.children.map((c) => c.name)).toEqual([
 			'part:stock.command-pod',
 			'part:stock.tank-small',

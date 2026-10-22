@@ -182,7 +182,7 @@ describe('connectors in the flight scene', () => {
 	test('a part with a link gets a bar from its position to the link point; a cut link loses it', () => {
 		const m = make();
 		m.sync(snap(vessel([tank, strut({ peer: id(2), point: { x: 0.625, y: -1, z: 0 } })])));
-		const group = m.scene.children.find((c) => c.type === 'Group')!;
+		const group = m.scene.children.find((c) => c.name.startsWith('vessel-'))!;
 		const bars = group.children.find((c) => c.name === 'connectors')!;
 		expect(bars.children).toHaveLength(1);
 		const [a, b] = ends(bars.children[0] as Mesh);
