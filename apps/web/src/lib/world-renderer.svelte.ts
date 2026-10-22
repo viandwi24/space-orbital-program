@@ -17,11 +17,18 @@ import {
 } from '@orbital/renderer';
 import type { PrecompileProgress } from '@orbital/renderer/precompile-progress';
 import { partShapesOf } from './catalog';
-import { graphicsStart, rendererBackend } from './graphics';
+import {
+	emitGraphicsChange,
+	graphicsStart,
+	rendererBackend,
+	saveGraphicsPreset
+} from './graphics';
 import type { Catalog } from './messages';
 import { modelProviders } from './mods/asset-models';
 import type { SimClient } from './sim-client';
 import { primePlanetMaps, storePlanetMaps } from './planet-map-cache';
+import { pipelineList, writeLoadLog, type LoadOutcome } from './load-log';
+import { activeWorldId } from './worlds/worlds';
 import {
 	changedSince,
 	formatLoadReport,
@@ -102,8 +109,20 @@ class WorldRenderer {
 	progress = $state.raw<PrecompileProgress | null>(null);
 	/** Why the graphics could not start, or null. */
 	error = $state<string | null>(null);
-	/** Pipelines built and asked for so far (plan 370): the loading screen's count. */
-	pipelines = $state.raw<{ ready: number; total: number }>({ ready: 0, total: 0 });
+	/** Pipelines built and asked for so far, and the oldest still compiling (plan 370): the loading screen's count. */
+	pipelines = $state.raw<{ ready: number; total: number; current: string }>({
+		ready: 0,
+		total: 0,
+		current: ''
+	});
+	/** When this load began (`performance.now()`), for the loading screen's elapsed time; null when none. */
+	startedAt = $state<number | null>(null);
+	/** The player chose "Continue with lower quality" during this load. */
+	lowered = $state(false);
+
+	/** This load's entry in the stored load logs (plan 370). */
+	private logId = '';
+	private logWrittenAt = 0;
 
 	/** When each loading step began (`performance.now()`), and when the world was ready (plan 370). */
 	private marks: Partial<Record<LoadStepName, number>> = {};
@@ -177,6 +196,9 @@ class WorldRenderer {
 				this.marks = {};
 				this.readyAt = null;
 				this.loadFacts = null;
+				this.lowered = false;
+				this.startedAt = performance.now();
+				this.logId = `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 7)}`;
 				this.stepNow = 'sim';
 			}
 			const c = await client.ready;
@@ -226,14 +248,17 @@ class WorldRenderer {
 					drawnAfter(2);
 				}
 			};
-			void r.precompile(onProgress).catch((e: unknown) => {
-				this.error = e instanceof Error ? e.message : String(e);
-			});
+			void r.precompile(onProgress)
+				.then(() => {
+					// the background presets are in: the stored log gets their pipelines too
+					if (this.renderer === r && this.ready) this.writeLog('ready');
+				})
+				.catch((e: unknown) => this.fail(e));
 			this.loop();
 			return r;
 		})();
 		this.building.catch((e: unknown) => {
-			if (generation === this.generation) this.error = e instanceof Error ? e.message : String(e);
+			if (generation === this.generation) this.fail(e);
 		});
 		return this.building;
 	}
@@ -267,10 +292,13 @@ class WorldRenderer {
 	/** The player left the world (or another tab took it): the renderer and its device go. */
 	end(): void {
 		this.generation++;
+		// leaving the world on its loading screen: the stored log says where it was
+		this.onPageHide();
 		this.teardown();
 		this.client = null;
 		this.building = null;
 		this.step = 'sim';
+		this.startedAt = null;
 		this.marks = {};
 		this.readyAt = null;
 		this.loadFacts = null;
@@ -321,6 +349,50 @@ class WorldRenderer {
 		};
 	}
 
+	/** The load failed: shown on the loading screen and kept in the load log. */
+	private fail(e: unknown): void {
+		this.error = e instanceof Error ? e.message : String(e);
+		this.writeLog('error');
+	}
+
+	/**
+	 * "Taking long? Continue with lower quality" (plan 370): the cheapest preset from now on (saved,
+	 * so the next load starts there), the warm-up asks for its pipelines next.
+	 */
+	lowerQuality(): void {
+		const r = this.renderer;
+		if (!r || this.ready) return;
+		this.lowered = true;
+		saveGraphicsPreset('low');
+		r.setPreset('low');
+		// the page that holds the renderer (Flight's governor) takes it as the player's preset
+		emitGraphicsChange({ kind: 'preset', choice: 'low' });
+		this.writeLog('loading');
+	}
+
+	/** Writes this load's entry into the stored logs (the main menu's Developer page). */
+	private writeLog(outcome: LoadOutcome): void {
+		const r = this.renderer;
+		const report = this.report();
+		if (!r || !report || !this.logId) return;
+		this.logWrittenAt = performance.now();
+		writeLoadLog({
+			id: this.logId,
+			worldId: activeWorldId(),
+			outcome,
+			step: this.step,
+			lowered: this.lowered,
+			error: this.error,
+			report: report.data,
+			pipelines: pipelineList(r.compiles.pipelines)
+		});
+	}
+
+	/** The tab closes on the loading screen: the log says where it was. */
+	private readonly onPageHide = (): void => {
+		if (this.renderer && !this.ready) this.writeLog('left');
+	};
+
 	/** At `ready`: what this load was (first or cached) is fixed and remembered for the next one. */
 	private finishLoad(): void {
 		this.readyAt = performance.now();
@@ -340,6 +412,7 @@ class WorldRenderer {
 		);
 		const text = this.report()?.text;
 		if (text) console.info(text);
+		this.writeLog('ready');
 	}
 
 	private watchCompiles(r: Renderer): void {
@@ -347,10 +420,16 @@ class WorldRenderer {
 		const count = (): void => {
 			if (this.renderer !== r && this.renderer !== null) return;
 			const total = r.compiles.pipelines.length;
-			this.pipelines = { ready: total - r.compiles.pending, total };
+			this.pipelines = { ready: total - r.compiles.pending, total, current: r.compiles.current() };
+			// while loading, the stored log follows every few seconds (a tab killed mid-load keeps it)
+			if (!this.ready && performance.now() - this.logWrittenAt > 3000) this.writeLog('loading');
 		};
 		this.offCompiles = r.compiles.subscribe(count);
 		count();
+		if (typeof window !== 'undefined') {
+			window.removeEventListener('pagehide', this.onPageHide);
+			window.addEventListener('pagehide', this.onPageHide);
+		}
 	}
 
 	private teardown(): void {

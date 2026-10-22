@@ -14,9 +14,17 @@
 - The planet shaders shrank: noise and the cube-atlas lookup are laid-out functions. The pass is built once per preset, not three times: the shadow map goes through a swappable node.
   - Separate placeholders for the scaled-space and terrain-patch texture nodes.
   - `NodeBuffer_<id>` names renumbered per module.
+- The owner's additions:
+  - `WorldLoading.svelte`: the game's own shots (`scripts/capture-loading-slides.ts`, 6 WebP, 540 KB) crossfading with a slow pan, a caption and a tip at the bottom left, and the progress in the bottom-right corner (CSS ring, step, shaders ready, the one compiling, bar, elapsed time). After 15 s it offers "Taking long? Continue with lower quality".
+  - Load logs in `localStorage` (`load-log.ts`, the last 20).
+  - `/developer` on the main menu, with the part and crew viewers moved there from Mods.
+  - No copy button on the loading screen.
+- While loading, three's node builds get a 50 ms budget per task, deferring objects not yet built: the longest task fell from 1.4 s to 0.54 s on the M2.
 - `apps/web/scripts/measure-shader-compile.ts` measures it. The numbers and the owner's instructions are in [research/shader-compile-windows.md](../research/shader-compile-windows.md).
 
 ## What surprised me
+
+- The page's thread time at load is mostly three's own node build (`NodeBuilder.build`): about 3.2 s of WGSL generation on the M2, not our code. The build budget spreads it out but does not shrink it.
 
 - The planet fragment shader was 932 KB of WGSL in one `main`, with 791 inlined copies of the pcg3d hash. The world built 11.2 MB of WGSL at load. That is the likely reason D3D takes a minute.
 - No loop in it uses an implicit-derivative sample, so FXC's forced unrolling was not the cause.
@@ -35,6 +43,21 @@ after   high: load  9.1 s ·  4.5 MB · 120 pipelines
 ```
 
 Screenshots at the pad and in a 100 km orbit match the old build (planet, clouds, shadows, site).
+
+Main-thread long tasks during the load (PerformanceObserver, the same scene, `high`):
+
+```
+unthrottled:      before the build budget max 1369 ms (two over 1 s) · after max 541 ms, none over 1 s
+4x CPU throttle:  before max 5660 ms · after max 2156 ms
+8x CPU throttle:  "Continue with lower quality" appeared at 15 s, one click (3 s under 8x), preset saved low,
+                  the log says lowered, ready at low
+```
+
+![The loading screen while it compiles](assets/370-loading-screen.jpg)
+
+![After "Continue with lower quality"](assets/370-loading-lower-quality.jpg)
+
+![The Developer page with a stored load log](assets/370-developer-page.jpg)
 
 ## Open questions
 

@@ -36,7 +36,7 @@ Both are slow on huge, loop-heavy shaders such as the planet pass. ADR 0308 has 
    - Backend, adapter, ANGLE string and browser.
    - First or cached load: has this browser seen this shader set before?
    - Modules whose source changed since the last load.
-   - Shown in the loading screen (pipelines left, Copy report) and in Debug → Info (Copy load report); `window.__orbitalLoadReport()`.
+   - The loading screen shows the pipelines left; the report is in Debug → Info (Copy load report), the stored load logs and `window.__orbitalLoadReport()`.
 2. **Measure** on the M5 with `apps/web/scripts/measure-shader-compile.ts`: WGSL sizes, pipeline count and times, first and second load.
 3. **Compile in parallel.** The warm-up asks for every pipeline with `createRenderPipelineAsync` (three's async path, for the scene's real targets). The device compiles them on worker threads, and the loading screen counts them down.
 4. **Cut compile cost.** Measure WGSL/GLSL size before and after:
@@ -46,11 +46,13 @@ Both are slow on huge, loop-heavy shaders such as the planet pass. ADR 0308 has 
    - shared chunks de-duplicated.
 5. **Off the critical path.** The world shows once the start preset's pipelines are ready. The governor's next preset is compiled after the loading screen, in the background (async), not before. On a first load on Windows, only the preset in use is warmed.
 6. **Cache.** Check that the second load is faster on Chrome. Make sure no per-load value (seeds, timestamps) goes into a shader string.
-7. **Document** in `docs/research/shader-compile-windows.md`, with how the owner sends a report.
+7. **The owner's additions (2026-10-22).** A loading screen that never looks frozen: the game's own shots crossfading, progress in the corner, elapsed time, and "Continue with lower quality" after 15 s. Load logs kept in the browser and a Developer page on the main menu, with no copy button on the loading screen (ADR 0308 points 6 and 7).
+8. **Document** in `docs/research/shader-compile-windows.md`, with how the owner sends a report.
 
 ## Acceptance criteria
 
-- [ ] The loading screen shows the pipelines left and has a Copy report button. Debug → Info has the load report. Checked in a browser on the M5.
+- [ ] The loading screen shows the shaders ready, the one compiling and the elapsed time, and keeps animating. "Continue with lower quality" appears after 15 s and switches to `low` (checked with the CPU throttled). Debug → Info has the load report.
+- [ ] Load logs are stored (the last 20), and `/developer` lists, copies, downloads and clears them.
 - [ ] `measure-shader-compile.ts` on the M5: before and after numbers in the research doc. No load-time regression on the Mac.
 - [ ] The second load reports "cached", and no module changed between two loads.
 - [ ] The research doc tells the owner how to send the Windows report.

@@ -144,6 +144,13 @@
 			href={resolve('/credits')}
 			testid="menu-credits"
 		/>
+		<MenuButton
+			variant="compact"
+			icon="script"
+			label="Developer"
+			href={resolve('/developer')}
+			testid="menu-developer"
+		/>
 	</div>
 	<SettingsDialog open={settingsOpen} onclose={closeSettings} />
 	{#snippet aside()}

@@ -43,7 +43,7 @@ On Windows, where compile time grows with HLSL size, cutting the shader source t
 
 ## The load report, and how the owner sends it from Windows
 
-The world's loading screen has a **Copy load report** button, and the bar counts "N of M shader pipelines ready". In the game, **Debug → Info → World load → Copy load report** copies the same text. `window.__orbitalLoadReport()` in the console returns it too, and it is logged to the console when the world is ready.
+The loading screen counts "N of M shaders ready", names the one compiling and shows the elapsed time. Every load's log is kept in the browser (the last 20, including loads that were abandoned on the loading screen). They are listed on the **Developer** page (main menu, bottom row), where one or all can be copied as text or downloaded as `.json`. In a world, **Debug → Info → World load → Copy load report** copies the current one. `window.__orbitalLoadReport()` in the console returns it too, and it is logged to the console when the world is ready.
 
 The report has:
 - the build, the browser and platform, threads and memory;
@@ -57,9 +57,11 @@ The report has:
 The async times run from the request until the pipeline is ready, so they include waiting behind other compiles. The phase span is the wall time.
 
 To compare a first and a cached load on Windows:
-1. Open the game and enter a world. When it shows, copy the report (Debug → Info → Copy load report).
-2. Reload the page (F5) and enter the world again. Copy the second report.
-3. Send both. A first load can be repeated by clearing site data, or in a new Incognito window, which starts with an empty shader cache.
+1. Open the game and enter a world, and wait for it to show (or close the tab if it is stuck: the log keeps the step it reached).
+2. Reload the page (F5) and enter the world again.
+3. Main menu → Developer → **Copy all as text** (or **Download all .json**), and send it.
+
+A first load can be repeated in a new Incognito window, which should start without the disk shader cache (not verified), but an Incognito window also keeps its own logs, so copy them from its Developer page before closing it.
 
 ## Next, if the Windows report still shows long compiles
 

@@ -37,7 +37,8 @@
 	import { createBellFeed } from '../../lib/layout/status-bar';
 	import { worldSession } from '../../lib/world-session';
 	import { WORLD_LOAD_STEPS, worldRenderer } from '../../lib/world-renderer.svelte';
-	import LoadingScreen from '../../lib/ui/LoadingScreen.svelte';
+	import WorldLoading from '../../lib/ui/WorldLoading.svelte';
+	import { LOADING_SLIDES, LOADING_TIPS } from '../../lib/loading-slides';
 	import { isTypingTarget } from '../../lib/typing-target';
 	import { WARP_STEPS, warpStepsFor } from '../../lib/warp';
 	import { bootWorld } from '../../lib/world-boot';
@@ -120,12 +121,6 @@
 		return () => worldRenderer.setHolder(null);
 	});
 	const loadAt = $derived(WORLD_LOAD_STEPS.findIndex((s) => s.step === worldRenderer.step));
-	const loadSteps = $derived(
-		WORLD_LOAD_STEPS.map((s, i) => ({
-			label: s.label,
-			state: (i < loadAt ? 'done' : i === loadAt ? 'now' : 'todo') as 'done' | 'now' | 'todo'
-		}))
-	);
 	const loadFraction = $derived.by(() => {
 		// the pipelines built of those asked for (plan 370): the count grows as the frames ask for more
 		const p = worldRenderer.pipelines;
@@ -137,7 +132,7 @@
 	const loadDetail = $derived.by(() => {
 		const p = worldRenderer.pipelines;
 		if ((worldRenderer.step !== 'programs' && worldRenderer.step !== 'views') || p.total === 0) return '';
-		return `${p.ready} of ${p.total} shader pipelines ready`;
+		return `${p.ready} of ${p.total} shaders ready`;
 	});
 
 	const worldId = activeWorldId();
@@ -673,13 +668,22 @@
 	<div class="world-holder" bind:this={holder} aria-hidden="true"></div>
 	{#if worldView && !worldRenderer.ready}
 		<div class="world-loading" data-testid="world-loading">
-			<LoadingScreen
-				overlay
-				step={worldRenderer.error ?? WORLD_LOAD_STEPS[Math.max(0, loadAt)]!.label}
-				steps={loadSteps}
+			<!-- plan 370: the game's own shots behind, the progress in the corner, never frozen -->
+			<WorldLoading
+				step={WORLD_LOAD_STEPS[Math.max(0, loadAt)]!.label}
+				stepIndex={Math.max(0, loadAt) + 1}
+				stepCount={WORLD_LOAD_STEPS.length}
+				error={worldRenderer.error}
 				fraction={loadFraction}
 				detail={loadDetail}
-				report={() => worldRenderer.report()?.text ?? null}
+				current={worldRenderer.step === 'programs'
+					? worldRenderer.pipelines.current.replace(/^renderPipeline_/, '').replace(/_\d+$/, '')
+					: ''}
+				startedAt={worldRenderer.startedAt}
+				lowered={worldRenderer.lowered}
+				onlower={() => worldRenderer.lowerQuality()}
+				slides={LOADING_SLIDES}
+				tips={LOADING_TIPS}
 			/>
 		</div>
 	{/if}

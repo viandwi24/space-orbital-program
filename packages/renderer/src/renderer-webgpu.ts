@@ -37,10 +37,18 @@ import { Twins } from './tsl/twins.ts';
 import { MoonTSL } from './tsl/moon.ts';
 import type { MoonPass } from './moon.ts';
 
+const deferred = (): { promise: Promise<void>; resolve: () => void } => {
+	let resolve: () => void = () => {};
+	const promise = new Promise<void>((r) => (resolve = r));
+	return { promise, resolve };
+};
+
 type GetForRender = (renderObject: { object?: unknown }, promises?: Promise<unknown>[] | null) => unknown;
 
 /** Steps `LaunchSite.warmVegetation` takes for the three presets' sets (as in renderer.ts). */
 const VEGETATION_STEPS = 34;
+/** Time a task may spend building new node graphs while the world loads (plan 370), ms. */
+const BUILD_BUDGET_MS = 50;
 /** A lost device builds a new renderer at most this often before the page has to be reloaded. */
 const MAX_RESTARTS = 3;
 /** UnrealBloomPass's strength, radius and threshold in the WebGL chain (post.ts). */
@@ -176,6 +184,7 @@ export function createWebGPURenderer(
 		if (b.device) compiles.watchWebGPU(b.device);
 		else if (b.gl) compiles.watchWebGL(b.gl);
 		hookPipelines(r);
+		hookBuildBudget(r);
 		r.toneMapping = ACESFilmicToneMapping;
 		r.shadowMap.enabled = true;
 		r.shadowMap.type = PCFShadowMap;
@@ -336,12 +345,52 @@ export function createWebGPURenderer(
 	/** While true, new pipelines of the scene's meshes are built async and their draws skipped until ready. */
 	let asyncPipelines = false;
 	const pendingCompiles = new Set<Promise<unknown>>();
+	/** Resolves when the player's preset changes (`setPreset`): the warm-up stops waiting for the old one's pipelines. */
+	let presetChanged: { promise: Promise<void>; resolve: () => void } = deferred();
 	/**
 	 * Routes three's pipeline requests through its async path while `asyncPipelines` is on (ADR 0308):
 	 * `Pipelines.getForRender` with a collecting array calls `createRenderPipelineAsync` (WebGPU) or
 	 * polls `KHR_parallel_shader_compile` (WebGL2), and `isReady` skips the draw until it is built.
 	 * Full-screen quads stay sync but the planet's per-frame ones: a one-shot bake must not be skipped.
 	 */
+	/** Objects drawn once while loading: their node graphs are built (the page's CPU cost of a shader). */
+	const builtObjects = new Set<string>();
+	/** New objects passed over by the build budget since the warm-up's round began. */
+	let deferredBuilds = 0;
+	let budgetOpen = false;
+	let budgetEnds = 0;
+	/**
+	 * While loading, a task builds node graphs for at most `BUILD_BUDGET_MS` (plan 370): three turns a
+	 * material into WGSL on the page's thread the first time it draws it, about 3 s in all on the M2
+	 * and up to 1.4 s in one frame. An object it has not drawn yet waits for the next task once the
+	 * budget is spent, so the loading screen keeps running. One-shot bakes are never passed over.
+	 */
+	const hookBuildBudget = (r: WebGPURenderer): void => {
+		const rr = r as unknown as { _renderObjectDirect?: (...a: unknown[]) => unknown };
+		const direct = rr._renderObjectDirect;
+		if (typeof direct !== 'function') return;
+		rr._renderObjectDirect = function (this: unknown, ...a: unknown[]) {
+			const object = a[0] as { id: number; isQuadMesh?: boolean };
+			const material = a[1] as { id: number };
+			if (asyncPipelines && !(object.isQuadMesh && !planet.isFrameQuad(object))) {
+				const key = `${material.id}:${object.id}`;
+				if (!builtObjects.has(key)) {
+					const now = performance.now();
+					if (!budgetOpen) {
+						budgetOpen = true;
+						budgetEnds = now + BUILD_BUDGET_MS;
+						setTimeout(() => (budgetOpen = false), 0);
+					} else if (now > budgetEnds) {
+						deferredBuilds++;
+						return;
+					}
+					builtObjects.add(key);
+				}
+			}
+			return direct.apply(this, a);
+		};
+	};
+
 	const hookPipelines = (r: WebGPURenderer): void => {
 		const pipes = (r as unknown as { _pipelines?: { getForRender: GetForRender } })._pipelines;
 		if (!pipes || typeof pipes.getForRender !== 'function') return;
@@ -394,6 +443,7 @@ export function createWebGPURenderer(
 			await idle();
 			if (!gpu) return;
 			const before = compiles.pipelines.length;
+			deferredBuilds = 0;
 			const was = asyncPipelines;
 			asyncPipelines = true;
 			try {
@@ -402,8 +452,11 @@ export function createWebGPURenderer(
 				asyncPipelines = was;
 			}
 			const pending = [...pendingCompiles];
-			if (pending.length === 0 && compiles.pipelines.length === before) return;
-			await Promise.all(pending);
+			if (pending.length === 0 && compiles.pipelines.length === before && deferredBuilds === 0)
+				return;
+			// a preset change ("continue with lower quality") asks for the new preset's pipelines next
+			// round; the old ones finish in the background
+			await Promise.race([Promise.all(pending), presetChanged.promise]);
 		}
 	};
 	/** The planet on its full and its half path (a governor rung or the pixel budget finds both built). */
@@ -453,7 +506,8 @@ export function createWebGPURenderer(
 			tracker.setStage('presets');
 			compiles.phase = 'background';
 			const own = preset;
-			for (const name of config.warmPresets ?? []) {
+			// a preset the player changed while loading (lower quality) warms nothing more
+			for (const name of own === (config.preset ?? 'high') ? (config.warmPresets ?? []) : []) {
 				if (name === own) continue;
 				const parts = model.warmPartScene(name);
 				variants.push(parts);
@@ -463,6 +517,7 @@ export function createWebGPURenderer(
 					await idle();
 					if (!gpu || preset !== own) break;
 					const before = compiles.pipelines.length;
+					deferredBuilds = 0;
 					asyncPipelines = true;
 					try {
 						applyPreset(name);
@@ -473,7 +528,8 @@ export function createWebGPURenderer(
 					}
 					drawFrame(0);
 					const pending = [...pendingCompiles];
-					if (pending.length === 0 && compiles.pipelines.length === before) break;
+					if (pending.length === 0 && compiles.pipelines.length === before && deferredBuilds === 0)
+						break;
 					await Promise.all(pending);
 				}
 				presetWarmMs[name] = Math.round(performance.now() - t0);
@@ -606,7 +662,13 @@ export function createWebGPURenderer(
 					)
 				);
 			},
-			setPreset: (next: GraphicsPreset) => applyPreset(next),
+			setPreset: (next: GraphicsPreset) => {
+				if (next === preset) return;
+				applyPreset(next);
+				pendingCompiles.clear();
+				presetChanged.resolve();
+				presetChanged = deferred();
+			},
 			get preset() {
 				return preset;
 			},

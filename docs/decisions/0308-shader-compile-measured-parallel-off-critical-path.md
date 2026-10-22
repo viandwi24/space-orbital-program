@@ -30,7 +30,7 @@ Nothing told us which pipeline cost what, on which backend, or whether Chrome's 
    - The world renderer adds its load steps, the backend, the adapter and the ANGLE string, and the browser.
    - First or cached load: a hash of the shader set, kept in `localStorage`. A set seen before in this browser should come from Chrome's shader cache.
    - Modules whose source is new since the previous load are counted. That catches a per-load value in a shader string, which would defeat the cache.
-   - The report is shown on the loading screen (pipelines left, a Copy report button), in Debug → Info (Copy load report) and in `window.__orbitalLoadReport()`.
+   - The loading screen shows the pipelines left. The report itself is in Debug → Info (Copy load report), in the stored load logs (point 7) and in `window.__orbitalLoadReport()`.
 2. **Async pipelines while loading.** Until the world is ready, three's renderer creates new render pipelines with `createRenderPipelineAsync`: the renderer passes a collecting array to `Pipelines.getForRender`. Dawn compiles them on worker threads, in parallel. A draw whose pipeline is not ready is skipped by three's `isReady`, so the hidden warm-up frames just ask for pipelines.
    - The warm-up repeats its frames until no pipeline is pending, then draws one more frame of each view on the sync path. That frame finds everything built, and the bakes that only run once draw in it.
    - One-shot bakes (`QuadMesh` draws into their own targets) stay on the sync path, so a bake is never skipped and then marked done. Only the scene's meshes and the planet's per-frame prepass and half-size quads go async.
@@ -41,6 +41,17 @@ Nothing told us which pipeline cost what, on which backend, or whether Chrome's 
    - Texture nodes that are swapped later start on separate placeholders: three merges uniforms of the same texture into one binding.
 4. **The next preset off the critical path.** The governor's next preset (ADR 0304) is warmed after the loading screen has gone, with async pipelines, while the world is shown. Its pipelines compile in the background, and the preset's frame is drawn into the hidden holder only when they are ready. A governor step before then builds as before.
 5. **No per-load values in shader strings.** three names buffer uniforms after a global node id (`NodeBuffer_1348856`), so the source changed between loads. The device wrapper renumbers those names per module (`stableShaderNames`) before the source reaches the browser. The report's "changed since the last load" count must be 0 on a reload; `measure-shader-compile.ts` dumps both loads to compare.
+
+6. **A loading screen that never looks frozen** (the owner, 2026-10-22: "at least don't make the tab not responding or stuck, show something").
+   - `WorldLoading.svelte` shows the game's own shots full screen, crossfading every 7 s with a slow pan (no pan with reduced motion), plus a caption and a rotating tip at the bottom left.
+   - The progress sits in the bottom-right corner: a spinning ring, the step and "2 / 5", the shaders ready of those asked for, the one compiling now, a thin bar and the elapsed time.
+   - Everything that moves is a CSS animation of transform or opacity. The compositor runs it while the page's thread is busy.
+   - After 15 s a "Taking long? Continue with lower quality" button switches to `low` and saves it. The warm-up stops waiting for the old preset's pipelines, and no background preset is warmed.
+   - The pictures come from `scripts/capture-loading-slides.ts`: the game's renderer at 1920 × 1080, WebP in `static/loading/`, no outside art.
+7. **Load logs in the browser, a Developer page** (the owner: no copy button on the loading screen; keep the logs and read them from the main menu).
+   - Every world load writes its log to `localStorage` (`orbital.loadLogs`, the last 20, about 1.5 MB at most). It is written every few seconds while loading, at ready, on an error, and when the tab is left on the loading screen.
+   - Each log has the report, the outcome, the step it reached, whether lower quality was chosen, any error, and the 200 slowest pipelines.
+   - `/developer` (a small item on the main menu) lists the logs, opens one, copies one or all as text, downloads `.json` and clears them. The part and crew viewers moved there from the Mods page, which links to it. Debug → Info still copies the current load's report.
 
 ## Alternatives considered
 

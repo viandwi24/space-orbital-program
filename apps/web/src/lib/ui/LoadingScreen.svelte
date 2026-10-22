@@ -10,9 +10,7 @@
 		step,
 		overlay = false,
 		steps = [],
-		fraction = null,
-		detail = '',
-		report = null
+		fraction = null
 	}: {
 		step: string;
 		/** Covers a page that is already mounted (the flight canvas). */ overlay?: boolean;
@@ -20,23 +18,7 @@
 		steps?: ReadonlyArray<{ label: string; state: 'done' | 'now' | 'todo' }>;
 		/** Share of the step done, 0 to 1; null for the moving bar. */
 		fraction?: number | null;
-		/** A line under the step: what is left of it (plan 370: pipelines ready of asked for). */
-		detail?: string;
-		/** The load report's text, for its Copy button (plan 370); null hides the button. */
-		report?: (() => string | null) | null;
 	} = $props();
-
-	let copied = $state('');
-	async function copy(): Promise<void> {
-		const text = report?.();
-		if (!text) return;
-		try {
-			await navigator.clipboard.writeText(text);
-			copied = 'Copied';
-		} catch {
-			copied = 'The browser did not allow copying';
-		}
-	}
 </script>
 
 <div class="loading" class:overlay role="status" aria-live="polite" data-testid="loading-screen">
@@ -58,19 +40,12 @@
 		<span style:width={fraction !== null ? `${Math.round(fraction * 100)}%` : undefined}></span>
 	</div>
 	<p class="step">{step}</p>
-	{#if detail}<p class="detail" data-testid="loading-detail">{detail}</p>{/if}
 	{#if steps.length > 0}
 		<ol class="steps" data-testid="loading-steps">
 			{#each steps as s (s.label)}
 				<li class={s.state}>{s.label}</li>
 			{/each}
 		</ol>
-	{/if}
-	{#if report}
-		<button type="button" class="copy" onclick={() => void copy()} data-testid="loading-copy-report"
-			>Copy load report</button
-		>
-		{#if copied}<p class="detail" role="status">{copied}</p>{/if}
 	{/if}
 </div>
 
@@ -103,26 +78,6 @@
 		margin: 0;
 		font-size: var(--t-small);
 		color: var(--text-muted);
-	}
-	.detail {
-		margin: 0;
-		font-size: var(--t-small);
-		color: var(--text-muted);
-		font-variant-numeric: tabular-nums;
-	}
-	.copy {
-		margin-top: var(--s-3);
-		padding: var(--s-1) var(--s-3);
-		font: inherit;
-		font-size: var(--t-small);
-		color: var(--text-muted);
-		background: transparent;
-		border: 1px solid var(--surface-track);
-		border-radius: var(--radius-pill);
-		cursor: pointer;
-	}
-	.copy:hover {
-		color: var(--text-primary);
 	}
 	.bar {
 		width: 11.25rem;

@@ -33,6 +33,8 @@ export interface PipelineEntry {
 	/** `performance.now()` when it was asked for. */
 	at: number;
 	pending: boolean;
+	/** The browser refused it (a shader error): nothing draws with it. */
+	failed?: boolean;
 }
 
 export interface CompileSummary {
@@ -42,6 +44,8 @@ export interface CompileSummary {
 	sync: number;
 	async: number;
 	pending: number;
+	/** Pipelines that failed to build. */
+	failed: number;
 	/** Sum of the timed compiles, ms (they overlap when the browser runs them in parallel). */
 	timedMs: number;
 	/** The longest timed compiles, longest first. */
@@ -106,6 +110,7 @@ export function summarize(
 		sync: pipelines.filter((p) => p.mode === 'sync').length,
 		async: pipelines.filter((p) => p.mode !== 'sync').length,
 		pending: pipelines.filter((p) => p.pending).length,
+		failed: pipelines.filter((p) => p.failed).length,
 		timedMs: Math.round(timed.reduce((a, p) => a + (p.ms ?? 0), 0)),
 		slowest: [...timed].sort((a, b) => (b.ms ?? 0) - (a.ms ?? 0)).slice(0, top),
 		largest: [...modules].sort((a, b) => b.bytes - a.bytes).slice(0, Math.max(5, top / 2)),
@@ -181,7 +186,14 @@ export class CompileReport {
 		if (!p.pending) return;
 		p.pending = false;
 		if (timed) p.ms = Math.round((now() - p.at) * 10) / 10;
+		else p.failed = true;
 		this.changed();
+	}
+
+	/** The label of the oldest pipeline still compiling (the loading screen's "now"), or ''. */
+	current(): string {
+		for (const p of this.pipelines) if (p.pending) return p.label;
+		return '';
 	}
 
 	/** Wraps a WebGPU device's module and pipeline creation (once per device). */

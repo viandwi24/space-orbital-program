@@ -182,16 +182,10 @@
 
 	<section aria-labelledby="dev-tools">
 		<h2 id="dev-tools">Developer tools</h2>
-		<p class="dim">For mod authors and debugging; no world is loaded.</p>
-		<ul class="tools">
-			<li>
-				<a href={resolve('/dev/parts')}>Part viewer</a>
-				<span class="dim"
-					>Every part on its own: turn, zoom, wireframe, attach nodes, colliders, deploy states and
-					size classes side by side.</span
-				>
-			</li>
-		</ul>
+		<p class="dim">
+			The part viewer, the crew viewer and the load logs of this browser are on the
+			<a href={resolve('/developer')} data-testid="mods-developer">Developer</a> page.
+		</p>
 	</section>
 </MenuShell>
 
@@ -379,16 +373,5 @@
 	code {
 		font-family: var(--font-mono);
 		font-size: 0.9em;
-	}
-	.tools {
-		list-style: none;
-		margin: 0;
-		padding: 0;
-		display: grid;
-		gap: 8px;
-	}
-	.tools li {
-		display: grid;
-		gap: 2px;
 	}
 </style>
