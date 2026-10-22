@@ -5,6 +5,7 @@
  * removes the (one, compound) body of each vessel, applies gravity and drag, keeps a ground tile
  * under every vessel near the ground (ADR 0019), advances the backend, reads contacts and poses back.
  */
+import { noteDragArea } from './aero-facts.ts';
 import { WATER_DEPTH } from '@orbital/core';
 import type {
 	EntityId,
@@ -549,6 +550,9 @@ function applyDrag(
 	// parts inside a closed fairing take no drag and no convective heat (plan 219, ADR 0224)
 	const shielded = shieldedParts(core, vesselId);
 	const shieldedAny = shielded.size > 0 || hasShell(core, vesselId);
+	// C_d·A along the airflow, measured for mods that predict the flight (plan 347, ADR 0296)
+	let dragArea = 0;
+	let inAir = false;
 	for (const partId of vessel.parts) {
 		if (shielded.has(partId)) continue;
 		const part = partOf(core, partId);
@@ -588,6 +592,12 @@ function applyDrag(
 			z: k * area.z * Math.abs(local.z) * local.z
 		};
 		frame.backend.applyForce(flight.handle, qRotate(turned, force), pose.position);
+		const airspeed = Math.hypot(local.x, local.y, local.z);
+		if (airspeed > 1) {
+			inAir = true;
+			const along = -(force.x * local.x + force.y * local.y + force.z * local.z) / airspeed;
+			dragArea += along / (0.5 * density * airspeed * airspeed * machDragFactor(mach));
+		}
 		if (def.bluntBase !== undefined && !covered.bottom && def.shape?.kind === 'cylinder') {
 			// the airflow turns an open blunt end to face it (plan 265): a moment about the vessel's
 			// centre of mass, first order in the angle to the flow, with pitch damping
@@ -621,6 +631,7 @@ function applyDrag(
 		const input = heatInput(density, def.shape, area, local);
 		heat.set(partId, heating === 1 ? input : { ...input, power: input.power * heating });
 	}
+	if (inAir) noteDragArea(core, vesselId, dragArea);
 	return heat;
 }
 

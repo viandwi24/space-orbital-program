@@ -275,7 +275,8 @@ describe('registration and report', () => {
 			commodity: [],
 			recipe: [],
 			store: [],
-			keybinding: []
+			keybinding: [],
+			overlay: []
 		});
 	});
 

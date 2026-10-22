@@ -10,6 +10,7 @@ import type { BlueprintDefinition } from './blueprints.ts';
 import type { PanelDefinition } from './panels.ts';
 import type { AutopilotDefinition } from './autopilots.ts';
 import type { KeybindingDefinition, ModContext, StoreDefinition } from './mod-api.ts';
+import type { OverlayDefinition } from './overlays.ts';
 import type { CategoryDefinition } from './categories.ts';
 import type { AchievementDefinition } from './milestones.ts';
 import type { FailureModeDefinition } from './reliability.ts';
@@ -152,6 +153,8 @@ export interface ReadonlyRegistries {
 	/** Mod stores and keybindings (plan 343, ADR 0292). */
 	stores: ReadonlyRegistry<StoreDefinition>;
 	keybindings: ReadonlyRegistry<KeybindingDefinition>;
+	/** Mod overlays (plan 347, ADR 0296). */
+	overlays: ReadonlyRegistry<OverlayDefinition>;
 	/** Crew traits and name syllables (plan 106, ADR 0176). */
 	crewTraits: ReadonlyRegistry<CrewTraitDefinition>;
 	crewNames: ReadonlyRegistry<CrewNamesDefinition>;

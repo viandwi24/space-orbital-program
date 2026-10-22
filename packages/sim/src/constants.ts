@@ -29,12 +29,9 @@ export const DRAG_COEFFICIENT = 0.3;
  * whatever the vessel's size and the airflow.
  */
 export const BLUNT_DAMPING_RATIO = 0.4;
-/** Specific gas constant of air, J/(kg·K). */
-export const AIR_GAS_CONSTANT = 287.05;
-/** Air temperature of a body without a temperature curve, K (plan 212). */
-export const AIR_TEMPERATURE = 288.15;
-/** Heat capacity ratio of air. */
-export const AIR_GAMMA = 1.4;
+/** Air constants (plan 212), one definition in core since plan 347. */
+import { AIR_GAMMA, AIR_GAS_CONSTANT, AIR_TEMPERATURE } from '@orbital/core';
+export { AIR_GAMMA, AIR_GAS_CONSTANT, AIR_TEMPERATURE };
 
 /** Box used for a part without a `shape`, edge length in m. */
 export const FALLBACK_PART_SIZE = 1;

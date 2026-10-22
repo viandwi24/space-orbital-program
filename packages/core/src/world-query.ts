@@ -17,6 +17,10 @@ import type {
 	VesselType
 } from './protocol.ts';
 import { GRAVITATIONAL_CONSTANT } from './units.ts';
+import { ambientAt } from './atmosphere.ts';
+import { bodyAngularVelocity } from './body-rotation.ts';
+import type { Ambient } from './definitions.ts';
+import type { OverlayLayer } from './overlays.ts';
 
 /** A vessel's coarse situation (ADR 0292 point 2), KSP's set. */
 export const VESSEL_SITUATIONS = [
@@ -48,6 +52,8 @@ export interface WorldBody {
 	position: Vec3;
 	/** Body-fixed axes relative to the inertial frame. */
 	rotation: Quat;
+	/** Spin, inertial axes, rad/s (plan 347): the air turns with it. Zero without a definition. */
+	angularVelocity: Vec3;
 }
 
 export interface WorldVessel {
@@ -85,6 +91,9 @@ export interface WorldVessel {
 	autopilot: string | null;
 	/** Stages fired so far. */
 	stage: number;
+	/** Mass, kg, and drag area C_d·A, m² (plan 347, ADR 0296 point 6); null from older hosts. */
+	mass: number | null;
+	dragArea: number | null;
 }
 
 export interface WorldPart {
@@ -184,6 +193,19 @@ export interface WorldQuery {
 	rule(id: string): boolean | number | string | undefined;
 	/** A mod store's value as the snapshot has it (ADR 0292 point 4), or undefined. */
 	store(id: string): unknown;
+	/**
+	 * The air of `body` at `altitude` above its reference radius (plan 347, ADR 0296 point 6):
+	 * pressure, density, temperature and speed of sound as the sim computes them; vacuum when the
+	 * body is unknown or has no air.
+	 */
+	atmosphere(body: string, altitude: number): Ambient;
+	/**
+	 * Height of the ground above the reference radius under `position` (relative to the body
+	 * centre, inertial axes, now), m. The sim answers from its terrain; the page has none: null.
+	 */
+	groundHeight(body: string, position: Vec3): number | null;
+	/** What a sim system published for an overlay (ADR 0296 point 3), or null. */
+	overlay(id: string): OverlayLayer | null;
 	/** The snapshot behind this query: the protocol, for what the facade does not cover. */
 	readonly snapshot: Snapshot;
 }
@@ -191,6 +213,8 @@ export interface WorldQuery {
 /** What `createWorldQuery` needs to know about bodies: their definitions. */
 export interface WorldQueryOptions {
 	bodies?: Pick<ReadonlyRegistry<BodyDefinition>, 'list'>;
+	/** The ground under a body-relative inertial position, m above the radius (the sim's terrain). */
+	ground?: (body: string, position: Vec3) => number;
 }
 
 const len = (v: Vec3): number => Math.hypot(v.x, v.y, v.z);
@@ -222,7 +246,8 @@ function bodiesOf(snapshot: Snapshot, defs: readonly BodyDefinition[]): Map<stri
 			soi,
 			star: def?.star === true,
 			position: state?.position ?? ZERO,
-			rotation: state?.rotation ?? { x: 0, y: 0, z: 0, w: 1 }
+			rotation: state?.rotation ?? { x: 0, y: 0, z: 0, w: 1 },
+			angularVelocity: def?.rotationPeriod ? bodyAngularVelocity(def, snapshot.t) : ZERO
 		});
 	}
 	return out;
@@ -286,7 +311,8 @@ export function situationOfVessel(v: VesselSnapshot, body: WorldBody | undefined
 }
 
 export function createWorldQuery(snapshot: Snapshot, options: WorldQueryOptions = {}): WorldQuery {
-	const bodies = bodiesOf(snapshot, options.bodies?.list() ?? []);
+	const defs = options.bodies?.list() ?? [];
+	const bodies = bodiesOf(snapshot, defs);
 	const raw = new Map(snapshot.vessels.map((v) => [v.id as number, v]));
 	let views: WorldVessel[] | null = null;
 	const roster = (): WorldCrewMember[] =>
@@ -331,7 +357,9 @@ export function createWorldQuery(snapshot: Snapshot, options: WorldQueryOptions 
 			apoapsis: bound && known ? o.a * (1 + o.e) - body.radius : null,
 			target: v.target ?? null,
 			autopilot: v.autopilot?.id ?? null,
-			stage: v.nextStage ?? 0
+			stage: v.nextStage ?? 0,
+			mass: v.aero?.mass ?? null,
+			dragArea: v.aero?.dragArea ?? null
 		};
 	};
 	const all = (): WorldVessel[] => (views ??= snapshot.vessels.map(view));
@@ -437,6 +465,12 @@ export function createWorldQuery(snapshot: Snapshot, options: WorldQueryOptions 
 		}),
 		rule: (id) => snapshot.rules?.[id],
 		store: (id) => snapshot.stores?.[id],
+		atmosphere(body, altitude) {
+			const def = defs.find((d) => d.id === body);
+			return def ? ambientAt(def, altitude) : { pressure: 0, density: 0, altitude };
+		},
+		groundHeight: (body, position) => (options.ground ? options.ground(body, position) : null),
+		overlay: (id) => snapshot.overlays?.[id] ?? null,
 		snapshot
 	};
 }

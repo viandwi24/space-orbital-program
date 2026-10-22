@@ -61,7 +61,8 @@ import { economySnapshot, quoteRecovery, recoveryBlocker } from './economy.ts';
 import { marketSnapshot } from './market.ts';
 import { sitesSnapshot } from './buildings.ts';
 import { vesselSituationNow } from './situation.ts';
-import { storesSnapshot } from './mod-runtime.ts';
+import { aeroFacts } from './aero-facts.ts';
+import { overlaysSnapshot, storesSnapshot } from './mod-runtime.ts';
 
 /** The part's failure temperature, K (its definition's, else the default; plan 212). */
 const maxTemperatureOf = (core: SimCore, part: EntityId): number =>
@@ -166,6 +167,7 @@ export function vesselSnapshot(core: SimCore, id: EntityId): VesselSnapshot {
 		...(vessel.launchedAt !== undefined ? { launchedAt: vessel.launchedAt } : {}),
 		...(situationView(core, id).splashed ? { splashed: true } : {}),
 		situation: vesselSituationNow(core, id),
+		aero: aeroFacts(core, id),
 		...(vessel.trim || vessel.trimYaw || vessel.trimRoll
 			? { trim: { pitch: vessel.trim ?? 0, yaw: vessel.trimYaw ?? 0, roll: vessel.trimRoll ?? 0 } }
 			: {}),
@@ -278,6 +280,7 @@ export function takeSnapshot(core: SimCore): Snapshot {
 		})),
 		rules: rulesView(core),
 		...withStores(core),
+		...withOverlays(core),
 		debug: debugSnapshot(core),
 		warpLimit: warpLimit(core),
 		...(core.paused ? { paused: true } : {}),
@@ -298,6 +301,12 @@ export function takeSnapshot(core: SimCore): Snapshot {
 		...(reliability ? { reliability } : {}),
 		...(roster ? { crew: roster } : {})
 	};
+}
+
+/** `{ overlays }` while a sim system published one (ADR 0296 point 3). */
+function withOverlays(core: SimCore): { overlays?: Snapshot['overlays'] } {
+	const overlays = overlaysSnapshot(core);
+	return overlays ? { overlays } : {};
 }
 
 /** `{ stores }` once a mod wrote one (ADR 0292 point 4). */

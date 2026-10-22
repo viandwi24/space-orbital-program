@@ -16,6 +16,7 @@ import type { BodyId, EntityId, PartId } from './ids.ts';
 import type { Quat, Vec3 } from './math.ts';
 import type { AutopilotLast, AutopilotSettingValue, AutopilotSnapshot } from './autopilots.ts';
 import type { VesselSituation } from './world-query.ts';
+import type { OverlayLayer } from './overlays.ts';
 
 export type VesselMode = 'flight' | 'on-rails';
 
@@ -321,6 +322,11 @@ export interface VesselSnapshot {
 	splashed?: boolean;
 	/** The coarse situation (plan 343, ADR 0292 point 2). Always set by the sim; optional for older fixtures. */
 	situation?: VesselSituation;
+	/**
+	 * Mass, kg, and drag area C_d·A, m² (plan 347, ADR 0296 point 6): measured along the airflow
+	 * while in air, else an estimate along the vessel's axis. Always set by the sim.
+	 */
+	aero?: { mass: number; dragArea: number };
 	/** The trim on each axis, -1..1 (plan 245); absent while all three are zero. */
 	trim?: { pitch: number; yaw: number; roll: number };
 	/**
@@ -434,6 +440,8 @@ export interface Snapshot {
 	rules?: Readonly<Record<string, boolean | number | string>>;
 	/** Mod stores by id (plan 343, ADR 0292 point 4); absent while none was written. */
 	stores?: Readonly<Record<string, unknown>>;
+	/** Overlays sim systems published (plan 347, ADR 0296 point 3), by overlay id; never saved. */
+	overlays?: Readonly<Record<string, OverlayLayer>>;
 	/** Contract slots, offers and accepted generated contracts (plan 099, ADR 0186); absent before any. */
 	contracts?: ContractsSnapshot;
 	/** Strategy slots, multipliers and the strategies on offer (plan 101, ADR 0187); with the economy on. */
