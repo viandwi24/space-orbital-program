@@ -28,3 +28,24 @@ export function devTabOf(pathname: string): DevTab | undefined {
 	const rest = pathname.slice(at).replace(/\/+$/, '');
 	return DEV_TABS.find((t) => t.path === rest);
 }
+
+/**
+ * The viewer for a kind of content, as the Mods page names them (`parts`, `crew`, `blueprints`,
+ * `programs`, `panels`, `overlays`, `mods`): kinds without a viewer of their own open the loader log.
+ */
+export function devTabForKind(kind: string): DevTab['path'] {
+	switch (kind) {
+		case 'parts':
+		case 'part':
+			return '/developer/parts';
+		case 'crew':
+			return '/developer/crew';
+		case 'blueprints':
+		case 'blueprint':
+			return '/developer/blueprints';
+		case 'hangar':
+			return '/developer/hangar';
+		default:
+			return '/developer/mods';
+	}
+}
