@@ -6,6 +6,7 @@ import {
 	accepts,
 	facilitiesOf,
 	placementOf,
+	quickLaunchPlacement,
 	saveLaunchChoice,
 	seatIn,
 	seatsOf,
@@ -83,6 +84,32 @@ describe('launch facilities', () => {
 	it('planned buildings and buildings that are not pads or runways are left out', () => {
 		const planned = { ...at('p', 'stock.launchpad-s', 0, 0), state: 'planned' as const };
 		expect(facilitiesOf(site([planned, at('h', 'stock.hangar', 5, 5)]), buildings)).toEqual([]);
+	});
+});
+
+describe('quick launch (Shift+Launch)', () => {
+	it("stands on the primary site's first working pad, the spot the Launch screen picks", () => {
+		const hq: Site = {
+			...site([at('h', 'stock.hangar', 5, 5), at('pad-m', 'stock.launchpad-m', 4, 2, 1)]),
+			id: 'space-center',
+			latitude: 0.5,
+			longitude: 1.2
+		};
+		const pad = facilitiesOf(hq, buildings)[0]!;
+		expect(quickLaunchPlacement([hq], buildings, false)).toEqual(placementOf(hq, pad));
+		expect(quickLaunchPlacement([], buildings, false)).toBeUndefined();
+	});
+
+	it("an aircraft takes the runway; the running sim's buildings win over the record", () => {
+		const hq = site([at('pad-s', 'stock.launchpad-s', -1, -1), at('runway', 'stock.runway', 10, 0)]);
+		const runway = facilitiesOf(hq, buildings).find((f) => f.kind === 'runway')!;
+		expect(quickLaunchPlacement([hq], buildings, true)).toEqual(placementOf(hq, runway));
+		const live = [{ id: hq.id, buildings: [at('pad-m', 'stock.launchpad-m', 4, 2, 1)] }];
+		expect(quickLaunchPlacement([hq], buildings, false, live)).toEqual({
+			kind: 'site',
+			site: hq.id,
+			at: { east: 60, north: 40 }
+		});
 	});
 });
 

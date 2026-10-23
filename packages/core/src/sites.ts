@@ -10,7 +10,15 @@ import {
 	SITE_FLAT_RADIUS,
 	type TerrainZone
 } from './terrain.ts';
-import { LEGACY_LAYOUT, placedBuildingSchema, roadsSchema } from './buildings.ts';
+import {
+	CELL_SIZE,
+	footprint,
+	LEGACY_LAYOUT,
+	placedBuildingSchema,
+	roadsSchema,
+	workingLevel,
+	type BuildingDefinition
+} from './buildings.ts';
 import type { WorldInfo } from './world.ts';
 
 /**
@@ -99,6 +107,36 @@ export function padLatLon(site: Site, pad: SitePad, radius: number): [number, nu
 	const latitude = site.latitude + pad.north / radius;
 	const longitude = site.longitude + pad.east / (radius * Math.max(Math.cos(site.latitude), 1e-6));
 	return [latitude, longitude];
+}
+
+/**
+ * Where a vessel stands when no spot was chosen (a quick launch, a script): the centre of the
+ * site's first working pad, or runway for an aircraft, as the Launch screen places it; else the
+ * site's first pad. A world made from a site template has its site far from (0, 0), so a launch
+ * without a spot must still start here, where the Space Center and its station are.
+ */
+export function defaultLaunchSpot(
+	site: Pick<Site, 'buildings' | 'pads'>,
+	registry: {
+		get(kind: string): Pick<BuildingDefinition, 'size' | 'provides'> | undefined;
+	},
+	aircraft = false
+): SitePad {
+	const want = aircraft ? 'runway' : 'launch-pad';
+	let fallback: SitePad | undefined;
+	for (const b of site.buildings ?? []) {
+		if (workingLevel(b) === null) continue;
+		const def = registry.get(b.kind);
+		if (!def || !(def.provides.includes('launch-pad') || def.provides.includes('runway'))) continue;
+		const cells = footprint(def.size, b.cell, b.rotation);
+		const spot = {
+			east: (cells.reduce((s, c) => s + c.i, 0) / cells.length) * CELL_SIZE,
+			north: (cells.reduce((s, c) => s + c.j, 0) / cells.length) * CELL_SIZE
+		};
+		if (def.provides.includes(want)) return spot;
+		fallback ??= spot;
+	}
+	return fallback ?? site.pads[0] ?? { east: 0, north: 0 };
 }
 
 /**

@@ -41,7 +41,7 @@
 	import PanelLibrary from '../../../lib/dock/PanelLibrary.svelte';
 	import { addPanel, railOf, removePanel, togglePanel } from '../../../lib/dock/dock-model';
 	import Panel from '../../../lib/ui/Panel.svelte';
-	import { takeLaunchChoice } from '../../../lib/launch/launch-model';
+	import { quickLaunchPlacement, takeLaunchChoice } from '../../../lib/launch/launch-model';
 	import { loadEphemeris, needsEphemeris } from '../../../lib/ephemeris-asset';
 	import type { WorldInfo } from '@orbital/core';
 	import {
@@ -882,6 +882,8 @@
 		let start: ScenarioStart | null = null;
 		let attach: { vessel: number } | undefined;
 		const launch = loadId === null ? takeLaunchChoice() : null;
+		// the Hangar's draft without a Launch screen choice (a quick launch): the primary site's pad
+		let quick = false;
 		let client: SimClient;
 		if (loadId !== null) {
 			try {
@@ -919,6 +921,7 @@
 				design = lesson.design(content);
 				lessonContent = content;
 			} else {
+				quick = true;
 				const text = loadDraft();
 				if (text === null) {
 					problem = 'No vessel to launch yet.';
@@ -951,7 +954,15 @@
 			resume,
 			client,
 			attach,
-			launch?.placement,
+			launch?.placement ??
+				(quick && siteBuildings
+					? quickLaunchPlacement(
+							launchSites,
+							siteBuildings,
+							design.aircraft === true,
+							worldSession.snapshot?.sites
+						)
+					: undefined),
 			start,
 			launch?.crew
 		);

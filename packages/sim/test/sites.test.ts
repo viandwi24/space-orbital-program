@@ -42,6 +42,38 @@ describe('placement at a site', () => {
 		b.dispose();
 	});
 
+	test('no placement in a world whose Space Center is not at (0, 0): the vessel stands on its pad', async () => {
+		// a world made from a site template (Create World): the quick launch skipped the Launch screen
+		const hq: Site = {
+			...structuredClone(LEGACY_SITE),
+			id: 'space-center',
+			latitude: 30 * DEG,
+			longitude: 1.0
+		};
+		const world: WorldInfo = { ...legacyWorldInfo(1), id: 'w-tmpl', sites: [hq] };
+		const a = await simIn(world);
+		const b = await simIn(world);
+		const ra = a.dispatch({ type: 'load-vessel', design: probe() });
+		const rb = b.dispatch({
+			type: 'load-vessel',
+			design: probe(),
+			placement: { kind: 'site', site: 'space-center', at: { east: 0, north: 0 } }
+		});
+		expect(ra.ok && rb.ok).toBe(true);
+		const va = a.snapshot().vessels[0]!;
+		const vb = b.snapshot().vessels[0]!;
+		// the Legacy launchpad's footprint centres on the site centre
+		expect(
+			Math.hypot(
+				va.position.x - vb.position.x,
+				va.position.y - vb.position.y,
+				va.position.z - vb.position.z
+			)
+		).toBeLessThan(1);
+		a.dispose();
+		b.dispose();
+	});
+
 	test('unknown sites and pads are refused with the reason', async () => {
 		const sim = await simIn();
 		const bad = (placement: { kind: 'site'; site: string; pad?: number }) =>
