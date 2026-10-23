@@ -51,6 +51,10 @@ export interface ScTourObservation {
 	removed: boolean;
 	/** Time warp now. */
 	warp: number;
+	/** The Found a branch picker is open. */
+	branchOpen: boolean;
+	/** Branch sites the world has. */
+	branches: number;
 }
 
 export const QUIET_TOUR: ScTourObservation = {
@@ -66,7 +70,9 @@ export const QUIET_TOUR: ScTourObservation = {
 	confirm: false,
 	building: null,
 	removed: false,
-	warp: 1
+	warp: 1,
+	branchOpen: false,
+	branches: 0
 };
 
 export interface ScTourStep {
@@ -78,6 +84,8 @@ export interface ScTourStep {
 	point(o: ScTourObservation): string | null;
 	/** The real action that completes it; absent: an information step, done on Next. */
 	done?(o: ScTourObservation): boolean;
+	/** An optional action: it completes the step, and Next skips it. */
+	optional?: true;
 }
 
 export const SC_TOUR_STEPS: readonly ScTourStep[] = [
@@ -174,8 +182,12 @@ export const SC_TOUR_STEPS: readonly ScTourStep[] = [
 		id: 'branch',
 		title: 'Branches',
 		text: (o) =>
-			`Found a branch opens a second launch site elsewhere on the planet, with its own HQ to build first.${o.economy ? ' It costs the HQ’s price: worth it once a site closer to the equator or a second pad pays off.' : ''} You do not need one yet.`,
-		point: () => 'sc-found-branch'
+			`Found a branch opens a second launch site elsewhere on the planet, with its own HQ to build first.${o.economy ? ' It costs the HQ’s price: worth it once a site closer to the equator or a second pad pays off.' : ''} Open it to have a look, or press Next: you do not need one yet.`,
+		point: () => 'sc-found-branch',
+		// opening the picker, or a branch already standing, is enough (owner, 2026-10-23: the step
+		// stayed through five branches because it only waited for Next)
+		done: (o) => o.branchOpen || o.branches > 0,
+		optional: true
 	},
 	{
 		id: 'finish',

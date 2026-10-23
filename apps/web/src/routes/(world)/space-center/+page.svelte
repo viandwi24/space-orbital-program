@@ -202,7 +202,12 @@
 	}
 	// the tour's feed: what is being placed and what is selected (plan 377, ADR 0314 point 3)
 	$effect(() => {
-		scFeed.update({ placing: build?.kind ?? null, selected });
+		scFeed.update({
+			placing: build?.kind ?? null,
+			selected,
+			branchOpen,
+			branches: allSites.filter((s) => s.kind === 'branch').length
+		});
 	});
 	/** The welcome on the world's first visit (plan 377, ADR 0314 point 1). */
 	let offerTour = $state(false);

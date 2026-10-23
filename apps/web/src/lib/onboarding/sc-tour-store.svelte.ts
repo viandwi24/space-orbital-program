@@ -78,6 +78,10 @@ export interface ScFeed {
 	selected: string | null;
 	listOpen: boolean;
 	confirm: boolean;
+	/** The Found a branch picker is open. */
+	branchOpen: boolean;
+	/** Branch sites the world has. */
+	branches: number;
 	economy: boolean;
 	/** The shown site's buildings, with the tour building's refund. */
 	buildings: readonly (TourBuilding & { refund?: number })[];
@@ -92,6 +96,8 @@ export const EMPTY_FEED: ScFeed = {
 	selected: null,
 	listOpen: false,
 	confirm: false,
+	branchOpen: false,
+	branches: 0,
 	economy: false,
 	buildings: []
 };
@@ -102,6 +108,8 @@ class ScFeedState {
 	/** The buildings seen last, kept while the player visits another page. */
 	buildings = $state.raw<ScFeed['buildings']>([]);
 	economy = $state(false);
+	/** Branch sites, kept like the buildings. */
+	branches = $state(0);
 
 	update(part: Partial<ScFeed>): void {
 		// written from effects: reading the feed here must not make them depend on it
@@ -109,6 +117,7 @@ class ScFeedState {
 		this.feed = next;
 		if (part.buildings) this.buildings = part.buildings;
 		if (part.economy !== undefined) this.economy = part.economy;
+		if (part.branches !== undefined) this.branches = part.branches;
 	}
 	leave(): void {
 		this.feed = null;
