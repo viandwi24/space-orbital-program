@@ -18,6 +18,7 @@ import {
 	surfaceSite,
 	type DesignTilt,
 	type PartDefinition,
+	type Plugin,
 	type PlacedBuilding,
 	type VesselDesign
 } from '@orbital/core';
@@ -211,9 +212,22 @@ function saveMarkerSetting(kind: 'com' | 'cot', on: boolean): void {
 	}
 }
 
+/** The plugin list the next controller loads (the developer sandbox's own set, plan 375). */
+let contentPlugins: readonly Plugin[] | undefined;
+
+/** Makes a controller whose content is `plugins` (undefined: the page's mod runtime, as a world). */
+export function withPlugins<T>(plugins: readonly Plugin[] | undefined, make: () => T): T {
+	contentPlugins = plugins;
+	try {
+		return make();
+	} finally {
+		contentPlugins = undefined;
+	}
+}
+
 export class VabController {
 	// --- content ---------------------------------------------------------------------------------------------
-	readonly loaded = loadContent();
+	readonly loaded = loadContent(undefined, contentPlugins);
 	readonly catalog = this.loaded.catalog;
 	readonly content = this.loaded.content;
 	readonly lookup = partLookup(this.catalog);

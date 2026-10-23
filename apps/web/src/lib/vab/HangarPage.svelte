@@ -25,7 +25,8 @@
 	import { pageShell } from '../layout/page-actions.svelte';
 	import ToolPill from './ToolPill.svelte';
 	import HelpOverlay from '../hud/HelpOverlay.svelte';
-	import { VabController } from './controller.svelte';
+	import { VabController, withPlugins } from './controller.svelte';
+	import type { Plugin } from '@orbital/core';
 	import { SaveController } from '../save/save-controller.svelte';
 	import { bootedMods, modHint } from '../save/mods';
 	import { loadWorldTech } from '../tech/world-tech';
@@ -48,11 +49,19 @@
 	 * funds, no launch, its own library, and its New/Open/Save/look buttons in the developer bar.
 	 * `blueprint` loads a blueprint at once (the Blueprints tab's Open in the Hangar).
 	 */
-	let { sandbox = false, blueprint = null }: { sandbox?: boolean; blueprint?: string | null } =
-		$props();
+	let {
+		sandbox = false,
+		blueprint = null,
+		plugins = undefined
+	}: {
+		sandbox?: boolean;
+		blueprint?: string | null;
+		/** The plugin list (the sandbox with turned-off mods); default the page's mod runtime. */
+		plugins?: readonly Plugin[];
+	} = $props();
 
 	// svelte-ignore state_referenced_locally
-	const vab = new VabController({ sandbox });
+	const vab = withPlugins(plugins, () => new VabController({ sandbox }));
 	// the active world's tech tree flags locked parts (plan 105, ADR 0154 point 4)
 	// the active world's part reliability for the part card (plan 130, ADR 0156 point 8)
 	const worldSaves = new SaveController({
