@@ -32,6 +32,7 @@ import {
 import type { Renderer, RendererConfig, RendererDebug } from './renderer.ts';
 import { MIN_RENDER_SCALE, debugFacade, sceneFacade, withShared } from './renderer-facade.ts';
 import { SceneModel } from './scene.ts';
+import type { StaticBundle } from './site-meshes.ts';
 import { PlanetPassTSL } from './tsl/planet-pass.ts';
 import { hideUnported } from './webgpu-compat.ts';
 import { Twins } from './tsl/twins.ts';
@@ -64,6 +65,7 @@ type Modules = {
 	RenderPipeline: typeof import('three/webgpu').RenderPipeline;
 	pass: typeof import('three/tsl').pass;
 	bloom: typeof import('three/addons/tsl/display/BloomNode.js').bloom;
+	BundleGroup: typeof import('three/webgpu').BundleGroup;
 };
 
 const loadModules = async (): Promise<Modules> => {
@@ -76,7 +78,8 @@ const loadModules = async (): Promise<Modules> => {
 		WebGPURenderer: webgpu.WebGPURenderer,
 		RenderPipeline: webgpu.RenderPipeline,
 		pass: tsl.pass,
-		bloom: bloomNode.bloom
+		bloom: bloomNode.bloom,
+		BundleGroup: webgpu.BundleGroup
 	};
 };
 
@@ -202,6 +205,8 @@ export function createWebGPURenderer(
 
 	const start = async (): Promise<void> => {
 		modules ??= await loadModules();
+		// the static site structure as one render bundle (plan 396); lights and moving parts stay out
+		env.site.bundleStatic(new modules.BundleGroup() as unknown as StaticBundle);
 		const r = new modules.WebGPURenderer({
 			canvas: config.canvas,
 			antialias: false,

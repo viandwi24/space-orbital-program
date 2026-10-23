@@ -1,7 +1,7 @@
 ---
 id: 396
 title: "CPU at 120 Hz: HUD updates at 30–60 Hz with no per-frame allocation, BundleGroup for the static site, Long Animation Frames in Debug"
-status: draft
+status: done
 owner: "Worker C"
 depends: [392]
 phase: 9
@@ -69,3 +69,4 @@ The main thread fits a 120 Hz frame: ≤ 4–6 ms per frame at the pad and in fl
 ## Log
 
 - 2026-10-24 — Created by the coordinator from refs/graphics-v2 (ADR 0330).
+- 2026-10-24 — Code done (Worker C): HUD repaint at 60 Hz, static site `BundleGroup`, Long Animation Frames in Debug; journal 396. Left to the owner's M5 run: the allocation profile and the main-thread measurement (the [manual] criterion), and a look at `capture-graphics.ts` for the bundled site.

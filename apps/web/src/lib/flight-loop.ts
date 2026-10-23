@@ -45,6 +45,7 @@ import {
 } from '@orbital/core';
 import {
 	CAMERA_MODE_LABEL,
+	FramePacer,
 	QualityGovernor,
 	sceneKeyOf,
 	nextCameraMode,
@@ -82,6 +83,7 @@ import {
 	type LearnedLevel
 } from './graphics';
 import { heatMarks } from './hud/heat-marks';
+import { HUD_FRAME_HZ } from './hud/hud-rate';
 import { modeForAction } from './hud/sas-model';
 import {
 	DEFAULT_KEYMAP,
@@ -519,6 +521,8 @@ export function startFlight(options: FlightOptions): Flight {
 	/** The previous rAF, drawn or not (the governor's cadence, plan 253). */
 	let lastRaf = 0;
 	let lastHud = 0;
+	const hudPacer = new FramePacer();
+	hudPacer.setCap(HUD_FRAME_HZ);
 
 	const hud: FlightHud = {
 		status: 'booting',
@@ -1645,7 +1649,9 @@ export function startFlight(options: FlightOptions): Flight {
 		updateOverlays(now);
 		targetView?.update(now);
 		renderer?.render();
-		if (hudCtl) {
+		// the pacer is asked every drawn frame; it says yes about 60 times a second
+		const hudDue = hudPacer.due(now);
+		if (hudCtl && hudDue) {
 			const t0 = performance.now();
 			const frameData = hudCtl.frame();
 			frameData.maneuver = maneuverCtl?.frame() ?? null;

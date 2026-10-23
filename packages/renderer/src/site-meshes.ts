@@ -502,6 +502,9 @@ export class SiteBuildings {
 	}
 }
 
+/** A group three records as a render bundle (`BundleGroup`): `needsUpdate` re-records it. */
+export type StaticBundle = Object3D & { needsUpdate: boolean };
+
 export class LaunchSite {
 	/** Placed at the pad each frame; children are in site-local metres. */
 	readonly root = new Object3D();
@@ -520,6 +523,10 @@ export class LaunchSite {
 	private readonly builds = new Map<string, Generator<void, void>>();
 	private active: VegetationSet | null = null;
 	private structureMeshes: Mesh[] = [];
+	/** The static structure recorded once as a render bundle (plan 396), on WebGPU; null elsewhere. */
+	private bundle: StaticBundle | null = null;
+	/** How many times the bundle was marked for a re-record (a test hook, plan 396). */
+	bundleRebuilds = 0;
 	private readonly floods: PointLight[] = [];
 	/** The swing arms (ADR 0073): each pivot turns about its vertical hinge; `armAngle` is the shared angle. */
 	private readonly arms: Object3D[] = [];
@@ -555,6 +562,28 @@ export class LaunchSite {
 		this.people.pose(0);
 		this.buildFloodLights();
 		this.setTrees(treeBudget, tufts);
+	}
+
+	/**
+	 * Records the site's fixed structure (the merged building, tower, mast and tank meshes) as one
+	 * render bundle (plan 396, WebGPU's `BundleGroup`): `group` takes them in place of the root.
+	 * Lights, the swing arms, steam, people and the list buildings stay outside it. The bundle is
+	 * re-recorded only when the structure's visibility changes (`setDetail`); the site moving with
+	 * the planet needs no re-record, as transforms live in buffers.
+	 */
+	bundleStatic(group: StaticBundle): void {
+		if (this.bundle) return;
+		for (const m of this.structureMeshes) if (m.parent === this.root) group.add(m);
+		group.name = 'site-static-bundle';
+		this.root.add(group);
+		this.bundle = group;
+		this.rebuildBundle();
+	}
+
+	private rebuildBundle(): void {
+		if (!this.bundle) return;
+		this.bundle.needsUpdate = true;
+		this.bundleRebuilds++;
 	}
 
 	/** Moves the site to another surface point (the host launched somewhere else). */
@@ -909,6 +938,8 @@ export class LaunchSite {
 			for (const m of set.rocks) m.visible = d.rocks;
 			for (const m of set.trees) m.visible = d.trees;
 		}
+		// a bundle keeps what it recorded: a change of what is drawn records it again
+		if (d.structures !== this.detailStructures) this.rebuildBundle();
 		for (const m of this.structureMeshes) m.visible = d.structures;
 		this.detailStructures = d.structures;
 		this.buildings.setDishDistance(distance);

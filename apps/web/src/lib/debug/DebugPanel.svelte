@@ -19,6 +19,7 @@
 	import { logBuffer, LOG_LEVELS, type LogLevel } from '../log-buffer';
 	import type { DebugInfo } from '../flight-loop';
 	import { worldRenderer } from '../world-renderer.svelte';
+	import { LongFrameLog, describeLongFrame, observeLongFrames } from './long-frames';
 	import { createDebugApi, type DebugHost } from './api';
 	import {
 		uniqueDesigns,
@@ -255,6 +256,22 @@
 
 	// ---- info
 	let fps = $state(0);
+	/** Long animation frames and the scripts in them (plan 396); empty where the browser reports none. */
+	const longFrames = new LongFrameLog();
+	let longFrameLines = $state.raw<string[]>([]);
+	let longFrameTotal = $state(0);
+	$effect(() => {
+		if (!open || tab !== 'info') return;
+		const stop = observeLongFrames(longFrames);
+		const refresh = setInterval(() => {
+			longFrameLines = longFrames.recent().map(describeLongFrame);
+			longFrameTotal = longFrames.total;
+		}, 1000);
+		return () => {
+			stop?.();
+			clearInterval(refresh);
+		};
+	});
 	let infoNow = $state.raw<DebugInfo | null>(null);
 	$effect(() => {
 		if (!open || tab !== 'info') return;
@@ -522,6 +539,19 @@
 						}}
 						data-testid="debug-frames-reset">Reset</Button
 					>
+				</dd>
+				<dt>Long frames</dt>
+				<dd data-testid="debug-long-frames">
+					{#if longFrameLines.length === 0}
+						none over 50 ms
+					{:else}
+						{longFrameTotal} over 50 ms, the last {longFrameLines.length}:
+						<ul>
+							{#each longFrameLines as line, i (i)}
+								<li>{line}</li>
+							{/each}
+						</ul>
+					{/if}
 				</dd>
 				<dt>Sim step</dt>
 				<dd>{infoNow?.stepMs == null ? '–' : `${infoNow.stepMs.toFixed(2)} ms`}</dd>

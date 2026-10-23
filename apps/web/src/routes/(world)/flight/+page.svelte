@@ -523,6 +523,10 @@
 	let markers = $state<MapMarkers>();
 	/** The Network layer in map view (plan 115, ADR 0158). */
 	let mapNetwork = $state.raw<ScreenNetwork | null>(null);
+	// the serialised forms the paint compares against, so each frame serialises once (plan 396)
+	let mapNetworkKey = '';
+	let mapBodyLabelsKey = '';
+	let ghostFrameKey = '';
 	/** The names of the bodies in the map (plan 382). */
 	let mapBodyLabels = $state.raw<BodyLabel[] | null>(null);
 	/** A replay's ghost over this flight (plan 131, ADR 0159 point 7). */
@@ -1147,11 +1151,23 @@
 					}
 				}
 				const net = f.network ?? null;
-				if (JSON.stringify(net) !== JSON.stringify(mapNetwork)) mapNetwork = net;
+				const netKey = net === null ? '' : JSON.stringify(net);
+				if (netKey !== mapNetworkKey) {
+					mapNetworkKey = netKey;
+					mapNetwork = net;
+				}
 				const bl = f.bodyLabels ?? null;
-				if (JSON.stringify(bl) !== JSON.stringify(mapBodyLabels)) mapBodyLabels = bl;
+				const blKey = bl === null ? '' : JSON.stringify(bl);
+				if (blKey !== mapBodyLabelsKey) {
+					mapBodyLabelsKey = blKey;
+					mapBodyLabels = bl;
+				}
 				const g = f.ghost ?? null;
-				if (JSON.stringify(g) !== JSON.stringify(ghostFrame)) ghostFrame = g;
+				const ghostKey = g === null ? '' : JSON.stringify(g);
+				if (ghostKey !== ghostFrameKey) {
+					ghostFrameKey = ghostKey;
+					ghostFrame = g;
+				}
 				targetMarks?.place(f.target ?? null);
 				mapPoints = stackPoints(f.target?.map ?? null);
 				heatBars?.place(f.heat ?? null);
