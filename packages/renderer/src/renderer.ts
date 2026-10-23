@@ -6,7 +6,7 @@
  */
 import type { OverlayInput } from './overlay-layer.ts';
 import type { SiteBuildingView, SitePlace } from './site-list.ts';
-import type { EntityId, RegionWorld, Snapshot } from '@orbital/core';
+import type { EntityId, PostProfileDefinition, RegionWorld, Snapshot } from '@orbital/core';
 import type { RegionBody } from './region-overlay.ts';
 import type { WorldTerrainSpec } from './terrain-zones.ts';
 import {
@@ -22,6 +22,7 @@ import {
 import { rendererBackendFrom, type RendererBackend } from './backend.ts';
 import { EnvironmentLight } from './environment-light.ts';
 import { PostChain } from './post.ts';
+import { postLook } from './post-profile.ts';
 import { MIN_RENDER_SCALE, debugFacade, sceneFacade, withShared } from './renderer-facade.ts';
 import { createWebGPURenderer } from './renderer-webgpu.ts';
 import { PrecompileTracker, type PrecompileProgress } from './precompile-progress.ts';
@@ -60,6 +61,11 @@ export interface SiteCameraView {
 }
 
 export interface RendererConfig extends SceneConfig {
+	/**
+	 * A mod's post-processing profile (plan 405, ADR 0345): bloom and exposure, as data. Absent: the
+	 * stock look.
+	 */
+	postProfile?: Pick<PostProfileDefinition, 'bloom' | 'exposure'>;
 	/**
 	 * WebGPU: presets whose frames are drawn at load besides the start preset (plan 362, ADR 0304), so a
 	 * governor move to them builds no shader mid-flight. Each costs 3 to 6 s of load on an M2; the host
@@ -425,6 +431,9 @@ export function createRenderer(config: RendererConfig): Renderer {
 	let pixelRatio = 1;
 	let last = performance.now();
 	const post = new PostChain(gl, model.scene, model.camera, PRESETS[preset]);
+	const look = postLook(config.postProfile);
+	post.setBloom(look.bloom);
+	env.setPostExposure(look.exposure);
 	const envLight = new EnvironmentLight(gl, env);
 
 	let forcedRatio: number | null = null;

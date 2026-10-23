@@ -243,6 +243,7 @@ describe('registration and report', () => {
 			system: [{ id: 'fixture.gravity', by: 'fixture' }],
 			rule: [],
 			preset: [],
+			'post-profile': [],
 			charge: [],
 			'data-kind': [],
 			'action-group': [],

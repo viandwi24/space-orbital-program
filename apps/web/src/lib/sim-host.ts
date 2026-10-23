@@ -150,6 +150,7 @@ export function catalogOf(sim: Sim): Catalog {
 		parts: sim.registries.parts.list(),
 		bodies: sim.registries.bodies.list(),
 		resources: sim.registries.resources.list(),
+		postProfiles: sim.registries.postProfiles.list(),
 		epoch: { ...sim.worldInfo.epoch },
 		achievements: sim.registries.achievements.list(),
 		worldId: sim.worldInfo.id,

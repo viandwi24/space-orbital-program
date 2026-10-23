@@ -9,23 +9,31 @@ import * as z from 'zod';
 
 /** Media type of a model asset (format 2): a self-contained binary glTF (`.glb`). */
 export const MOD_ASSET_TYPE = 'model/gltf-binary';
-/** Image assets (format 3, plan 375, ADR 0313 point 4): crew portraits and later textures. */
-export const MOD_IMAGE_TYPES = ['image/png', 'image/webp'] as const;
+/**
+ * Image assets (format 3, plan 375, ADR 0313 point 4: crew portraits and later textures; format 4,
+ * plan 405, ADR 0345: KTX2 too, and the larger caps).
+ */
+export const MOD_IMAGE_TYPES = ['image/png', 'image/webp', 'image/ktx2'] as const;
 export type ModImageType = (typeof MOD_IMAGE_TYPES)[number];
 export type ModAssetType = typeof MOD_ASSET_TYPE | ModImageType;
-/** Largest image asset, decoded bytes. */
-export const MAX_MOD_IMAGE_BYTES = 512 * 1024;
+/** Largest image asset, decoded bytes (plan 405: 4 MiB, from 512 KiB). */
+export const MAX_MOD_IMAGE_BYTES = 4 * 1024 * 1024;
+/** Largest side of an image, texels (a PNG's header, a KTX2's). */
+export const MAX_MOD_IMAGE_SIDE = 4096;
 /** The media type a path's extension says. */
 export function assetTypeOfPath(path: string): ModAssetType | undefined {
 	if (path.endsWith('.glb')) return MOD_ASSET_TYPE;
 	if (path.endsWith('.png')) return 'image/png';
 	if (path.endsWith('.webp')) return 'image/webp';
+	if (path.endsWith('.ktx2')) return 'image/ktx2';
 	return undefined;
 }
 /** Largest single asset, decoded bytes. */
 export const MAX_MOD_ASSET_BYTES = 2 * 1024 * 1024;
-/** Largest sum of all assets in one package, decoded bytes. */
-export const MAX_MOD_ASSETS_TOTAL_BYTES = 6 * 1024 * 1024;
+/** Largest sum of all models in one package, decoded bytes. */
+export const MAX_MOD_MODELS_TOTAL_BYTES = 6 * 1024 * 1024;
+/** Largest sum of all assets (models and images) in one package, decoded bytes (plan 405: 32 MiB). */
+export const MAX_MOD_ASSETS_TOTAL_BYTES = 32 * 1024 * 1024;
 export const MAX_MOD_ASSET_COUNT = 32;
 /** Triangles one model may draw (one part is drawn many times in a big vessel). */
 export const MAX_ASSET_TRIANGLES = 50_000;
@@ -46,13 +54,13 @@ export const assetPathSchema = z
 		/^[a-z0-9][a-z0-9._-]*(\/[a-z0-9][a-z0-9._-]*)*\.glb$/,
 		'expected a relative path of lower-case letters, digits, "." "_" "-" and "/", ending in ".glb"'
 	);
-/** Where an image lives in a package (format 3): lower-case segments, `.png` or `.webp`. */
+/** Where an image lives in a package (format 3, `.ktx2` format 4): lower-case segments, `.png`, `.webp` or `.ktx2`. */
 export const imageAssetPathSchema = z
 	.string()
 	.max(128)
 	.regex(
-		/^[a-z0-9][a-z0-9._-]*(\/[a-z0-9][a-z0-9._-]*)*\.(png|webp)$/,
-		'expected a relative path of lower-case letters, digits, "." "_" "-" and "/", ending in ".png" or ".webp"'
+		/^[a-z0-9][a-z0-9._-]*(\/[a-z0-9][a-z0-9._-]*)*\.(png|webp|ktx2)$/,
+		'expected a relative path of lower-case letters, digits, "." "_" "-" and "/", ending in ".png", ".webp" or ".ktx2"'
 	);
 /** Any asset path of a package: a model or an image. */
 export const anyAssetPathSchema = z.union([assetPathSchema, imageAssetPathSchema]);
@@ -62,7 +70,7 @@ const hex64 = z.string().regex(/^[0-9a-f]{64}$/, 'expected 64 lower-case hex dig
 export const modAssetSchema = z.strictObject({
 	type: z.enum([MOD_ASSET_TYPE, ...MOD_IMAGE_TYPES]),
 	/** Decoded size in bytes. */
-	size: z.number().int().positive().max(MAX_MOD_ASSET_BYTES),
+	size: z.number().int().positive().max(MAX_MOD_IMAGE_BYTES),
 	/** Hex SHA-256 of the decoded bytes. */
 	sha256: hex64,
 	/** Standard base64 of the bytes. */
@@ -274,13 +282,45 @@ export function inspectGlb(bytes: Uint8Array): GlbInspection {
 			};
 }
 
-/** Checks an image asset's container by its magic bytes (no decoding: the browser does that). */
+/** The KTX2 file identifier. */
+const KTX2_MAGIC = [0xab, 0x4b, 0x54, 0x58, 0x20, 0x32, 0x30, 0xbb, 0x0d, 0x0a, 0x1a, 0x0a];
+
+/**
+ * Checks an image asset's container (no decoding: the browser, or the Basis transcoder for KTX2,
+ * does that): a PNG's signature and its width and height, a WebP's RIFF header, a KTX2's identifier
+ * and header (sides within `MAX_MOD_IMAGE_SIDE`, a 2D image or a cube, no 3D or array, a
+ * supercompression the transcoder reads).
+ */
 export function inspectImage(bytes: Uint8Array, type: ModImageType): string | undefined {
 	const at = (i: number, text: string): boolean =>
 		[...text].every((c, k) => bytes[i + k] === c.charCodeAt(0));
+	const side = (w: number, h: number): string | undefined =>
+		w < 1 || h < 1 || w > MAX_MOD_IMAGE_SIDE || h > MAX_MOD_IMAGE_SIDE
+			? `${w} x ${h} texels is outside 1 to ${MAX_MOD_IMAGE_SIDE} on a side`
+			: undefined;
 	if (type === 'image/png') {
 		const sig = [0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a];
-		return sig.every((b, i) => bytes[i] === b) ? undefined : 'not a PNG file (bad signature)';
+		if (!sig.every((b, i) => bytes[i] === b)) return 'not a PNG file (bad signature)';
+		if (bytes.byteLength < 24) return 'a PNG too short for its header';
+		const v = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);
+		return side(v.getUint32(16), v.getUint32(20));
+	}
+	if (type === 'image/ktx2') {
+		if (bytes.byteLength < 80 || !KTX2_MAGIC.every((b, i) => bytes[i] === b))
+			return 'not a KTX2 file (bad identifier)';
+		const v = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);
+		const bad = side(v.getUint32(20, true), v.getUint32(24, true));
+		if (bad) return bad;
+		if (v.getUint32(28, true) > 1) return 'a 3D KTX2 texture is not supported';
+		if (v.getUint32(32, true) > 1) return 'a KTX2 array texture is not supported';
+		const faces = v.getUint32(36, true);
+		if (faces !== 1 && faces !== 6) return `a KTX2 with ${faces} faces (1 or 6 expected)`;
+		const levels = v.getUint32(40, true);
+		if (levels < 1 || levels > 14) return `a KTX2 with ${levels} mip levels (1 to 14 expected)`;
+		const scheme = v.getUint32(44, true);
+		if (scheme > 2)
+			return `a KTX2 with supercompression ${scheme} (none, BasisLZ or Zstandard only)`;
+		return undefined;
 	}
 	return bytes.byteLength >= 12 && at(0, 'RIFF') && at(8, 'WEBP')
 		? undefined
@@ -310,13 +350,14 @@ export async function decodeAssets(
 		errors.push(`assets: ${paths.length} files; at most ${MAX_MOD_ASSET_COUNT} are allowed`);
 	}
 	let total = 0;
+	let models = 0;
 	for (const path of paths) {
 		const asset = assets[path]!;
 		const where = `assets["${path}"]`;
 		const pathCheck = anyAssetPathSchema.safeParse(path);
 		if (!pathCheck.success) {
 			errors.push(
-				`${where}: expected a relative path of lower-case letters, digits, "." "_" "-" and "/", ending in ".glb", ".png" or ".webp"`
+				`${where}: expected a relative path of lower-case letters, digits, "." "_" "-" and "/", ending in ".glb", ".png", ".webp" or ".ktx2"`
 			);
 			continue;
 		}
@@ -329,7 +370,7 @@ export async function decodeAssets(
 			errors.push(`${where}: data is not valid base64`);
 			continue;
 		}
-		if (bytes.byteLength > MAX_MOD_ASSET_BYTES) {
+		if (asset.type === MOD_ASSET_TYPE && bytes.byteLength > MAX_MOD_ASSET_BYTES) {
 			errors.push(
 				`${where}: ${bytes.byteLength} bytes is over the ${MAX_MOD_ASSET_BYTES} byte limit`
 			);
@@ -340,6 +381,7 @@ export async function decodeAssets(
 			continue;
 		}
 		total += bytes.byteLength;
+		if (asset.type === MOD_ASSET_TYPE) models += bytes.byteLength;
 		if ((await sha256Hex(bytes)) !== asset.sha256) {
 			errors.push(`${where}: the data does not match its fingerprint (edited or damaged)`);
 			continue;
@@ -365,6 +407,11 @@ export async function decodeAssets(
 			continue;
 		}
 		out.set(path, { bytes, type: MOD_ASSET_TYPE, info: glb.info, sha256: asset.sha256 });
+	}
+	if (models > MAX_MOD_MODELS_TOTAL_BYTES) {
+		errors.push(
+			`assets: ${models} bytes of models is over the ${MAX_MOD_MODELS_TOTAL_BYTES} byte limit`
+		);
 	}
 	if (total > MAX_MOD_ASSETS_TOTAL_BYTES) {
 		errors.push(

@@ -5,6 +5,7 @@
  * speed and the layer into the colour drawn. Pure. Mods supply palettes as data in plan 405; the
  * stock ones are picked here by the body and its gas.
  */
+import type { PlasmaPaletteData } from '@orbital/core';
 import { clamp, lerp, smoothstep } from '../vec.ts';
 import { ionisationColour, type Rgb } from './look.ts';
 
@@ -165,11 +166,32 @@ const BY_GAS = {
 	hydrogen: HYDROGEN_PALETTE
 } as const;
 
-/** The palette for a body: by its id, else by its atmosphere's gas. */
+/** The palette a mod's data makes (plan 405, ADR 0345): the data's colours, the neutral scales where it names none. */
+export function paletteFromData(id: string, data: PlasmaPaletteData): PlasmaPalette {
+	const c = (p: { rgb: readonly [number, number, number]; intensity: number }): PaletteColour => ({
+		rgb: [p.rgb[0], p.rgb[1], p.rgb[2]],
+		intensity: p.intensity
+	});
+	return {
+		id,
+		glow: c(data.glow),
+		glowHot: c(data.glowHot),
+		trail: [c(data.trail[0]), c(data.trail[1]), c(data.trail[2])],
+		streak: c(data.streak),
+		wrap: c(data.wrap),
+		shock: c(data.shock),
+		gradient: data.gradient.map((g) => ({ at: g.at, rgb: [g.rgb[0], g.rgb[1], g.rgb[2]] as Rgb })),
+		multipliers: { ...NEUTRAL, ...data.multipliers }
+	};
+}
+
+/** The palette for a body: the mod's data when it has one, else by its id, else by its atmosphere's gas. */
 export function paletteFor(
 	bodyId: string,
-	atmosphere: { gasConstant?: number | undefined } | undefined
+	atmosphere: { gasConstant?: number | undefined } | undefined,
+	data?: PlasmaPaletteData
 ): PlasmaPalette {
+	if (data) return paletteFromData(bodyId, data);
 	return BY_BODY[bodyId] ?? BY_GAS[gasOf(atmosphere?.gasConstant)];
 }
 

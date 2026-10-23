@@ -327,6 +327,10 @@ JSON data files (`part.json`, `resource.json`) that reference module ids by stri
 
 `PhysicsBackend` gains `setPairContacts(a, b, enabled)` and `ignoredPairs()`: a disabled pair keeps its contact points but exerts no force (the sim uses it for bodies just split or spawned overlapping). `ModuleDefinition.hollow(config, state?)` receives the module state, so a bay that is hollow only once its panels are gone can say so. `VesselApi.detach` throws for a part inside a closed bay or fairing, and the `stage:blocked` event (`{ vessel, part, reason }`) reports a separator a stage could not fire for that reason.
 
+## Visual data (API 0.1.122, plan 405, ADR 0345)
+
+`BodyDefinition.plasma` (a re-entry palette), the `postProfiles` registry (`ctx.postProfiles`, `definePostProfile`: bloom and exposure) and image assets of kind `image/ktx2` (package format 4; 4 MiB an image, 32 MiB a package) are additive. The catalog carries the profiles (`Catalog.postProfiles`) and the body's palette to the renderer; the last registered profile is drawn. See the guide's "Changing the look".
+
 ## Card art for presets and system variants (API 0.1.101, plan 317, ADR 0273)
 
 `PresetDefinition` and `SystemVariantDefinition` take two optional fields:

@@ -330,3 +330,4 @@ An ADR records one decision, its context, and its consequences. ADRs are **appen
 | 0342 | [Clouds v2: the model, and the weather map first](0342-clouds-v2-weather-first.md) | accepted | 2026-10-24 |
 | 0343 | [GPU terrain near the surface: a CDLOD quadtree on the cube-sphere](0343-gpu-terrain-cdlod.md) | accepted | 2026-10-24 |
 | 0344 | [Planets from orbit: night lights first, in the bake's spare channel](0344-planets-from-orbit.md) | accepted | 2026-10-24 |
+| 0345 | [Mod visual data: plasma palettes, post profiles, bigger images, KTX2](0345-mod-visual-data.md) | accepted | 2026-10-24 |

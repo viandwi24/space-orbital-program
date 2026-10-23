@@ -1,9 +1,9 @@
 ---
 id: 405
 title: "Mod visual data: plasma palettes, plume templates, cloud and weather maps, sky and ocean coefficients, post profiles, larger caps, KTX2 and WebP, and the guide"
-status: draft
+status: in-progress
 owner: "Worker B"
-depends: [399, 400, 401, 397]
+depends: [399, 400]
 phase: 9
 created: 2026-10-24
 updated: 2026-10-24
@@ -86,3 +86,4 @@ A mod can change the look of the game with data: per-body plasma palettes, plume
 ## Log
 
 - 2026-10-24 — Created by the coordinator from refs/graphics-v2 (ADR 0330).
+- 2026-10-24 — Stage 1 by Worker B (ADR 0345, API 0.1.122): plasma palettes, post profiles, KTX2 and WebP images with the larger caps, the sample mod and the guide. Cloud and weather maps, sky and ocean coefficients (nothing reads them yet) and Meshopt are open.

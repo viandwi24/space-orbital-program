@@ -168,6 +168,8 @@ export class Environment {
 	private exposure = 1;
 	/** The player's brightness factor (Settings), on top of the adapted exposure. */
 	private brightness = 1;
+	/** A mod's post profile's factor on the exposure (plan 405, ADR 0345). */
+	private postExposure = 1;
 	private config: EnvironmentConfig;
 	/** The same heights the sim's ground uses (ADR 0043): the camera is held above them. */
 	private terrain: TerrainField;
@@ -412,6 +414,11 @@ export class Environment {
 		return sunFromHorizontal(frame, this.sunOverride.elevation, this.sunOverride.azimuth);
 	}
 
+	/** A mod's post profile's exposure factor (plan 405). */
+	setPostExposure(factor: number): void {
+		this.postExposure = factor;
+	}
+
 	/** The player's Brightness level, -1 to 1 (0 is the default balance). */
 	setBrightness(level: number): void {
 		this.brightness = brightnessFactor(level);
@@ -608,7 +615,7 @@ export class Environment {
 		this.state.sun = sun;
 		this.state.sunElevationDeg = elevDeg;
 		this.state.altitude = alt;
-		this.state.exposure = this.exposure * this.brightness;
+		this.state.exposure = this.exposure * this.brightness * this.postExposure;
 		this.state.envKey = key;
 		this.state.shadowActive = shadowActive;
 		this.state.up = up;

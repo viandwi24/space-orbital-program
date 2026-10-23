@@ -118,7 +118,9 @@ const MIN_TERRAIN_LIGHT = 0.03;
 
 /** What the renderer needs of a body; `parent` and `orbit` let the map view draw a moon's orbit and sphere. */
 export type BodyRenderInfo = Pick<BodyDefinition, 'id' | 'radius' | 'atmosphere'> &
-	Partial<Pick<BodyDefinition, 'parent' | 'orbit' | 'mass' | 'terrain' | 'star' | 'appearance'>>;
+	Partial<
+		Pick<BodyDefinition, 'parent' | 'orbit' | 'mass' | 'terrain' | 'star' | 'appearance' | 'plasma'>
+	>;
 
 /** One stretch of a predicted path (plan 044): points relative to `body`, which sits at `offset` in the system frame. */
 export interface MapPathSegment {

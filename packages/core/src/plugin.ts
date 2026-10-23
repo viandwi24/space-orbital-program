@@ -42,6 +42,7 @@ import {
 	type Registries,
 	type Registry
 } from './registry.ts';
+import type { PostProfileDefinition } from './schemas.ts';
 import { ruleValueProblem, type PresetDefinition, type RuleDefinition } from './rules.ts';
 import type { BuildingDefinition } from './buildings.ts';
 import type { SiteTemplateDefinition } from './site-templates.ts';
@@ -120,6 +121,8 @@ export interface BasePluginContext {
 	/** World rules and presets (plan 078, ADR 0111). */
 	readonly rules: Registrar<RuleDefinition>;
 	readonly presets: Registrar<PresetDefinition>;
+	/** Post-processing profiles (plan 405, ADR 0345). */
+	readonly postProfiles: Registrar<PostProfileDefinition>;
 	/** Scheduled income and costs on the world tick (plan 095, ADR 0113). */
 	readonly charges: Registrar<ChargeDefinition>;
 	/** Objectives, contracts and missions (plan 098, ADR 0175). */
@@ -222,6 +225,7 @@ export const REGISTRY_KINDS = [
 	'system',
 	'rule',
 	'preset',
+	'post-profile',
 	'charge',
 	'data-kind',
 	'action-group',
@@ -327,6 +331,7 @@ const RESERVED_KEYS: ReadonlySet<string> = new Set([
 	'bands',
 	'routePolicies',
 	'systemVariants',
+	'postProfiles',
 	'dossierEntries',
 	'categories',
 	'achievements',
@@ -540,6 +545,7 @@ export function loadPlugins(plugins: readonly Plugin[], options: LoadOptions = {
 			bands: registrar(registries.bands),
 			routePolicies: registrar(registries.routePolicies),
 			systemVariants: registrar(registries.systemVariants),
+			postProfiles: registrar(registries.postProfiles),
 			dossierEntries: registrar(registries.dossierEntries),
 			categories: registrar(registries.categories),
 			achievements: registrar(registries.achievements),
@@ -732,6 +738,7 @@ export function loadPlugins(plugins: readonly Plugin[], options: LoadOptions = {
 				band: section(registries.bands),
 				'route-policy': section(registries.routePolicies),
 				'system-variant': section(registries.systemVariants),
+				'post-profile': section(registries.postProfiles),
 				'dossier-entry': section(registries.dossierEntries),
 				category: section(registries.categories),
 				objective: section(registries.objectives),

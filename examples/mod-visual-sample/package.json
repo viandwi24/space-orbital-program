@@ -1,0 +1,23 @@
+{
+	"name": "@orbital/example-mod-visual-sample",
+	"version": "0.0.0",
+	"license": "Apache-2.0",
+	"private": true,
+	"description": "Sample mod for the visual data API (plan 405, ADR 0345): a recoloured re-entry plasma for Home, a longer plume on one engine and a post-processing profile. Built into a package with tools/mod-build/build-mod.ts.",
+	"type": "module",
+	"scripts": {
+		"typecheck": "tsc --noEmit -p tsconfig.json",
+		"build": "bun run ../../tools/mod-build/build-mod.ts .",
+		"test": "bun test"
+	},
+	"peerDependencies": {
+		"@orbital/sdk": "workspace:*"
+	},
+	"devDependencies": {
+		"@orbital/core": "workspace:*",
+		"@orbital/mod-stock": "workspace:*",
+		"@orbital/sdk": "workspace:*",
+		"typescript": "catalog:",
+		"@types/bun": "latest"
+	}
+}

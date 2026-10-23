@@ -25,9 +25,9 @@ import {
 export const MOD_PACKAGE_FORMAT = 'orbital-mod';
 /**
  * Newest package format this game reads: 2 adds `assets` (ADR 0076), 3 adds image assets (ADR
- * 0313 point 4); older packages still load.
+ * 0313 point 4), 4 adds KTX2 images and the larger caps (ADR 0345); older packages still load.
  */
-export const MOD_PACKAGE_VERSION = 3;
+export const MOD_PACKAGE_VERSION = 4;
 /** Largest `code` a package may carry, characters. */
 export const MAX_MOD_CODE_LENGTH = 8_000_000;
 
@@ -97,7 +97,7 @@ export type ModManifest = z.output<typeof modManifestSchema>;
 
 export const modPackageSchema = z.strictObject({
 	format: z.literal(MOD_PACKAGE_FORMAT),
-	formatVersion: z.union([z.literal(1), z.literal(2), z.literal(3)]),
+	formatVersion: z.union([z.literal(1), z.literal(2), z.literal(3), z.literal(4)]),
 	manifest: modManifestSchema,
 	code: z.string().min(1).max(MAX_MOD_CODE_LENGTH),
 	/** Files the mod ships, by path (format 2). Models are `.glb` (ADR 0076). */
@@ -164,6 +164,13 @@ export async function parseModPackage(text: string): Promise<ParsedModPackage> {
 	) {
 		return { ok: false, errors: ['assets: images need a format 3 package.'] };
 	}
+	if (
+		assets !== undefined &&
+		parsed.data.formatVersion < 4 &&
+		Object.values(assets).some((a) => a.type === 'image/ktx2')
+	) {
+		return { ok: false, errors: ['assets: KTX2 images need a format 4 package.'] };
+	}
 	if (assets !== undefined) {
 		const decoded = await decodeAssets(assets);
 		if (!decoded.ok) return { ok: false, errors: decoded.errors };
@@ -203,11 +210,13 @@ export async function createModPackage(
 	const withAssets = paths.length > 0;
 	const pkg = modPackageSchema.parse({
 		format: MOD_PACKAGE_FORMAT,
-		formatVersion: Object.values(assets).some((a) => a.type !== MOD_ASSET_TYPE)
-			? 3
-			: withAssets
-				? 2
-				: 1,
+		formatVersion: Object.values(assets).some((a) => a.type === 'image/ktx2')
+			? 4
+			: Object.values(assets).some((a) => a.type !== MOD_ASSET_TYPE)
+				? 3
+				: withAssets
+					? 2
+					: 1,
 		manifest,
 		code,
 		...(withAssets ? { assets } : {}),

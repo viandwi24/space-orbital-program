@@ -53,6 +53,7 @@ import type {
 	PluginRef,
 	ChargeDefinition,
 	PresetDefinition,
+	PostProfileDefinition,
 	ResourceDefinition,
 	RuleDefinition,
 	SystemDefinition,
@@ -214,6 +215,12 @@ export const defineRule = <const R extends RuleDefinition>(def: R): R => def;
 
 /** A named set of rule values a world is created with (Sandbox, Science, Career, ...). */
 export const definePreset = (def: PresetDefinition): PresetDefinition => def;
+
+/**
+ * A post-processing profile (plan 405, ADR 0345): bloom and exposure knobs, as data. Register it
+ * with `ctx.postProfiles.register(...)`.
+ */
+export const definePostProfile = (def: PostProfileDefinition): PostProfileDefinition => def;
 
 // ---------------------------------------------------------------------------------------------
 // defineBuilding

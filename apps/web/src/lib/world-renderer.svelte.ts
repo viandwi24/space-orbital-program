@@ -106,12 +106,14 @@ export function catalogKey(c: Catalog): string {
 			b.terrain ?? null,
 			b.parent ?? null,
 			b.star ?? false,
-			b.appearance ?? null
+			b.appearance ?? null,
+			b.plasma ?? null
 		]),
 		c.bodyTerrain ?? null,
 		c.terrain ?? null,
 		c.launchSite ?? null,
-		c.parts.map((p) => p.id)
+		c.parts.map((p) => p.id),
+		c.postProfiles ?? null
 	]);
 }
 
@@ -137,8 +139,13 @@ function configOf(c: Catalog, canvas: HTMLCanvasElement, backend: RendererBacken
 				...(b.star ? { star: true } : {}),
 				// how it looks (plan 381, ADR 0318)
 				...(b.appearance ? { appearance: b.appearance } : {}),
+				...(b.plasma ? { plasma: b.plasma } : {}),
 				...(b.parent !== undefined && b.orbit ? { parent: b.parent, orbit: b.orbit } : {})
 			})),
+		// a mod's post-processing profile: the last registered (plan 405, ADR 0345)
+		...(c.postProfiles && c.postProfiles.length > 0
+			? { postProfile: c.postProfiles[c.postProfiles.length - 1]! }
+			: {}),
 		partShapes: partShapesOf(c),
 		partVisuals: new Map(c.parts.flatMap((p) => (p.visual ? [[p.id, p.visual] as const] : []))),
 		partAttach: new Map(c.parts.flatMap((p) => (p.attach ? [[p.id, p.attach] as const] : []))),

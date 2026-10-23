@@ -17,6 +17,7 @@ import {
 	type PartDefinition,
 	type ResourceDefinition,
 	type SimSave,
+	type PostProfileDefinition,
 	type Snapshot,
 	type VesselDesign
 } from '@orbital/core';
@@ -35,6 +36,8 @@ export interface Catalog {
 	parts: PartDefinition[];
 	bodies: BodyDefinition[];
 	resources: ResourceDefinition[];
+	/** Post-processing profiles of the booted plugins (plan 405, ADR 0345): the last one is drawn. */
+	postProfiles?: PostProfileDefinition[];
 	/**
 	 * The world's epoch, the instant of `t = 0` (plan 081, ADR 0141); dates are formatted on the page.
 	 * Only the sim's `ready` has one: a catalog loaded on the main thread (the VAB) belongs to no world.

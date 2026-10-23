@@ -616,6 +616,17 @@ appearance: {
 
 The stock system's bodies are the examples (`mods/stock/src/bodies.ts`). They also show how to write orbits against the ecliptic and a planet's equator (`orbitAgainst`) and tilt a pole (`tiltedPole`).
 
+## Changing the look (API 0.1.122, plan 405, ADR 0345)
+
+A mod changes how the game looks with data, never with shaders. Every field is checked where it is registered, and a bad value names the field. `examples/mod-visual-sample` uses each one.
+
+- **Re-entry plasma colours** (`BodyDefinition.plasma`): a palette of colours (linear RGB 0 to 1, times 2^`intensity`, −4 to 6) for the glow, the hot glow, the trail, the streak, the wrap and the shock, a gradient of 4 to 8 stops by heating (`at` from 0 to 1, ascending) and optional scales (`multipliers`, 0 to 4). The home body has no `appearance`, so give it one with a patch: `{ target: 'body', select: { id: 'stock.home' }, ops: [{ op: 'set', path: 'plasma', value: { ... } }] }`. A body with no palette is drawn with the stock one for its gas.
+- **A plume** (`part.visual.plume.template`): a propellant base (`kerolox`, `hydrolox`, `methalox`, `hypergolic`, `solid`, `ion`) and scales on its length and width; patch it onto a stock engine the same way.
+- **A post-processing profile** (`ctx.postProfiles.register(definePostProfile({...}))`): bloom's `strength`, `radius` and `threshold` and a factor on the `exposure`. The last profile registered is the one drawn, in every view.
+- **Images** (`assets/**.png`, `.webp`, `.ktx2`): up to 4 MiB each, 4096 texels on a side, 32 MiB for the package (models stay at 2 MiB each and 6 MiB in all). A KTX2 (Basis UASTC or ETC1S, 2D or a cube, 1 to 14 levels) makes the package format 4, which an older game refuses with a message to update. Images are referenced by path from the fields that take them (a crew portrait today; planet maps in a later plan).
+
+Not yet data: cloud and weather maps, sky and ocean coefficients (they wait for what reads them), and Meshopt-compressed models.
+
 ## Dock panels (API 0.1.52, plan 112, ADR 0149)
 
 A mod can add a panel to the flight dock. The view is data: each value is a pure function of the panel input, and a button or switch returns a command that the sim checks like any other.
@@ -1101,7 +1112,7 @@ function charge(ctx, dt) {
 export const ModuleSolarPanel = defineModule({ id: 'stock.solar-panel', /* … */ update: charge, background: charge });
 ```
 - The HUD's throttle gauge still reads the stock engine's snapshot (a mod engine falls back to the page's own throttle display); mod-supplied VAB categories are plan 029.
-- New renderer generators from a mod (executable render code), KTX2 textures, deploy animations in models and a hosted mod repository are not built (drafts 040 and 065).
+- New renderer generators from a mod (executable render code) and a hosted mod repository are not built (drafts 040 and 065); KTX2 textures in models and as images (API 0.1.122, format 4, ADR 0345) and deploy animations in models (ADR 0160) are.
 
 ## Blueprints (plan 285)
 

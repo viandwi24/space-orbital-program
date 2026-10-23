@@ -272,6 +272,8 @@ export type {
 	PatchTarget,
 	Provenance,
 	PresetDefinition,
+	PostProfileDefinition,
+	PlasmaPaletteData,
 	PhysicsBackend,
 	Plugin,
 	PluginId,

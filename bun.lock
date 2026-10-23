@@ -76,6 +76,20 @@
         "@orbital/sdk": "workspace:*",
       },
     },
+    "examples/mod-visual-sample": {
+      "name": "@orbital/example-mod-visual-sample",
+      "version": "0.0.0",
+      "devDependencies": {
+        "@orbital/core": "workspace:*",
+        "@orbital/mod-stock": "workspace:*",
+        "@orbital/sdk": "workspace:*",
+        "@types/bun": "latest",
+        "typescript": "catalog:",
+      },
+      "peerDependencies": {
+        "@orbital/sdk": "workspace:*",
+      },
+    },
     "examples/mod-world-api": {
       "name": "@orbital/example-mod-world-api",
       "version": "0.0.0",
@@ -308,6 +322,8 @@
     "@orbital/example-mod-crew-sample": ["@orbital/example-mod-crew-sample@workspace:examples/mod-crew-sample"],
 
     "@orbital/example-mod-sample": ["@orbital/example-mod-sample@workspace:examples/mod-sample"],
+
+    "@orbital/example-mod-visual-sample": ["@orbital/example-mod-visual-sample@workspace:examples/mod-visual-sample"],
 
     "@orbital/example-mod-world-api": ["@orbital/example-mod-world-api@workspace:examples/mod-world-api"],
 

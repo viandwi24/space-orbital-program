@@ -16,11 +16,14 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
 import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
 import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
 import { msaaSamples, type PresetSettings } from './presets.ts';
+import { STOCK_BLOOM, type PostLook } from './post-profile.ts';
 
 export class PostChain {
 	private composer: EffectComposer | null = null;
 	private bloom: UnrealBloomPass | null = null;
 	private builtSamples = -1;
+	/** A mod's bloom (plan 405); the stock one without. */
+	private bloomLook: PostLook['bloom'] = { ...STOCK_BLOOM };
 	/** The preset's pixel ratio before the render scale: from 2 up the target takes 2 samples (plan 252). */
 	private baseRatio = 1;
 	/** Drawing-buffer size in device pixels. */
@@ -43,6 +46,16 @@ export class PostChain {
 	/** Size in pixels of the target the scene is drawn into while the chain is active. */
 	get targetSize(): { width: number; height: number } {
 		return { width: this.width, height: this.height };
+	}
+
+	/** A mod's bloom (plan 405, ADR 0345): from the next frame, and in a chain built later. */
+	setBloom(bloom: PostLook['bloom']): void {
+		this.bloomLook = { ...bloom };
+		if (this.bloom) {
+			this.bloom.strength = bloom.strength;
+			this.bloom.radius = bloom.radius;
+			this.bloom.threshold = bloom.threshold;
+		}
 	}
 
 	setSettings(settings: PresetSettings): void {
@@ -101,9 +114,9 @@ export class PostChain {
 		const composer = new EffectComposer(this.gl, target);
 		this.bloom = new UnrealBloomPass(
 			new Vector2(this.width * this.settings.bloomScale, this.height * this.settings.bloomScale),
-			0.32,
-			0.55,
-			3.0
+			this.bloomLook.strength,
+			this.bloomLook.radius,
+			this.bloomLook.threshold
 		);
 		composer.addPass(new RenderPass(this.scene, this.camera));
 		composer.addPass(this.bloom);

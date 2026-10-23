@@ -31,7 +31,8 @@ export function loadCatalog(system: SystemChoice = STOCK_CHOICE): Catalog {
 		plugins: [...report.order],
 		parts: registries.parts.list(),
 		bodies: registries.bodies.list(),
-		resources: registries.resources.list()
+		resources: registries.resources.list(),
+		postProfiles: registries.postProfiles.list()
 	};
 }
 
@@ -98,7 +99,8 @@ export function loadContent(
 			plugins: [...report.order],
 			parts: registries.parts.list(),
 			bodies: registries.bodies.list(),
-			resources: registries.resources.list()
+			resources: registries.resources.list(),
+			postProfiles: registries.postProfiles.list()
 		},
 		report,
 		registries,

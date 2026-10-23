@@ -102,6 +102,58 @@ export const hexColorSchema = z.string().regex(/^#[0-9a-fA-F]{6}$/, 'colour as #
  * the system art draw; nothing here changes the physics. Absent: the look of before (the moon pass's
  * grey regolith, a plain sphere for a body without terrain).
  */
+/** A linear colour, each channel 0 to 1. */
+const rgb01Schema = z.tuple([
+	z.number().min(0).max(1),
+	z.number().min(0).max(1),
+	z.number().min(0).max(1)
+]);
+/** A palette colour as Firefly stores it: `rgb` times 2^`intensity` (plan 399, ADR 0330 point 3). */
+const paletteColourSchema = z.object({
+	rgb: rgb01Schema,
+	intensity: z.number().min(-4).max(6).default(0)
+});
+/** One scale of the plasma look, 0 to 4 (1 is the stock look). */
+const plasmaScaleSchema = z.number().min(0).max(4);
+
+/**
+ * The re-entry plasma colours of a body's air (plan 405, ADR 0345): the data model of plan 399's
+ * renderer palette. A mod supplies data, never a shader (ADR 0330 point 4).
+ */
+export const plasmaPaletteSchema = z.object({
+	glow: paletteColourSchema,
+	glowHot: paletteColourSchema,
+	/** The trail from the nose to the tail. */
+	trail: z.tuple([paletteColourSchema, paletteColourSchema, paletteColourSchema]),
+	streak: paletteColourSchema,
+	wrap: paletteColourSchema,
+	shock: paletteColourSchema,
+	/** The colour by heating (0 cool to 1 hot): 4 to 8 stops, `at` ascending from 0 to 1. */
+	gradient: z
+		.array(z.object({ at: z.number().min(0).max(1), rgb: rgb01Schema }))
+		.min(4)
+		.max(8)
+		.refine(
+			(g) => g.every((stop, i) => i === 0 || stop.at > g[i - 1]!.at),
+			'gradient: `at` must ascend'
+		)
+		.refine((g) => g[0]!.at === 0 && g[g.length - 1]!.at === 1, 'gradient: from `at` 0 to 1'),
+	multipliers: z
+		.object({
+			strength: plasmaScaleSchema,
+			length: plasmaScaleSchema,
+			opacity: plasmaScaleSchema,
+			glow: plasmaScaleSchema,
+			wrapOpacity: plasmaScaleSchema,
+			wrapFresnel: plasmaScaleSchema,
+			streakProbability: plasmaScaleSchema,
+			streakThreshold: plasmaScaleSchema
+		})
+		.partial()
+		.optional()
+});
+export type PlasmaPaletteData = z.infer<typeof plasmaPaletteSchema>;
+
 export const bodyAppearanceSchema = z.object({
 	/** Surface colours, the first the main one (regolith, ice, cloud tops of a giant). */
 	palette: z.array(hexColorSchema).min(1).max(6),
@@ -280,6 +332,11 @@ export const bodyDefinitionSchema = z.object({
 	terrain: bodyTerrainSchema.optional(),
 	/** How the body looks (plan 381, ADR 0318). */
 	appearance: bodyAppearanceSchema.optional(),
+	/**
+	 * The colours of the re-entry plasma in this body's air (plan 405, ADR 0345); without it the gas
+	 * picks the stock palette. On the body, not its `appearance`, so the home body (which has none) can have one.
+	 */
+	plasma: plasmaPaletteSchema.optional(),
 	orbit: z
 		.object({
 			a: z.number().positive(),
@@ -780,3 +837,25 @@ export const moduleInfoSchema = z.object({
 		})
 		.optional()
 });
+
+/**
+ * A post-processing profile (plan 405, ADR 0345): how bloom and exposure treat the picture. The look
+ * is data and nothing else: the engine's post chain is the one it has, and these are its knobs.
+ * The last profile registered is the one drawn, in every view.
+ */
+export const postProfileDefinitionSchema = z.object({
+	id: definitionIdSchema,
+	title: z.string().min(1).max(60).optional(),
+	/** Bloom's strength, radius and brightness threshold; each defaults to the stock look (0.32, 0.55, 3). */
+	bloom: z
+		.object({
+			strength: z.number().min(0).max(2),
+			radius: z.number().min(0).max(1),
+			threshold: z.number().min(0).max(10)
+		})
+		.partial()
+		.optional(),
+	/** A factor on the exposure, 0.25 to 4 (1 is the stock look). */
+	exposure: z.number().min(0.25).max(4).optional()
+});
+export type PostProfileDefinition = z.output<typeof postProfileDefinitionSchema>;

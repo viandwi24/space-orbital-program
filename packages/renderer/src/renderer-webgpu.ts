@@ -15,6 +15,7 @@
  * hemisphere light stands in for the sky light until the planet pass is.
  */
 import { HALF_PLANET_SCALE } from './half-res.ts';
+import { postLook } from './post-profile.ts';
 import { ACESFilmicToneMapping, PCFShadowMap, type Camera, type Scene } from 'three';
 import type { RenderPipeline, WebGPURenderer } from 'three/webgpu';
 import type { RendererBackend } from './backend.ts';
@@ -59,7 +60,6 @@ const BUILD_BUDGET_MS = 50;
 /** A lost device builds a new renderer at most this often before the page has to be reloaded. */
 const MAX_RESTARTS = 3;
 /** UnrealBloomPass's strength, radius and threshold in the WebGL chain (post.ts). */
-const BLOOM = { strength: 0.32, radius: 0.55, threshold: 3.0 };
 
 type Modules = {
 	WebGPURenderer: typeof import('three/webgpu').WebGPURenderer;
@@ -103,6 +103,9 @@ export function createWebGPURenderer(
 			: config
 	);
 	const env = model.environment;
+	// a mod's post profile (plan 405, ADR 0345): its bloom is built into the pipeline, its exposure is the environment's
+	const look = postLook(config.postProfile);
+	env.setPostExposure(look.exposure);
 	/** The preset the host asked for (`setPreset`, the governor); `preset` is the one drawn. */
 	let requested: GraphicsPreset = config.preset ?? 'high';
 	/**
@@ -217,7 +220,12 @@ export function createWebGPURenderer(
 			) as unknown as typeof colour;
 			taauNodes.set(key, colour);
 		}
-		const glow = modules.bloom(colour, BLOOM.strength, BLOOM.radius, BLOOM.threshold);
+		const glow = modules.bloom(
+			colour,
+			look.bloom.strength,
+			look.bloom.radius,
+			look.bloom.threshold
+		);
 		glow.setResolutionScale(settings.bloomScale);
 		const p = new modules.RenderPipeline(gpu);
 		// tone mapping (ACES, the renderer's exposure) and sRGB come last, as the WebGL OutputPass

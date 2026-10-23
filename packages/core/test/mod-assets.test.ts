@@ -181,7 +181,7 @@ describe('packages with assets', () => {
 	});
 
 	test('a newer format is refused with a message to update', async () => {
-		const r = await parseModPackage(JSON.stringify({ format: 'orbital-mod', formatVersion: 4 }));
+		const r = await parseModPackage(JSON.stringify({ format: 'orbital-mod', formatVersion: 5 }));
 		expect(r.ok === false && r.errors[0]).toContain('newer game');
 	});
 
@@ -341,5 +341,85 @@ describe('image assets (format 3, plan 375, ADR 0313 point 4)', () => {
 		});
 		const two = await parseModPackage(JSON.stringify({ ...pkg, formatVersion: 2 }));
 		expect(two.ok === false && two.errors[0]).toContain('format 3');
+	});
+});
+
+describe('images up to 4 MiB, WebP and KTX2 (format 4, plan 405, ADR 0345)', () => {
+	const manifest = { id: 'm', version: '1.0.0', api: '^0.1' };
+	const png = encodePng(2, 2, new Uint8Array(16).fill(200));
+	/** A KTX2 header with `sides` x `sides` texels: the 12-byte identifier and the fields after it. */
+	const ktx2 = (over: { side?: number; faces?: number; levels?: number; scheme?: number } = {}) => {
+		const b = new Uint8Array(96);
+		b.set([0xab, 0x4b, 0x54, 0x58, 0x20, 0x32, 0x30, 0xbb, 0x0d, 0x0a, 0x1a, 0x0a]);
+		const v = new DataView(b.buffer);
+		v.setUint32(20, over.side ?? 1024, true);
+		v.setUint32(24, over.side ?? 1024, true);
+		v.setUint32(36, over.faces ?? 1, true);
+		v.setUint32(40, over.levels ?? 8, true);
+		v.setUint32(44, over.scheme ?? 1, true);
+		return b;
+	};
+	const webp = (() => {
+		const b = new Uint8Array(32);
+		b.set(
+			[...'RIFF'].map((c) => c.charCodeAt(0)),
+			0
+		);
+		b.set(
+			[...'WEBP'].map((c) => c.charCodeAt(0)),
+			8
+		);
+		return b;
+	})();
+	const make = (files: Record<string, Uint8Array>) =>
+		createModPackage(manifest, 'x', files).catch((e: Error) => e.message);
+
+	test('PNG, WebP and KTX2 within the caps make a package; KTX2 makes it format 4', async () => {
+		const pkg = await createModPackage(manifest, 'x', {
+			'maps/a.png': png,
+			'maps/b.webp': webp,
+			'maps/c.ktx2': ktx2()
+		});
+		expect(pkg.formatVersion).toBe(4);
+		expect(Object.values(pkg.assets!).map((a) => a.type)).toEqual([
+			'image/png',
+			'image/webp',
+			'image/ktx2'
+		]);
+		expect((await parseModPackage(JSON.stringify(pkg))).ok).toBe(true);
+		const old = await parseModPackage(JSON.stringify({ ...pkg, formatVersion: 3 }));
+		expect(old.ok === false && old.errors[0]).toContain('format 4');
+	});
+
+	test('an image over 4 MiB, a KTX2 with a bad header and a texture past 4096 are refused, naming the file', async () => {
+		const big = new Uint8Array(4 * 1024 * 1024 + 1);
+		big.set([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]);
+		expect(String(await make({ 'maps/big.png': big }))).toContain('maps/big.png');
+		expect(String(await make({ 'maps/big.png': big }))).toContain('Too big');
+		const badMagic = ktx2();
+		badMagic[0] = 0;
+		expect(String(await make({ 'maps/a.ktx2': badMagic }))).toContain('maps/a.ktx2');
+		expect(String(await make({ 'maps/a.ktx2': badMagic }))).toContain('KTX2');
+		expect(String(await make({ 'maps/a.ktx2': ktx2({ side: 8192 }) }))).toContain('4096');
+		expect(String(await make({ 'maps/a.ktx2': ktx2({ faces: 3 }) }))).toContain('faces');
+		expect(String(await make({ 'maps/a.ktx2': ktx2({ scheme: 9 }) }))).toContain(
+			'supercompression'
+		);
+		const wide = encodePng(2, 2, new Uint8Array(16).fill(1));
+		new DataView(wide.buffer, wide.byteOffset).setUint32(16, 5000);
+		expect(String(await make({ 'maps/w.png': wide }))).toContain('4096');
+	});
+
+	test('the models keep their 6 MiB, the images and models together 32 MiB', async () => {
+		const files: Record<string, Uint8Array> = {};
+		for (let i = 0; i < 9; i++) {
+			const big = new Uint8Array(3.9 * 1024 * 1024);
+			big.set([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]);
+			new DataView(big.buffer).setUint32(16, 2048);
+			new DataView(big.buffer).setUint32(20, 2048);
+			files[`maps/m${i}.png`] = big;
+		}
+		const msg = String(await make(files));
+		expect(msg).toContain('in all is over');
 	});
 });

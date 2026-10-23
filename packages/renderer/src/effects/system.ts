@@ -97,7 +97,7 @@ import type { FxEvent } from './transitions.ts';
 const CLUSTER_LIGHTS = 3;
 
 export type EffectBody = Pick<BodyDefinition, 'id' | 'radius' | 'atmosphere'> &
-	Partial<Pick<BodyDefinition, 'mass'>>;
+	Partial<Pick<BodyDefinition, 'mass' | 'plasma'>>;
 
 export interface EffectPart {
 	id: number;
@@ -1098,7 +1098,7 @@ export class Effects {
 		const tip = at(profile.front + 0.6);
 		// the colours of the three layers from the heating, the speed and the body's palette (plan 399)
 		const quality = lookLevel(this.settings, 'plasma');
-		const palette = paletteFor(info.id, info.atmosphere);
+		const palette = paletteFor(info.id, info.atmosphere, info.plasma);
 		const heating = heatingOf(
 			stagnationFlux(airDensity(info.atmosphere, altitude), PLASMA_NOSE_RADIUS, speed),
 			palette.multipliers.strength

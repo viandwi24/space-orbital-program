@@ -37,6 +37,7 @@ import type {
 import type { DataKindDefinition, DataStorage, NewDataItem } from './data.ts';
 import type { ActionGroupDefinition } from './action-groups.ts';
 import type { PresetDefinition, RuleDefinition, RuleValue } from './rules.ts';
+import type { PostProfileDefinition } from './schemas.ts';
 import type { BuildingDefinition } from './buildings.ts';
 import type { SiteTemplateDefinition } from './site-templates.ts';
 import type { ExperimentDefinition, SituationDefinition } from './science.ts';
@@ -106,6 +107,8 @@ export interface ReadonlyRegistries {
 	systems: ReadonlyRegistry<SystemDefinition>;
 	rules: ReadonlyRegistry<RuleDefinition>;
 	presets: ReadonlyRegistry<PresetDefinition>;
+	/** Post-processing profiles (plan 405, ADR 0345). */
+	postProfiles: ReadonlyRegistry<PostProfileDefinition>;
 	charges: ReadonlyRegistry<ChargeDefinition>;
 	/** Objectives, contracts and missions (plan 098, ADR 0175). */
 	objectives: ReadonlyRegistry<ObjectiveDefinition>;

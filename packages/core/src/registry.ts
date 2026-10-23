@@ -58,6 +58,7 @@ import {
 } from './rules.ts';
 import { buildingDefinitionSchema, type BuildingDefinition } from './buildings.ts';
 import { siteTemplateDefinitionSchema, type SiteTemplateDefinition } from './site-templates.ts';
+import { postProfileDefinitionSchema, type PostProfileDefinition } from './schemas.ts';
 import { systemVariantDefinitionSchema, type SystemVariantDefinition } from './systems.ts';
 import {
 	experimentDefinitionSchema,
@@ -268,6 +269,8 @@ export interface Registries {
 	/** World rules and presets (plan 078, ADR 0111). */
 	rules: Registry<RuleDefinition>;
 	presets: Registry<PresetDefinition>;
+	/** Post-processing profiles (plan 405, ADR 0345). */
+	postProfiles: Registry<PostProfileDefinition>;
 	/** Scheduled income and costs (plan 095, ADR 0113). */
 	charges: Registry<ChargeDefinition>;
 	/** Objectives, contracts and missions (plan 098, ADR 0175). */
@@ -346,6 +349,9 @@ export function createRegistries(): Registries {
 		systems: createRegistry<SystemDefinition>('system'),
 		rules: createRegistry<RuleDefinition>('rule', { schema: ruleDefinitionSchema }),
 		presets: createRegistry<PresetDefinition>('preset', { schema: presetDefinitionSchema }),
+		postProfiles: createRegistry<PostProfileDefinition>('post-profile', {
+			schema: postProfileDefinitionSchema
+		}),
 		charges: createRegistry<ChargeDefinition>('charge', { schema: chargeDefinitionSchema }),
 		dataKinds: createRegistry<DataKindDefinition>('data-kind', {
 			schema: dataKindDefinitionSchema

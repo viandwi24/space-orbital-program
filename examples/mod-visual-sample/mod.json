@@ -1,0 +1,12 @@
+{
+	"id": "visual-sample",
+	"version": "1.0.0",
+	"api": "^0.1.111",
+	"title": "Green fire (visual sample)",
+	"description": "Green re-entry plasma over Home, a long hydrolox plume on the Lv engine, and a soft, slightly darker post-processing profile. The reference for changing the look with data.",
+	"author": "Orbital",
+	"licence": "Apache-2.0",
+	"dependencies": {
+		"stock": "*"
+	}
+}
