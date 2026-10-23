@@ -3,10 +3,10 @@ id: 284
 title: "EVA inventory, containers and deployed science stations"
 status: draft
 owner: ""
-depends: [280, 281]
+depends: [303]
 phase: 0
 created: 2026-10-21
-updated: 2026-10-21
+updated: 2026-10-24
 ---
 
 # 284 — EVA inventory, containers and deployed science stations
@@ -18,13 +18,15 @@ Astronauts and containers carry cargo parts; engineers attach and detach them on
 ## Context
 
 - Research: `refs/part-visuals-and-blueprints/README.md` and `refs/part-visuals-and-blueprints/parts-tracker.md` (tracker IDs name the parts this plan delivers).
-- ADRs: 0264
-- Code: `packages/renderer/src/parts/generators/`, `mods/stock/src/parts/`.
+- ADRs: 0264 (EVA inventory and deployed science), 0125 (bases: the station is kept on surface rails by the base system, built in the sim by plan 128), 0235 (surface links), 0317 (stats checked against counterparts), 0268 (English titles).
+- Plan 303 delivered the surface-mounted power, comms and science parts the items are modelled on. Nothing of this plan exists yet: no `cargo` field and no `ModuleInventory`.
+- Plan 386 (draft) gives bases a player flow; this plan needs only the sim's base system, not 386.
+- Code: `packages/renderer/src/parts/generators/`, `mods/stock/src/parts/`, `mods/stock/src/eva.ts`, `packages/sim/src/bases.ts`.
 
 ## Scope
 
 **In:** `cargo` on parts, `ModuleInventory`, EVA take/place/attach/detach, station vessel on surface rails via the base system, eight deployable items, save additions.
-**Out:** Career contracts for stations (new draft).
+**Out:** Career contracts for stations (new draft); the base flows of plan 386.
 
 ## Design notes
 
@@ -54,4 +56,5 @@ Per ADR 0264.
 
 ## Log
 
+- 2026-10-24 — Rewritten by the coordinator after an audit against main @ 4c546c02: still valid and untouched; depends on 303 only (280 and 281 now hold only small remainders), and the station uses the sim's base system, not plan 386.
 - 2026-10-21 — Drafted from the part-visuals research and the owner's decisions of 2026-10-21 (CTO calls delegated by the owner). Not to be started until the owner releases the parts work: on 2026-10-21 main is busy with renderer fixes and a UI/UX agent.

@@ -1,53 +1,64 @@
 ---
 id: 379
-title: "The web app's own content moves into plugins: learn and mission blueprints, lessons, loading shots"
+title: "The web app's own content moves into plugins: lessons and loading shots (blueprints done)"
 status: draft
 owner: ""
-depends: [375]
+depends: [375, 377]
 phase: 8
 created: 2026-10-23
-updated: 2026-10-23
+updated: 2026-10-24
 ---
 
 # 379 — The web app's own content moves into plugins
 
 ## Goal
 
-ADR 0311 says content comes from plugins and stock is one plugin among them. Plan 375 moved the crew. Three kinds of content are still built into `apps/web` and cannot be replaced, extended or inspected by mod:
-- the five learn blueprints and the famous-mission blueprints;
-- the lessons and the first-flight tutorial;
+ADR 0311 says content comes from plugins and stock is one plugin among them. Plan 375 moved the crew, and the blueprints moved ahead of this plan (ADR 0316: `mods/stock/src/blueprints.generated.ts`, registered through `blueprints` in `packages/core/src/plugin.ts` ~551).
+
+Two kinds of content are still built into `apps/web` and cannot be replaced, extended or inspected by a mod:
+- the lessons, the first-flight guide and the Space Center tour's hand-off to them;
 - the loading-screen shots.
+
+When this is done, stock registers both through plugin registries and the developer tools list them by plugin.
 
 ## Context
 
-- ADR 0311, point 5 (the hard-coded table), plan 375 (the developer tools that show where content comes from).
-- `apps/web/src/lib/editor/examples.ts`, `missions.ts`, `blueprints.ts` (`allBlueprints`), `apps/web/src/lib/onboarding/lessons-*.ts`, `apps/web/static/loading/`, `src/lib/loading-slides.ts`.
+- ADR 0311 point 5 (the hard-coded table); plan 375 (developer tools by plugin); ADR 0316 (blueprints, done).
+- `packages/core/src/plugin.ts`: the registrars (~517–564) have no `lessons` or `loadingShots` yet.
+- Lessons: `apps/web/src/lib/onboarding/lessons.ts`, `lessons-basics.ts`, `lessons-flight.ts`, `lessons-advanced.ts`, `lesson-kit.ts`, `lesson-world.ts`, `lesson-vessels.ts`, `lesson-gate.svelte.ts` (blocked actions and places), `tutorial.ts` (the first-flight guide).
+- The tour and the hand-off: plan 377 / ADR 0314 (`sc-tour.ts`, `sc-tour-store.svelte.ts`), ADR 0328 (3bd7a515: the tour ends on Fly here or A lesson; the guide waits while the tour is on).
+- Loading shots: 10 images in `apps/web/static/loading/` (221234cc), listed in `apps/web/src/lib/loading-slides.ts`.
+- Image assets in packages: format 3 (`docs/guides/writing-a-mod.md` ~441).
 
 ## Scope
 
 **In:**
-- **Blueprints**: done ahead of this plan (owner, 2026-10-23; ADR 0316). Stock registers them as designs baked from the builders.
-- **Lessons.** A `lessons` registry: steps as data, and checks as pure functions of the snapshot and the Hangar state.
-- **Loading shots.** A `loadingShots` registry of image assets (format 3).
+- **Lessons.** A `lessons` registry: steps as data, checks as pure functions of the snapshot and the Hangar state, and the hooks the gate, the guide and the tour hand-off use (blocked actions, the Hangar lesson the tour opens). Stock registers today's lessons.
+- **Loading shots.** A `loadingShots` registry of image assets (format 3). Stock registers the 10 shots.
 
 **Out:**
-- Part generators.
-- Building meshes (ADR 0311 keeps them as engines).
+- Blueprints (done, ADR 0316).
+- Part generators; building meshes (ADR 0311 keeps them as engines).
+- The tour's own steps (Space Center UI).
 
 ## Steps
 
-1. The lessons registry and stock's lessons.
-2. The loading shots registry.
+1. ADR: the `lessons` and `loadingShots` registry shapes, and which tour and gate hooks a lesson declares.
+2. The lessons registry in core; stock's lessons move out of `apps/web`; the gate, the guide and the tour hand-off read the registry.
+3. The loading shots registry; stock ships the 10 images as assets.
+4. Developer tools list both by plugin; the mod guide gets both sections.
 
 ## Acceptance criteria
 
-- [ ] Lessons and loading shots are registered by stock and show in the developer tools by plugin.
+- [ ] `bun test packages/core` passes a test registering a lesson and a loading shot from a plugin.
+- [ ] `cd apps/web && bunx vitest run src/lib/onboarding` passes (lessons, tour, tutorial tests) with lessons read from the registry.
 - [ ] `bun test`, `bun run typecheck`, `bun run build` and `bun run docs:check` pass.
 
 ## Docs checklist
 
-- [ ] `docs/STATUS.md`, journal, the mod guide (lessons, loading shots), ADR.
+- [ ] `docs/STATUS.md`; journal; ADR; `docs/guides/writing-a-mod.md` (lessons, loading shots).
 
 ## Log
 
 - 2026-10-23 — Drafted from plan 375 (ADR 0311's later rows).
+- 2026-10-24 — Rewritten by the coordinator after an audit against main @ 4c546c02: partly done; blueprints shipped (ADR 0316); remaining lessons and loading shots registries; the lessons registry must cover the tour (377), the lesson gate and the onboarding hand-off (ADR 0328); shots are now 10; depends adds 377.

@@ -1,47 +1,49 @@
 ---
 id: 281
-title: "Payload bays with doors, payload petals, multi-couplers, trusses, lattice interstage, structural tubes"
+title: "Payload bays: no decoupling inside a closed bay; a sim test that a closed bay blocks drag and heat"
 status: draft
 owner: ""
-depends: [291, 275]
+depends: [302, 303]
 phase: 0
 created: 2026-10-21
-updated: 2026-10-21
+updated: 2026-10-24
 ---
 
-# 281 — Payload bays with doors, payload petals, multi-couplers, trusses, lattice interstage, structural tubes
+# 281 — Payload bays: no decoupling inside a closed bay; a sim test that a closed bay blocks drag and heat
 
 ## Goal
 
-Service bays, round cargo bays and Apollo-style payload petals hold parts that are shielded while the doors are closed and can be released only when open; multi-couplers, trusses and hubs, a lattice interstage and structural tubes let players build stations, bases and Soyuz-like stacks.
+Decoupling a payload that sits inside a closed bay is refused with a message; with the doors open it separates. A sim test proves that a part inside a closed bay takes no drag or heat, and does once the doors open.
 
 ## Context
 
-- Research: `refs/part-visuals-and-blueprints/README.md` and `refs/part-visuals-and-blueprints/parts-tracker.md` (tracker IDs name the parts this plan delivers).
-- ADRs: 0261
-- Code: `packages/renderer/src/parts/generators/`, `mods/stock/src/parts/`.
+- Already done by plan 303 (5dc6fbb4): service bays, the cargo bay with doors, payload petals, couplers 2/3/4, truss, hub and lattice interstage (`mods/stock/src/parts/missions.ts`, `packages/renderer/src/parts/generators/bays.ts`).
+- Already done by plan 302: `ModuleBay` is a shell while closed and none when open (`mods/stock/test/part-support.test.ts:36`); the sim's `shieldedParts` (`packages/sim/src/debris.ts`, used in `frames.ts`) shields parts inside a shell.
+- Payload release is tested in flight: `apps/web/src/lib/editor/mission-flights.test.ts`, the Wayfarer opening its bay and letting the module go (plan 356) and the Kronos petals thrown off (plan 345).
+- Not done: nothing refuses a decouple inside a closed bay, and no sim test covers a bay's shielding (only fairings: `packages/sim/test/fairing.test.ts`, `heating.test.ts`).
+- ADRs: 0261 (bays), 0317 (structure parts checked against their counterparts), 0268 (English messages).
 
 ## Scope
 
-**In:** `ModuleBay`, door animations, shield-by-doors rule in `shieldedParts`, decouple refusal, new structural parts, OrbitX titles.
-**Out:** Inventory containers (284).
+**In:** The decouple refusal and its message; sim tests for the refusal and for the bay's shielding.
+**Out:** Inventory containers (284); new structural parts (done in 303).
 
 ## Design notes
 
-Reuse `ModuleDefinition.shell` profiles; doors add drag when open.
+- A decoupler is "inside" a bay when `shieldedParts` counts it shielded by that bay's shell. The refusal applies to the decoupler's action and to staging; the stage still fires its other parts.
+- The message names the bay ("Open the cargo bay first").
 
 ## Steps
 
-1. Module and sim rule with tests.
-2. Bay, petals, coupler, truss, interstage, tube generators and parts.
-3. A payload deploy test: open bay, release a satellite.
+1. The refusal in the sim's decouple path, with a message event.
+2. Sim tests: refusal and release; drag and heat inside a closed and an open bay.
 
 ## Acceptance criteria
 
 - [ ] A part inside a closed bay takes no drag or heat; opened, it does (sim test).
 - [ ] Decoupling a payload inside a closed bay is refused with a message; open, it separates (sim test).
+- [ ] `mission-flights.test.ts` still passes (the Wayfarer and Kronos releases).
 - [ ] `bun test`, `bun run typecheck`, `bun run build` and `bun run docs:check` pass.
-- [ ] Screenshots of every new or remodelled part (catalogue icon and in the Hangar) in the journal, before and after.
 
 ## Docs checklist
 
@@ -54,5 +56,6 @@ Reuse `ModuleDefinition.shell` profiles; doors add drag when open.
 
 ## Log
 
+- 2026-10-24 — Rewritten by the coordinator after an audit against main @ 4c546c02: parts (303), `ModuleBay` shielding (302) and payload release flights (356, 345) are done; this plan keeps the decouple refusal and a sim test of the bay's shielding; depends on 302 and 303.
 - 2026-10-21 — Parts delivered in plan 303: service bays, cargo bay, petals, couplers, truss, hub, lattice. Open: the decouple refusal inside a closed bay.
 - 2026-10-21 — Drafted from the part-visuals research and the owner's decisions of 2026-10-21 (CTO calls delegated by the owner). Not to be started until the owner releases the parts work: on 2026-10-21 main is busy with renderer fixes and a UI/UX agent.

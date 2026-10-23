@@ -1,12 +1,12 @@
 ---
 id: 297
 title: "Space station modules: habitat, node hub, laboratory, truss segments, large rotating solar wings, radiators, airlock, cupola"
-status: draft
+status: dropped
 owner: ""
 depends: [291, 280, 281]
 phase: 0
 created: 2026-10-21
-updated: 2026-10-21
+updated: 2026-10-24
 ---
 
 # 297 — Space station modules: habitat, node hub, laboratory, truss segments, large rotating solar wings, radiators, airlock, cupola
@@ -53,5 +53,6 @@ Docking-based assembly already works (ADR 0218); modules carry their own ports a
 
 ## Log
 
+- 2026-10-24 — Parts delivered by plan 303 (and 356/361/309/330); remaining flight tests moved to plan 388. Dropped with the owner's approval.
 - 2026-10-21 — Parts delivered in plan 303: hab and lab modules, hub, truss, radiator, airlock, cupola. Open: the docking test.
 - 2026-10-21 — Drafted from the owner's mission targets of 2026-10-21 (Apollo 11, Space Shuttle, station, rover, orbiter, space telescope, research satellite): rocket parts first, rover after, robotics last.

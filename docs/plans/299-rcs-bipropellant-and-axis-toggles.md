@@ -6,7 +6,7 @@ owner: ""
 depends: [277]
 phase: 0
 created: 2026-10-21
-updated: 2026-10-21
+updated: 2026-10-24
 ---
 
 # 299 — RCS follow-ups: bipropellant thruster and axis toggles
@@ -51,4 +51,5 @@ Use the engine's propellant mix code for the flow. For the axes, pass the vessel
 
 ## Log
 
+- 2026-10-24 — Rewritten by the coordinator after an audit against main @ 4c546c02: audited, still valid (`ModuleRcs` burns one `propellant`; it has rotation and translation toggles but no per-axis ones).
 - 2026-10-21 — Split out of plan 277.

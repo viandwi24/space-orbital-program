@@ -1,12 +1,12 @@
 ---
 id: 296
 title: "Lunar lander parts: descent stage, ascent cabin, single landing legs, lander engines, lander RCS quads"
-status: draft
+status: dropped
 owner: ""
 depends: [291, 277, 278, 300]
 phase: 0
 created: 2026-10-21
-updated: 2026-10-21
+updated: 2026-10-24
 ---
 
 # 296 — Lunar lander parts: descent stage, ascent cabin, single landing legs, lander engines, lander RCS quads
@@ -55,5 +55,6 @@ The single leg uses the existing `ModuleLandingLeg` colliders per leg (radial), 
 
 ## Log
 
+- 2026-10-24 — Parts delivered by plan 303 (and 356/361/309/330); remaining flight tests moved to plan 388. Dropped with the owner's approval.
 - 2026-10-21 — Parts delivered in plan 303: descent and ascent stages, single leg. Open: the landing and ascent tests.
 - 2026-10-21 — Drafted from the owner's mission targets of 2026-10-21 (Apollo 11, Space Shuttle, station, rover, orbiter, space telescope, research satellite): rocket parts first, rover after, robotics last.

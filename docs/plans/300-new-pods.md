@@ -1,12 +1,12 @@
 ---
 id: 300
 title: "New pods: a 3-seat capsule with built-in chutes, a headlight descent module, a sphere capsule, a small cone capsule, lander cans and a crew cabin"
-status: draft
+status: dropped
 owner: ""
 depends: [291, 278]
 phase: 0
 created: 2026-10-21
-updated: 2026-10-21
+updated: 2026-10-24
 ---
 
 # 300 — New pods
@@ -61,5 +61,6 @@ Each capsule's centre of mass and blunt base follow ADR 0246.
 
 ## Log
 
+- 2026-10-24 — Parts delivered by plan 303 (and 356/361/309/330); remaining flight tests moved to plan 388. Dropped with the owner's approval.
 - 2026-10-21 — Parts delivered in plan 303: 3-seat capsule with built-in chutes, descent and orbital modules, sphere and cone capsules, lander can, crew cabin. Open: per-capsule re-entry tests.
 - 2026-10-21 — Split from plan 278, so the parachutes the owner asked about come first.

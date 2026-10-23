@@ -1,12 +1,12 @@
 ---
 id: 295
 title: "Shuttle parts: orbiter fuselage, delta wing, cargo bay with opening doors, OMS pods, tail, orbiter engines, external tank, shuttle SRBs"
-status: draft
+status: dropped
 owner: ""
 depends: [291, 276, 281]
 phase: 0
 created: 2026-10-21
-updated: 2026-10-21
+updated: 2026-10-24
 ---
 
 # 295 — Shuttle parts: orbiter fuselage, delta wing, cargo bay with opening doors, OMS pods, tail, orbiter engines, external tank, shuttle SRBs
@@ -55,5 +55,6 @@ The orbiter is several parts, as in KSP (Mk3 fuselage, wings, tail), so the payl
 
 ## Log
 
+- 2026-10-24 — Parts delivered by plan 303 (and 356/361/309/330); remaining flight tests moved to plan 388. Dropped with the owner's approval.
 - 2026-10-21 — Parts delivered in plan 303: orbiter nose and aft, delta wing, external tank, cargo bay. Open: the glide test.
 - 2026-10-21 — Drafted from the owner's mission targets of 2026-10-21 (Apollo 11, Space Shuttle, station, rover, orbiter, space telescope, research satellite): rocket parts first, rover after, robotics last.
