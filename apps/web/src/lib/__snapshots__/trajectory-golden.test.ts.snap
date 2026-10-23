@@ -6376,6 +6376,91 @@ exports[`trajectory goldens (plan 080) > node prediction with two nodes 1`] = `
 }
 `;
 
+exports[`trajectory goldens (plan 080) closest approach and aids for the moon as target (snapshot from the sim) 1`] = `
+{
+  "body": "stock.cinder",
+  "distance": 494920.5993,
+  "relative": {
+    "r": {
+      "x": -64186.33429,
+      "y": -16.87942103,
+      "z": -490740.7806,
+    },
+    "v": {
+      "x": 556.7291015,
+      "y": 0.01217294549,
+      "z": -72.81503892,
+    },
+  },
+  "relativeSpeed": 561.4706782,
+  "relativeVelocity": {
+    "x": -556.7291015,
+    "y": -0.01217294549,
+    "z": 72.81503892,
+  },
+  "target": {
+    "x": -6464526545,
+    "y": -2610983964,
+    "z": 11672727960,
+  },
+  "time": 28630.74292,
+  "vessel": {
+    "x": -6464590732,
+    "y": -2610983980,
+    "z": 11672237220,
+  },
+  "withNodes": false,
+}
+`;
+
+exports[`trajectory goldens (plan 080) closest approach and aids for the moon as target (snapshot from the sim) 2`] = `
+[
+  {
+    "detail": "494.9 km apart, 561.5 m/s relative",
+    "id": "approach",
+    "label": "Node at closest approach",
+    "node": {
+      "normal": 0,
+      "prograde": 0,
+      "radial": 0,
+      "time": 28630.74292,
+    },
+  },
+  {
+    "detail": "561.5 m/s to stop relative to the target there",
+    "id": "match",
+    "label": "Match velocity at closest approach",
+    "node": {
+      "normal": 0,
+      "prograde": -561.4706782,
+      "radial": 0,
+      "time": 28630.74292,
+    },
+  },
+  {
+    "detail": "12.7 m/s now, then 366.5 m/s on arrival after 434 min (circular, coplanar orbits assumed)",
+    "id": "hohmann",
+    "label": "Hohmann transfer to the target orbit",
+    "node": {
+      "normal": 0,
+      "prograde": -12.73926722,
+      "radial": 0,
+      "time": 1865.397653,
+    },
+  },
+  {
+    "detail": "The orbit planes are already aligned, or the orbit is not closed.",
+    "id": "node-ascending",
+    "label": "Plane change at the ascending node",
+  },
+  {
+    "detail": "The orbit planes are already aligned, or the orbit is not closed.",
+    "id": "node-descending",
+    "label": "Plane change at the descending node",
+  },
+]
+`;
+
 exports[`trajectory goldens (plan 080) map path through the moon sphere 1`] = `
 [
   {
@@ -12665,89 +12750,4 @@ exports[`trajectory goldens (plan 080) node prediction with two nodes 1`] = `
   ],
   "unreachable": [],
 }
-`;
-
-exports[`trajectory goldens (plan 080) closest approach and aids for the moon as target (snapshot from the sim) 1`] = `
-{
-  "body": "stock.cinder",
-  "distance": 494920.5993,
-  "relative": {
-    "r": {
-      "x": -64186.33429,
-      "y": -16.87942103,
-      "z": -490740.7806,
-    },
-    "v": {
-      "x": 556.7291015,
-      "y": 0.01217294549,
-      "z": -72.81503892,
-    },
-  },
-  "relativeSpeed": 561.4706782,
-  "relativeVelocity": {
-    "x": -556.7291015,
-    "y": -0.01217294549,
-    "z": 72.81503892,
-  },
-  "target": {
-    "x": -6464526545,
-    "y": -2610983964,
-    "z": 11672727960,
-  },
-  "time": 28630.74292,
-  "vessel": {
-    "x": -6464590732,
-    "y": -2610983980,
-    "z": 11672237220,
-  },
-  "withNodes": false,
-}
-`;
-
-exports[`trajectory goldens (plan 080) closest approach and aids for the moon as target (snapshot from the sim) 2`] = `
-[
-  {
-    "detail": "494.9 km apart, 561.5 m/s relative",
-    "id": "approach",
-    "label": "Node at closest approach",
-    "node": {
-      "normal": 0,
-      "prograde": 0,
-      "radial": 0,
-      "time": 28630.74292,
-    },
-  },
-  {
-    "detail": "561.5 m/s to stop relative to the target there",
-    "id": "match",
-    "label": "Match velocity at closest approach",
-    "node": {
-      "normal": 0,
-      "prograde": -561.4706782,
-      "radial": 0,
-      "time": 28630.74292,
-    },
-  },
-  {
-    "detail": "12.7 m/s now, then 366.5 m/s on arrival after 434 min (circular, coplanar orbits assumed)",
-    "id": "hohmann",
-    "label": "Hohmann transfer to the target orbit",
-    "node": {
-      "normal": 0,
-      "prograde": -12.73926722,
-      "radial": 0,
-      "time": 1865.397653,
-    },
-  },
-  {
-    "detail": "The orbit planes are already aligned, or the orbit is not closed.",
-    "id": "node-ascending",
-    "label": "Plane change at the ascending node",
-  },
-  {
-    "detail": "The orbit planes are already aligned, or the orbit is not closed.",
-    "id": "node-descending",
-    "label": "Plane change at the descending node",
-  },
-]
 `;

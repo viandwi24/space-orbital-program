@@ -32,6 +32,18 @@
 		viewerQueryString,
 		type ViewerQuery
 	} from '../../../lib/dev/part-viewer';
+	import {
+		changeText,
+		devPlugins,
+		modsOf,
+		originsOf,
+		readIncludeDisabled,
+		saveIncludeDisabled,
+		touchedBy,
+		type ItemOrigin
+	} from '../../../lib/dev/dev-content';
+	import { bootSummary, modBootLog } from '../../../lib/mods/boot-log';
+	import { resolve } from '$app/paths';
 
 	let host: HTMLDivElement;
 	let viewer: PartViewer | null = null;
@@ -47,11 +59,27 @@
 	let error = $state('');
 	let ready = $state(false);
 	let compareText = $state('');
+	/** Who registered and patched each part (plan 375), and the mod filter. */
+	let origins = $state.raw<Map<string, ItemOrigin>>(new Map());
+	let mods = $state.raw<Array<{ id: string; registered: number; patched: number }>>([]);
+	let modFilter = $state<string | null>(
+		typeof location === 'undefined' ? null : new URLSearchParams(location.search).get('mod')
+	);
+	const includeDisabled = readIncludeDisabled();
+	let extra = $state.raw<string[]>([]);
+	const problems = (() => {
+		const log = modBootLog();
+		return log ? bootSummary(log).failed : 0;
+	})();
+	function toggleDisabled(on: boolean): void {
+		saveIncludeDisabled(on);
+		location.reload();
+	}
 
 	const byId = $derived(new Map(parts.map((p) => [p.id as string, p])));
 	const groups = $derived(
 		groupByCategory(
-			parts.filter((p) => matchesQuery(p, search)),
+			parts.filter((p) => matchesQuery(p, search) && touchedBy(origins.get(p.id), modFilter)),
 			(p) => categoryOfPart(p),
 			categories
 		)
@@ -113,7 +141,11 @@
 		}
 		(async () => {
 			try {
-				const loaded = loadContent();
+				const dev = await devPlugins(includeDisabled);
+				extra = dev.extra;
+				const loaded = loadContent(undefined, dev.plugins);
+				origins = originsOf(loaded.report, 'part');
+				mods = modsOf(loaded.report, origins);
 				const modules = loaded.content.modules;
 				const cats = categoriesOf(loaded.categories);
 				categories = cats;
@@ -200,6 +232,7 @@
 		const keep: Record<string, string> = {};
 		const renderer = new URLSearchParams(location.search).get('renderer');
 		if (renderer) keep.renderer = renderer;
+		if (modFilter) keep.mod = modFilter;
 		const qs = viewerQueryString(view, keep);
 		if (!ready) return;
 		const next = `${location.pathname}${qs ? `?${qs}` : ''}`;
@@ -217,6 +250,37 @@
 <main class:light={view.bg === 'light'} data-testid="part-viewer" data-ready={ready}>
 	<aside class="list">
 		<h1>Parts <small>{parts.length}</small></h1>
+		<div class="mods">
+			<label
+				>Mod <select
+					value={modFilter ?? ''}
+					onchange={(e) => (modFilter = e.currentTarget.value || null)}
+					data-testid="part-mod-filter"
+				>
+					<option value="">All plugins</option>
+					{#each mods as m (m.id)}
+						<option value={m.id}
+							>{m.id} ({m.registered}{m.patched ? `, patches ${m.patched}` : ''}){extra.includes(
+								m.id
+							)
+								? ' · off'
+								: ''}</option
+						>
+					{/each}
+				</select></label
+			>
+			<label class="small"
+				><input
+					type="checkbox"
+					checked={includeDisabled}
+					onchange={(e) => toggleDisabled(e.currentTarget.checked)}
+					data-testid="part-include-disabled"
+				/> Include disabled mods</label
+			>
+			<a class="small" href={resolve('/developer/mods')} class:bad={problems > 0}
+				>Loader log{problems ? ` · ${problems} failed` : ''}</a
+			>
+		</div>
 		<input
 			type="search"
 			placeholder="Search title or id"
@@ -234,7 +298,11 @@
 								<span class="title"
 									>{p.title}{#if p.catalog?.hidden}<em> hidden</em>{/if}</span
 								>
-								<span class="id">{p.id}</span>
+								<span class="id"
+									>{p.id}{#if origins.get(p.id)?.patchedBy.length}<em class="patched">
+											patched</em
+										>{/if}</span
+								>
 							</button>
 							<button
 								type="button"
@@ -326,9 +394,24 @@
 		</fieldset>
 		{#each stats as s (s.id)}
 			{@const def = byId.get(s.id)}
+			{@const origin = origins.get(s.id)}
 			<section class="stats" data-testid="part-stats">
 				<h3>{def?.title ?? s.id} <small>{s.id}</small></h3>
 				<dl>
+					<dt>Provided by</dt>
+					<dd data-testid="part-provider">
+						{origin?.by ?? '—'}{#if origin && extra.includes(origin.by)}
+							(off in Mods){/if}
+					</dd>
+					{#if origin && origin.patchedBy.length > 0}
+						<dt>Patched by</dt>
+						<dd>
+							{origin.patchedBy.join(', ')}
+							<ul class="changes">
+								{#each origin.changes as c, i (i)}<li data-tip={c.patch}>{changeText(c)}</li>{/each}
+							</ul>
+						</dd>
+					{/if}
 					<dt>Generator</dt>
 					<dd>{s.kind}</dd>
 					<dt>Triangles</dt>
@@ -426,6 +509,37 @@
 		color: inherit;
 		border: 1px solid #2a313b;
 		padding: 4px 6px;
+	}
+	.mods {
+		display: grid;
+		gap: 4px;
+		margin: 6px 0;
+	}
+	.mods select {
+		flex: 1;
+		min-width: 0;
+	}
+	.small {
+		font-size: 11px;
+		color: #94a3b8;
+	}
+	a.small.bad {
+		color: #fca5a5;
+	}
+	.patched {
+		color: #a78bfa !important;
+	}
+	.changes {
+		margin: 2px 0 0;
+		padding-left: 1em;
+		list-style: disc;
+		font:
+			10px ui-monospace,
+			monospace;
+		color: #cbd5e1;
+	}
+	.changes li {
+		display: list-item;
 	}
 	.groups {
 		overflow: auto;

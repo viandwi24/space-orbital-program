@@ -8,7 +8,9 @@ import {
 	type OverlayDefinition,
 	type MissionDefinition,
 	type PanelDefinition,
+	type LoadReport,
 	type PartLookup,
+	type Plugin,
 	type SystemChoice,
 	type TechNodeDefinition,
 	type Registries
@@ -50,8 +52,16 @@ export function loadOverlays(system: SystemChoice = STOCK_CHOICE): OverlayDefini
 	return loadPlugins([...BUILTIN_PLUGINS, ...activePlugins()], { system }).registries.overlays.list();
 }
 
-export function loadContent(system: SystemChoice = STOCK_CHOICE): {
+export function loadContent(
+	system: SystemChoice = STOCK_CHOICE,
+	/** The plugin list; the developer viewers pass their own (plan 375). */
+	plugins: readonly Plugin[] = [...BUILTIN_PLUGINS, ...activePlugins()]
+): {
 	catalog: Catalog;
+	/** The load report: boot order, who registered and patched what (plan 375). */
+	report: LoadReport;
+	/** All registries, for the developer viewers. */
+	registries: Registries;
 	content: ContentLookups;
 	/** Catalogue categories (plan 069, ADR 0146), in registration order. */
 	categories: CategoryDefinition[];
@@ -78,7 +88,7 @@ export function loadContent(system: SystemChoice = STOCK_CHOICE): {
 	/** Mods' blueprints for the Hangar's Library (plan 285, ADR 0263). */
 	blueprints: BlueprintDefinition[];
 } {
-	const { registries, report } = loadPlugins([...BUILTIN_PLUGINS, ...activePlugins()], { system });
+	const { registries, report } = loadPlugins(plugins, { system });
 	return {
 		catalog: {
 			plugins: [...report.order],
@@ -86,6 +96,8 @@ export function loadContent(system: SystemChoice = STOCK_CHOICE): {
 			bodies: registries.bodies.list(),
 			resources: registries.resources.list()
 		},
+		report,
+		registries,
 		categories: registries.categories.list(),
 		actionGroups: registries.actionGroups.list(),
 		panels: registries.panels.list(),
