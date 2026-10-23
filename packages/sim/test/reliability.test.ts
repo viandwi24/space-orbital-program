@@ -128,6 +128,11 @@ describe('reliability on', () => {
 
 	test('without a test stand a static fire is refused', async () => {
 		const sim = await make(world({ 'stock.reliability': true }));
+		// the start has a Test Stand where parts can fail (ADR 0322): take it down first
+		const stand = sim.snapshot().sites![0]!.buildings.find((b) => b.kind === 'stock.test-stand')!;
+		expect(
+			sim.dispatch({ type: 'remove-building', site: sim.snapshot().sites![0]!.id, id: stand.id }).ok
+		).toBe(true);
 		expect(sim.dispatch({ type: 'static-fire', part: 'stock.engine-lv' })).toEqual({
 			ok: false,
 			reason: 'build a test stand first'

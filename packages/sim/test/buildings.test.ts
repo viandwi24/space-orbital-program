@@ -15,15 +15,19 @@ const legacy = (s: Awaited<ReturnType<typeof make>>) =>
 	s.snapshot().sites!.find((x) => x.id === 'legacy')!;
 
 describe('buildings on the Legacy site', () => {
-	test('the snapshot shows the Legacy layout before anything is built', async () => {
+	test('the snapshot shows the Legacy layout and the start buildings before anything is built', async () => {
 		const sim = await make();
+		// the Astronaut Complex and R&D join the Legacy layout in every world (ADR 0322)
 		expect(legacy(sim).buildings.map((b) => b.kind)).toEqual([
 			'stock.launchpad-s',
 			'stock.hangar',
 			'stock.mission-center',
-			'stock.administration'
+			'stock.administration',
+			'stock.astronaut-complex',
+			'stock.research'
 		]);
-		expect(sim.worldInfo.sites).toEqual([]);
+		// the start's building writes the implicit Legacy site into the world, as a first build does
+		expect(sim.worldInfo.sites.map((x) => x.id)).toEqual(['legacy']);
 		sim.dispose();
 	});
 

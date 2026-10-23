@@ -91,6 +91,7 @@ import { applySoiTransitions } from './soi.ts';
 import { restoreFrames, restoreWorld, writeSave } from './save.ts';
 import { rulesView, takeSnapshot } from './snapshot.ts';
 import { freshEconomy } from './economy.ts';
+import { seedStart } from './start.ts';
 import { stepThermal, type HeatInput, type Overheat } from './thermal.ts';
 import { burnPart, damagePart, processPending } from './vessel.ts';
 import { holdWarpLimit, thawFrozen } from './warp.ts';
@@ -433,7 +434,7 @@ export async function createSim(options: SimOptions): Promise<Sim> {
 			);
 		}
 		restoreFrames(core, resume);
-	}
+	} else seedStart(core); // a new world's buildings and crew (player-journey audit Q1)
 	/** Plugins that booted, in boot order, with the versions the save should record. */
 	const mods = report.order.flatMap((id) => {
 		const plugin = options.plugins.find((p) => p.meta.id === id);

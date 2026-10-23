@@ -27,7 +27,9 @@ import {
 	type EventMap,
 	type SimSave,
 	type SaveFrame,
-	type World
+	type World,
+	saveCrewSchema,
+	type SaveCrew
 } from '@orbital/core';
 import { createVesselBody } from './frames.ts';
 import { partOf, vesselIds, vesselOf, type SimCore } from './core.ts';
@@ -224,7 +226,9 @@ export function writeSave({ core, mods, seed }: WriteSaveInput): SimSave {
 		...(contractsTouched(core) ? { contracts: cloneData(core.contracts) } : {}),
 		...(strategiesTouched(core) ? { strategies: cloneData(core.strategies) } : {}),
 		...(discoveryTouched(core) ? { discovery: cloneData(core.discovery) } : {}),
-		...(core.crew.next > 1 ? { crew: cloneData(core.crew) } : {}),
+		// in the schema's key order, as a resumed save reads them: a crew member's fields are added as
+		// they happen (boarding, then a shortage), so a fresh run and a resumed one wrote them apart
+		...(core.crew.next > 1 ? { crew: saveCrewSchema.parse(cloneData(core.crew)) as SaveCrew } : {}),
 		...(science ? { science } : {}),
 		...(milestones ? { milestones } : {}),
 		...(tech ? { tech } : {}),

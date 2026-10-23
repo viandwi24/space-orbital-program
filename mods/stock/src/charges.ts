@@ -31,7 +31,9 @@ export const ChargeOperations = defineCharge({
 	id: 'stock.operations',
 	label: 'Space Center operations',
 	currency: 'funds',
-	amount: -4_000,
+	// 800 less than plan 095's 4 000 since the start's Astronaut Complex and R&D (ADR 0322) pay
+	// that much upkeep: a Career month costs what it did
+	amount: -3_200,
 	everyDays: MONTH,
 	scaleBy: ['stock.cost-multiplier']
 });

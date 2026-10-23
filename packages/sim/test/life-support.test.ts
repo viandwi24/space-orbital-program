@@ -100,7 +100,10 @@ async function make(days: number, preset = 'stock.career', resume?: unknown): Pr
 		world: world(preset),
 		...(resume ? { resume } : {})
 	});
-	if (!resume) for (let i = 0; i < 3; i++) sim.dispatch({ type: 'crew-hire', profession: 'pilot' });
+	// three crew: a Career start has them (ADR 0322), the other presets hire them
+	if (!resume)
+		for (let i = sim.snapshot().crew?.length ?? 0; i < 3; i++)
+			sim.dispatch({ type: 'crew-hire', profession: 'pilot' });
 	return sim;
 }
 

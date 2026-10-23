@@ -191,7 +191,10 @@ export function placeXp(place: string, home: string): number {
 
 export const levelOf = (xp: number): number => LEVEL_THRESHOLDS.filter((t) => xp >= t).length;
 
-/** Daily salary in funds (ADR 0176 point 8); recruiting costs `RECRUIT_DAYS` days of the base. */
+/**
+ * Daily salary in funds (ADR 0176 point 8), paid for each day a member is on a mission (ADR 0322);
+ * recruiting costs `RECRUIT_DAYS` days of the base.
+ */
 export const SALARY_BASE: Record<Profession, number> = {
 	pilot: 400,
 	engineer: 400,

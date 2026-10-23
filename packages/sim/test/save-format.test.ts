@@ -318,7 +318,15 @@ describe('the world of a run (plan 077, ADR 0110)', () => {
 		const save = sim.save();
 		expect(save.formatVersion).toBe(SIM_SAVE_VERSION);
 		// The world's own value is kept; every other stock rule comes from its preset (Sandbox).
-		expect(save.worldInfo).toEqual({ ...world, rules: save.worldInfo.rules });
+		// the rules from the preset, and the sites with the start's buildings (ADR 0322)
+		expect(save.worldInfo).toEqual({
+			...world,
+			rules: save.worldInfo.rules,
+			sites: save.worldInfo.sites
+		});
+		expect(save.worldInfo.sites[0]!.buildings!.map((b) => b.kind)).toContain(
+			'stock.astronaut-complex'
+		);
 		expect(save.worldInfo.rules['stock.economy']).toBe(false);
 		expect(save.worldInfo.rules['stock.tech-tree']).toBe(false);
 		sim.dispose();

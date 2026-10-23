@@ -108,7 +108,7 @@ export function strandMember(core: SimCore, vesselId: EntityId): string | undefi
 }
 
 /** A new available member on the roster: a name, traits and nothing flown yet. */
-function newMember(core: SimCore, profession: Profession): CrewMember {
+export function newMember(core: SimCore, profession: Profession): CrewMember {
 	const rng = createRng(core.crew.rng);
 	const names = core.registries.crewNames.list();
 	const name =
@@ -354,8 +354,9 @@ export function crewTick(core: SimCore): void {
 		}
 	}
 	if (!salariesOn(core)) return;
+	// paid while on a mission, seated in a vessel (ADR 0322): a crew at home costs its hire only
 	const total = core.crew.members
-		.filter((m) => m.status !== 'lost')
+		.filter((m) => m.status === 'assigned')
 		.reduce((s, m) => s + salaryOf(m), 0);
 	if (total > 0) record(core, 'funds', -total, 'crew.salaries');
 }

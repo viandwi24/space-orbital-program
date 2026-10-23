@@ -785,9 +785,13 @@
 					</div>
 				{:else}
 					<p class="note">
-						{seats.length === 0
-							? 'This vessel has no seats.'
-							: 'No crew available: hire in the Astronaut Complex.'}
+						{#if seats.length === 0}
+							This vessel has no seats.
+						{:else}
+							No crew available: hire in the <a href={resolve('/(world)/astronauts')}
+								>Astronaut Complex</a
+							>.
+						{/if}
 					</p>
 				{/if}
 			</div>

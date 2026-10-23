@@ -14,9 +14,23 @@ const make = (preset: string) =>
 	});
 
 describe('control source', () => {
+	test('a new Career world flies its first pod: its own crew takes the seat (player-journey audit Q1)', async () => {
+		const sim = await make('stock.career');
+		expect(sim.snapshot().crew?.map((c) => c.profession)).toEqual([
+			'pilot',
+			'engineer',
+			'scientist'
+		]);
+		const r = sim.dispatch({ type: 'load-vessel', design: pod() });
+		if (!r.ok) throw new Error(r.reason);
+		expect(sim.snapshot().vessels[0]!.uncontrolled).toBeUndefined();
+		expect(sim.dispatch({ type: 'throttle', vessel: r.vessel!, value: 1 }).ok).toBe(true);
+		sim.dispose();
+	});
 	test('an empty pod with no probe is uncontrolled and ignores throttle and stage (Career, nobody hired)', async () => {
 		const sim = await make('stock.career');
-		const r = sim.dispatch({ type: 'load-vessel', design: pod() });
+		// nobody seated on purpose: a Career start has a crew who would take the pod (ADR 0322)
+		const r = sim.dispatch({ type: 'load-vessel', design: pod(), crew: [] });
 		if (!r.ok) throw new Error(r.reason);
 		const v = sim.snapshot().vessels[0]!;
 		expect(v.uncontrolled).toBe('no-crew');

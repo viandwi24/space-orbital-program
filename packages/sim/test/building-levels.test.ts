@@ -137,7 +137,10 @@ describe('upkeep (ADR 0123 point 5)', () => {
 				['legacy-administration', -level0('stock.administration')],
 				['legacy-hangar', -level0('stock.hangar')],
 				['legacy-mission-center', -level0('stock.mission-center')],
-				['legacy-pad', -level0('stock.launchpad-s')]
+				['legacy-pad', -level0('stock.launchpad-s')],
+				// the start's buildings (ADR 0322): a Career world has the tree on, so R&D too
+				['start-astronaut-complex', -level0('stock.astronaut-complex')],
+				['start-research', -level0('stock.research')]
 			].sort()
 		);
 		sim.dispose();
@@ -147,17 +150,9 @@ describe('upkeep (ADR 0123 point 5)', () => {
 describe('the crew roster limit (ADR 0123 point 4)', () => {
 	test('with an Astronaut Complex the roster stops at its capacity and names the upgrade', async () => {
 		const sim = await make();
-		const r = sim.dispatch({
-			type: 'place-building',
-			site: 'legacy',
-			kind: 'stock.astronaut-complex',
-			cell: { i: 10, j: 14 },
-			rotation: 0,
-			id: 'ac'
-		});
-		expect(r.ok ? '' : r.reason).toBe('');
-		days(sim, sim.registries.buildings.get('stock.astronaut-complex')!.levels[0]!.buildDays);
-		for (let k = 0; k < 5; k++)
+		// a Career start has the Complex and a crew of three (ADR 0322): two more fill level 1
+		expect(sim.snapshot().crew).toHaveLength(3);
+		for (let k = 0; k < 2; k++)
 			expect(sim.dispatch({ type: 'crew-hire', profession: 'pilot' }).ok).toBe(true);
 		const sixth = sim.dispatch({ type: 'crew-hire', profession: 'pilot' });
 		expect(sixth.ok ? '' : sixth.reason).toBe(

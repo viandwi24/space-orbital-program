@@ -4,6 +4,7 @@ import type { EntityId } from '@orbital/core';
 import type { Sim } from '../src/index.ts';
 import { systemOf, transferState } from './helpers/moon.ts';
 import { newSim, probe, stack } from './helpers/vessels.ts';
+import { orbitState } from './helpers/measure.ts';
 
 const twoPods = () => stack('Two pods', ['stock.command-pod', 'stock.command-pod'], []);
 const roster = (sim: Sim) => sim.snapshot().crew ?? [];
@@ -158,20 +159,38 @@ describe('crew', () => {
 		expect(member(sim, 'c1').status).toBe('available');
 	});
 
-	test('salaries are one ledger entry per tick when economy and salaries are on; hiring costs the recruit fee', async () => {
+	test('hiring costs the recruit fee; salaries are paid only for members on a mission, one entry per tick (ADR 0322)', async () => {
 		const sim = await newSim();
 		sim.dispatch({ type: 'set-rule', rule: 'stock.economy', value: true });
 		sim.dispatch({ type: 'set-rule', rule: 'stock.crew-salaries', value: true });
 		sim.dispatch({ type: 'crew-hire', profession: 'pilot' });
 		sim.dispatch({ type: 'crew-hire', profession: 'scientist' });
 		sim.dispatch({ type: 'warp', factor: 1e4 });
-		sim.step(5); // two ticks
-		const entries = sim.save().economy!.entries.filter((e) => e.cause.startsWith('crew.'));
-		expect(entries.map((e) => [e.cause, e.amount])).toEqual([
+		sim.step(5); // two ticks at home: no salaries
+		const crewEntries = () =>
+			sim
+				.save()
+				.economy!.entries.filter((e) => e.cause.startsWith('crew.'))
+				.map((e) => [e.cause, e.amount]);
+		expect(crewEntries()).toEqual([
 			['crew.recruit', -8_000],
-			['crew.recruit', -9_000],
-			['crew.salaries', -850],
-			['crew.salaries', -850]
+			['crew.recruit', -9_000]
+		]);
+		// the pilot flies: one salary entry per tick for the pilot alone
+		sim.dispatch({ type: 'warp', factor: 1 });
+		const pilot = sim.snapshot().crew!.find((c) => c.profession === 'pilot')!.id;
+		const r = sim.dispatch({
+			type: 'load-vessel',
+			design: stack('Pod', ['stock.command-pod'], []),
+			placement: { kind: 'state', ...orbitState(sim, 200_000) },
+			crew: [{ member: pilot, part: 0 }]
+		});
+		expect(r.ok).toBe(true);
+		sim.dispatch({ type: 'warp', factor: 1e4 });
+		sim.step(5);
+		expect(crewEntries().slice(2)).toEqual([
+			['crew.salaries', -400],
+			['crew.salaries', -400]
 		]);
 	});
 });

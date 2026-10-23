@@ -32,8 +32,8 @@ const make = (agency?: string, extra: Plugin[] = [], resume?: unknown) =>
 	createSim({
 		plugins: [Stock, openTree, ...extra],
 		backendFactory: rapier(8),
-		world: world(agency),
-		...(resume ? { resume } : {})
+		// a resume takes the save's world, as the game does: buildings placed since live in it
+		...(resume ? { resume } : { world: world(agency) })
 	});
 const day = (sim: Sim) => tickDayLength(sim.registries.bodies.list());
 

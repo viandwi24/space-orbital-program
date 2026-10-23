@@ -153,7 +153,8 @@ describe('plan 231 contracts', () => {
 		const craft = made(
 			sim.dispatch({
 				type: 'debug-set-orbit',
-				design: stack('Rescue craft', ['stock.command-pod'], []),
+				// a seat for its own pilot (a Career start has a crew, ADR 0322) and one for the stranded
+				design: stack('Rescue craft', ['stock.pod-3'], []),
 				orbit: { body: 'stock.home' as never, a: r, e: 0, i: 0, raan: 0, argp: 0, m0: 12 / r }
 			})
 		);

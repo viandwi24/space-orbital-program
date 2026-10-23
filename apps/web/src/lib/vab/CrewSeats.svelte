@@ -4,6 +4,7 @@
 	 * crew; a click seats a member in the first free seat or takes them out. The Launch screen
 	 * starts from this seating.
 	 */
+	import { resolve } from '$app/paths';
 	import type { VabController } from './controller.svelte';
 	import { panelFolds } from './panel-folds.svelte';
 	import CrewPortrait from '../astronauts/CrewPortrait.svelte';
@@ -56,7 +57,10 @@
 				{/each}
 			</div>
 		{:else}
-			<p class="dim">No crew to choose: at launch the first free astronaut takes the pod.</p>
+			<p class="dim">
+				No crew to choose: hire in the <a href={resolve('/(world)/astronauts')}>Astronaut Complex</a>.
+				At launch the first free astronaut takes the pod.
+			</p>
 		{/if}
 	</details>
 {/if}

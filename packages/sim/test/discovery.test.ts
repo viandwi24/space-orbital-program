@@ -29,8 +29,8 @@ const make = (depth: 'classic' | 'discovery', resume?: unknown) =>
 	createSim({
 		plugins: [Stock, openTree],
 		backendFactory: rapier(16),
-		world: world(depth),
-		...(resume ? { resume } : {})
+		// a resume takes the save's world, as the game does: the start's R&D lives in it
+		...(resume ? { resume } : { world: world(depth) })
 	});
 const day = (sim: Sim) => tickDayLength(sim.registries.bodies.list());
 

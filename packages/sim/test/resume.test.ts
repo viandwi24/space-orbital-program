@@ -384,7 +384,15 @@ describe('format 5 saves of a world (plan 077)', () => {
 		expect(sim.snapshot().vessels[0]!.mode).toBe('flight');
 		const save = resumed.save();
 		expect(save.formatVersion).toBe(SIM_SAVE_VERSION);
-		expect(save.worldInfo).toEqual({ ...WORLD, rules: save.worldInfo.rules });
+		// the rules from the preset, and the sites with the start's buildings (ADR 0322)
+		expect(save.worldInfo).toEqual({
+			...WORLD,
+			rules: save.worldInfo.rules,
+			sites: save.worldInfo.sites
+		});
+		expect(save.worldInfo.sites[0]!.buildings!.map((b) => b.kind)).toContain(
+			'stock.astronaut-complex'
+		);
 		expect(JSON.stringify(save)).toBe(JSON.stringify(sim.save()));
 	});
 });
