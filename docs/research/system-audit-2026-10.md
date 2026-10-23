@@ -44,7 +44,7 @@ Severity: **high** means a player hits it in normal play; **medium** means a fea
 | 26 | low | Sol text | "the Earth is 1 593 km across"; 1,593 km is the radius. | `mods/sol/src/variants.ts:14,112`. | Owned by plan 380 (touches Sol). Forwarded. |
 | 27 | low | Guidance | The Ascent panel shows 80 km by default; the autopilot flies `max(80 km, air + 10 km)`, which is 110 km at Sol 1:1. | Two defaults. | Owned by plan 380. Forwarded. |
 | 28 | low | Saves | A save written from R&D, Test Stand, Administration or Astronauts in a Sol world shows the vessel's altitude 993–5,771 km too high in its summary. | These pages load stock-only registries for `bodyRadius`. | Open; a clear fix, left for a follow-up. |
-| 29 | low | Shell | Mission Center is a 3D page but is boxed inside the safe area, unlike Flight and the Space Center. | `IMMERSIVE` lacks `/mission-center`. | Needs a decision (D7). |
+| 29 | low | Shell | Mission Center is a 3D page but is boxed inside the safe area, unlike Flight and the Space Center. | `IMMERSIVE` lacks `/mission-center`. | Fixed `ff2a2408` (D7 (a), approved by the owner). |
 | 30 | low | Settings | `interface.panelWidth` is stored, never read; `musicForPath` checks a `/settings` route that does not exist; Mission Center's layer toggles reset on each visit. | Leftovers. | Open, cosmetic. |
 | 31 | medium | Tests | The web vitest run on main failed "the trajectory snapshot" (with `CI=true`: 4 obsolete snapshots). | The plan 364 merge (`7942d09c`) brought back the four old-format keys `d7a01375` had removed; the current entries were unchanged. Not a behaviour change. | Fixed `3c5d8cc2`; no other `.snap` file has duplicates. |
 
