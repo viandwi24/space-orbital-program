@@ -1,7 +1,7 @@
 ---
 id: 393
 title: "TAAU: the 3D image at about 0.6 of the side, rebuilt temporally; MSAA off; FSR 1 on cuts and on WebGL2"
-status: in-progress
+status: done
 owner: "Worker A"
 depends: [392]
 phase: 9
