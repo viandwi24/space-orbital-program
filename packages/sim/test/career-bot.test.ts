@@ -29,11 +29,11 @@ test('career bot: 3 600 game days with only launches and recoveries (and three r
 	expect(agencies.news.length).toBeGreaterThan(10);
 	expect(bot.min).toBeGreaterThanOrEqual(BAND.min);
 	expect(bot.max).toBeLessThanOrEqual(BAND.max);
-	// about 9 s alone on an M5 since plan 122 (7.4 s before the Sun: home's orbit is propagated at
-	// every comms sample); 45 s leaves room for the parallel full suite and still catches a 5x regression
-	expect(seconds).toBeLessThan(45);
+	// about 13 s alone on an M5 (9 s at plan 122); the parallel full suite on a slow runner takes
+	// 47 s or more, which failed CI at 45 s: 120 s still catches a 9x regression
+	expect(seconds).toBeLessThan(120);
 	bot.sim.dispose();
-}, 60_000);
+}, 180_000);
 
 test('career bot with markets: 10 years of launches buying fuel, a propellant plant from year 2, sales above base', async () => {
 	const started = performance.now();
@@ -60,9 +60,9 @@ test('career bot with markets: 10 years of launches buying fuel, a propellant pl
 	expect(bot.max).toBeLessThanOrEqual(BAND.max);
 	expect(income.get('stock.market-sell') ?? 0).toBeGreaterThan(0);
 	for (const v of income.values()) expect(v / total).toBeLessThanOrEqual(0.8);
-	expect(seconds).toBeLessThan(45);
+	expect(seconds).toBeLessThan(120);
 	bot.sim.dispose();
-}, 60_000);
+}, 180_000);
 
 test('career bot with contracts (plan 099): 3 600 days with an altitude job a mission keep funds in the band', async () => {
 	const started = performance.now();
@@ -87,9 +87,9 @@ test('career bot with contracts (plan 099): 3 600 days with an altitude job a mi
 	expect(causes.get('contract.reward-or-penalty')!).toBeGreaterThan(0);
 	expect(bot.min).toBeGreaterThanOrEqual(BAND.min);
 	expect(bot.max).toBeLessThanOrEqual(BAND.max);
-	expect(seconds).toBeLessThan(45);
+	expect(seconds).toBeLessThan(120);
 	bot.sim.dispose();
-}, 60_000);
+}, 180_000);
 
 // Plan 101 (ADR 0187 point 8): each stock strategy active for ten years. Strategies offered to a
 // government run there with a launch a month; the others run in a hybrid world, whose grant pays
