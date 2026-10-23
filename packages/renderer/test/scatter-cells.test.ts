@@ -1,4 +1,4 @@
-/** Plan 402 (ADR 0339): rocks by cell are a pure function of the body, the world and the cell. */
+/** Plan 402 (ADR 0341): rocks by cell are a pure function of the body, the world and the cell. */
 import { describe, expect, test } from 'bun:test';
 import {
 	createTerrainField,

@@ -82,7 +82,7 @@ export interface PresetSettings {
 	/** Engine plumes (plan 400): Low draws the inner flame and the nozzle glow, no diamonds and no cluster light; Medium adds the outer flame, the diamonds and the cluster light; High is for the volumetric layer (plan 400 follow-up). */
 	plume: 'low' | 'medium' | 'high';
 	/**
-	 * Rocks on the ground away from the launch site (plan 402, ADR 0339): the share of the lattice's
+	 * Rocks on the ground away from the launch site (plan 402, ADR 0341): the share of the lattice's
 	 * rocks drawn (0 = none) and the farthest one, m. Low none; Medium half of them, near; High all.
 	 */
 	rocks: { density: number; range: number };

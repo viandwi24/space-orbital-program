@@ -1,11 +1,11 @@
 /**
- * Rocks on the home planet's ground away from the launch site (plan 402, ADR 0339): where they are
+ * Rocks on the home planet's ground away from the launch site (plan 402, ADR 0341): where they are
  * and how big, by pure hashing of a body-fixed lattice, so a rock stands where it stood on every
  * visit, whatever the floating origin, the vessel in view or the graphics preset (the preset only
  * thins them). The lattice is `@orbital/core`'s gnomonic cube-face chart (`chartOf`); there is one
  * lattice per size class, a cell holds at most one rock, and its hash decides presence (by the
  * biome table and a patchy region hash), place, size, yaw and shade. A rock is not larger than
- * `SCATTER.sizeCut` (ADR 0339: visual only, nothing a landing leg would feel), so the sim does not
+ * `SCATTER.sizeCut` (ADR 0341: visual only, nothing a landing leg would feel), so the sim does not
  * know them. No Three.js: runs and is tested in Bun.
  */
 import {
@@ -37,7 +37,7 @@ export const SCATTER = {
 		{ cell: 3, radius: [0.05, 0.14], chance: 0.34, range: 50 },
 		{ cell: 8, radius: [0.14, 0.4], chance: 0.3, range: 400 }
 	] as const satisfies readonly RockClass[],
-	/** The largest rock radius, m (ADR 0339): its dome is under 0.3 m high. */
+	/** The largest rock radius, m (ADR 0341): its dome is under 0.3 m high. */
 	sizeCut: 0.4,
 	/** Share of the radius that stands above the ground, and how deep it sits. */
 	flatten: 0.7,

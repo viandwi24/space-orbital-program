@@ -1,5 +1,5 @@
 /**
- * Rocks on the home planet's ground, drawn instanced (plan 402, ADR 0339). Where they are comes from
+ * Rocks on the home planet's ground, drawn instanced (plan 402, ADR 0341). Where they are comes from
  * `rock-scatter.ts` (a body-fixed lattice, pure hashing); this class keeps a cache of the cells it
  * has asked about, fills it nearest first within a time budget, and writes the rocks within range
  * of the camera into two instanced meshes (a detailed rock near, a plain one beyond). The meshes
