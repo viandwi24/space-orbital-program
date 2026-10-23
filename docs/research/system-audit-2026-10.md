@@ -91,6 +91,7 @@ Severity: **high** means a player hits it in normal play; **medium** means a fea
 - Recommendation: (b). It matches KSP-like play and the market already exists to sell them.
 
 **D3. The stock mission line and the first-flight tutorial in Sol worlds.**
+- Plan 381 (`c659c48d`) added main-line missions that also name stock bodies (`stock.ochre-flyby`, `stock.ochre-landing`, `stock.tempest-flyby`), so the scope grows. The tech tree keeps `home`/`moon`.
 - Options:
   - (a) Objectives and the tutorial use `home`/`moon` and the home body's air height (+10 km). Briefing text names the bodies at run time.
   - (b) Offer the stock line and the tutorial only in the stock system; Sol gets its own line.
