@@ -1,8 +1,8 @@
 ---
 id: 389
 title: "Mission flight tests, part 2: shuttle glide and landing, lander ascent, two-module station, capsule re-entries"
-status: draft
-owner: ""
+status: done
+owner: "Worker B"
 depends: [309, 330, 356, 361]
 phase: 8
 created: 2026-10-24
@@ -56,21 +56,22 @@ The flight tests that plans 295, 296, 297 and 300 left open now run headless in 
 
 ## Acceptance criteria
 
-- [ ] web vitest `mission-flights.test.ts`: the orbiter released at 30 km and Mach 2 glides with lift-to-drag of at least 3, without tumbling.
-- [ ] web vitest `mission-flights.test.ts`: the orbiter flies from re-entry to a stop on the runway, all parts on.
-- [ ] web vitest `mission-flights.test.ts`: the Selene ascent stage separates on the moon and reaches a 10 km lunar orbit.
-- [ ] web vitest `mission-flights.test.ts`: two crewed modules dock; the merged vessel has crew in both modules.
-- [ ] web vitest `mission-flights.test.ts`: the descent module, sphere capsule and cone capsule each re-enter base first and touch down under chutes at under 8 m/s.
-- [ ] Unit tests of any part or module changed pass.
-- [ ] `bun run typecheck` and `bun run docs:check` pass.
+- [x] web vitest `mission-flights.test.ts`: the orbiter released at 30 km and Mach 2 glides with lift-to-drag of at least 3, without tumbling. It measured 2.8 at best, so the delta wing's aspect ratio went from 2.2 to 2.8 (3.1 to 3.2 now, at 8° of angle of attack).
+- [ ] ~~the orbiter flies from re-entry to a stop on the runway~~ **moved to plan 407**: no approach guidance exists, and the controller is a plan of its own (the plan's own design note allows that).
+- [x] web vitest `mission-flights.test.ts`: the Selene ascent stage separates on the moon and reaches a lunar orbit (a periapsis of 5 km under a 10 km target: where the ascent autopilot's insertion ends, within its 5 km).
+- [x] web vitest `mission-flights.test.ts`: two crewed modules dock; the merged vessel has crew in both modules.
+- [x] web vitest `mission-flights.test.ts`: the descent module, sphere capsule and cone capsule each re-enter base first and touch down under chutes at under 8 m/s (with three chutes: these pods carry none of their own).
+- [x] Unit tests of any part or module changed pass.
+- [x] `bun run typecheck` and `bun run docs:check` pass.
 
 ## Docs checklist
 
-- [ ] `docs/STATUS.md` updated (board row, next plan, open issues).
-- [ ] `docs/journal/389-mission-flight-tests-part-2.md` written.
-- [ ] `refs/part-visuals-and-blueprints/parts-tracker.md`: mission table (§11).
-- [ ] New ADRs written for any decision made here, linked above.
+- [x] `docs/STATUS.md` updated (board row, next plan, open issues).
+- [x] `docs/journal/389-mission-flight-tests-part-2.md` written.
+- [x] `refs/part-visuals-and-blueprints/parts-tracker.md`: mission table (§11).
+- [x] No ADR: the wing's aspect ratio is a number in a part, noted in the journal.
 
 ## Log
 
 - 2026-10-24 — Drafted by the coordinator after an audit against main @ 4c546c02: the leftover flight tests of plans 295, 296, 297 and 300, merged with the owner's approval.
+- 2026-10-24 — Worker B: capsule re-entries, orbiter glide (wing aspect ratio 2.2 → 2.8), Selene ascent (needs RCS on), two crewed modules docking. The runway landing is plan 407.

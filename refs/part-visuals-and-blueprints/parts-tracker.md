@@ -391,6 +391,8 @@ Tujuan owner: pemain bisa **meniru misi terkenal**. Urutan kerja: **part roket d
 | **Teleskop Cakrawala** | teleskop luar angkasa (gaya Hubble) | tabung teleskop dengan pintu bukaan, sayap surya, antena high-gain di lengan; eksperimen observasi | 280, **298** |
 | **Satelit Peneliti** | satelit riset | bus satelit, boom sensor, panel surya, antena, alat sains | 280, **298** |
 
+Tes terbang (plan 389, `apps/web/src/lib/editor/mission-flights.test.ts`): pod baru masuk atmosfer dengan dasar lebih dulu dan mendarat di bawah 8 m/s; orbiter meluncur dengan L/D ≥ 3 pada Mach 2 (sayap delta: aspect ratio 2.8); tahap naik Selene terpisah di bulan dan mencapai orbit (RCS menyala); dua modul berawak bersandar dan awaknya tetap di keduanya. Pendaratan orbiter di landasan: plan 407.
+
 Urutan plan (gelombang di roadmap rilis):
 
 1. **291** detail kit, livery, ikon
