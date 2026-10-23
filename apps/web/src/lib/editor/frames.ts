@@ -198,7 +198,9 @@ export function inverseLinkOnto(
 	const contact = arr(
 		mat3Apply(
 			inv,
-			arr(sub(add(nodeOwner.position, mat3Apply(nodeOwner.rotation, node.pos)), surfaceOwner.position))
+			arr(
+				sub(add(nodeOwner.position, mat3Apply(nodeOwner.rotation, node.pos)), surfaceOwner.position)
+			)
 		)
 	);
 	if (!pointNearShape(shape, contact)) return null;
