@@ -18,7 +18,19 @@ const bar = (on: boolean) =>
 describe('the Regions layer', () => {
 	it('lists the bodies with regions; the home body carries the world terrain', () => {
 		const layer = regionLayer(bodies, terrain, 'stock.home');
-		expect(layer.map((l) => l.id).sort()).toEqual(['stock.cinder', 'stock.home']);
+		// every stock body that defines regions (plan 381); Mote, Flick, Husk and Vagrant have one global region
+		expect(layer.map((l) => l.id).sort()).toEqual([
+			'stock.bastion',
+			'stock.cinder',
+			'stock.forge',
+			'stock.glim',
+			'stock.home',
+			'stock.kiln',
+			'stock.ochre',
+			'stock.rime',
+			'stock.tempest',
+			'stock.vesper'
+		]);
 		expect(layer.find((l) => l.id === 'stock.home')!.world).toEqual(terrain);
 		expect(layer.find((l) => l.id === 'stock.cinder')!.world).toBeUndefined();
 	});
