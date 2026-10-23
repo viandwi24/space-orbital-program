@@ -48,7 +48,10 @@ import {
 import { modelProviders } from '../mods/asset-models';
 import { emptyDesign, parseDesign, serialiseDesign } from '../design';
 import {
+	frameCapFps,
 	initialGraphicsPreset,
+	loadBrightness,
+	loadFrameCap,
 	onGraphicsChange,
 	probeCapabilities,
 	startPreset
@@ -900,6 +903,9 @@ export class VabController {
 		const made: Record<string, string> = {};
 		for (const p of this.parts) made[p.id] = this.view.renderIcon(p.id, 104);
 		this.icons = made;
+		// the player's Brightness after the thumbnails, which stay neutral (system audit: it had no effect here)
+		this.view.setBrightness(loadBrightness());
+		this.view.setFrameCap(frameCapFps(loadFrameCap()));
 		this.view.setScene(this.built.scene);
 		this.view.frame();
 		this.view.start();
@@ -946,6 +952,8 @@ export class VabController {
 		const tier = (): 'low' | 'high' => (initialGraphicsPreset() === 'low' ? 'low' : 'high');
 		const shownTier = tier();
 		const offGraphics = onGraphicsChange((change) => {
+			if (change.kind === 'brightness') this.view?.setBrightness(change.level);
+			if (change.kind === 'frameCap') this.view?.setFrameCap(frameCapFps(change.choice));
 			if (change.kind !== 'preset') return;
 			const next =
 				change.choice === 'auto' ? startPreset(null, null, probeCapabilities()) : change.choice;

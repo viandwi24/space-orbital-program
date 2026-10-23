@@ -316,6 +316,13 @@ export function profileDefaults(profile: KeyProfile, id: ActionId): readonly str
 const slotsOf = (a: ActionSpec): BindingScope[] =>
 	a.global ? ['flight', 'map', 'vab'] : [scopeOf(a.mode)];
 
+/**
+ * The scopes a key clashes in: a global key also reaches the player on foot and with a tool, where
+ * an unbound key falls through to it, so an EVA, Carry or Tool key on P would shadow Pause (system audit).
+ */
+const clashSlotsOf = (a: ActionSpec): BindingScope[] =>
+	a.global ? ['flight', 'map', 'vab', 'carry', 'tool', 'eva'] : [scopeOf(a.mode)];
+
 const BY_ID = new Map<string, ActionSpec>(ACTIONS.map((a) => [a.id, a]));
 /** The slot (1..10) of a custom-group action, or undefined (plan 110). */
 export function customGroupSlot(id: string): number | undefined {
@@ -450,9 +457,9 @@ export function resolveBindings(
 
 /** The action that already uses `key` in the scope of `id` (other than `id` itself), or null. */
 export function findClash(table: KeyTable, id: ActionId, key: string): ActionId | null {
-	const mine = slotsOf(actionSpec(id));
+	const mine = clashSlotsOf(actionSpec(id));
 	for (const a of ACTIONS) {
-		if (a.id === id || !slotsOf(a).some((s) => mine.includes(s))) continue;
+		if (a.id === id || !clashSlotsOf(a).some((s) => mine.includes(s))) continue;
 		if (table[a.id as ActionId].includes(key)) return a.id as ActionId;
 	}
 	return null;
@@ -464,7 +471,7 @@ export function bindingClashes(table: KeyTable): string[] {
 	const out: string[] = [];
 	for (const a of ACTIONS) {
 		for (const key of table[a.id as ActionId]) {
-			for (const scope of slotsOf(a)) {
+			for (const scope of clashSlotsOf(a)) {
 				const slot = `${scope}:${key}`;
 				const prior = seen.get(slot);
 				if (prior !== undefined) out.push(`${slot} (${prior} / ${a.id})`);

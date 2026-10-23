@@ -58,6 +58,11 @@ describe('the default table', () => {
 		])
 			expect(all).toContain(key);
 	});
+	it('a global key clashes with an EVA key too: Pause is live on foot (system audit)', () => {
+		const eva = ACTIONS.find((a) => a.mode === 'eva')!;
+		const table = { ...resolveBindings(), [eva.id]: ['KeyP'] } as ReturnType<typeof resolveBindings>;
+		expect(bindingClashes(table).length).toBeGreaterThan(0);
+	});
 	it('detects a clash (the check catches what it guards)', () => {
 		const table = { ...resolveBindings(), stage: ['KeyZ'] };
 		expect(bindingClashes(table)).toHaveLength(1);

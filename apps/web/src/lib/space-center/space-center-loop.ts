@@ -4,9 +4,15 @@
  * each frame the label positions of the buildings for the overlay. Build mode's ghost is drawn
  * from what the page decides; the pointer's site point comes from `pick`.
  */
-import { onGraphicsChange, probeCapabilities, startPreset } from '../graphics';
+import {
+	frameCapFps,
+	loadFrameCap,
+	onGraphicsChange,
+	probeCapabilities,
+	startPreset
+} from '../graphics';
 import type { Command, CommandResult, SimSave, Snapshot, WorldInfo } from '@orbital/core';
-import type { Renderer, SiteBuildingView } from '@orbital/renderer';
+import { FramePacer, type Renderer, type SiteBuildingView } from '@orbital/renderer';
 import { worldRenderer } from '../world-renderer.svelte';
 import { startSimWorker } from '../sim-client';
 import { PerfSource, type PerfSample } from '../perf/perf-stats';
@@ -79,10 +85,14 @@ export function startSpaceCenter(options: SpaceCenterOptions): SpaceCenter {
 		return s && !s.hidden ? { x: s.x, y: s.y } : null;
 	};
 
+	// the frame-rate limit (Settings → Graphics) holds on this page too (system audit: Flight only)
+	const pacer = new FramePacer();
+	pacer.setCap(frameCapFps(loadFrameCap()));
+
 	function frame(now: number): void {
 		if (disposed) return;
 		raf = requestAnimationFrame(frame);
-		if (!renderer) return;
+		if (!renderer || !pacer.due(now)) return;
 		if (snap && dirty) {
 			renderer.update(snap);
 			dirty = false;
@@ -142,6 +152,7 @@ export function startSpaceCenter(options: SpaceCenterOptions): SpaceCenter {
 	const acquired = worldRenderer.acquire(options.host, client);
 	// a preset chosen in Settings applies at once on this page too (owner, 2026-10-22)
 	const offGraphics = onGraphicsChange((change) => {
+		if (change.kind === 'frameCap') pacer.setCap(frameCapFps(change.choice));
 		if (change.kind !== 'preset' || !renderer) return;
 		renderer.setPreset(
 			change.choice === 'auto' ? startPreset(null, null, probeCapabilities()) : change.choice
