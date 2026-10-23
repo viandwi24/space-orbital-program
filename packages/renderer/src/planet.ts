@@ -421,6 +421,7 @@ export class PlanetPass {
 				uScaledTexelM: u(scaledTexelMetres(atm.radius, scaledSpaceSize(settings))),
 				uScaledOn: u(0),
 				uScaledMode: u(1),
+				uCityLights: u(settings.nightLights ? 1 : 0),
 				uDetailOn: u(1),
 				uDetail: u(detailTexture()),
 				uBakeFace: u(0),
@@ -1412,6 +1413,7 @@ export class PlanetPass {
 		this.shaftsWanted = settings.shaftSteps > 0 || settings.cloudShadowMap;
 		this.auroraSteps = settings.auroraSteps;
 		this.current = settings;
+		this.material.uniforms.uCityLights!.value = settings.nightLights ? 1 : 0;
 		this.skyBake.wanted = skyMapSize(settings.mapWidth);
 		this.material.defines = this.definesFor(settings);
 		this.material.needsUpdate = true;

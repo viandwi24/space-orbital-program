@@ -86,6 +86,8 @@ export interface PresetSettings {
 	 * rocks drawn (0 = none) and the farthest one, m. Low none; Medium half of them, near; High all.
 	 */
 	rocks: { density: number; range: number };
+	/** City lights on the night side of the home planet seen from orbit (plan 403, ADR 0342). */
+	nightLights: boolean;
 	/** The sea (plan 401): Low the analytic waves with the sky reflection; Medium adds the scrolled detail normals; High is for the 64² FFT on WebGPU (plan 401 follow-up). */
 	ocean: 'low' | 'medium' | 'high';
 }
@@ -142,6 +144,7 @@ export const PRESETS: Readonly<Record<GraphicsPreset, PresetSettings>> = {
 		trees: 250,
 		tufts: 0,
 		rocks: { density: 0, range: 0 },
+		nightLights: false,
 		terrainSize: 512,
 		terrainSteps: 48,
 		terrainRefineSteps: 24,
@@ -180,6 +183,7 @@ export const PRESETS: Readonly<Record<GraphicsPreset, PresetSettings>> = {
 		trees: 900,
 		tufts: 10000,
 		rocks: { density: 0.5, range: 90 },
+		nightLights: true,
 		terrainSize: 768,
 		terrainSteps: 80,
 		terrainRefineSteps: 32,
@@ -218,6 +222,7 @@ export const PRESETS: Readonly<Record<GraphicsPreset, PresetSettings>> = {
 		trees: 2000,
 		tufts: 28000,
 		rocks: { density: 1, range: 220 },
+		nightLights: true,
 		terrainSize: 1024,
 		terrainSteps: 128,
 		terrainRefineSteps: 40,

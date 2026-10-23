@@ -117,6 +117,7 @@ import {
 } from '../scaled-space-model.ts';
 import { skyMapSize } from '../sky-model.ts';
 import { hash33i, noiseA, noiseF, warpedLatLon } from './noise.ts';
+import { LIGHTS_GAIN, LIGHTS_RADIANCE, nightLightsTSL } from '../night-lights.ts';
 
 /* TSL nodes are untyped proxies; three's TSL typings lag its runtime */
 type N = any;
@@ -2156,7 +2157,17 @@ export class PlanetPassTSL {
 					return select(
 						scaled.uWhat.lessThan(0.5),
 						vec4(sqrt(clamp(sf.albedo, 0.0, 1.0)), clamp(sf.spec, 0.0, 1.0)),
-						vec4(normalize(sf.normal).mul(0.5).add(0.5), 1.0)
+						vec4(
+							normalize(sf.normal).mul(0.5).add(0.5),
+							nightLightsTSL(
+								TSL,
+								nBF,
+								uR,
+								hT,
+								select(sf.spec.greaterThan(0.01), 1.0, 0.0),
+								(q, f, salt) => noiseT(q, f, salt, this.link('uTerrainShift', 'int'))
+							)
+						)
 					);
 				})();
 			}
@@ -2259,8 +2270,10 @@ export class PlanetPassTSL {
 						sf.spec.assign(p.spec);
 						sf.lampE.assign(p.lampE);
 					});
+					const cityE = float(0.0).toVar();
 					If(wBake.greaterThan(0.0), () => {
 						const b = scaled.sample(nBF, max(log2(texels), 0.0));
+						cityE.assign(b.normal.w.mul(wBake));
 						sf.albedo.assign(mix(sf.albedo, b.albedo.xyz.mul(b.albedo.xyz), wBake));
 						sf.spec.assign(mix(sf.spec, b.albedo.w, wBake));
 						sf.normal.assign(
@@ -2316,6 +2329,12 @@ export class PlanetPassTSL {
 						.div(PI)
 						.mul(uSunIrr.mul(sunT).mul(ndl).mul(sh).add(amb).add(sf.lampE))
 						.toVar();
+					// city lights of the bake, on the night side only (plan 403)
+					lit.addAssign(
+						vec3(...LIGHTS_RADIANCE.map((v) => v * LIGHTS_GAIN)).mul(
+							cityE.mul(this.link('uCityLights')).mul(smoothstep(-0.12, 0.05, geo).oneMinus())
+						)
+					);
 					If(sf.spec.greaterThan(0.0), () => {
 						const V = rdBF.negate();
 						const Hh = normalize(Lb.add(V));
