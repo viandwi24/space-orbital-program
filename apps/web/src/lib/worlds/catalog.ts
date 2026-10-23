@@ -48,6 +48,8 @@ export interface WorldSystem {
 		label: string;
 		description?: string;
 		facts?: SystemVariantDefinition['facts'];
+		/** The variant's declared home body (its Space Center stands there); else core's rule. */
+		home?: string;
 	}>;
 	/** A mod's own card art and icon for the system (ADR 0273), from its first variant that has one. */
 	illustration?: string;
@@ -117,7 +119,8 @@ export function systemsOf(plugins: readonly Plugin[]): WorldSystem[] {
 				variant: v.variant,
 				label: v.label,
 				description: v.description,
-				facts: v.facts
+				facts: v.facts,
+				...(v.home ? { home: v.home } : {})
 			})),
 			...art(variants)
 		});

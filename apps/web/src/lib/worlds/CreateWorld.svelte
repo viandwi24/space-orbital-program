@@ -91,6 +91,8 @@
 		siteChoice = 'default';
 	}
 	const chosenVariant = $derived(active.variants.find((v) => v.variant === variant));
+	// the variant's declared home wins over the body order (a system listing its planets by distance)
+	const homeId = $derived(chosenVariant?.home ?? homeBodyOf(active.bodies)?.id);
 	/** `Δv to orbit ≈ 9.4 km/s · Moon in 4.9 days`, from the pack's data. */
 	const factsText = (f: NonNullable<(typeof active.variants)[number]['facts']>): string =>
 		`Δv to orbit ≈ ${(f.dvToOrbit / 1000).toFixed(1)} km/s` +
@@ -102,7 +104,7 @@
 	const resolved = $derived(
 		siteChoice === 'default'
 			? null
-			: resolveSiteChoice({ ...catalog, bodies: active.bodies }, siteChoice, seed)
+			: resolveSiteChoice({ ...catalog, bodies: active.bodies, home: homeId }, siteChoice, seed)
 	);
 	const boundary = (d: string) =>
 		d === 'sea' ? 'over the sea' : d === 'land' ? 'over land' : 'over land and sea';
@@ -159,7 +161,7 @@
 				systemId: active.id,
 				systemVersion: active.version,
 				variant,
-				home: homeBodyOf(active.bodies)?.id,
+				home: homeId,
 				...(resolved
 					? {
 							site: {

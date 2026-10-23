@@ -9,6 +9,7 @@ import {
 	formatDate,
 	homeBodyOf,
 	LEGACY_SITE,
+	RETIRED_BUILTIN_MODS,
 	presetValue,
 	resolveSiteTemplate,
 	siteConsequences,
@@ -134,12 +135,18 @@ const homeOf = (bodies: readonly BodyDefinition[]): BodyDefinition | undefined =
  * point 2), or null when the template or the home body is missing.
  */
 export function resolveSiteChoice(
-	catalog: { siteTemplates: readonly SiteTemplateDefinition[]; bodies: readonly BodyDefinition[] },
+	catalog: {
+		siteTemplates: readonly SiteTemplateDefinition[];
+		bodies: readonly BodyDefinition[];
+		/** The system variant's declared home, which wins over the body order. */
+		home?: string | undefined;
+	},
 	templateId: string,
 	seed: number
 ): SiteChoice | null {
 	const template = catalog.siteTemplates.find((t) => t.id === templateId);
-	const home = homeOf(catalog.bodies);
+	const home =
+		catalog.bodies.find((b) => b.id === catalog.home) ?? homeOf(catalog.bodies);
 	if (!template || !home) return null;
 	const spot = resolveSiteTemplate(template, { seed, radius: home.radius });
 	return {
@@ -273,3 +280,12 @@ export function behindText(seconds: number): string {
 	const m = Math.floor((seconds - h * 3600) / 60);
 	return h > 0 ? `${h} h ${m} min` : `${m} min`;
 }
+
+/**
+ * Whether a world uses a mod this game does not load. A built-in mod that was retired (folded into
+ * another, like Trajectories into Guidance) is not missing: its saves load (system audit).
+ */
+export const usesMissingMod = (
+	mods: readonly { id: string }[],
+	loaded: { has(id: string): boolean }
+): boolean => mods.some((m) => !loaded.has(m.id) && !RETIRED_BUILTIN_MODS.has(m.id));
