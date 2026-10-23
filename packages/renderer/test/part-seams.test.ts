@@ -34,6 +34,7 @@ const NOT_A_FLAT_JOINT: Record<string, string> = {
 	'stock.engine-wide/bottom': 'a bell: the shroud carries the joint (shrouds.test.ts)',
 	'stock.flotation-collar/top': 'a ring around the stack, wider than its joint by design',
 	'stock.flotation-collar/bottom': 'a ring around the stack, wider than its joint by design',
+	'stock.boost-cover/bottom': "a seat inside the shell: the port's face meets it under the cover",
 	// plans 276, 281: bells under engine plates, and joints off the part's axis (the rim is
 	// measured from the axis)
 	'stock.engine-plate-5/bottom': 'bells: the shroud carries the joint (shrouds.test.ts)',

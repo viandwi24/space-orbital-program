@@ -25,6 +25,7 @@ import { coupler, hub, lattice, petals, serviceBay, truss, petalPanel } from './
 import { battery, fuelCell, rtg, solarArray, solarFlat, solarFold, solarWings } from './power.ts';
 import {
 	deltaWing,
+	boostCover,
 	escapeTower,
 	externalTank,
 	orbiterAft,
@@ -142,6 +143,7 @@ export function registerStockGenerators(): void {
 	registerPartGenerator('delta-wing', deltaWing);
 	registerPartGenerator('external-tank', externalTank);
 	registerPartGenerator('escape-tower', escapeTower);
+	registerPartGenerator('boost-cover', boostCover);
 	// plan 306: robotics
 	registerPartGenerator('hinge-joint', hingeJoint);
 	registerPartGenerator('rotary-joint', rotaryJoint);

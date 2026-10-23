@@ -102,7 +102,7 @@ import { STOCK_ACTION_GROUPS } from './action-groups.ts';
 import { PanelScience } from './panels.ts';
 import { ModuleLight } from './lights.ts';
 import { ModuleRtg, ModuleSolarPanel } from './solar.ts';
-import { ModuleAnimate, ModuleBay, ModuleFuelCell } from './animate.ts';
+import { ModuleAnimate, ModuleBay, ModuleCoverShell, ModuleFuelCell } from './animate.ts';
 import { ModuleRobotic } from './robotics.ts';
 import { ModuleStrut, ModuleTetherSocket, ModuleWinch } from './tether.ts';
 import { STOCK_TETHER_PARTS } from './parts/tethers.ts';
@@ -161,6 +161,7 @@ export const Stock = definePlugin({
 		ctx.modules.register(ModuleSolarPanel);
 		ctx.modules.register(ModuleAnimate);
 		ctx.modules.register(ModuleBay);
+		ctx.modules.register(ModuleCoverShell);
 		ctx.modules.register(ModuleFuelCell);
 		ctx.modules.register(ModuleRobotic);
 		// plan 313: winches, sockets and releasable struts

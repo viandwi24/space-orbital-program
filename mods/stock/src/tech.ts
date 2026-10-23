@@ -288,6 +288,7 @@ export const STOCK_TECH = [
 			'stock.engine-vacuum-xl',
 			'stock.pod-3',
 			'stock.escape-tower',
+			'stock.boost-cover',
 			'stock.descent-module',
 			'stock.orbital-module'
 		]

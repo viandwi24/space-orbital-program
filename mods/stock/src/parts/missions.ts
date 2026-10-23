@@ -6,7 +6,7 @@
  */
 import { definePart, kg } from '@orbital/sdk';
 import { ModulePaint } from '../paint.ts';
-import { ModuleAnimate, ModuleBay, ModuleFuelCell } from '../animate.ts';
+import { ModuleAnimate, ModuleBay, ModuleCoverShell, ModuleFuelCell } from '../animate.ts';
 import { AntennaDish, AntennaWhip, ModuleAntenna } from '../comms.ts';
 import { partCost } from '../costs.ts';
 import { ModuleDataStorage } from '../data.ts';
@@ -1195,6 +1195,48 @@ export const PartEscapeTower = definePart({
 	stagingIcon: 'engine'
 });
 
+/** The boost cover's shell, m: its height, and how far below its top the port's face meets it. */
+const COVER_HEIGHT = 1.55;
+const COVER_SEAT = 0.6;
+
+/**
+ * Apollo's Boost Protective Cover (system audit D6): a shell over the capsule's nose that sits on
+ * the docking port and carries the escape tower. The port's face meets the cover's `bottom` node
+ * inside the shell (its neck and the port hidden under it), the tower stands on `top`; both sizes
+ * fit. It leaves with the tower (its own joint fires with the tower's stage), and the port is then
+ * free for docking.
+ */
+export const PartBoostCover = definePart({
+	id: 'stock.boost-cover',
+	title: 'OrbitX PS-BC "Hood"',
+	mass: kg(320),
+	cost: partCost(320, 'structure'),
+	impactTolerance: 8,
+	shape: cyl(0.72, COVER_HEIGHT),
+	visual: {
+		kind: 'boost-cover',
+		palette: { primary: '#eef0f2', secondary: '#2a2e35', accent: '#d9552b' },
+		params: { bottom: 0.72, top: 0.625, seat: COVER_HEIGHT / 2 - COVER_SEAT }
+	},
+	attach: {
+		top: { pos: [0, COVER_HEIGHT / 2, 0], dir: [0, 1, 0], size: 1.25 },
+		bottom: { pos: [0, COVER_HEIGHT / 2 - COVER_SEAT, 0], dir: [0, -1, 0], size: 0.625 }
+	},
+	modules: [
+		[
+			ModuleCoverShell,
+			{
+				profile: [
+					{ y: -COVER_HEIGHT / 2, r: 0.72 },
+					{ y: COVER_HEIGHT / 2, r: 0.66 }
+				]
+			}
+		],
+		[ModuleDecoupler, { separates: 'bottom', ejectionImpulse: 1_500 }]
+	],
+	stagingIcon: 'decoupler'
+});
+
 // ---- shuttle (plan 295) ------------------------------------------------------------------------
 
 /** The external tank's dry mass: a modern tank of its size class (plan 380; the Shuttle's own was 3.5 %). */
@@ -1460,5 +1502,7 @@ export const STOCK_MISSION_PARTS = [
 	PartOrbiterBay,
 	// plan 380: the Saturn V's own engines, for Kronos V at real scale
 	PartEnginePlateF1,
-	PartEnginePlateJ2
+	PartEnginePlateJ2,
+	// system audit D6: Apollo's Boost Protective Cover over the docking port
+	PartBoostCover
 ] as const;

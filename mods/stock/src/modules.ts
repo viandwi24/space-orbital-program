@@ -592,7 +592,12 @@ export const decouplerConfigSchema = z.object({
 	/** Which attach node is severed: the part attached there leaves with its subtree. */
 	separates: z.enum(['top', 'bottom', 'radial']).default('top'),
 	/** Total impulse pushing the two halves apart, N·s (split by the sim, equal and opposite). */
-	ejectionImpulse: z.number().nonnegative().default(2_000)
+	ejectionImpulse: z.number().nonnegative().default(2_000),
+	/**
+	 * Whether staging fires it at first (plan 241's switch, as a design's part setting): an escape
+	 * tower on a boost cover leaves with the cover, so its own joint stays shut (system audit D6).
+	 */
+	staged: z.boolean().default(true)
 });
 export type DecouplerConfig = z.output<typeof decouplerConfigSchema>;
 export interface DecouplerState {
@@ -616,7 +621,10 @@ function fire(ctx: {
 export const ModuleDecoupler = defineModule({
 	id: 'stock.decoupler',
 	config: decouplerConfigSchema,
-	state: (): DecouplerState => ({ decoupled: false }),
+	state: (config): DecouplerState => ({
+		decoupled: false,
+		...(config.staged ? {} : { staged: false })
+	}),
 	describe: (config, state) => ({
 		separator: { node: config.separates, done: state.decoupled },
 		category: 'structural',
@@ -1559,21 +1567,23 @@ export const ModuleWheel = defineModule({
 		]
 	}),
 	colliders: (config, state) =>
-		wheelDown(config, state) ? [
-		{
-			offset: { x: config.offset[0], y: config.offset[1], z: config.offset[2] },
-			// the rolling direction (+Y) and out (+X) span the wheel's disc; its width is along Z
-			halfExtents: { x: config.radius, y: config.radius, z: config.width / 2 },
-			wheel: {
-				rolling: config.rolling,
-				grip: config.grip,
-				brake: state.brakes ? 1 : 0,
-				steer: (config.steer * wheelSteerSign(config, state) * Math.PI) / 180,
-				drive: wheelDrive(config, state),
-				...(config.topSpeed > 0 ? { topSpeed: config.topSpeed } : {})
-			}
-		}
-	] : [],
+		wheelDown(config, state)
+			? [
+					{
+						offset: { x: config.offset[0], y: config.offset[1], z: config.offset[2] },
+						// the rolling direction (+Y) and out (+X) span the wheel's disc; its width is along Z
+						halfExtents: { x: config.radius, y: config.radius, z: config.width / 2 },
+						wheel: {
+							rolling: config.rolling,
+							grip: config.grip,
+							brake: state.brakes ? 1 : 0,
+							steer: (config.steer * wheelSteerSign(config, state) * Math.PI) / 180,
+							drive: wheelDrive(config, state),
+							...(config.topSpeed > 0 ? { topSpeed: config.topSpeed } : {})
+						}
+					}
+				]
+			: [],
 	/** The motor draws electric charge in proportion to the throttle and its limit (plan 260). */
 	update(ctx, dt) {
 		const { config, state, vessel } = ctx;

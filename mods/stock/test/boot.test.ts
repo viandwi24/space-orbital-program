@@ -35,6 +35,7 @@ describe('stock boots through the loader', () => {
 			'stock.bay',
 			'stock.command',
 			'stock.control-surface',
+			'stock.cover-shell',
 			'stock.data-storage',
 			'stock.decoupler',
 			'stock.docking-port',
@@ -89,6 +90,7 @@ describe('stock boots through the loader', () => {
 			'stock.battery-medium',
 			'stock.battery-radial',
 			'stock.battery-small',
+			'stock.boost-cover',
 			'stock.booster',
 			'stock.booster-liquid',
 			'stock.capsule-cone',
@@ -379,6 +381,8 @@ describe('stock boots through the loader', () => {
 			'stock.srb-large',
 			// the launch clamp: one radial node (plan 210)
 			'stock.launch-clamp',
+			// the boost cover: its bottom node is a seat inside its shell (system audit D6)
+			'stock.boost-cover',
 			// a thrown-off fairing panel has no nodes (plan 219), nor a thrown-off petal (plan 345)
 			'stock.fairing-panel',
 			'stock.petal-panel-0',

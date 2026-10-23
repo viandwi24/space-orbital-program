@@ -3813,6 +3813,35 @@ exports[`stock part ids, masses, costs and modules match the snapshot 1`] = `
     ],
   },
   {
+    "cost": 640,
+    "id": "stock.boost-cover",
+    "mass": 320,
+    "modules": [
+      [
+        "stock.cover-shell",
+        {
+          "profile": [
+            {
+              "r": 0.72,
+              "y": -0.775,
+            },
+            {
+              "r": 0.66,
+              "y": 0.775,
+            },
+          ],
+        },
+      ],
+      [
+        "stock.decoupler",
+        {
+          "ejectionImpulse": 1500,
+          "separates": "bottom",
+        },
+      ],
+    ],
+  },
+  {
     "cost": 400,
     "id": "stock.hinge-s",
     "mass": 40,

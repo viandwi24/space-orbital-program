@@ -81,6 +81,7 @@ const KINDS = [
 	'delta-wing',
 	'external-tank',
 	'escape-tower',
+	'boost-cover',
 	'hinge-joint',
 	'rotary-joint',
 	'piston-joint',

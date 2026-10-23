@@ -243,10 +243,17 @@ describe('engine update (through the vessel capability API)', () => {
 });
 
 describe('decoupler and reaction wheel', () => {
+	test('a decoupler set `staged: false` starts with its staging switch off (system audit D6)', () => {
+		const vessel = fakeVessel();
+		const ctx = contextFor(ModuleDecoupler, { staged: false }, vessel);
+		expect(ctx.state.staged).toBe(false);
+		ModuleDecoupler.onStage?.(ctx);
+		expect(ctx.state.decoupled).toBe(false);
+	});
 	test('decoupler defaults, onStage fires once-and-stays and detaches the configured node', () => {
 		const vessel = fakeVessel();
 		const ctx = contextFor(ModuleDecoupler, {}, vessel);
-		expect(ctx.config).toEqual({ separates: 'top', ejectionImpulse: 2_000 });
+		expect(ctx.config).toEqual({ separates: 'top', ejectionImpulse: 2_000, staged: true });
 		expect(ctx.state.decoupled).toBe(false);
 		ModuleDecoupler.onStage?.(ctx);
 		ModuleDecoupler.onStage?.(ctx);

@@ -144,6 +144,23 @@ function openBay(ctx: BayContext): void {
 }
 
 /**
+ * A cover's shell (system audit D6): the part is hollow with no walls, and its profile, bottom to
+ * top in the part frame, shields the parts under it from drag and convective heat while it is on
+ * the vessel, as Apollo's Boost Protective Cover kept the docking probe clean. Thrown off, it
+ * shields nothing and collides with nothing it left behind.
+ */
+export const ModuleCoverShell = defineModule({
+	id: 'stock.cover-shell',
+	config: z.object({
+		profile: z.array(z.object({ y: z.number(), r: z.number().positive() })).min(2)
+	}),
+	state: () => ({}),
+	hollow: () => true,
+	colliders: () => [],
+	shell: (config) => config.profile
+});
+
+/**
  * A bay with doors (plan 302, ADR 0261). While its doors are closed it is a closed shell: the parts
  * inside take no drag and no convective heat, as inside a fairing. A single-use bay (plan 345)
  * throws its panels off when it opens.

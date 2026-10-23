@@ -114,6 +114,9 @@ describe('revolve', () => {
 	});
 });
 
+/** Parts whose bottom node is a seat inside their shell, not their lower end. */
+const INNER_SEAT = new Set(['stock.boost-cover']);
+
 describe('stock part models (plan 020)', () => {
 	for (const detail of [HIGH, LOW]) {
 		const label = detail === HIGH ? 'high' : 'low';
@@ -128,10 +131,14 @@ describe('stock part models (plan 020)', () => {
 				// Parts with both stack nodes span them exactly; the booster's top node and the
 				// cone's bottom node are checked at the end they have.
 				if (attach.top) expect(Math.abs(e.maxY - attach.top.pos[1]), id).toBeLessThan(0.002);
-				if (attach.bottom) {
+				// a cover's bottom node is a seat inside its shell (system audit D6): the port meets it there
+				const seated = INNER_SEAT.has(id);
+				if (attach.bottom && !seated) {
 					expect(Math.abs(e.minY - attach.bottom.pos[1]), id).toBeLessThan(0.002);
 				}
-				if (attach.top && attach.bottom) expect(e.maxY - e.minY).toBeCloseTo(shape.height, 2);
+				if (attach.top && attach.bottom && !seated)
+					expect(e.maxY - e.minY).toBeCloseTo(shape.height, 2);
+				if (seated) expect(e.maxY - e.minY, id).toBeCloseTo(shape.height, 2);
 				expect(model.nodes.top?.pos[1]).toBe(attach.top?.pos[1]);
 				expect(e.radial, id).toBeLessThanOrEqual(shape.radius * 1.002);
 				expect(e.radial, id).toBeGreaterThanOrEqual(shape.radius * 0.9);

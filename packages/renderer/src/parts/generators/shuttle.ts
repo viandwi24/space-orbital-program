@@ -13,7 +13,7 @@ import type { GeometryBuilder, SlotName } from '../builder.ts';
 import type { GenContext, GeneratedPart } from '../registry.ts';
 import type { ProfilePoint } from '../revolve.ts';
 import { phase, pieces, type Piece } from './dyn.ts';
-import { raisedRing, ribbedBell, stubPipe } from './kit.ts';
+import { panelInset, raisedRing, ribbedBell, stubPipe } from './kit.ts';
 import { loft, loftCap, ringPoint, sectionSide, type LoftRing } from './loft.ts';
 
 /** The orbiter's slots round its body: black tiles under the chine line, white above. */
@@ -521,14 +521,23 @@ export function orbiterGear(ctx: GenContext): GeneratedPart {
 				g.cylinder('dark-metal', 0.1, len * 0.4, [len * 0.3, 0, 0], { tiltZ: Math.PI / 2 });
 				const axle = len;
 				const wheel = (z: number) => {
-					g.cylinder('rubber', radius, 0.22, [axle, 0, z], { tiltZ: Math.PI / 2, turnY: Math.PI / 2 });
-					g.cylinder('metal', radius * 0.55, 0.24, [axle, 0, z], { tiltZ: Math.PI / 2, turnY: Math.PI / 2 });
+					g.cylinder('rubber', radius, 0.22, [axle, 0, z], {
+						tiltZ: Math.PI / 2,
+						turnY: Math.PI / 2
+					});
+					g.cylinder('metal', radius * 0.55, 0.24, [axle, 0, z], {
+						tiltZ: Math.PI / 2,
+						turnY: Math.PI / 2
+					});
 				};
 				if (twin) {
 					wheel(-0.17);
 					wheel(0.17);
 				} else wheel(0);
-				g.cylinder('dark-metal', 0.04, twin ? 0.56 : 0.3, [axle, 0, 0], { tiltZ: Math.PI / 2, turnY: Math.PI / 2 });
+				g.cylinder('dark-metal', 0.04, twin ? 0.56 : 0.3, [axle, 0, 0], {
+					tiltZ: Math.PI / 2,
+					turnY: Math.PI / 2
+				});
 			},
 			pose: (o, p) => {
 				const e = phase(p, 0, 1);
@@ -540,4 +549,45 @@ export function orbiterGear(ctx: GenContext): GeneratedPart {
 		}
 	];
 	return { dynamic: pieces(ctx, list) };
+}
+
+/**
+ * `boost-cover` (system audit D6): Apollo's Boost Protective Cover, a white conical shell over the
+ * capsule's nose that hides the docking port and carries the escape tower. Params: `bottom`, the
+ * shell's radius at its foot; `top`, the collar's radius under the tower; `seat`, the height of the
+ * plate the port's face meets inside it.
+ */
+export function boostCover(ctx: GenContext): void {
+	const { height: H, builder: b } = ctx;
+	const h2 = H / 2;
+	const r0 = ctx.param('bottom', 0.72, 0.1, 3);
+	const top = ctx.param('top', 0.625, 0.1, 3);
+	const seat = ctx.param('seat', h2 - 0.6, -h2, h2);
+	// the shell: open at the foot, tapering to the collar under the tower
+	b.revolve('paint-primary', [
+		{ r: r0 - 0.02, y: -h2 },
+		{ r: r0, y: -h2 },
+		{ r: r0 * 0.94, y: -h2 + H * 0.45, smooth: true },
+		{ r: top * 1.04, y: h2 - 0.08 },
+		{ r: top, y: h2 - 0.02 },
+		{ r: top, y: h2 }
+	]);
+	// the seam between the cover's halves, and a band at its foot
+	raisedRing(b, 'dark-metal', r0 * 0.97, -h2 + H * 0.3, 0.02, 0.008);
+	raisedRing(b, 'dark-metal', r0 - 0.008, -h2 + 0.03, 0.03, 0.006);
+	// the collar's cap, the tower's joint
+	b.revolve('dark-metal', [
+		{ r: top, y: h2 },
+		{ r: 0, y: h2 }
+	]);
+	// the seat plate the port's face meets, inside
+	b.revolve('dark-metal', [
+		{ r: 0, y: seat },
+		{ r: 0.3125, y: seat },
+		{ r: 0.3125, y: seat + 0.02 }
+	]);
+	// small windows over the capsule's own (the BPC had them for the hatch and the crew)
+	const yw = -h2 + H * 0.4;
+	for (const a of [0, Math.PI * 0.35, -Math.PI * 0.35, Math.PI])
+		panelInset(b, 'glass', r0 * 0.955, a, yw, 0.09, 0.07, 0.008);
 }

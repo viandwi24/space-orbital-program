@@ -148,10 +148,26 @@ describe('mission blueprints (plan 286)', () => {
 		expect(orbiterBurn.dvVacuum).toBeGreaterThan(300);
 	});
 
-	it('only Kronos V keeps a size mismatch (its escape tower over the small port, jettisoned)', () => {
+	it('no mission blueprint has a size mismatch (Kronos V had its tower over the small port until the boost cover, system audit D6)', () => {
 		for (const mission of MISSION_BLUEPRINTS) {
-			const n = sizeMismatches(mission.design, content.parts as never).length;
-			expect(n, mission.id).toBe(mission.id === 'stock.kronos-selene' ? 1 : 0);
+			expect(sizeMismatches(mission.design, content.parts as never).length, mission.id).toBe(0);
+		}
+	});
+
+	it('Kronos V: the port under a boost cover, the tower on the cover; no size mismatch in any system (system audit D6)', () => {
+		const kronos = MISSION_BLUEPRINTS.find((m) => m.id === 'stock.kronos-selene')!;
+		const designs = [kronos.design, ...(kronos.systems ?? []).flatMap((s) => (s.design ? [s.design] : []))];
+		expect(designs.length).toBeGreaterThanOrEqual(2);
+		for (const design of designs) {
+			expect(sizeMismatches(design, content.parts as never)).toEqual([]);
+			const byIndex = new Map(design.parts.map((p) => [p.index, p]));
+			const tower = design.parts.find((p) => p.part === 'stock.escape-tower')!;
+			const cover = byIndex.get(tower.parent!.index)!;
+			expect(cover.part).toBe('stock.boost-cover');
+			expect(byIndex.get(cover.parent!.index)!.part).toBe('stock.docking-port-small');
+			// the tower's own joint stays shut; the cover's fires in the tower's stage
+			expect(tower.settings?.['stock.decoupler']?.['staged']).toBe(false);
+			expect(design.stages.some((st) => st.includes(tower.index) && st.includes(cover.index))).toBe(true);
 		}
 	});
 });

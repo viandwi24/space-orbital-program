@@ -118,6 +118,24 @@ export class Build {
 			{ index: to, angle: toAngle, y: toY }
 		);
 	}
+	/** Per-part module settings (plan 219): `fields` merged over the module's config on that part. */
+	set(index: number, module: string, fields: Record<string, unknown>): void {
+		const design = this.s.design;
+		this.s = {
+			...this.s,
+			design: {
+				...design,
+				parts: design.parts.map((p) =>
+					p.index === index
+						? {
+								...p,
+								settings: { ...p.settings, [module]: { ...p.settings?.[module], ...fields } }
+							}
+						: p
+				)
+			}
+		};
+	}
 	done(stages?: number[][]): VesselDesign {
 		const design = this.s.design;
 		return { ...design, stages: stages ?? autoStages(design, this.content) };
@@ -186,11 +204,15 @@ const launcherFor = (real: boolean) => (b: Build, top: number) =>
 function kronos(content: Content, real: boolean): VesselDesign {
 	const b = new Build(content, 'Kronos V + Selene', 'stock.pod-3');
 	const pod = 0;
-	// the capsule's docking port (Apollo's probe) under the escape tower: after the tower goes,
-	// the command ship turns round and docks with the lander's port (owner, 2026-10-22)
+	// the capsule's docking port (Apollo's probe) under the boost cover, the escape tower on the
+	// cover (system audit D6): the tower and the cover go together, then the command ship turns
+	// round and docks with the lander's port (owner, 2026-10-22)
 	const neck = b.above('stock.adapter-small', pod);
 	const probe = b.above('stock.docking-port-small', neck);
-	const tower = b.above('stock.escape-tower', probe);
+	const cover = b.above('stock.boost-cover', probe);
+	const tower = b.above('stock.escape-tower', cover);
+	// the tower's own joint stays shut: the cover's takes both off the port
+	b.set(tower, 'stock.decoupler', { staged: false });
 	const shield = b.below('stock.heat-shield-wide', pod);
 	// the capsule leaves the service module before re-entry (Apollo's CM/SM separation)
 	const cmSep = b.below('stock.decoupler-wide', shield);
@@ -263,7 +285,7 @@ function kronos(content: Content, real: boolean): VesselDesign {
 		paint,
 		b.done([
 			[sicEngine],
-			[d1, siiEngine, tower],
+			[d1, siiEngine, tower, cover],
 			[d2, sivbEngine],
 			[smDec, petals],
 			[smEngine],
@@ -377,7 +399,7 @@ export const MISSION_BLUEPRINTS: readonly MissionBlueprint[] = [
 		goal: 'moon',
 		crew: 3,
 		summary:
-			'Three stages to the moon. The 3-seat capsule with a docking port under its escape tower (after the tower goes it turns round and docks with the lander), a service module with four RCS quads, a dish and a fuel cell, and a two-stage lander in the petals.',
+			'Three stages to the moon. The 3-seat capsule with a docking port under a boost cover and the escape tower (after they go it turns round and docks with the lander), a service module with four RCS quads, a dish and a fuel cell, and a two-stage lander in the petals.',
 		build: (content) => kronos(content, false),
 		systems: [
 			{ system: 'stock' },
