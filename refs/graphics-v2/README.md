@@ -30,6 +30,7 @@ Written 2026-10-24 by the coordinator (owner's CTO mandate), from the owner's re
 | [02 Browser 120 fps](02-browser-120fps.md) | Frame pacing at 120 Hz, WebGPU and Apple GPU practice, TAAU, temporal clouds, GPU terrain; ranked list of 10 changes |
 | [03 Our renderer and mods today](03-renderer-and-mod-audit.md) | Our passes and their costs on the M5, which effects exist, player settings, what a mod can supply today, and the gaps |
 | [04 Physics: fling and missed collisions](04-physics-fling-and-collision.md) | Root causes with file:line evidence, and tests for each fix |
+| [05 The M5 at 120 Hz: baseline](05-m5-120hz-baseline.md) | p95 frame interval per view, backend, preset and governor on the M5; passes per frame; the device tiers; open M2 and Windows sections (plan 392) |
 
 ## Where we stand (from 03)
 

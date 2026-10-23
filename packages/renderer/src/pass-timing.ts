@@ -34,6 +34,12 @@ export function parseTimestampUid(
 	return { kind: m[1] === 'r' ? 'render' : 'compute', context: m[3]!, frame: Number(m[4]) };
 }
 
+/**
+ * Read this with care on Apple GPUs (plan 392's baseline): Dawn's timestamps there cover the span from a pass's
+ * start to its end in the queue, and passes overlap, so each of the frame's 18 contexts reads about
+ * 7 to 14 ms and their sum is several times the frame. The contexts per frame are exact; the
+ * milliseconds order the passes but do not add up.
+ */
 export interface PassTimes {
 	/** GPU ms per frame by pass. */
 	ms: Record<string, number>;

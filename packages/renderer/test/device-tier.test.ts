@@ -19,7 +19,9 @@ describe('device tiers', () => {
 		expect(id('Apple M2')).toBe('m2');
 		expect(id('Apple M1')).toBe('m2');
 		expect(id('Apple M2 Pro')).toBe('m5');
-		expect(id('apple')).toBe('m2');
+		// Chrome's adapter says only `apple` and `metal-3`: the display decides the lock
+		expect(id('WebGPU: apple metal-3')).toBe('apple');
+		expect(id('apple')).toBe('apple');
 	});
 	test('Windows machines: integrated, mid-range and high-end discrete', () => {
 		expect(id('Intel(R) Iris(R) Xe Graphics')).toBe('integrated');
@@ -44,6 +46,8 @@ describe('device tiers', () => {
 		});
 		expect(deviceTier({ gpu: 'Apple M5', refreshHz: 60 }).hz).toBe(60);
 		expect(deviceTier({ gpu: 'Apple M2', refreshHz: 120 }).hz).toBe(60);
+		expect(deviceTier({ gpu: 'WebGPU: apple metal-3', refreshHz: 120 }).hz).toBe(120);
+		expect(deviceTier({ gpu: 'WebGPU: apple metal-3', refreshHz: 60 }).hz).toBe(60);
 		expect(deviceTier({ gpu: 'Intel(R) Iris(R) Xe Graphics', refreshHz: 144 }).hz).toBe(60);
 		expect(deviceTier({ gpu: 'Intel(R) UHD Graphics 620' }).hz).toBe(30);
 		expect(targetHz(tierOf('RTX 3070'.replace('RTX', 'GeForce RTX')), 144)).toBe(120);

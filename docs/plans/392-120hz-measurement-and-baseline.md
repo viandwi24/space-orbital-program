@@ -1,7 +1,7 @@
 ---
 id: 392
 title: "120 Hz measurement: Chrome at 120 Hz, an Xcode Metal capture of the frame end, the main-thread split with Long Animation Frames, a new baseline"
-status: draft
+status: in-progress
 owner: "Worker A"
 depends: []
 phase: 9
@@ -88,3 +88,4 @@ In particular, we know, on the owner's MacBook Pro M5 at Retina in Chrome at 120
 ## Log
 
 - 2026-10-24 — Created by the coordinator from refs/graphics-v2 (ADR 0330).
+- 2026-10-24 — Worker A: code, scripts and the M5 baseline done and merged; open [manual] items: the Xcode Metal capture, a quiet-machine rerun with 2-minute cells, the M2 section and the Windows section (run `bun scripts/measure-tier.ts` there). Findings in the note: Apple timestamps are not additive per pass, `gpuFrameMs` under-reads, Chrome hides the Apple chip model (device-tier uses the display rate). The plan stays `in-progress` until the manual items are in.

@@ -8,6 +8,11 @@
 export type DeviceTierId =
 	/** Apple silicon from the M3, and the Pro, Max and Ultra of the M1 and M2: a locked 120. */
 	| 'm5'
+	/**
+	 * Apple silicon whose model the browser does not say (Chrome gives WebGPU's adapter only `apple`
+	 * and `metal-3`): the lock follows the display, 120 on a ProMotion screen, else 60.
+	 */
+	| 'apple'
 	/** The base M1 and M2: a locked 60 at the selected preset. */
 	| 'm2'
 	/** A recent discrete GPU (RTX 3060 and up, RX 6600 and up): a locked 120 where the display has it. */
@@ -40,6 +45,7 @@ export interface TierInput {
 const TIERS: Readonly<Record<DeviceTierId, DeviceTier>> = {
 	m5: { id: 'm5', maxHz: 120, preset: 'high' },
 	m2: { id: 'm2', maxHz: 60, preset: 'low' },
+	apple: { id: 'apple', maxHz: 120, preset: 'medium' },
 	'discrete-high': { id: 'discrete-high', maxHz: 120, preset: 'high' },
 	'discrete-mid': { id: 'discrete-mid', maxHz: 60, preset: 'medium' },
 	integrated: { id: 'integrated', maxHz: 60, preset: 'low' },
@@ -57,7 +63,8 @@ export function tierOf(gpu: string, mobile = false): DeviceTier {
 		const gen = Number(apple[1]);
 		return gen >= 3 || apple[2] ? TIERS.m5 : TIERS.m2;
 	}
-	if (/\bapple\b/.test(g)) return TIERS.m2;
+	// Chrome hides the model: `apple metal-3`, or `Apple GPU`; the display's rate tells the rest
+	if (/\bapple\b/.test(g)) return TIERS.apple;
 	const rtx = /rtx\s*(\d)(\d)(\d{2})?/.exec(g) ?? /geforce rtx\s*(\d{4})/.exec(g);
 	if (/rtx/.test(g)) {
 		const n = /rtx\s*(\d{4})/.exec(g);
