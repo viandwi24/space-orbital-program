@@ -299,3 +299,4 @@ An ADR records one decision, its context, and its consequences. ADRs are **appen
 | 0311 | [Content comes from plugins; stock is one plugin among them](0311-everything-comes-from-plugins.md) | accepted | 2026-10-23 |
 | 0312 | [The Mods page is a mod manager of cards built from the loader's registries](0312-mods-page-mod-manager.md) | accepted | 2026-10-23 |
 | 0313 | [The crew content API: outfits, looks, expressions, animations and portraits from plugins](0313-crew-content-api.md) | accepted | 2026-10-23 |
+| 0314 | [The Space Center tour, and the tour building's refund](0314-space-center-tour-and-the-tour-building-refund.md) | accepted | 2026-10-23 |

@@ -66,7 +66,9 @@ export const ECONOMY_CAUSES = {
 	recovery: 'economy.recovery',
 	reputationDecay: 'economy.reputation-decay',
 	construction: 'economy.construction',
-	upkeep: 'economy.upkeep'
+	upkeep: 'economy.upkeep',
+	/** A tour building's funds given back on removal (ADR 0314 point 4). */
+	refund: 'economy.refund'
 } as const;
 
 export const REPUTATION_LIMIT = 1_000;

@@ -119,6 +119,8 @@ export interface PlacedBuilding {
 	state: BuildingState;
 	/** Tick day on which `building` or `upgrading` is done (ADR 0123 point 1). */
 	readyDay?: number;
+	/** Funds paid for a tour building and its upgrades, given back on removal (ADR 0314 point 4). */
+	refund?: number;
 }
 
 export const BUILDING_STATES = ['active', 'planned', 'building', 'upgrading'] as const;
@@ -132,7 +134,8 @@ export const placedBuildingSchema = z.object({
 	rotation: z.union([z.literal(0), z.literal(90), z.literal(180), z.literal(270)]),
 	level: z.int().nonnegative(),
 	state: z.enum(BUILDING_STATES),
-	readyDay: z.int().optional()
+	readyDay: z.int().optional(),
+	refund: z.number().nonnegative().optional()
 });
 export const roadsSchema = z.array(cellSchema);
 

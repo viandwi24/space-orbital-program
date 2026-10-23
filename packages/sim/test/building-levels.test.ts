@@ -166,3 +166,40 @@ describe('the crew roster limit (ADR 0123 point 4)', () => {
 		sim.dispose();
 	});
 });
+
+describe('the tour building (plan 377, ADR 0314 point 4)', () => {
+	test('a tour building gives back its cost and its upgrade when removed; an ordinary one does not', async () => {
+		const sim = await make();
+		const def = sim.registries.buildings.get('stock.tracking-dish')!.levels;
+		const before = funds(sim);
+		expect(sim.dispatch({ ...dish('tour'), tour: true }).ok).toBe(true);
+		expect(building(sim, 'tour').refund).toBe(def[0]!.cost);
+		days(sim, def[0]!.buildDays);
+		expect(sim.dispatch({ type: 'upgrade-building', site: 'legacy', id: 'tour' }).ok).toBe(true);
+		expect(building(sim, 'tour').refund).toBe(def[0]!.cost + def[1]!.cost);
+		const paid = before - funds(sim);
+		expect(paid).toBeGreaterThanOrEqual(def[0]!.cost + def[1]!.cost);
+		const upkeep = paid - def[0]!.cost - def[1]!.cost;
+		expect(sim.dispatch({ type: 'remove-building', site: 'legacy', id: 'tour' }).ok).toBe(true);
+		// only the upkeep of the days it stood is gone
+		expect(before - funds(sim)).toBeCloseTo(upkeep, 6);
+		expect(sim.save().economy!.entries.at(-1)).toMatchObject({
+			amount: def[0]!.cost + def[1]!.cost,
+			cause: 'economy.refund',
+			ref: 'tour'
+		});
+		// an ordinary building: no refund kept, none given
+		expect(sim.dispatch(dish('plain')).ok).toBe(true);
+		expect(building(sim, 'plain').refund).toBeUndefined();
+		const held = funds(sim);
+		expect(sim.dispatch({ type: 'remove-building', site: 'legacy', id: 'plain' }).ok).toBe(true);
+		expect(funds(sim)).toBe(held);
+	});
+
+	test('with the economy off the tour flag pays and gives back nothing', async () => {
+		const sim = await make('stock.sandbox');
+		expect(sim.dispatch({ ...dish('tour'), tour: true }).ok).toBe(true);
+		expect(building(sim, 'tour')).toMatchObject({ state: 'active', refund: 0 });
+		expect(sim.dispatch({ type: 'remove-building', site: 'legacy', id: 'tour' }).ok).toBe(true);
+	});
+});

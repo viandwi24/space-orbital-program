@@ -31,7 +31,7 @@ async function input(over: Partial<CardInput> = {}, statuses: Record<string, Mod
 		statusOf: (r) => statuses[r.id] ?? (r.enabled ? { kind: 'running' } : { kind: 'off' }),
 		patchesOf: () => [],
 		counts: new Map([['acme.rockets', { parts: 3, programs: 1 }]]),
-		apiVersion: '0.1.109',
+		apiVersion: '0.1.110',
 		...over
 	} satisfies CardInput;
 }
@@ -120,7 +120,7 @@ describe('modCards', () => {
 
 describe('shownCards', () => {
 	it('searches, filters and sorts', async () => {
-		const cards = modCards(await input({ apiVersion: '0.1.109' }));
+		const cards = modCards(await input({ apiVersion: '0.1.110' }));
 		const ids = (o: Partial<Parameters<typeof shownCards>[1]>) =>
 			shownCards(cards, { query: '', filter: 'all', sort: 'order', ...o }).map((c) => c.id);
 		expect(ids({ query: 'acme' })).toEqual(['acme.rockets']);
