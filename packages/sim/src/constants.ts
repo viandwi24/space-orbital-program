@@ -18,6 +18,22 @@ export const MAX_WARP = 1e6;
 export const REANCHOR_DISTANCE = 1_000;
 /** A vessel loaded or woken within this distance of a frame's origin joins that frame, m. */
 export const PHYSICS_RANGE = 2_500;
+/**
+ * A vessel on orbital rails within this distance of a controlled flight vessel (plus the way it
+ * closes in `LOAD_LOOKAHEAD` seconds) is woken to collide with it, and may not go on rails there,
+ * m (plan 391, ADR 0337). Under `PHYSICS_RANGE`.
+ */
+export const LOAD_RANGE = 2_000;
+/** Frames merge only if the vessels of the one that moves stay within this of the other's origin, m. */
+export const FRAME_MERGE_REACH = 5_000;
+/** The corners of a body's colliders this near the ground plane count as supports, m (plan 391). */
+export const SUPPORT_REACH = 3;
+/** How many supports (the lowest) are asked for the terrain under them each step. */
+export const SUPPORT_SAMPLES = 8;
+/** The ground plane rises to a support's terrain by at most the support's height over it plus this, m. */
+export const SUPPORT_SLACK = 0.5;
+/** How far ahead the closing speed counts in the load range, s. */
+export const LOAD_LOOKAHEAD = 5;
 /** Default number of simultaneously active flight frames (one physics backend each). */
 export const DEFAULT_MAX_FLIGHT_FRAMES = 2;
 

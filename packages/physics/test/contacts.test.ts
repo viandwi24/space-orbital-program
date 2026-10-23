@@ -203,3 +203,29 @@ describe('pair contacts (plan 390)', () => {
 		expect(mock.ignoredPairs()).toEqual([]);
 	});
 });
+
+describe('thin slabs at speed (plan 391)', () => {
+	test('a 0.1 m slab at 40 m/s, 0.5 m from a fixed 0.1 m slab, stops on the near side (no CCD needed)', async () => {
+		const world = await rapier();
+		const wall = world.createBody({
+			kind: 'fixed',
+			shape: { type: 'box', halfExtents: { x: 5, y: 0.05, z: 5 } },
+			mass: 1,
+			inertia: { x: 1, y: 1, z: 1 },
+			position: { x: 0, y: 0, z: 0 },
+			rotation: ID
+		});
+		const slab = world.createBody({
+			shape: { type: 'box', halfExtents: { x: 0.5, y: 0.05, z: 0.5 } },
+			mass: 10,
+			inertia: { x: 1, y: 1, z: 1 },
+			position: { x: 0, y: 0.6, z: 0 }, // gap 0.5 m between the faces
+			rotation: ID,
+			linearVelocity: { x: 0, y: -40, z: 0 }
+		});
+		for (let i = 0; i < 5; i++) world.step(DT);
+		expect(world.getTransform(slab).position.y).toBeGreaterThan(0);
+		expect(world.getVelocity(slab).linear.y).toBeGreaterThanOrEqual(-1e-6);
+		void wall;
+	});
+});

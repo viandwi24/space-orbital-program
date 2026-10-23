@@ -37,7 +37,7 @@ describe('debris lifecycle', () => {
 		expect(destroyed).toHaveLength(removed); // nothing else disappeared
 	});
 
-	test('debris born ascending goes on rails within 3 s of separation, with an orbit', async () => {
+	test('debris born ascending stays in flight while it is inside the load range of the ship, then goes on rails with an orbit (plan 391)', async () => {
 		const sim = await newSim();
 		const loaded = sim.dispatch({ type: 'load-vessel', design: twoStage() });
 		if (!loaded.ok) throw new Error(loaded.reason);
@@ -50,10 +50,33 @@ describe('debris lifecycle', () => {
 			if (sim.snapshot().vessels.length > 1) staged = sim.time;
 		}
 		expect(staged).toBeGreaterThan(0);
-		for (let i = 0; i < 150; i++) {
+		// the stage falls away from the ship; it may not go on rails inside 2 km of it, or the ship
+		// could fly through it
+		const apart = (): number => {
+			const ship = sim.snapshot().vessels.find((v) => v.id === orbiter)!;
+			return Math.min(
+				...sim
+					.snapshot()
+					.vessels.filter((v) => v.id !== orbiter)
+					.map((d) =>
+						Math.hypot(
+							d.position.x - ship.position.x,
+							d.position.y - ship.position.y,
+							d.position.z - ship.position.z
+						)
+					)
+			);
+		};
+		let railsAt = -1;
+		for (let i = 0; i < 90 * 50 && railsAt < 0; i++) {
 			sim.step(0.02);
 			ascent.update();
+			const others = sim.snapshot().vessels.filter((v) => v.id !== orbiter);
+			if (others.length > 0 && others.every((v) => v.mode === 'on-rails')) railsAt = sim.time;
+			else if (others.length > 0) expect(apart()).toBeLessThan(5_000);
 		}
+		expect(railsAt).toBeGreaterThan(staged + 3);
+		expect(apart()).toBeGreaterThan(2_000);
 		const debris = sim.snapshot().vessels.filter((v) => v.id !== orbiter);
 		expect(debris.length).toBeGreaterThan(0);
 		for (const d of debris) {

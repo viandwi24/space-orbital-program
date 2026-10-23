@@ -61,7 +61,7 @@ import {
 	SIM_DT
 } from './constants.ts';
 import { hasFlightVessels, vesselIds, vesselOf, type SimCore } from './core.ts';
-import { advanceFrame, createFrame, prepareFrame } from './frames.ts';
+import { advanceFrame, createFrame, mergeFrames, prepareFrame } from './frames.ts';
 import { runUpdateHooks } from './hooks.ts';
 import { evaluateObjectivesDue, freshObjectives, listenForObjectives } from './objectives.ts';
 import { freshContracts } from './contracts.ts';
@@ -84,7 +84,7 @@ import {
 import { patchedBodiesOf, completeNodes, refreshPatchedBodies } from './maneuver.ts';
 import { pruneTargets } from './target.ts';
 import { runAutopilots } from './autopilot.ts';
-import { autoRails, reapDebris, trackRest } from './modes.ts';
+import { autoRails, reapDebris, trackRest, wakeLoadRange } from './modes.ts';
 import { rebaseRails } from './orbit.ts';
 import { stepSasOnRails, wakeTurningVessels } from './sas.ts';
 import { applySoiTransitions } from './soi.ts';
@@ -518,6 +518,8 @@ export async function createSim(options: SimOptions): Promise<Sim> {
 	/** One fixed flight step for every flight frame (and the rails vessels alongside). */
 	function flightStep(): void {
 		drain();
+		wakeLoadRange(core); // what the pilot may fly into is there to hit (plan 391)
+		mergeFrames(core); // vessels that met in two frames meet in one (plan 391)
 		wakePortNeighbours(core); // an idle station on rails can be docked with (plan 222)
 		wakeTetherNeighbours(core); // a winch's rope needs both vessels in flight (plan 313)
 		const tStart = core.t;

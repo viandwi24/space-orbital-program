@@ -188,7 +188,7 @@ describe('landing legs (module colliders)', () => {
 		}
 		// the feet come out below the engine and lift the ship ~0.15 m in 0.3 s (0.7 m/s measured);
 		// an animated stroke would bring it under the plan's 0.5 m/s, a throw would be many m/s
-		expect(worst).toBeLessThan(1);
+		expect(worst).toBeLessThan(0.5);
 		expect(hurt).toEqual([]);
 		run(sim, 5);
 		expect(tiltDegrees(only(sim, id)!)).toBeLessThan(2);

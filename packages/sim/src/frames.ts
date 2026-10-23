@@ -30,6 +30,11 @@ import {
 	GROUND_TILE_ENTER,
 	GROUND_TILE_EXIT,
 	GROUND_TILE_HALF,
+	SUPPORT_REACH,
+	SUPPORT_SAMPLES,
+	SUPPORT_SLACK,
+	FRAME_MERGE_REACH,
+	LOAD_RANGE,
 	PHYSICS_RANGE,
 	REANCHOR_DISTANCE,
 	REENTRY_HEATING_RULE,
@@ -65,7 +70,7 @@ import {
 	placeStones,
 	stoneNormalAt
 } from './stones.ts';
-import { groundPlane } from './terrain.ts';
+import { groundPlane, terrainUnder } from './terrain.ts';
 import { SHELL_DRAG_COEFFICIENT, hasShell, shellShape, shieldedParts } from './debris.ts';
 import { stepWater, waterUnder } from './water.ts';
 
@@ -314,6 +319,7 @@ export function createVesselBody(
 		masses: restored?.masses ?? new Map(vessel.parts.map((id) => [id, partMass(core, id)])),
 		shapeParts: colliders.shapeParts,
 		...(colliders.wheels.size > 0 ? { wheels: colliders.wheels } : {}),
+		corners: colliderCorners(colliders.shapes),
 		signature: colliders.signature
 	});
 }
@@ -334,7 +340,8 @@ export function refreshColliders(core: SimCore, vesselId: EntityId, force = fals
 	// and the spin keeps its angular momentum (the inertia changed)
 	const vessel = vesselOf(core, vesselId);
 	const next = massProperties(core, vessel.parts, partOf(core, vessel.root).designPos);
-	const origin = add(m.origin, qRotate(m.rotation, sub(body.com, next.centerOfMass)));
+	let origin = add(m.origin, qRotate(m.rotation, sub(body.com, next.centerOfMass)));
+	origin = add(origin, liftOutOfGround(core, frame, vesselId, origin, m.rotation));
 	const spin = inertiaApply(body.inertia, body.inertiaFrame, m.rotation, m.angular);
 	frame.backend.removeBody(body.handle);
 	frame.bodies.delete(vesselId);
@@ -344,6 +351,54 @@ export function refreshColliders(core: SimCore, vesselId: EntityId, force = fals
 		linear: m.linear,
 		angular: inertiaSolve(next.inertia, next.inertiaFrame, m.rotation, spin)
 	});
+}
+
+/**
+ * How far to raise a rebuilt body so none of its colliders is under the ground (plan 391, ADR 0337):
+ * a leg deployed on the ground puts its feet below it, and the solver would shove the ship up at
+ * 0.7 m/s to clear them. The deepest corner's depth along the local vertical, m; zero far above the
+ * ground.
+ */
+function liftOutOfGround(
+	core: SimCore,
+	frame: FlightFrame,
+	vesselId: EntityId,
+	origin: Vec3,
+	rotation: Quat
+): Vec3 {
+	const planet = bodyOfFrame(core, frame);
+	const here = add(frame.origin, origin);
+	if (length(here) - planet.def.radius > (planet.terrain?.maxHeight ?? 0) + 200) return ZERO;
+	let lift = 0;
+	for (const placed of collectColliders(core, vesselId).shapes) {
+		const q = placed.rotation ? qMul(rotation, placed.rotation) : rotation;
+		const centre = add(here, qRotate(rotation, placed.position));
+		const s = placed.shape;
+		const corners: Vec3[] =
+			s.type === 'box'
+				? [-1, 1].flatMap((sx) =>
+						[-1, 1].flatMap((sy) =>
+							[-1, 1].map((sz) =>
+								add(
+									centre,
+									qRotate(q, {
+										x: sx * s.halfExtents.x,
+										y: sy * s.halfExtents.y,
+										z: sz * s.halfExtents.z
+									})
+								)
+							)
+						)
+					)
+				: [centre];
+		const reach = s.type === 'sphere' ? s.radius : s.type === 'capsule' ? s.radius : 0;
+		for (const p of corners) {
+			const ground = planet.def.radius + terrainUnder(core, planet, p);
+			lift = Math.max(lift, ground - (length(p) - reach));
+		}
+	}
+	if (!(lift > 0) || lift > 50) return ZERO;
+	return scale(here, lift / length(here));
 }
 
 /** `I w`: the angular momentum of a body turning at `w` (world axes), with its principal moments and their frame. */
@@ -358,6 +413,41 @@ export function inertiaSolve(inertia: Vec3, frameQ: Quat, rotation: Quat, L: Vec
 	const q = qMul(rotation, frameQ);
 	const p = qRotate(qConj(q), L);
 	return qRotate(q, { x: p.x / inertia.x, y: p.y / inertia.y, z: p.z / inertia.z });
+}
+
+/** The corners of a body's colliders (a sphere's or capsule's extremes), body axes, one per centimetre. */
+function colliderCorners(shapes: ShapePlacement[]): Vec3[] {
+	const seen = new Set<string>();
+	const out: Vec3[] = [];
+	const push = (p: Vec3): void => {
+		const key = `${Math.round(p.x * 100)}:${Math.round(p.y * 100)}:${Math.round(p.z * 100)}`;
+		if (seen.has(key)) return;
+		seen.add(key);
+		out.push(p);
+	};
+	for (const placed of shapes) {
+		const q = placed.rotation;
+		const at = (local: Vec3): Vec3 => add(placed.position, q ? qRotate(q, local) : local);
+		const s = placed.shape;
+		if (s.type === 'box') {
+			for (const sx of [-1, 1])
+				for (const sy of [-1, 1])
+					for (const sz of [-1, 1])
+						push(at({ x: sx * s.halfExtents.x, y: sy * s.halfExtents.y, z: sz * s.halfExtents.z }));
+		} else {
+			const reach = s.type === 'sphere' ? s.radius : s.radius;
+			const tall = s.type === 'capsule' ? s.halfHeight : 0;
+			for (const y of tall > 0 ? [-tall, tall] : [0]) {
+				push(at({ x: reach, y, z: 0 }));
+				push(at({ x: -reach, y, z: 0 }));
+				push(at({ x: 0, y, z: reach }));
+				push(at({ x: 0, y, z: -reach }));
+				push(at({ x: 0, y: y - reach, z: 0 }));
+				push(at({ x: 0, y: y + reach, z: 0 }));
+			}
+		}
+	}
+	return out;
 }
 
 /**
@@ -397,6 +487,54 @@ export function leaveFlight(core: SimCore, vesselId: EntityId): void {
 	removeTile(frame, vesselId);
 	frame.vessels = frame.vessels.filter((v) => v !== vesselId);
 	releaseIfEmpty(frame);
+}
+
+/**
+ * Frames of one body whose vessels come within `LOAD_RANGE` of each other become one (plan 391,
+ * ADR 0337; C3): without it two vessels in separate Rapier worlds fly through each other. Every vessel of
+ * the later frame moves into the earlier one between steps, a body rebuilt at the same inertial pose
+ * and velocity (local' = local + oB − oA, v' = v + vB − vA); only when all of them stay within
+ * `FRAME_MERGE_REACH` of the earlier frame's origin, so the f32 world keeps its precision.
+ */
+export function mergeFrames(core: SimCore): void {
+	const used = core.frames.filter((f) => f.inUse && f.vessels.length > 0);
+	if (used.length < 2) return;
+	const centres = (f: FlightFrame) =>
+		f.vessels.map((id) => add(f.origin, bodyMotion(f, f.bodies.get(id)!).centre));
+	for (const a of used) {
+		for (const b of used) {
+			if (!a.inUse || !b.inUse || a.id >= b.id || a.soi !== b.soi) continue;
+			const ca = centres(a);
+			const cb = centres(b);
+			const meet = ca.some((p) => cb.some((q) => length(sub(p, q)) < LOAD_RANGE));
+			if (!meet || cb.some((q) => length(sub(q, a.origin)) > FRAME_MERGE_REACH)) continue;
+			for (const id of b.vessels.slice()) moveVessel(core, id, b, a);
+		}
+	}
+}
+
+/** One vessel's body from frame `from` into frame `to`, same inertial pose and velocity. */
+function moveVessel(core: SimCore, vesselId: EntityId, from: FlightFrame, to: FlightFrame): void {
+	const body = from.bodies.get(vesselId)!;
+	const m = bodyMotion(from, body);
+	from.backend.removeBody(body.handle);
+	from.bodies.delete(vesselId);
+	removeTile(from, vesselId);
+	from.wet.delete(vesselId);
+	from.wetVessels.delete(vesselId);
+	from.wheelContacts?.delete(vesselId);
+	for (const [key, g] of from.grace ?? []) {
+		if (g.a === vesselId || g.b === vesselId) from.grace!.delete(key);
+	}
+	from.vessels = from.vessels.filter((v) => v !== vesselId);
+	createVesselBody(core, to, vesselId, {
+		origin: sub(add(from.origin, m.origin), to.origin),
+		rotation: m.rotation,
+		linear: sub(add(from.velocity, m.linear), to.velocity),
+		angular: m.angular
+	});
+	to.vessels = [...to.vessels, vesselId].sort((x, y) => x - y);
+	releaseIfEmpty(from);
 }
 
 /** Refresh the cached centre of mass, velocity and orientation of a flight vessel from its body. */
@@ -679,6 +817,42 @@ function removeTile(frame: FlightFrame, vesselId: EntityId): void {
 }
 
 /**
+ * How far to raise the ground plane under a vessel so that no part of it is under the terrain (plan
+ * 391, ADR 0337; C4): the plane is fitted at the centre of mass, and a long vehicle with a wheel over
+ * a bump or a leg on a rock would stand with that part inside the ground. The lowest corners of the
+ * body's colliders (those within `SUPPORT_REACH` of the plane, 8 at most) are asked for the terrain
+ * under them; the plane rises to the highest of them, never by more than the height of the corner
+ * over the plane plus `SUPPORT_SLACK` (a cliff face is not a floor). Zero without terrain.
+ */
+function supportRaise(
+	core: SimCore,
+	frame: FlightFrame,
+	planet: BodyRuntime,
+	vesselId: EntityId,
+	plane: { point: Vec3; normal: Vec3 }
+): number {
+	const body = frame.bodies.get(vesselId);
+	if (!body?.corners || !planet.terrain) return 0;
+	const m = bodyMotion(frame, body);
+	const low: Array<{ at: Vec3; over: number }> = [];
+	for (const corner of body.corners) {
+		const at = add(add(frame.origin, m.origin), qRotate(m.rotation, corner));
+		const over = dot(sub(at, plane.point), plane.normal);
+		if (over < SUPPORT_REACH) low.push({ at, over });
+	}
+	if (low.length === 0) return 0;
+	low.sort((a, b) => a.over - b.over);
+	let raise = 0;
+	for (const { at, over } of low.slice(0, SUPPORT_SAMPLES)) {
+		const ground = planet.def.radius + terrainUnder(core, planet, at);
+		const reach = scale(at, ground / length(at));
+		const height = dot(sub(reach, plane.point), plane.normal);
+		raise = Math.max(raise, Math.min(height, over + SUPPORT_SLACK));
+	}
+	return Math.max(0, raise);
+}
+
+/**
  * Keep the ground tile of one vessel under it (ADR 0019, ADR 0043): created when the centre of mass
  * comes within `GROUND_TILE_ENTER` of the ground, removed above `GROUND_TILE_EXIT`. The ground is
  * the terrain under the centre of mass (the reference sphere without terrain): the tile's top face
@@ -704,7 +878,8 @@ function updateTile(
 		return;
 	}
 	// Over water the tile is the seabed, WATER_DEPTH under the water plane (ADR 0182 point 2).
-	const plane = waterUnder(core, planet, centre)
+	const water = waterUnder(core, planet, centre);
+	const plane = water
 		? (() => {
 				const up = scale(centre, 1 / d);
 				return { point: scale(up, radius - WATER_DEPTH), normal: up, height: -WATER_DEPTH };
@@ -716,7 +891,10 @@ function updateTile(
 		return;
 	}
 	const up = plane.normal;
-	const surface = plane.point;
+	// the plane under the whole footprint, not just the centre of mass (plan 391, ADR 0337; C4)
+	const surface = water
+		? plane.point
+		: add(plane.point, scale(up, supportRaise(core, frame, planet, vesselId, plane)));
 	const position = sub(surface, frame.origin);
 	const rotation = uprightRotation(up);
 	const omega = spinAt(planet, core.t);
@@ -816,13 +994,21 @@ function groundContacts(
 			// kept in the body's own axes: the frame may re-anchor before the next step uses them
 			const pose = frame.backend.getTransform(body.handle);
 			const toBody = (p: Vec3): Vec3 => qRotate(qConj(pose.rotation), sub(p, pose.position));
-			const wheelPoints = new Map<number, Vec3>();
+			const sums = new Map<number, { sum: Vec3; n: number }>();
 			for (const c of touching) {
 				if (!body.wheels.has(c.shape)) continue;
+				const seen = sums.get(c.shape);
 				const local = toBody(c.point);
-				const seen = wheelPoints.get(c.shape);
-				wheelPoints.set(c.shape, seen ? scale(add(seen, local), 0.5) : local);
+				sums.set(
+					c.shape,
+					seen ? { sum: add(seen.sum, local), n: seen.n + 1 } : { sum: local, n: 1 }
+				);
 			}
+			// the mean of a wheel's contact points: a pairwise halving leans to the last one, and a height
+			// field gives a wheel more points than a plane does (plan 391)
+			const wheelPoints = new Map<number, Vec3>(
+				[...sums].map(([shape, { sum, n }]) => [shape, scale(sum, 1 / n)])
+			);
 			(frame.wheelContacts ??= new Map()).set(vesselId, wheelPoints);
 		}
 		if (touching.length === 0 && onStones.length === 0) continue;
@@ -899,12 +1085,28 @@ export function impactOutcome(
 }
 
 /**
+ * A ground tile (and its stones) touches only the vessel it was fitted to (plan 391, ADR 0337; C5):
+ * a plane fitted under one vessel must not shove another one that stands near it. The pairs are
+ * ignored in the backend, so a tile created under a neighbour does not throw it.
+ */
+function isolateTiles(frame: FlightFrame): void {
+	for (const [owner, tile] of frame.tiles) {
+		for (const [id, body] of frame.bodies) {
+			if (id === owner) continue;
+			frame.backend.setPairContacts(tile.handle, body.handle, false);
+			if (tile.stones) frame.backend.setPairContacts(tile.stones.handle, body.handle, false);
+		}
+	}
+}
+
+/**
  * Advance the backend one step, then post-process: ground contacts are read (`landed`, impacts
  * above a part's tolerance are returned for the caller to apply), the frame origin moves with the
  * frame, the frame re-anchors when the focus vessel has drifted away from the origin, and vessel
  * poses are refreshed.
  */
 export function advanceFrame(core: SimCore, frame: FlightFrame, dt: number): GroundImpact[] {
+	isolateTiles(frame);
 	const before = new Map<EntityId, ReturnType<typeof bodyMotion>>();
 	for (const id of frame.tiles.keys()) before.set(id, bodyMotion(frame, frame.bodies.get(id)!));
 	frame.backend.step(dt);

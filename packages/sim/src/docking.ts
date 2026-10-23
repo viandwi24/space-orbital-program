@@ -14,7 +14,7 @@ import {
 	type Quat,
 	type Vec3
 } from '@orbital/core';
-import { add, dot, length, normalize, scale, sub } from '@orbital/kepler';
+import { add, cross, dot, length, normalize, scale, sub } from '@orbital/kepler';
 import {
 	isControlled,
 	moduleDefOf,
@@ -28,7 +28,15 @@ import {
 	vesselOf,
 	type SimCore
 } from './core.ts';
-import { bodyMotion, createVesselBody, partTransform, partVelocity } from './frames.ts';
+import {
+	bodyMotion,
+	createVesselBody,
+	inertiaApply,
+	inertiaSolve,
+	partTransform,
+	partVelocity
+} from './frames.ts';
+import { massProperties } from './mass.ts';
 import { qConj, qMul, qRotate } from './math.ts';
 import { reachMilestone } from './milestones.ts';
 import { endAutopilot } from './autopilot.ts';
@@ -299,6 +307,39 @@ function turnBetween(a: Vec3, b: Vec3): Quat {
 	return { x: x.x / n, y: x.y / n, z: x.z / n, w: (1 + c) / n };
 }
 
+/**
+ * The spin of two bodies joined into one (plan 391, ADR 0337): the angular momentum about the joint
+ * centre of mass, each body's own (I ω) plus the orbital part of its motion about that centre,
+ * over the joint inertia. A mass-weighted mean of the two spins is not momentum.
+ */
+export function jointSpin(
+	bodies: ReadonlyArray<{
+		body: { inertia: Vec3; inertiaFrame: Quat };
+		motion: { rotation: Quat; centre: Vec3; linear: Vec3; angular: Vec3 };
+		mass: number;
+	}>,
+	linear: Vec3,
+	centre: Vec3,
+	joint: { inertia: Vec3; inertiaFrame: Quat },
+	rotation: Quat
+): { angular: Vec3; momentum: Vec3 } {
+	const momentum = bodies.reduce(
+		(sum, { body, motion, mass }) =>
+			add(
+				sum,
+				add(
+					inertiaApply(body.inertia, body.inertiaFrame, motion.rotation, motion.angular),
+					scale(cross(sub(motion.centre, centre), sub(motion.linear, linear)), mass)
+				)
+			),
+		{ x: 0, y: 0, z: 0 }
+	);
+	return {
+		angular: inertiaSolve(joint.inertia, joint.inertiaFrame, rotation, momentum),
+		momentum
+	};
+}
+
 function merge(core: SimCore, frame: FlightFrame, pa: Port, pb: Port): void {
 	const va = vesselOf(core, pa.vessel);
 	const vb = vesselOf(core, pb.vessel);
@@ -397,7 +438,17 @@ function merge(core: SimCore, frame: FlightFrame, pa: Port, pb: Port): void {
 	keeper.rest = 0;
 	// one body for the two: the joint momentum, the keeper's root pose
 	const linear = scale(add(scale(mk.linear, mK), scale(mg.linear, mG)), 1 / (mK + mG));
-	const angular = scale(add(scale(mk.angular, mK), scale(mg.angular, mG)), 1 / (mK + mG));
+	const joint = massProperties(core, keeper.parts, rootK.designPos);
+	const { angular } = jointSpin(
+		[
+			{ body: bodyK, motion: mk, mass: mK },
+			{ body: bodyG, motion: mg, mass: mG }
+		],
+		linear,
+		add(mk.origin, qRotate(mk.rotation, joint.centerOfMass)),
+		joint,
+		mk.rotation
+	);
 	frame.backend.removeBody(bodyK.handle);
 	frame.backend.removeBody(bodyG.handle);
 	frame.bodies.delete(keep.vessel);

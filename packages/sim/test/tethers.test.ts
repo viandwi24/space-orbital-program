@@ -165,7 +165,9 @@ describe('tethers (plan 313)', () => {
 	}, 60_000);
 
 	test('above its strength the rope snaps; Release lets go', async () => {
-		const { sim, tug, cargo } = await pair(13, { strength: 40, speed: 2 });
+		// (strength 40 left the second tie 4 % short of holding: the pull of the stretched rope was
+		// 41.7 N once the pair stayed in flight beside a controlled vessel; plan 391)
+		const { sim, tug, cargo } = await pair(13, { strength: 100, speed: 2 });
 		const snapped: unknown[] = [];
 		sim.events.on('tether:snapped', (e) => snapped.push(e));
 		const w = winchOf(sim, tug);

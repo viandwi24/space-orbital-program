@@ -10,6 +10,8 @@ import {
 	DEBRIS_REST_SPEED,
 	DEBRIS_REST_TIME,
 	GROUND_TILE_EXIT,
+	LOAD_LOOKAHEAD,
+	LOAD_RANGE,
 	PHYSICS_RANGE,
 	RAILS_IDLE_TIME,
 	SURFACE_REST_SPEED,
@@ -171,6 +173,50 @@ export function wake(core: SimCore, vesselId: EntityId, reason: string): void {
 	core.events.emit('vessel:mode-changed', { vessel: vesselId, mode: 'flight', reason });
 }
 
+/** Controlled flight vessels of a sphere of influence, with their state about its body. */
+function controlledInFlight(
+	core: SimCore,
+	soi: string,
+	except?: EntityId
+): Array<{ r: Vec3; v: Vec3 }> {
+	const out: Array<{ r: Vec3; v: Vec3 }> = [];
+	for (const id of vesselIds(core)) {
+		const v = vesselOf(core, id);
+		if (id === except || v.mode !== 'flight' || v.soi !== soi || !isControlled(core, v)) continue;
+		const m = motionOf(core, v);
+		out.push({ r: m.r, v: m.v });
+	}
+	return out;
+}
+
+/** Whether `r`, `v` is inside the load range of any of `of` (plus the way it closes in a few seconds). */
+function inLoadRange(of: Array<{ r: Vec3; v: Vec3 }>, r: Vec3, v: Vec3): boolean {
+	return of.some((o) => {
+		const rel = sub(r, o.r);
+		return length(rel) < LOAD_RANGE + length(sub(v, o.v)) * LOAD_LOOKAHEAD;
+	});
+}
+
+/**
+ * Before the step's forces: every vessel on orbital rails inside the load range of a controlled
+ * flight vessel joins it in flight, so what the pilot flies into is there to be hit (plan 391,
+ * ADR 0337; C2). Surface and frozen rails keep their place; a full set of frames wakes nothing.
+ */
+export function wakeLoadRange(core: SimCore): void {
+	const controlled = new Map<string, Array<{ r: Vec3; v: Vec3 }>>();
+	for (const id of vesselIds(core)) {
+		const vessel = vesselOf(core, id);
+		if (vessel.mode !== 'on-rails') continue;
+		if (vessel.rails?.kind === 'surface' || vessel.rails?.kind === 'frozen') continue;
+		let near = controlled.get(vessel.soi);
+		if (!near) controlled.set(vessel.soi, (near = controlledInFlight(core, vessel.soi)));
+		if (near.length === 0) continue;
+		const m = motionOf(core, vessel);
+		if (!inLoadRange(near, m.r, m.v)) continue;
+		if (wakeBlocker(core, id) === undefined) wake(core, id, 'inside the load range');
+	}
+}
+
 /** Whether a flight vessel may go on rails: idle long enough and its orbit clears the atmosphere. */
 export function railsEligible(
 	core: SimCore,
@@ -184,7 +230,8 @@ export function railsEligible(
 		!vessel.landed &&
 		// an engaged autopilot keeps its vessel in flight (plan 310, ADR 0271)
 		vessel.autopilot === undefined &&
-		isStableOrbit(bodyOfVessel(core, vessel), vessel.com, vessel.velocity)
+		isStableOrbit(bodyOfVessel(core, vessel), vessel.com, vessel.velocity) &&
+		!inLoadRange(controlledInFlight(core, vessel.soi, vesselId), vessel.com, vessel.velocity)
 	);
 }
 
@@ -222,6 +269,8 @@ export function ballisticEligible(
 	if (vessel.mode !== 'flight' || vessel.idle < minIdle || vessel.landed) return false;
 	const body = bodyOfVessel(core, vessel);
 	if (isControlled(core, vessel) || isStableOrbit(body, vessel.com, vessel.velocity)) return false;
+	if (inLoadRange(controlledInFlight(core, vessel.soi, vesselId), vessel.com, vessel.velocity))
+		return false;
 	const { alt, ground, climb } = altitudeAndClimb(core, vesselId);
 	return (
 		alt - ground > GROUND_TILE_EXIT && (climb > 0 || alt >= (body.def.atmosphere?.height ?? 0))

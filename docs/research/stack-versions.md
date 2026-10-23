@@ -74,3 +74,8 @@ Always re-check the docs linked above before running: flags change.
 - The velocity texture is NDC current minus NDC previous (`velocity` in TSL, set up with `pass.setMRT(mrt({ output, velocity }))`); the node reads it at the dilated depth tap and uses `uv - velocity * (0.5, -0.5)`. A material with its own `mrtNode` is merged into the pass's; without a pass MRT its `mrtNode` replaces the colour output.
 - `PassNode.setResolutionScale(s)` sizes the pass's target from the drawing buffer times `s`. `FSR1Node.js` (EASU + RCAS) exists in the same folder and is not used yet.
 
+
+## Rapier height fields and CCD (plan 391, 2026-10-24)
+
+- `@dimforge/rapier3d-compat` 0.21.0 (`dist/geometry/collider.d.ts`, `shape.d.ts`, `narrow_phase.d.ts`, read 2026-10-24). `ColliderDesc.heightfield(nrows, ncols, heights, scale, flags)`: `heights` is a column-major `(nrows + 1) × (ncols + 1)` matrix along local Y, columns along local X, rows along local Z, the grid centred on the origin and `scale.x` by `scale.z` wide (checked by dropping a box on a ridge). Tried for the ground and dropped (ADR 0337): **a height field's manifolds have `numContacts() > 0` and `numSolverContacts() == 0`** after a step, it has no thickness (a box that starts below it stays below), and with the surface 170 m from the body origin a resting pod rocked at 0.015 rad/s.
+- `RigidBodyDesc.setCcdEnabled(true)` on dynamic bodies made a plane rolling at 70 m/s stick to the ground. A 0.1 m slab at 400 m/s from 0.5 m away stops on a fixed 0.1 m slab without it in this build.

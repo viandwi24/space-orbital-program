@@ -78,7 +78,7 @@ async function roll(terrain: boolean) {
 	if (!probe.ok) throw new Error(probe.reason);
 	sim.step(0.02);
 	const ground = sim.snapshot().vessels.find((v) => v.id === probe.vessel)!.terrainHeight ?? 0;
-	sim.dispatch({ type: 'remove-vessel', vessel: probe.vessel } as never);
+	sim.dispatch({ type: 'terminate-vessel', vessel: probe.vessel } as never);
 	const r = radius + ground + 3;
 	const placed = sim.dispatch({
 		type: 'load-vessel',
@@ -107,12 +107,14 @@ async function roll(terrain: boolean) {
 }
 
 describe('a pod rolling on the Moon', () => {
-	test('on flat ground it stays on its rim: no hop above 3 m once it has touched down', async () => {
+	test('on flat ground it stays on its rim: no hop above 4 m once it has touched down', async () => {
 		const h = await roll(false);
 		const touched = h.findIndex((x) => x < 1.2);
 		expect(touched).toBeGreaterThan(0);
 		// before plan 264 the circumscribed box threw it up to 10 m up on the same run
-		expect(Math.max(...h.slice(touched))).toBeLessThan(3);
+		// (3 m was measured with the probe pod that gave the ground height still standing on the spot:
+		// its `remove-vessel` was no command, and the pod rolled over the other one's ground; plan 391)
+		expect(Math.max(...h.slice(touched))).toBeLessThan(4);
 	}, 120_000);
 });
 

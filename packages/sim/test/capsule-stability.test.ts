@@ -116,7 +116,7 @@ describe('the pod on the ground', () => {
 			if (!stand.ok) throw new Error(stand.reason);
 			sim.step(0.02);
 			const o = sim.snapshot().vessels.find((x) => x.id === stand.vessel)!.orientation;
-			sim.dispatch({ type: 'remove-vessel', vessel: stand.vessel } as never);
+			sim.dispatch({ type: 'terminate-vessel', vessel: stand.vessel } as never);
 			const t = { x: Math.sin(h / 2), y: 0, z: 0, w: Math.cos(h / 2) };
 			const orientation = {
 				w: o.w * t.w - o.x * t.x - o.y * t.y - o.z * t.z,

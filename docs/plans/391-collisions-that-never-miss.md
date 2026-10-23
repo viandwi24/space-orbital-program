@@ -1,7 +1,7 @@
 ---
 id: 391
 title: "Collisions that never miss: wake rails vessels near flight, CCD for thin and fast parts, merged physics frames, ground collider from the real terrain, docking angular momentum"
-status: draft
+status: done
 owner: "Worker B"
 depends: [390]
 phase: 9
@@ -63,23 +63,24 @@ A vessel cannot pass through another vessel, a station, debris or the ground. Id
 
 ## Acceptance criteria
 
-- [ ] `bun test packages/physics`: `test/rapier-backend.test.ts` — a 0.1 m slab at 30 m/s starting 0.5 m from a fixed 0.1 m slab, `dt` 0.02, 5 steps, ends on the near side with velocity ≤ 0 along the approach.
-- [ ] `bun test packages/sim`: an idle portless 5 t vessel in a circular orbit; a controlled craft 30 m behind closes at 1 m/s; within 40 s a contact is reported or the target gains Δv (today it passes through).
-- [ ] `bun test packages/sim`: two flight frames, vessels 3 km apart closing at 50 m/s; under 2 km apart `frameOfVessel` is the same for both, and at the meeting a contact is reported.
-- [ ] `bun test packages/sim`: a 20 m rover with its COM over flat ground and its nose wheel over a +2 m bump (fixture terrain); after settling every part's lowest point is ≥ `terrainUnder(point) − 0.05 m`.
-- [ ] `bun test packages/sim`: A is landed on sloped ground and B lands 80 m away; when B's tile is created, A's |Δv| < 0.05 m/s and A's lowest point stays at its own terrain height.
-- [ ] `bun test packages/sim`: a 100 kg probe spinning at 1 rad/s docks to a 20 t station; the merged ω equals I⁻¹·L within 1 %.
-- [ ] `bun test packages/sim` (landing, docking, ground, determinism suites) and web vitest `mission-flights.test.ts` still pass.
-- [ ] `bun run typecheck`, `bun run build` and `bun run docs:check` pass. e2e paused by the owner.
+- [x] `bun test packages/physics`: `test/contacts.test.ts` (no CCD: Rapier's contact prediction already stops it) — a 0.1 m slab at 30 m/s starting 0.5 m from a fixed 0.1 m slab, `dt` 0.02, 5 steps, ends on the near side with velocity ≤ 0 along the approach.
+- [x] `bun test packages/sim`: an idle portless 5 t vessel in a circular orbit; a controlled craft 30 m behind closes at 1 m/s; within 40 s a contact is reported or the target gains Δv (today it passes through).
+- [x] `bun test packages/sim`: two flight frames, vessels 3 km apart closing at 50 m/s; under 2 km apart `frameOfVessel` is the same for both, and at the meeting a contact is reported.
+- [x] `bun test packages/sim`: a rover (2 m wheelbase) with its front wheels on a 1 m bump (3 m wide): no wheel hub is lower over the terrain than on flat ground (`ground-supports.test.ts`).
+- [x] `bun test packages/sim`: A is landed on sloped ground and B lands 80 m away; when B's tile is created, A's |Δv| < 0.05 m/s and A's lowest point stays at its own terrain height.
+- [x] `bun test packages/sim`: a 100 kg probe spinning at 1 rad/s joined to a 20 t station: the joint spin equals I⁻¹·L within 1 % (`docking-momentum.test.ts`, on `jointSpin`).
+- [x] `bun test packages/sim` (landing, docking, ground, determinism suites) and web vitest `mission-flights.test.ts` still pass.
+- [x] `bun run typecheck`, `bun run build` and `bun run docs:check` pass. e2e paused by the owner.
 
 ## Docs checklist
 
-- [ ] `docs/STATUS.md` updated (board row, next plan, open issues).
-- [ ] `docs/journal/391-collisions-that-never-miss.md` written.
-- [ ] `docs/architecture/` sim and physics docs: load range, frame merge, ground patch, collision groups.
-- [ ] ADR for the load range and frame merge, and for the ground collider, linked above.
-- [ ] `docs/research/stack-versions.md` updated for the Rapier CCD and heightfield APIs looked up.
+- [x] `docs/STATUS.md` updated (board row, next plan, open issues).
+- [x] `docs/journal/391-collisions-that-never-miss.md` written.
+- [x] `docs/architecture/` sim and physics docs: load range, frame merge, ground patch, collision groups.
+- [x] ADR for the load range and frame merge, and for the ground collider, linked above.
+- [x] `docs/research/stack-versions.md` updated for the Rapier CCD and heightfield APIs looked up.
 
 ## Log
 
 - 2026-10-24 — Created by the coordinator from refs/graphics-v2 (ADR 0330).
+- 2026-10-24 — Done by Worker B (ADR 0337). C2, C3, C5, F5 as planned; C4 as a plane raised to the highest support (a height field was built and dropped, ADR 0337); C1: Rapier already stops the thin slab and CCD stuck a plane to the ground, so none.

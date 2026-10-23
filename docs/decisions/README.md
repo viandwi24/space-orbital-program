@@ -322,3 +322,4 @@ An ADR records one decision, its context, and its consequences. ADRs are **appen
 | 0334 | [Separation and deploy without flinging: pair-contact grace, hollow bays, a rebuild that keeps momentum](0334-separation-without-flinging.md) | accepted | 2026-10-24 |
 | 0335 | [Engine plume templates: a propellant base and the engine's scales](0335-engine-plume-templates.md) | accepted | 2026-10-24 |
 | 0336 | [TAAU: the 3D image at half the side, rebuilt temporally](0336-taau-temporal-upscaling.md) | accepted | 2026-10-24 |
+| 0337 | [Collisions that never miss: a load range, merged physics frames, a ground plane that clears the footprint](0337-collisions-that-never-miss.md) | accepted | 2026-10-24 |

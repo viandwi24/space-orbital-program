@@ -398,6 +398,8 @@ export interface FlightBody {
 	signature: string;
 	/** Wheel colliders by collider index: the part, its module and the collider's place in that list (ADR 0161). */
 	wheels?: Map<number, { part: EntityId; module: string; k: number }>;
+	/** The corners of the colliders in body axes, without repeats: what the ground plane must clear (plan 391). */
+	corners?: Vec3[];
 }
 
 /** The kinematic slab standing in for the ground under one vessel (ADR 0019). */
