@@ -91,6 +91,8 @@ import { WAVES, WAVE_PERIOD, waveNumber } from './water-model.ts';
 
 type U<T> = Uniform<T>;
 const u = <T>(value: T): U<T> => ({ value }) as U<T>;
+/** `uSiteToOther` with no other site in view: far beyond any ground the shader shades, m. */
+const NO_OTHER_SITE = 1e8;
 
 /** Atmosphere uniforms shared by every material that scatters light (planet pass, environment sky). */
 export interface AtmosphereUniforms {
@@ -393,6 +395,7 @@ export class PlanetPass {
 				uSiteEast: u(new Vector3(axes.east.x, axes.east.y, axes.east.z)),
 				uSiteNorth: u(new Vector3(axes.north.x, axes.north.y, axes.north.z)),
 				uSiteUp: u(new Vector3(axes.up.x, axes.up.y, axes.up.z)),
+				uSiteToOther: u(new Vector3(NO_OTHER_SITE, 0, 0)),
 				...this.zones,
 				uMap: u(this.map),
 				uMapTexel: u((2 * Math.PI * atm.radius) / settings.mapWidth),
@@ -1340,6 +1343,23 @@ export class PlanetPass {
 		});
 	}
 
+	/**
+	 * The other home site in view (a branch, plan 388), or null: the ground round it is a site's
+	 * as round the launch site (no field patchwork, hill relief or rivers).
+	 */
+	setOtherSite(site: { latitude: number; longitude: number } | null): void {
+		this.otherSite = site;
+		const v = this.material.uniforms.uSiteToOther!.value as Vector3;
+		if (!site) {
+			v.set(NO_OTHER_SITE, 0, 0);
+			return;
+		}
+		const up = this.material.uniforms.uSiteUp!.value as Vector3;
+		const other = siteAxes(site.latitude, site.longitude).up;
+		const r = this.material.uniforms.uR!.value as number;
+		v.set((up.x - other.x) * r, (up.y - other.y) * r, (up.z - other.z) * r);
+	}
+
 	/** Moves the painted launch site (pad, roads, aprons) to another surface point. */
 	setSite(latitude: number, longitude: number): void {
 		const moved = latitude !== this.siteLatitude || longitude !== this.siteLongitude;
@@ -1355,7 +1375,9 @@ export class PlanetPass {
 		(u.uSiteEast!.value as Vector3).set(axes.east.x, axes.east.y, axes.east.z);
 		(u.uSiteNorth!.value as Vector3).set(axes.north.x, axes.north.y, axes.north.z);
 		(u.uSiteUp!.value as Vector3).set(axes.up.x, axes.up.y, axes.up.z);
+		this.setOtherSite(this.otherSite);
 	}
+	private otherSite: { latitude: number; longitude: number } | null = null;
 
 	/** Phase of each wave at the 1024 m anchor, kept in float64 and reduced to [0, 2 pi) so the GPU never sees large phases. */
 	private updateWaveAnchors(cell: Vec3): void {

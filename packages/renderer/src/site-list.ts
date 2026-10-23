@@ -19,6 +19,11 @@ export interface SiteBuildingView {
 	size: { w: number; d: number };
 	cell: { i: number; j: number };
 	rotation: 0 | 90 | 180 | 270;
+	/**
+	 * Share of the construction done, 0 to 1, while the building is being built (plan 388); absent
+	 * when it stands. It is drawn as its final shape in outline, a scaffold and a rising core.
+	 */
+	construction?: number;
 }
 
 /** Centre of a footprint in site-local x (east) and z (south), and its turned extents in cells. */
@@ -103,12 +108,69 @@ export const BUCKETS = [
 	'beacon'
 ] as const;
 
-/** Every building of the list and the road cells, in one set of material buckets. */
+const SCAFFOLD = lin(0x9a9d9f);
+const SCAFFOLD_RAIL = lin(0xd8902a);
+
+/** The tallest point of a building's parts, m. */
+function heightOf(parts: SiteParts): number {
+	let h = 0;
+	for (const k of BUCKETS) {
+		for (const g of parts[k] as BufferGeometry[]) {
+			g.computeBoundingBox();
+			h = Math.max(h, g.boundingBox?.max.y ?? 0);
+		}
+	}
+	return h;
+}
+
+/**
+ * A building site (plan 388): poles round the footprint every 3 m or so, ledgers every 2 m up to the
+ * finished height with orange rails on the top one, and a concrete core rising with `progress`.
+ * Origin-centred and unturned, as `generate`.
+ */
+export function constructionParts(
+	w: number,
+	d: number,
+	height: number,
+	progress: number,
+	p: SiteParts
+): void {
+	const h = Math.max(3, height);
+	const pole = 0.12;
+	const ring = (y: number, colour: ReturnType<typeof lin>, t: number): void => {
+		p.thin.push(box(w + 1, t, t, 0, y, -d / 2 - 0.5, colour));
+		p.thin.push(box(w + 1, t, t, 0, y, d / 2 + 0.5, colour));
+		p.thin.push(box(t, t, d + 1, -w / 2 - 0.5, y, 0, colour));
+		p.thin.push(box(t, t, d + 1, w / 2 + 0.5, y, 0, colour));
+	};
+	const nx = Math.max(1, Math.round(w / 3));
+	const nz = Math.max(1, Math.round(d / 3));
+	for (let i = 0; i <= nx; i++) {
+		const x = -w / 2 - 0.5 + ((w + 1) * i) / nx;
+		p.thin.push(box(pole, h, pole, x, h / 2, -d / 2 - 0.5, SCAFFOLD));
+		p.thin.push(box(pole, h, pole, x, h / 2, d / 2 + 0.5, SCAFFOLD));
+	}
+	for (let j = 1; j < nz; j++) {
+		const z = -d / 2 - 0.5 + ((d + 1) * j) / nz;
+		p.thin.push(box(pole, h, pole, -w / 2 - 0.5, h / 2, z, SCAFFOLD));
+		p.thin.push(box(pole, h, pole, w / 2 + 0.5, h / 2, z, SCAFFOLD));
+	}
+	for (let y = 2; y < h; y += 2) ring(y, SCAFFOLD, 0.08);
+	ring(h, SCAFFOLD_RAIL, 0.14);
+	const t = Math.min(1, Math.max(0, progress));
+	// the slab first, then the core walls up to the share built
+	p.structure.push(box(w, 0.3, d, 0, 0.15, 0, CONCRETE));
+	const core = Math.max(0.3, t * h);
+	p.structure.push(box(w * 0.92, core, d * 0.92, 0, 0.3 + core / 2, 0, lin(0xa8a59e)));
+}
+
+/** Every building of the list and the road cells, in one set of material buckets; `planned` holds
+ * the finished shapes of the buildings under construction (drawn faint, plan 388). */
 export function buildSiteList(
 	buildings: readonly SiteBuildingView[],
 	roads: readonly { i: number; j: number }[]
-): SiteParts {
-	const out = emptyParts();
+): SiteParts & { planned: BufferGeometry[] } {
+	const out = { ...emptyParts(), planned: [] as BufferGeometry[] };
 	for (const b of buildings) {
 		const f = footprintCentre(b);
 		const tmp = emptyParts();
@@ -117,15 +179,24 @@ export function buildSiteList(
 		const w = (turned ? f.d : f.w) * SITE_CELL - 2;
 		const d = (turned ? f.w : f.d) * SITE_CELL - 2;
 		generate(b.generator, w, d, tmp);
+		// a building under construction: its site in the buckets, its finished shape faint (plan 388)
+		let parts = tmp;
+		const shape: BufferGeometry[] = [];
+		if (b.construction !== undefined) {
+			parts = emptyParts();
+			constructionParts(w, d, heightOf(tmp), b.construction, parts);
+			for (const k of BUCKETS) shape.push(...(tmp[k] as BufferGeometry[]));
+		}
 		const m = new Matrix4().compose(
 			new Vector3(f.x, 0, f.z),
 			new Quaternion().setFromAxisAngle(new Vector3(0, 1, 0), (b.rotation * Math.PI) / 180),
 			new Vector3(1, 1, 1)
 		);
 		for (const k of BUCKETS) {
-			for (const g of tmp[k] as BufferGeometry[])
+			for (const g of parts[k] as BufferGeometry[])
 				(out[k] as BufferGeometry[]).push(g.applyMatrix4(m));
 		}
+		for (const g of shape) out.planned.push(g.applyMatrix4(m));
 	}
 	for (const c of roads) {
 		out.painted.push(

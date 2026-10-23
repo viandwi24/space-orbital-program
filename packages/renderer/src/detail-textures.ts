@@ -12,6 +12,11 @@ export const DETAIL_SIZE = 256;
 export const DETAIL_TILE = { rock: 4, grass: 2, sand: 2, snow: 4 } as const;
 /** How strongly each map changes the albedo (1 = as generated). */
 export const DETAIL_CONTRAST = { rock: 0.9, grass: 0.45, sand: 0.5, snow: 0.3 } as const;
+/**
+ * Mip levels over which a tile's detail fades to neutral (plan 388): past about level 5 a tile is
+ * a few texels whose average is not neutral, and it repeats every tile as a square grid.
+ */
+export const DETAIL_LOD_FADE = [3.5, 5.5] as const;
 
 const hash = (x: number, y: number, salt: number): number => {
 	let h = Math.imul(x, 374761393) + Math.imul(y, 668265263) + Math.imul(salt, 2147483647);

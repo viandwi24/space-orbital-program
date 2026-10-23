@@ -12,22 +12,42 @@ export interface BuildingLookup {
 
 type SiteState = NonNullable<Snapshot['sites']>[number];
 
-/** The renderer's building list for a site. */
+/**
+ * How far a building's construction is, 0 to 1, in twentieths (the site is redrawn when it moves
+ * on), or undefined when the building stands (plan 388). A planned one has not begun.
+ */
+export function constructionOf(
+	b: { state: string; readyDay?: number },
+	def: Pick<BuildingDefinition, 'levels'>,
+	today: number | undefined
+): number | undefined {
+	if (b.state === 'planned') return 0;
+	if (b.state !== 'building') return undefined;
+	const total = def.levels[0]?.buildDays ?? 0;
+	if (b.readyDay === undefined || today === undefined || total <= 0) return 0;
+	const done = Math.min(1, Math.max(0, 1 - (b.readyDay - today) / total));
+	return Math.floor(done * 20) / 20;
+}
+
+/** The renderer's building list for a site; `today` (the tick day) gives the construction's progress. */
 export function siteViews(
 	site: SiteState | undefined,
-	registry: BuildingLookup
+	registry: BuildingLookup,
+	today?: number
 ): SiteBuildingView[] {
 	if (!site) return [];
 	return site.buildings.flatMap((b) => {
 		const def = registry.get(b.kind);
 		if (!def) return [];
+		const construction = constructionOf(b, def, today);
 		return [
 			{
 				id: b.id,
 				generator: def.visual.kind === 'generator' ? def.visual.generator : 'block',
 				size: { ...def.size },
 				cell: { ...b.cell },
-				rotation: b.rotation
+				rotation: b.rotation,
+				...(construction !== undefined ? { construction } : {})
 			}
 		];
 	});
@@ -52,7 +72,7 @@ export const sitePlace = (site: Pick<Site, 'id' | 'latitude' | 'longitude'>): Si
  * running sim has its buildings (plan 384, ADR 0321). A base on another body is not drawn here.
  */
 export function homeSiteDraws(
-	snapshot: Pick<Snapshot, 'sites'>,
+	snapshot: Pick<Snapshot, 'sites' | 'day'>,
 	sites: readonly Pick<Site, 'id' | 'body' | 'latitude' | 'longitude'>[],
 	registry: BuildingLookup,
 	homeBody: string | undefined
@@ -61,7 +81,7 @@ export function homeSiteDraws(
 	for (const live of snapshot.sites ?? []) {
 		const site = sites.find((x) => x.id === live.id);
 		if (!site || (homeBody !== undefined && site.body !== homeBody)) continue;
-		out.push({ place: sitePlace(site), views: siteViews(live, registry), roads: live.roads ?? [] });
+		out.push({ place: sitePlace(site), views: siteViews(live, registry, snapshot.day), roads: live.roads ?? [] });
 	}
 	return out;
 }

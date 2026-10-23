@@ -15,7 +15,11 @@ export interface PlanetMapStore {
 /** Hands the world's stored maps to core; how many it took (0 without a store or a copy). */
 export async function primePlanetMaps(world: string, store = browserStore()): Promise<number> {
 	if (!store) return 0;
-	const maps = await store.get(world).catch(() => undefined);
+	// a store that never answers must not hold the load (plan 388): the maps are made again
+	const maps = await Promise.race([
+		store.get(world).catch(() => undefined),
+		new Promise<undefined>((resolve) => setTimeout(() => resolve(undefined), 3_000))
+	]);
 	return maps ? importPlanetMaps(maps) : 0;
 }
 

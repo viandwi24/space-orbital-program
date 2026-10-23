@@ -221,6 +221,13 @@ function siteMaterials() {
 			emissiveIntensity: 0
 		}),
 		lamp: new MeshBasicMaterial({ vertexColors: true }),
+		// the finished shape of a building under construction, faint over its scaffold (plan 388)
+		planned: new MeshBasicMaterial({
+			color: 0xcfe9ff,
+			transparent: true,
+			opacity: 0.2,
+			depthWrite: false
+		}),
 		beaconA: new MeshBasicMaterial({ vertexColors: true }),
 		beaconB: new MeshBasicMaterial({ vertexColors: true }),
 		pine,
@@ -360,6 +367,7 @@ export class SiteBuildings {
 		add(parts.glassLit, m.glassLit);
 		add(parts.lamp, m.lamp, false);
 		add(parts.thin, m.structure, false);
+		add(parts.planned, m.planned, false);
 		const bucketMaterial = {
 			structure: m.structure,
 			painted: m.painted,

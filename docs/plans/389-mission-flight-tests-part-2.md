@@ -1,5 +1,5 @@
 ---
-id: 388
+id: 389
 title: "Mission flight tests, part 2: shuttle glide and landing, lander ascent, two-module station, capsule re-entries"
 status: draft
 owner: ""
@@ -9,7 +9,7 @@ created: 2026-10-24
 updated: 2026-10-24
 ---
 
-# 388 — Mission flight tests, part 2
+# 389 — Mission flight tests, part 2
 
 ## Goal
 
@@ -67,7 +67,7 @@ The flight tests that plans 295, 296, 297 and 300 left open now run headless in 
 ## Docs checklist
 
 - [ ] `docs/STATUS.md` updated (board row, next plan, open issues).
-- [ ] `docs/journal/388-mission-flight-tests-part-2.md` written.
+- [ ] `docs/journal/389-mission-flight-tests-part-2.md` written.
 - [ ] `refs/part-visuals-and-blueprints/parts-tracker.md`: mission table (§11).
 - [ ] New ADRs written for any decision made here, linked above.
 

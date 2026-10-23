@@ -711,6 +711,7 @@
 				stepIndex={Math.max(0, loadAt) + 1}
 				stepCount={WORLD_LOAD_STEPS.length}
 				error={worldRenderer.error}
+				errorTips={worldRenderer.errorTips}
 				fraction={loadFraction}
 				detail={loadDetail}
 				current={worldRenderer.step === 'programs'

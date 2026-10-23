@@ -96,7 +96,7 @@ import type { PlanetPass } from '../planet.ts';
 import { APRONS, PAD_RADIUS, ROADS, SCORCH_RADIUS } from '../site.ts';
 import { createLutSky, type LutSky } from './lut-sky.ts';
 import { SkyMapTSL, skyRadiance } from './starfield.ts';
-import { DETAIL_CONTRAST, DETAIL_SIZE, DETAIL_TILE } from '../detail-textures.ts';
+import { DETAIL_CONTRAST, DETAIL_LOD_FADE, DETAIL_SIZE, DETAIL_TILE } from '../detail-textures.ts';
 import { ScaledSpaceTSL, faceDirection } from './scaled-space.ts';
 import {
 	MID_COAST_CAP,
@@ -615,6 +615,7 @@ export class PlanetPassTSL {
 			const uCamToSite = this.link('uCamToSite');
 			const uSiteEast = this.link('uSiteEast');
 			const uSiteNorth = this.link('uSiteNorth');
+			const uSiteToOther = this.link('uSiteToOther');
 			const uMapTexel = this.link('uMapTexel');
 			const uAmbient = this.link('uAmbient');
 			const uAmbientRefMu = this.link('uAmbientRefMu');
@@ -946,7 +947,8 @@ export class PlanetPassTSL {
 					);
 				});
 				const vS = vec3(vSite).toVar();
-				const siteDist = length(vS).toVar();
+				// the nearer of the launch site and a branch in view (plan 388)
+				const siteDist = min(length(vS), length(vS.add(uSiteToOther))).toVar();
 
 				// hill shading: a normal from finite differences of a few octaves, away from the launch site
 				const reliefBase = smoothstep(500.0, 2500.0, siteDist)
@@ -1168,13 +1170,19 @@ export class PlanetPassTSL {
 					const wT0 = pow(abs(Nb), vec3(4.0));
 					const wT = wT0.div(wT0.x.add(wT0.y).add(wT0.z)).toVar();
 					const tri = (tile: number): N => {
-						const lod = max(log2(footprint.mul(DETAIL_SIZE / tile)), 0.0);
+						const lod = max(log2(footprint.mul(DETAIL_SIZE / tile)), 0.0).toVar();
 						const q = pl.div(tile);
-						return texture(detailTex, q.yz)
+						const d = texture(detailTex, q.yz)
 							.level(lod)
 							.mul(wT.x)
 							.add(texture(detailTex, q.xz).level(lod).mul(wT.y))
 							.add(texture(detailTex, q.xy).level(lod).mul(wT.z));
+						// a tile of a few texels repeats as a grid (plan 388): it fades out by its own level
+						return mix(
+							vec4(0.5),
+							d,
+							smoothstep(DETAIL_LOD_FADE[0], DETAIL_LOD_FADE[1], lod).oneMinus()
+						);
 					};
 					const d4 = tri(DETAIL_TILE.rock).toVar();
 					const d2 = tri(DETAIL_TILE.grass).toVar();

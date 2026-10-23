@@ -188,7 +188,7 @@ At most three workers (A, B, C), always watching CPU and RAM. Skip e2e. The only
 |---|---|
 | C | **fix main's red CI first** → 299 → 322 |
 | A | 304 → 358 → 312 |
-| B | 388 → 298 → 281 |
+| B | 389 → 298 → 281 |
 
 The graphics and performance drafts (342, 365, 367, 368, 369, 374) are on hold. The graphics v2 research (`refs/graphics-v2/`) will fold them into new plans. The content drafts (275, 276, 280, 282, 283, 284, 286, 287, 379, 385, 386) come after the queues above.
 

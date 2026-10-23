@@ -21,10 +21,13 @@ import {
 	emitGraphicsChange,
 	graphicsStart,
 	loadBrightness,
+	loadRendererFallback,
 	onGraphicsChange,
 	rendererBackend,
-	saveGraphicsPreset
+	saveGraphicsPreset,
+	saveRendererFallback
 } from './graphics';
+import { rendererBackendFrom } from '@orbital/renderer/backend';
 import type { Catalog } from './messages';
 import { modelProviders } from './mods/asset-models';
 import type { SimClient } from './sim-client';
@@ -57,6 +60,33 @@ export const WORLD_LOAD_STEPS: ReadonlyArray<{
 	{ step: 'views', label: 'Preparing the views' },
 	{ step: 'frame', label: 'Drawing the first frame' }
 ];
+
+/**
+ * How long the graphics may stay on "Starting the graphics" before the game gives up on the backend
+ * (plan 388): WebGPU then reloads the page on WebGL, and WebGL says the graphics are unavailable.
+ */
+export const DEVICE_TIMEOUT_MS = 20_000;
+
+/** What the loading screen suggests when neither WebGPU nor WebGL started (plan 388). */
+export const GRAPHICS_TIPS: readonly string[] = [
+	'Turn on hardware acceleration in the browser settings (Chrome and Edge: System → "Use graphics acceleration when available"), then restart the browser.',
+	'Update the browser and the graphics driver.',
+	'Try another browser: Chrome, Edge, Firefox or Safari.',
+	'Close other tabs or apps that use the graphics card, then reload.'
+];
+
+/**
+ * What to do when the graphics did not start on `backend` (plan 388): reload on WebGL once, or say
+ * they are unavailable (already on WebGL, the fallback was tried, or the address asks for a backend).
+ */
+export function afterDeviceFailure(
+	backend: RendererBackend | null,
+	fallbackTried: boolean,
+	addressAsks: boolean
+): 'reload-webgl' | 'unavailable' {
+	if (backend === 'webgl' || fallbackTried || addressAsks) return 'unavailable';
+	return 'reload-webgl';
+}
 
 /** What decides whether a new client can keep the renderer: the world it draws. */
 export function catalogKey(c: Catalog): string {
@@ -132,6 +162,11 @@ class WorldRenderer {
 	startedAt = $state<number | null>(null);
 	/** The player chose "Continue with lower quality" during this load. */
 	lowered = $state(false);
+	/** Suggestions shown under `error` when the graphics could not start at all (plan 388). */
+	errorTips = $state.raw<readonly string[]>([]);
+	/** The backend this load draws with, once chosen. */
+	private backend: RendererBackend | null = null;
+	private deviceTimer: ReturnType<typeof setTimeout> | null = null;
 
 	/** This load's entry in the stored load logs (plan 370). */
 	private logId = '';
@@ -225,7 +260,10 @@ class WorldRenderer {
 			await previous?.catch(() => undefined);
 			this.teardown();
 			this.stepNow = 'device';
+			// a backend that never answers (software rendering) must not hold the load (plan 388)
+			this.watchDevice(generation);
 			const backend = await rendererBackend();
+			this.backend = backend;
 			// the biome maps this world's renderer made last time (plan 364): no noise on this thread
 			const stored = await primePlanetMaps(key);
 			if (generation !== this.generation) throw new Error('the world ended');
@@ -243,7 +281,13 @@ class WorldRenderer {
 			const config: RendererConfig = bootPreset
 				? { ...base, bootPreset, onBootSwap: () => this.writeLog('ready') }
 				: base;
-			const r = createRenderer(config);
+			let r: Renderer;
+			try {
+				r = createRenderer(config);
+			} catch (e) {
+				this.deviceFailed(e instanceof Error ? e.message : String(e));
+				throw e;
+			}
 			this.config = {
 				backend,
 				preset: config.preset ?? 'high',
@@ -292,7 +336,7 @@ class WorldRenderer {
 			return r;
 		})();
 		this.building.catch((e: unknown) => {
-			if (generation === this.generation) this.fail(e);
+			if (generation === this.generation && this.errorTips.length === 0) this.fail(e);
 		});
 		return this.building;
 	}
@@ -326,6 +370,10 @@ class WorldRenderer {
 	/** The player left the world (or another tab took it): the renderer and its device go. */
 	end(): void {
 		this.generation++;
+		if (this.deviceTimer) clearTimeout(this.deviceTimer);
+		this.deviceTimer = null;
+		this.errorTips = [];
+		this.backend = null;
 		// leaving the world on its loading screen: the stored log says where it was
 		this.onPageHide();
 		this.teardown();
@@ -387,6 +435,43 @@ class WorldRenderer {
 		};
 	}
 
+	/** Gives up on the backend if the load is still on "Starting the graphics" after `DEVICE_TIMEOUT_MS`. */
+	private watchDevice(generation: number, armedAt = performance.now()): void {
+		if (this.deviceTimer) clearTimeout(this.deviceTimer);
+		this.deviceTimer = setTimeout(() => {
+			this.deviceTimer = null;
+			if (generation !== this.generation || (this.step !== 'sim' && this.step !== 'device'))
+				return;
+			// a WebGL renderer that exists is starting, only slowly (software GL blocks the page while
+			// it bakes); a timer that fired late means the page was busy, so it waits again
+			if (this.renderer && this.backend === 'webgl') return;
+			if (performance.now() - armedAt > DEVICE_TIMEOUT_MS + 2_000) {
+				this.watchDevice(generation);
+				return;
+			}
+			this.deviceFailed(`the graphics did not start in ${DEVICE_TIMEOUT_MS / 1000} s`);
+		}, DEVICE_TIMEOUT_MS);
+	}
+
+	/** The graphics did not start: reload on WebGL once, else say they are unavailable (plan 388). */
+	private deviceFailed(why: string): void {
+		if (this.ready || this.errorTips.length > 0) return;
+		const next = afterDeviceFailure(
+			this.backend,
+			loadRendererFallback() !== null,
+			rendererBackendFrom(globalThis.location?.search ?? '') !== null
+		);
+		console.warn(`graphics: ${this.backend ?? 'the backend probe'}: ${why}; ${next}`);
+		if (next === 'reload-webgl') {
+			saveRendererFallback('webgl');
+			this.writeLog('left');
+			globalThis.location?.reload();
+			return;
+		}
+		this.errorTips = GRAPHICS_TIPS;
+		this.fail(new Error('Graphics unavailable: the browser could not start WebGPU or WebGL'));
+	}
+
 	/** The load failed: shown on the loading screen and kept in the load log. */
 	private fail(e: unknown): void {
 		this.error = e instanceof Error ? e.message : String(e);
@@ -399,9 +484,15 @@ class WorldRenderer {
 	 */
 	lowerQuality(): void {
 		const r = this.renderer;
-		if (!r || this.ready) return;
+		if (this.ready || this.lowered) return;
 		this.lowered = true;
 		saveGraphicsPreset('low');
+		// still starting the graphics (plan 388): the renderer takes the saved preset when it is
+		// made; a WebGPU start that hangs is abandoned for WebGL now rather than at the timeout
+		if (!r || this.step === 'device') {
+			if (this.backend !== 'webgl') this.deviceFailed('the player chose lower quality');
+			if (!r) return;
+		}
 		r.setPreset('low');
 		// the page that holds the renderer (Flight's governor) takes it as the player's preset
 		emitGraphicsChange({ kind: 'preset', choice: 'low' });

@@ -26,6 +26,7 @@
 		current = '',
 		startedAt = null,
 		error = null,
+		errorTips = [],
 		lowered = false,
 		onlower = null,
 		slides = [],
@@ -44,6 +45,8 @@
 		/** `performance.now()` when the load began, for the elapsed time. */
 		startedAt?: number | null;
 		error?: string | null;
+		/** What the player can try when the graphics could not start (plan 388); shown under `error`. */
+		errorTips?: readonly string[];
 		/** "Continue with lower quality" was chosen. */
 		lowered?: boolean;
 		/** Shown after `LOWER_AFTER_MS`; null hides it. */
@@ -125,6 +128,7 @@
 
 	<div class="corner">
 		<p
+			hidden={error !== null}
 			class="patter"
 			aria-hidden="true"
 			style:--patter-cycle="{PATTER.length * PATTER_S}s"
@@ -147,7 +151,14 @@
 				{#if current}<p class="current">{current}</p>{/if}
 			</div>
 		</div>
-		{#if lowered}
+		{#if error && errorTips.length > 0}
+			<ul class="fix" data-testid="loading-tips">
+				{#each errorTips as t (t)}<li>{t}</li>{/each}
+			</ul>
+			<p class="foot">
+				<button type="button" class="lower" onclick={() => location.reload()}>Reload</button>
+			</p>
+		{:else if lowered}
 			<p class="foot"><span class="lowered">Lower quality</span></p>
 		{:else if onlower && elapsed > LOWER_AFTER_MS && !error}
 			<p class="foot">
@@ -272,6 +283,9 @@
 	}
 	/* one line at a time, each in turn (12.5% is one of PATTER's eight): opacity and transform
 	   only, run by the compositor */
+	.patter[hidden] {
+		display: none;
+	}
 	.patter {
 		position: relative;
 		height: 1.25rem;
@@ -410,6 +424,15 @@
 		to {
 			transform: translateX(260%);
 		}
+	}
+	.fix {
+		margin: 0;
+		padding-left: 1.1rem;
+		display: grid;
+		gap: 0.35rem;
+		font-size: var(--t-small);
+		color: var(--text-secondary);
+		line-height: 1.4;
 	}
 	.foot {
 		display: flex;

@@ -237,6 +237,7 @@ export class Environment {
 	 * stand alone with the primary's materials, made the first time they are asked for.
 	 */
 	otherSite(id: string, latitude: number, longitude: number): SiteBuildings {
+		this.otherPlaces.set(id, { latitude, longitude });
 		let b = this.others.get(id);
 		if (!b) {
 			b = new SiteBuildings(this.site.sharedMaterials, this.radius, { latitude, longitude });
@@ -249,7 +250,12 @@ export class Environment {
 	/** Look at, pick on and draw the ghost at the site `id` (null: the primary). */
 	setViewSite(id: string | null): void {
 		this.viewSite = id !== null && this.others.has(id) ? id : null;
+		// the ground round the branch in view is a site's, as round the launch site (plan 388)
+		this.planet.setOtherSite(
+			this.viewSite !== null ? (this.otherPlaces.get(this.viewSite) ?? null) : null
+		);
 	}
+	private readonly otherPlaces = new Map<string, { latitude: number; longitude: number }>();
 
 	/** The buildings the view is on: the picks, the projection and the ghost use them. */
 	get viewBuildings(): SiteBuildings {
