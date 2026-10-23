@@ -10,6 +10,11 @@ export interface PresetSettings {
 	pixelRatioCap: number;
 	/** MSAA samples of the scene target (0 = none). */
 	msaa: 0 | 2 | 4;
+	/**
+	 * TAAU (plan 393, ADR 0331): the 3D image is drawn at this share of the canvas's side and rebuilt
+	 * to the canvas from jittered frames, with MSAA off; 0 = the direct path. WebGPU only.
+	 */
+	taau: number;
 	/** Shadow map side in texels (0 = shadows off). */
 	shadowMapSize: 0 | 1024 | 2048 | 4096;
 	/**
@@ -113,6 +118,7 @@ export const PRESETS: Readonly<Record<GraphicsPreset, PresetSettings>> = {
 		pixelRatioCap: 1,
 		planetPixels: PLANET_PIXEL_BUDGET,
 		msaa: 0,
+		taau: 0,
 		shadowMapSize: 0,
 		post: false,
 		bloomScale: 0.25,
@@ -148,6 +154,8 @@ export const PRESETS: Readonly<Record<GraphicsPreset, PresetSettings>> = {
 		pixelRatioCap: 1.5,
 		planetPixels: PLANET_PIXEL_BUDGET,
 		msaa: 4,
+		// the M5 at `medium`: 120 fps at 0.5 where the direct path gave 69 to 83 (plan 393's baseline note)
+		taau: 0.5,
 		shadowMapSize: 2048,
 		post: true,
 		bloomScale: 0.5,
@@ -183,6 +191,7 @@ export const PRESETS: Readonly<Record<GraphicsPreset, PresetSettings>> = {
 		pixelRatioCap: 2,
 		planetPixels: PLANET_PIXEL_BUDGET,
 		msaa: 4,
+		taau: 0,
 		shadowMapSize: 4096,
 		post: true,
 		bloomScale: 0.5,

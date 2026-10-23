@@ -1,7 +1,7 @@
 ---
 id: 393
 title: "TAAU: the 3D image at about 0.6 of the side, rebuilt temporally; MSAA off; FSR 1 on cuts and on WebGL2"
-status: draft
+status: in-progress
 owner: "Worker A"
 depends: [392]
 phase: 9
@@ -72,3 +72,4 @@ The 3D image renders at about 0.6 of the canvas side and is rebuilt to full Reti
 ## Log
 
 - 2026-10-24 — Created by the coordinator from refs/graphics-v2 (ADR 0330).
+- 2026-10-24 — Worker A: ADR 0336. TAAU on WebGPU with the planet's own velocity, jittered planet rays and camera cuts; `medium` takes 0.5. Not done: FSR 1 on cuts and on WebGL2, a scale change that allocates nothing (three reallocates the pass target; the governor's use is 395), the owner's look check, the `capture-graphics.ts` before and after. Numbers in the ADR. `high` does not gain.

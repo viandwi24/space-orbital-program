@@ -33,6 +33,8 @@ export interface MatrixOptions {
 	angle: string;
 	headless: boolean;
 	notes?: string;
+	/** TAAU's share of the canvas's side for the run (plan 393), 0 or absent for off. */
+	taau?: number;
 	log?: (line: string) => void;
 }
 
@@ -298,6 +300,13 @@ export async function runMatrix(
 				report.loads.push({ backend, preset, governor, loadMs, compile });
 				log(`${backend} ${preset} governor ${governor}: loaded in ${(loadMs / 1000).toFixed(1)} s`);
 				await page.waitForTimeout(3000);
+				if (options.taau) {
+					await page.evaluate(
+						(s) => (window as any).__orbital.renderer().setTaau?.(s),
+						options.taau
+					);
+					await page.waitForTimeout(3000);
+				}
 				for (const view of options.views) {
 					await placeView(page, view);
 					await page.waitForTimeout(options.warm * 1000);

@@ -27,6 +27,8 @@ import {
 	Mesh,
 	NearestFilter,
 	RenderTarget,
+	Matrix3,
+	Matrix4,
 	Vector2,
 	Vector3,
 	type DataTexture,
@@ -188,6 +190,8 @@ function float32Filterable(renderer: WebGPURenderer): boolean {
 /** One preset's set of planet-pass materials and the uniform copies they read. */
 interface Variant {
 	full: MeshBasicNodeMaterial;
+	/** The full pass for a scene pass with a velocity output (TAAU, plan 393): the same shader plus the planet's velocity. */
+	fullTaau: MeshBasicNodeMaterial;
 	half: MeshBasicNodeMaterial;
 	edge: MeshBasicNodeMaterial;
 	up: MeshBasicNodeMaterial;
@@ -200,6 +204,7 @@ interface Variant {
 function newVariant(): Variant {
 	const v: Variant = {
 		full: new MeshBasicNodeMaterial(),
+		fullTaau: new MeshBasicNodeMaterial(),
 		half: new MeshBasicNodeMaterial(),
 		edge: new MeshBasicNodeMaterial(),
 		up: new MeshBasicNodeMaterial(),
@@ -209,8 +214,11 @@ function newVariant(): Variant {
 	};
 	v.bake.name = 'planet-scaled-bake';
 	v.full.name = 'planet-pass-tsl';
-	v.full.depthFunc = AlwaysDepth;
-	v.full.depthWrite = true;
+	v.fullTaau.name = 'planet-pass-tsl-taau';
+	for (const m of [v.full, v.fullTaau]) {
+		m.depthFunc = AlwaysDepth;
+		m.depthWrite = true;
+	}
 	for (const m of [v.half, v.pre, v.bake]) {
 		m.depthTest = false;
 		m.depthWrite = false;
@@ -232,6 +240,9 @@ export class PlanetPassTSL {
 	readonly mesh: Mesh;
 	private readonly sky: LutSky;
 	private material: MeshBasicNodeMaterial;
+	private taauMaterial: MeshBasicNodeMaterial;
+	/** The scene pass has a velocity output (plan 393): the full pass writes the planet's velocity too. */
+	private taauOn = false;
 	/** The active variant's per-frame copies of the WebGL pass's uniforms. */
 	private syncs: (() => void)[] = [];
 	/**
@@ -243,6 +254,21 @@ export class PlanetPassTSL {
 	private readonly pixelAngle = uniform(0.001);
 	/** The half-size pass's pixel angle (the full one over the scale). */
 	private readonly pixelAngleHalf = uniform(0.002);
+	/**
+	 * What TAAU's velocity needs of the previous frame (plan 393): the camera's rotation, up vector
+	 * and altitude and the unjittered projection, and this frame's projection; copied at the start of
+	 * each update from what the last update saw.
+	 */
+	private readonly prevCamRot = uniform(new Matrix3());
+	private readonly prevCamUp = uniform(new Vector3(0, 1, 0));
+	private readonly prevAlt = uniform(0);
+	private readonly prevProj = uniform(new Matrix4());
+	private readonly curProj = uniform(new Matrix4());
+	private lastRot = new Matrix3();
+	private lastUp = new Vector3(0, 1, 0);
+	private lastAlt = 0;
+	private lastProj = new Matrix4();
+	private haveLast = false;
 	/** The camera's near and far, for the logarithmic depth every pass writes or reads. */
 	private readonly uNear = uniform(0.1);
 	private readonly uFar = uniform(1e9);
@@ -339,6 +365,7 @@ export class PlanetPassTSL {
 		this.sky = createLutSky(atm);
 		const v = newVariant();
 		this.material = v.full;
+		this.taauMaterial = v.fullTaau;
 		this.halfMaterial = v.half;
 		this.edgeMaterial = v.edge;
 		this.upMaterial = v.up;
@@ -432,6 +459,24 @@ export class PlanetPassTSL {
 		if (this.needsBuild || this.builtMap === null) this.build();
 		// the sun's shadow map, or the stand-in before it exists and at night (`uShadowOn` is 0 then)
 		if (this.shadowNode) this.shadowNode.value = this.shadowTexture();
+		// the camera of the last frame, for TAAU's velocity of the planet's pixels (plan 393): on the
+		// first frame (or after a cut) the previous is this frame's, so the velocity is zero
+		if (!this.haveLast) {
+			this.lastRot.setFromMatrix4(camera.matrixWorld);
+			this.lastUp.copy(u.uCamUp!.value as Vector3);
+			this.lastAlt = u.uAlt!.value as number;
+			this.lastProj.copy(camera.projectionMatrix);
+			this.haveLast = true;
+		}
+		this.prevCamRot.value.copy(this.lastRot);
+		this.prevCamUp.value.copy(this.lastUp);
+		this.prevAlt.value = this.lastAlt;
+		this.prevProj.value.copy(this.lastProj);
+		this.curProj.value.copy(camera.projectionMatrix);
+		this.lastRot.setFromMatrix4(camera.matrixWorld);
+		this.lastUp.copy(u.uCamUp!.value as Vector3);
+		this.lastAlt = u.uAlt!.value as number;
+		this.lastProj.copy(camera.projectionMatrix);
 		for (const s of this.syncs) s();
 		// the biome map is replaced at a preset change: the shader reads it through one node
 		if (this.mapNode) this.mapNode.value = u.uMap!.value;
@@ -522,6 +567,18 @@ export class PlanetPassTSL {
 		return node;
 	}
 
+	/** Draws the full pass with or without the velocity output; a scene pass with a velocity output needs it (plan 393). */
+	setTaau(on: boolean): void {
+		if (on === this.taauOn) return;
+		this.taauOn = on;
+		this.mesh.material = on ? this.taauMaterial : this.material;
+	}
+
+	/** A camera cut (warp, map toggle, launch, scene change): the next frame has no previous camera (plan 393). */
+	cut(): void {
+		this.haveLast = false;
+	}
+
 	/** Warm-up frames only: draw at this scale whatever the budget says (1 the full path, below 1 the half). */
 	forceScale: number | null = null;
 
@@ -553,13 +610,14 @@ export class PlanetPassTSL {
 
 	private use(v: Variant): void {
 		this.material = v.full;
+		this.taauMaterial = v.fullTaau;
 		this.halfMaterial = v.half;
 		this.edgeMaterial = v.edge;
 		this.upMaterial = v.up;
 		this.preMaterial = v.pre;
 		this.bakeMaterial = v.bake;
 		this.syncs = v.syncs;
-		this.mesh.material = v.full;
+		this.mesh.material = this.taauOn ? v.fullTaau : v.full;
 		this.upMesh.material = v.up;
 		this.edgeMesh.material = v.edge;
 		this.halfQuad.material = v.half;
@@ -606,7 +664,13 @@ export class PlanetPassTSL {
 		const U = this.planet.material.uniforms;
 		const graph = (mode: 'full' | 'half' | 'edge' | 'prepass' | 'bake'): N => {
 			const uR = this.link('uR');
-			const uInvProj = this.link('uInvProj');
+			// the scene meshes read the camera's own matrix at draw time, so a TAAU jitter (a view offset set
+			// after the CPU update) moves the planet's rays with the geometry's (plan 393); the quad passes
+			// have their own camera and keep the WebGL pass's
+			const uInvProj =
+				mode === 'full' || mode === 'edge'
+					? T.cameraProjectionMatrixInverse
+					: this.link('uInvProj');
 			const uCamRot = this.link('uCamRot');
 			const uCamUp = this.link('uCamUp');
 			const uAlt = this.link('uAlt');
@@ -2618,16 +2682,48 @@ export class PlanetPassTSL {
 				float(1.0)
 			);
 		const quad = vec4(positionGeometry.xy, 0.0, 1.0);
+		// TAAU's velocity of a planet pixel (plan 393): where the same ground point (or, for the sky,
+		// the same direction) was on the screen last frame, from this frame's depth and the last
+		// frame's camera. The mesh's own velocity would be that of a screen quad: none
+		const uR = this.link('uR');
+		const uCamRot = this.link('uCamRot');
+		const uCamUp = this.link('uCamUp');
+		const uAlt = this.link('uAlt');
+		const planetVelocity = (viewZ: N): N => {
+			const ndc = varying(positionGeometry.xy);
+			const vp = T.cameraProjectionMatrixInverse.mul(vec4(ndc, 0.0, 1.0));
+			const dirCam = normalize(vp.xyz.div(vp.w));
+			const hit = viewZ.greaterThan(0.0);
+			const t = viewZ.div(max(dirCam.z.negate(), 1e-4));
+			const pCur = dirCam.mul(select(hit, t, float(1.0)));
+			// the point in the render axes, from the current camera; the sky has no translation
+			const rel = uCamRot.mul(pCur);
+			const shift = uCamUp
+				.mul(uR.add(max(uAlt, 0.0)))
+				.sub(this.prevCamUp.mul(uR.add(max(this.prevAlt, 0.0))));
+			const relPrev = rel.add(select(hit, shift, vec3(0.0)));
+			// local to the previous camera's axes: v * M is the transpose of M times v
+			const pPrev = relPrev.mul(this.prevCamRot);
+			const w = select(hit, float(1.0), float(0.0));
+			const cur = this.curProj.mul(vec4(pCur, w));
+			const prev = this.prevProj.mul(vec4(pPrev, w));
+			return vec4(cur.xy.div(max(cur.w, 1e-6)).sub(prev.xy.div(max(prev.w, 1e-6))), 0.0, 0.0);
+		};
 		// the full pass, and the edge pass of the half rung: colour and the depth meshes sort against
-		for (const [material, mode] of [
-			[this.material, 'full'],
-			[this.edgeMaterial, 'edge']
-		] as const) {
-			const result = graph(mode);
+		const full = graph('full');
+		for (const material of [this.material, this.taauMaterial]) {
 			material.vertexNode = quad;
-			material.colorNode = vec4(result.xyz, 1.0);
-			material.depthNode = logDepth(result.w);
+			material.colorNode = vec4(full.xyz, 1.0);
+			material.depthNode = logDepth(full.w);
 			material.needsUpdate = true;
+		}
+		this.taauMaterial.mrtNode = T.mrt({ velocity: planetVelocity(full.w) });
+		{
+			const edge = graph('edge');
+			this.edgeMaterial.vertexNode = quad;
+			this.edgeMaterial.colorNode = vec4(edge.xyz, 1.0);
+			this.edgeMaterial.depthNode = logDepth(edge.w);
+			this.edgeMaterial.needsUpdate = true;
 		}
 		// the half-size pass: radiance, and the depth in alpha for the upsample (raw, not tone-mapped)
 		const half = graph('half');

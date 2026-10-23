@@ -38,6 +38,7 @@ import { hideUnported } from './webgpu-compat.ts';
 import { Twins } from './tsl/twins.ts';
 import { MoonTSL } from './tsl/moon.ts';
 import type { MoonPass } from './moon.ts';
+import { CutDetector } from './taau-cuts.ts';
 import { PassTag, labelCommandEncoders, passTimes, type PassTimes } from './pass-timing.ts';
 
 const deferred = (): { promise: Promise<void>; resolve: () => void } => {
@@ -66,19 +67,28 @@ type Modules = {
 	pass: typeof import('three/tsl').pass;
 	bloom: typeof import('three/addons/tsl/display/BloomNode.js').bloom;
 	BundleGroup: typeof import('three/webgpu').BundleGroup;
+	taau: typeof import('three/addons/tsl/display/TAAUNode.js').taau;
+	mrt: typeof import('three/tsl').mrt;
+	output: typeof import('three/tsl').output;
+	velocity: typeof import('three/tsl').velocity;
 };
 
 const loadModules = async (): Promise<Modules> => {
-	const [webgpu, tsl, bloomNode] = await Promise.all([
+	const [webgpu, tsl, bloomNode, taauNode] = await Promise.all([
 		import('three/webgpu'),
 		import('three/tsl'),
-		import('three/addons/tsl/display/BloomNode.js')
+		import('three/addons/tsl/display/BloomNode.js'),
+		import('three/addons/tsl/display/TAAUNode.js')
 	]);
 	return {
 		WebGPURenderer: webgpu.WebGPURenderer,
 		RenderPipeline: webgpu.RenderPipeline,
 		pass: tsl.pass,
 		bloom: bloomNode.bloom,
+		taau: taauNode.taau,
+		mrt: tsl.mrt,
+		output: tsl.output,
+		velocity: tsl.velocity,
 		BundleGroup: webgpu.BundleGroup
 	};
 };
@@ -135,6 +145,14 @@ export function createWebGPURenderer(
 	let pixelRatio = 1;
 	let forcedRatio: number | null = null;
 	let renderScale = 1;
+	/** TAAU (plan 393): the 3D image's side as a share of the canvas's, or 0 for off (the direct path). */
+	let taauOverride: number | null = null;
+	/** The TAAU share of the side for the preset drawn: the debug override, else the preset's; real WebGPU only. */
+	const currentTaau = (): number =>
+		backend === 'webgpu' ? (taauOverride ?? PRESETS[preset].taau) : 0;
+	/** The TAAU node of each kept pipeline, to start its history again on a camera cut, and the cut detector. */
+	const taauNodes = new Map<string, unknown>();
+	const cuts = new CutDetector();
 	let last = performance.now();
 
 	let modules: Modules | null = null;
@@ -166,8 +184,12 @@ export function createWebGPURenderer(
 	/** The post chain for the preset, rebuilt only when its sample count or bloom scale changes. */
 	const syncPipeline = (): void => {
 		const settings = PRESETS[preset];
-		const samples = msaaSamples(settings.msaa, baseRatio());
-		const key = settings.post ? `${samples}:${settings.bloomScale}` : 'off';
+		const taauScale = currentTaau();
+		const taauOn = taauScale > 0 && settings.post;
+		const samples = taauOn ? 0 : msaaSamples(settings.msaa, baseRatio());
+		const key = settings.post
+			? `${samples}:${settings.bloomScale}${taauOn ? `:taau${taauScale}` : ''}`
+			: 'off';
 		if (key === pipelineKey && (pipeline !== null) === settings.post) return;
 		pipeline = null;
 		pipelineKey = key;
@@ -180,7 +202,21 @@ export function createWebGPURenderer(
 			return;
 		}
 		const scenePass = modules.pass(model.scene, model.camera, { samples });
-		const colour = scenePass.getTextureNode('output');
+		let colour = scenePass.getTextureNode('output');
+		if (taauOn) {
+			// the 3D image at a share of the canvas's side, with the velocity of what moved, rebuilt to the
+			// canvas's size from the jittered frames; bloom and the output read the resolved image (plan 393)
+			scenePass.setResolutionScale(taauScale);
+			scenePass.setMRT(modules.mrt({ output: modules.output, velocity: modules.velocity }));
+			// the TAAU node is itself the resolved image's texture node
+			colour = modules.taau(
+				colour,
+				scenePass.getTextureNode('depth'),
+				scenePass.getTextureNode('velocity'),
+				model.camera
+			) as unknown as typeof colour;
+			taauNodes.set(key, colour);
+		}
 		const glow = modules.bloom(colour, BLOOM.strength, BLOOM.radius, BLOOM.threshold);
 		glow.setResolutionScale(settings.bloomScale);
 		const p = new modules.RenderPipeline(gpu);
@@ -329,12 +365,36 @@ export function createWebGPURenderer(
 		// on every preset (the governor's move to low and back crashed the page), and the planet pass
 		// ignores the map when the environment says it is off
 		env.sunLight.castShadow = true;
+		// under TAAU the planet is drawn in the scene's low-resolution image, at its own full path
+		const taauScale = currentTaau();
+		const taauOn = taauScale > 0 && PRESETS[preset].post;
+		planet.forceScale = taauOn ? 1 : null;
+		planet.setTaau(taauOn && pipeline !== null);
+		if (taauOn && pipeline) {
+			const q = model.camera.quaternion;
+			const cut = cuts.observe({
+				view: `${model.isMapView ? 'map' : 'flight'}:${model.activeVessel ?? ''}`,
+				fov: model.camera.fov,
+				rotation: [q.x, q.y, q.z, q.w],
+				size: [width, height],
+				pipeline: pipelineKey
+			});
+			if (cut) {
+				// the image is not the last frame's continuation: the planet's velocity has no previous
+				// camera, and the resolve seeds its history from this frame (a bilinear upscale)
+				planet.cut();
+				const node = taauNodes.get(pipelineKey) as
+					{ _historyRenderTarget?: { setSize(w: number, h: number): void } } | undefined;
+				node?._historyRenderTarget?.setSize(1, 1);
+			}
+		} else cuts.reset();
+		const shown = taauOn ? taauScale : 1;
 		tag.within('planet', () =>
 			planet.update(
 				r,
 				model.camera,
-				Math.max(1, Math.round(width * pixelRatio)),
-				Math.max(1, Math.round(height * pixelRatio))
+				Math.max(1, Math.round(width * pixelRatio * shown)),
+				Math.max(1, Math.round(height * pixelRatio * shown))
 			)
 		);
 		tag.within('moon', () => {
@@ -821,6 +881,22 @@ export function createWebGPURenderer(
 			},
 			get renderScale() {
 				return renderScale;
+			},
+			// plan 393: TAAU at this share of the canvas's side, or 0 for off (a development switch until the preset takes it)
+			setTaau(scale: number | null) {
+				const next =
+					scale === null
+						? null
+						: Number.isFinite(scale) && scale > 0
+							? Math.min(Math.max(scale, 0.4), 1)
+							: 0;
+				if (next === taauOverride) return;
+				taauOverride = next;
+				planet.cut();
+				syncPipeline();
+			},
+			get taau() {
+				return currentTaau();
 			},
 			// the half-size planet pass (plan 050, ADR 0061): the governor's rung and the pixel budget
 			setPlanetScale(scale: number) {

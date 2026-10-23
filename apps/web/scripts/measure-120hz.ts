@@ -10,7 +10,7 @@
  *
  * Options (environment): VW, VH, DSF (default 1512 x 945 at 2), BACKENDS (webgpu,webgl), PRESETS
  * (high,medium), GOVERNORS (off,on), VIEWS (pad,3km,12km,orbit), SECONDS (20), WARM (6),
- * MEASURE_ANGLE (metal), MEASURE_NOTES (the machine's state and the commit).
+ * TAAU (a share of the canvas's side, 0.4 to 1; default off, plan 393), MEASURE_ANGLE (metal), MEASURE_NOTES (the machine's state and the commit).
  * Prints a markdown table; the JSON goes to the file named as the first argument.
  */
 import { writeFileSync } from 'node:fs';
@@ -32,6 +32,7 @@ const report = await runMatrix(
 		angle: process.env.MEASURE_ANGLE ?? 'metal',
 		headless: process.env.MEASURE_HEADLESS === '1',
 		notes: process.env.MEASURE_NOTES,
+		taau: Number(process.env.TAAU ?? 0),
 		log: (line) => console.log(line)
 	},
 	{ notes: process.env.MEASURE_NOTES ?? '', platform: process.platform, arch: process.arch }

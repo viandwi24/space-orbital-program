@@ -1,0 +1,467 @@
+{
+  "machine": {
+    "notes": "M5 AC TAAU 0 d55bb110",
+    "platform": "darwin",
+    "arch": "arm64"
+  },
+  "options": {
+    "base": "http://localhost:5231",
+    "viewport": {
+      "width": 1512,
+      "height": 945
+    },
+    "dsf": 2,
+    "backends": [
+      "webgpu"
+    ],
+    "presets": [
+      "high",
+      "medium"
+    ],
+    "governors": [
+      "off"
+    ],
+    "views": [
+      "pad",
+      "3km",
+      "12km",
+      "orbit"
+    ],
+    "seconds": 15,
+    "warm": 6,
+    "angle": "metal",
+    "headless": false,
+    "notes": "M5 AC TAAU 0 d55bb110",
+    "taau": 0
+  },
+  "tier": {
+    "id": "apple",
+    "maxHz": 120,
+    "preset": "medium",
+    "hz": 120,
+    "budgetMs": 8.333333333333334
+  },
+  "refreshHz": 120,
+  "loads": [
+    {
+      "backend": "webgpu",
+      "preset": "high",
+      "governor": "off",
+      "loadMs": 2785,
+      "compile": {
+        "pipelines": 57,
+        "timedMs": 5975,
+        "phases": [
+          {
+            "phase": "programs",
+            "pipelines": 57,
+            "timedMs": 5975,
+            "spanMs": 1451
+          }
+        ],
+        "slowest": [
+          {
+            "label": "renderPipeline_planet-prepass·high_260",
+            "ms": 866.2,
+            "bytes": 23119
+          },
+          {
+            "label": "renderPipeline_planet-half·high_257",
+            "ms": 703.1,
+            "bytes": 275228
+          },
+          {
+            "label": "renderPipeline_planet-upsample·high_259",
+            "ms": 639.7,
+            "bytes": 7272
+          },
+          {
+            "label": "renderPipeline_planet-edge·high_258",
+            "ms": 259.9,
+            "bytes": 281956
+          },
+          {
+            "label": "renderPipeline_MeshStandardNodeMaterial_280",
+            "ms": 163.2,
+            "bytes": 79848
+          }
+        ]
+      }
+    },
+    {
+      "backend": "webgpu",
+      "preset": "medium",
+      "governor": "off",
+      "loadMs": 2472,
+      "compile": {
+        "pipelines": 33,
+        "timedMs": 2741,
+        "phases": [
+          {
+            "phase": "programs",
+            "pipelines": 33,
+            "timedMs": 2741,
+            "spanMs": 1184
+          }
+        ],
+        "slowest": [
+          {
+            "label": "renderPipeline_planet-prepass·medium_260",
+            "ms": 913.8,
+            "bytes": 23118
+          },
+          {
+            "label": "renderPipeline_planet-half·medium_257",
+            "ms": 591.5,
+            "bytes": 260325
+          },
+          {
+            "label": "renderPipeline_planet-upsample·medium_259",
+            "ms": 456.4,
+            "bytes": 7272
+          },
+          {
+            "label": "renderPipeline_planet-edge·medium_258",
+            "ms": 140.6,
+            "bytes": 267050
+          },
+          {
+            "label": "renderPipeline_MeshLambertNodeMaterial_265",
+            "ms": 90.2,
+            "bytes": 57145
+          }
+        ]
+      }
+    }
+  ],
+  "cells": [
+    {
+      "backend": "webgpu",
+      "preset": "high",
+      "governor": "off",
+      "view": "pad",
+      "renderer": "webgpu",
+      "gpu": "WebGPU: apple metal-3",
+      "presetNow": "high",
+      "canvas": "3024x1890",
+      "intervals": {
+        "frames": 858,
+        "meanMs": 17.492074592074594,
+        "p50Ms": 16.700000000000728,
+        "p95Ms": 25.100000000000364,
+        "p99Ms": 26.599999999998545,
+        "worstMs": 33.60000000000218,
+        "over16": 0.3356643356643357,
+        "over8": 0.914918414918415,
+        "meanFps": 57.16874775122932
+      },
+      "loaf": {
+        "count": 0,
+        "p95Ms": 0,
+        "worstMs": 0,
+        "blockingMs": 0,
+        "scriptMs": 0,
+        "layoutMs": 0,
+        "renderMs": 0
+      },
+      "gpuMs": 4.489068833333333,
+      "passMs": {
+        "planet": 8.568835900000002,
+        "scene": 123.76027459999999
+      },
+      "passContexts": {
+        "planet": 2.999999999999999,
+        "scene": 14.999999999999957
+      },
+      "drawCalls": 289,
+      "triangles": 1630583
+    },
+    {
+      "backend": "webgpu",
+      "preset": "high",
+      "governor": "off",
+      "view": "3km",
+      "renderer": "webgpu",
+      "gpu": "WebGPU: apple metal-3",
+      "presetNow": "high",
+      "canvas": "3024x1890",
+      "intervals": {
+        "frames": 914,
+        "meanMs": 16.40175054704595,
+        "p50Ms": 16.69999999999709,
+        "p95Ms": 25,
+        "p99Ms": 25.560999999999115,
+        "worstMs": 35,
+        "over16": 0.23413566739606126,
+        "over8": 0.9048140043763676,
+        "meanFps": 60.96910187309889
+      },
+      "loaf": {
+        "count": 0,
+        "p95Ms": 0,
+        "worstMs": 0,
+        "blockingMs": 0,
+        "scriptMs": 0,
+        "layoutMs": 0,
+        "renderMs": 0
+      },
+      "gpuMs": 6.682852266666667,
+      "passMs": {
+        "planet": 14.390159566666675,
+        "scene": 180.94149733333333
+      },
+      "passContexts": {
+        "planet": 2.999999999999999,
+        "scene": 14.999999999999957
+      },
+      "drawCalls": 231,
+      "triangles": 147550
+    },
+    {
+      "backend": "webgpu",
+      "preset": "high",
+      "governor": "off",
+      "view": "12km",
+      "renderer": "webgpu",
+      "gpu": "WebGPU: apple metal-3",
+      "presetNow": "high",
+      "canvas": "3024x1890",
+      "intervals": {
+        "frames": 1026,
+        "meanMs": 14.637329434697858,
+        "p50Ms": 16.400000000001455,
+        "p95Ms": 32.37499999999454,
+        "p99Ms": 41.599999999998545,
+        "worstMs": 58.5,
+        "over16": 0.14035087719298245,
+        "over8": 0.6695906432748538,
+        "meanFps": 68.31847328854234
+      },
+      "loaf": {
+        "count": 30,
+        "p95Ms": 59.299999952316284,
+        "worstMs": 75.20000004768372,
+        "blockingMs": 13.9,
+        "scriptMs": 1232.1999998092651,
+        "layoutMs": 1.3999998569488525,
+        "renderMs": 1174.4999997615814
+      },
+      "gpuMs": 5.728893266666666,
+      "passMs": {
+        "planet": 11.5395723,
+        "scene": 153.7700202333333
+      },
+      "passContexts": {
+        "planet": 2.999999999999999,
+        "scene": 14.999999999999957
+      },
+      "drawCalls": 245,
+      "triangles": 147706
+    },
+    {
+      "backend": "webgpu",
+      "preset": "high",
+      "governor": "off",
+      "view": "orbit",
+      "renderer": "webgpu",
+      "gpu": "WebGPU: apple metal-3",
+      "presetNow": "high",
+      "canvas": "3024x1890",
+      "intervals": {
+        "frames": 1799,
+        "meanMs": 8.338076709282934,
+        "p50Ms": 8.30000000000291,
+        "p95Ms": 10.19999999999709,
+        "p99Ms": 10.39999999999418,
+        "worstMs": 16.80000000000291,
+        "over16": 0,
+        "over8": 0.21956642579210672,
+        "meanFps": 119.93173424354343
+      },
+      "loaf": {
+        "count": 0,
+        "p95Ms": 0,
+        "worstMs": 0,
+        "blockingMs": 0,
+        "scriptMs": 0,
+        "layoutMs": 0,
+        "renderMs": 0
+      },
+      "gpuMs": 1.9033805666666668,
+      "passMs": {
+        "planet": 3.787332566666665,
+        "scene": 63.83020786666672
+      },
+      "passContexts": {
+        "planet": 2.999999999999999,
+        "scene": 14.999999999999957
+      },
+      "drawCalls": 231,
+      "triangles": 147550
+    },
+    {
+      "backend": "webgpu",
+      "preset": "medium",
+      "governor": "off",
+      "view": "pad",
+      "renderer": "webgpu",
+      "gpu": "WebGPU: apple metal-3",
+      "presetNow": "medium",
+      "canvas": "2268x1417",
+      "intervals": {
+        "frames": 1800,
+        "meanMs": 8.333222222222222,
+        "p50Ms": 8.299999999999272,
+        "p95Ms": 10,
+        "p99Ms": 10.30000000000111,
+        "worstMs": 10.400000000001455,
+        "over16": 0,
+        "over8": 0.20444444444444446,
+        "meanFps": 120.00160002133362
+      },
+      "loaf": {
+        "count": 0,
+        "p95Ms": 0,
+        "worstMs": 0,
+        "blockingMs": 0,
+        "scriptMs": 0,
+        "layoutMs": 0,
+        "renderMs": 0
+      },
+      "gpuMs": 1.4408460333333333,
+      "passMs": {
+        "planet": 2.980184966666666,
+        "scene": 34.358921266666655
+      },
+      "passContexts": {
+        "planet": 2.999999999999999,
+        "scene": 14.999999999999957
+      },
+      "drawCalls": 227,
+      "triangles": 131294
+    },
+    {
+      "backend": "webgpu",
+      "preset": "medium",
+      "governor": "off",
+      "view": "3km",
+      "renderer": "webgpu",
+      "gpu": "WebGPU: apple metal-3",
+      "presetNow": "medium",
+      "canvas": "2268x1417",
+      "intervals": {
+        "frames": 1065,
+        "meanMs": 14.08431924882629,
+        "p50Ms": 16.5,
+        "p95Ms": 18.099999999998545,
+        "p99Ms": 25.472000000003007,
+        "worstMs": 35.30000000000291,
+        "over16": 0.11549295774647887,
+        "over8": 0.7323943661971831,
+        "meanFps": 71.00094667928906
+      },
+      "loaf": {
+        "count": 0,
+        "p95Ms": 0,
+        "worstMs": 0,
+        "blockingMs": 0,
+        "scriptMs": 0,
+        "layoutMs": 0,
+        "renderMs": 0
+      },
+      "gpuMs": 5.608746300000001,
+      "passMs": {
+        "planet": 11.77584653333333,
+        "scene": 150.17290406666677
+      },
+      "passContexts": {
+        "planet": 2.999999999999999,
+        "scene": 14.999999999999957
+      },
+      "drawCalls": 227,
+      "triangles": 131294
+    },
+    {
+      "backend": "webgpu",
+      "preset": "medium",
+      "governor": "off",
+      "view": "12km",
+      "renderer": "webgpu",
+      "gpu": "WebGPU: apple metal-3",
+      "presetNow": "medium",
+      "canvas": "2268x1417",
+      "intervals": {
+        "frames": 1256,
+        "meanMs": 11.969267515923567,
+        "p50Ms": 8.400000000001455,
+        "p95Ms": 27.44999999999345,
+        "p99Ms": 41.69999999999709,
+        "worstMs": 51,
+        "over16": 0.09554140127388536,
+        "over8": 0.4498407643312102,
+        "meanFps": 83.54730134234438
+      },
+      "loaf": {
+        "count": 22,
+        "p95Ms": 56.5,
+        "worstMs": 56.799999952316284,
+        "blockingMs": 0,
+        "scriptMs": 921.7000002861023,
+        "layoutMs": 0.6999999284744263,
+        "renderMs": 923.200000166893
+      },
+      "gpuMs": 4.829947033333332,
+      "passMs": {
+        "planet": 9.881651999999997,
+        "scene": 124.53131830000012
+      },
+      "passContexts": {
+        "planet": 2.999999999999999,
+        "scene": 14.999999999999957
+      },
+      "drawCalls": 241,
+      "triangles": 131450
+    },
+    {
+      "backend": "webgpu",
+      "preset": "medium",
+      "governor": "off",
+      "view": "orbit",
+      "renderer": "webgpu",
+      "gpu": "WebGPU: apple metal-3",
+      "presetNow": "medium",
+      "canvas": "2268x1417",
+      "intervals": {
+        "frames": 1800,
+        "meanMs": 8.333666666666662,
+        "p50Ms": 8.30000000000291,
+        "p95Ms": 10.19999999999709,
+        "p99Ms": 10.400000000008731,
+        "worstMs": 10.400000000008731,
+        "over16": 0,
+        "over8": 0.2961111111111111,
+        "meanFps": 119.99520019199238
+      },
+      "loaf": {
+        "count": 0,
+        "p95Ms": 0,
+        "worstMs": 0,
+        "blockingMs": 0,
+        "scriptMs": 0,
+        "layoutMs": 0,
+        "renderMs": 0
+      },
+      "gpuMs": 1.9231234000000004,
+      "passMs": {
+        "planet": 3.3728705,
+        "scene": 52.25659853333334
+      },
+      "passContexts": {
+        "planet": 2.999999999999999,
+        "scene": 14.999999999999957
+      },
+      "drawCalls": 227,
+      "triangles": 131294
+    }
+  ]
+}
