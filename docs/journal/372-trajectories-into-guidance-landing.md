@@ -32,3 +32,9 @@ web vitest mods + dock: 52 pass; svelte-check: 0 errors; bun run build: done (no
 ## Follow-up: Auto / Always / Off (same day)
 
 The owner: "di guidance bisa di force muncul terus juga ga harus pas auto landing yah". The Landing tab's switch became **Predicted path**: `Auto` (the ADR 0309 point 3 rules, the default), `Always` (Flight and map whenever the path comes down, from the first metre of a manual flight and under other programs; never landed, on the pad or splashed), `Off` (nowhere, Land included). Stored in `guidance.path-settings` as `{ mode }`, saved with the world; a save with the old `{ show }` reads on as Auto, off as Off. Test: Always, a 900 m manual hop with no program engaged draws the arc in Flight and the map. `bun test mods/guidance`: 49 pass.
+
+## Follow-up: a targeted landing robust to the thrust-to-weight (2026-10-23)
+
+The realistic-parts session (plan 380) found a 5 % change in the lander's acceleration took the miss from under 3 km to 9.7 km. Two causes: the coast steering projected a miss measured at the touchdown (up to a quarter of the way round) onto the vessel's own horizontal, so it pushed the wrong way; and the deorbit aim depended on a model of the brake that the real brake did not follow.
+
+The landing no longer predicts the brake. The deorbit times its conic to come down one braking distance (v² / 2·0.6·√(a² − g²)) past the target; the coast does not steer; the brake starts once stopping across the ground needs the distance left (or the fall needs it) and tracks a velocity: across toward the target at the distance left over the time left, never faster than stops on it; down no faster than the crossing takes; vertical thrust first, what is left across. Test: the lander from a 20 km orbit to a target 150° ahead, with the tank at 100, 85 and 70 % (a thrust-to-weight spread of about 15 %), lands 47, 59 and 61 m from it; the bar is now 1 km. `bun test mods/guidance`: 51 pass.

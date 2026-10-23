@@ -6,6 +6,7 @@
  */
 import {
 	defineAutopilot,
+	propagateUniversal,
 	type AutopilotStep,
 	type Quat,
 	type Vec3,
@@ -386,15 +387,17 @@ export interface LandMemory {
 	burning?: boolean;
 	/** The wait for the deorbit burn was warped through. */
 	warped?: boolean;
-	/** The coast's last touchdown prediction: when, s, and the miss to the target (target minus touchdown, inertial, m). */
-	aimAt?: number;
-	fix?: { x: number; y: number; z: number; t: number } | null;
 }
 
 /** The deorbit lowers the periapsis this share of the height under the ground: a steep, short fall. */
 const DEORBIT_DEPTH = 0.5;
-/** The coast steers when the predicted touchdown misses the target by more than this, m. */
-const STEER_MISS = 300;
+/** The targeted brake: the share of the spare thrust it plans across the ground, and down. */
+const BRAKE_SHARE = 0.6;
+const DESCENT_SHARE = 0.3;
+/** Its velocity error to acceleration gain, 1/s. */
+const VELOCITY_GAIN = 1;
+/** Below this height it stops moving across and comes straight down, m. */
+const TOUCHDOWN_AREA = 30;
 /** The deorbit still burns when the impact has passed the target by less than this, rad. */
 const LATE = 0.02;
 /** Below this height the descent no longer leans toward the target: straight down, m. */
@@ -425,52 +428,56 @@ export function surfaceInertial(
 }
 
 /**
- * Where the descent from `(r, v)` touches down, as the Land autopilot flies it: a coast until the
- * stopping height (as `step`'s rule), then the brake's speed profile (thrust up to `accel`, m/s²,
- * against the velocity over the turning ground) until it is slow. Point mass, vacuum, Euler steps. Inertial position and time, or
- * null when it does not come down within `limit` s.
+ * The brake's law without a target: the speed for the height left (half the
+ * spare thrust, slowing to `touchdown` over the last metres) and the thrust, m/s², that holds it
+ * with the nose tilted `cosTilt` from up (the vertical share must carry gravity).
  */
-export function descentTouchdown(
-	r0: Vec3,
-	v0: Vec3,
+export function brakeLaw(
+	height: number,
+	speed: number,
+	accel: number,
+	g: number,
+	touchdown: number,
+	cosTilt: number
+): { wanted: number; push: number } {
+	const h = Math.max(0, height);
+	const wanted = Math.max(touchdown, Math.min(Math.sqrt(2 * 0.5 * (accel - g) * h), touchdown + 0.4 * h));
+	return { wanted, push: clamp(g / Math.max(0.3, cosTilt) + 3 * (speed - wanted), 0, accel) };
+}
+
+/** The first time and place a conic crosses the sphere of `radius` within `limit` s, or null. */
+export function conicGroundHit(
+	r: Vec3,
+	v: Vec3,
 	mu: number,
 	radius: number,
-	spin: Vec3,
-	accel: number,
 	limit: number
 ): { t: number; r: Vec3 } | null {
-	let r = r0;
-	let v = v0;
-	let t = 0;
-	let braking = false;
-	while (t < limit) {
-		const up = unit(r);
-		const height = length(r) - radius;
-		const g = mu / dot(r, r);
-		const surface = sub(v, cross(spin, r));
-		const speed = length(surface);
-		if (height <= 0 || (braking && speed < 3)) return { t, r: scale(up, radius) };
-		if (!braking && height <= ((speed * speed) / (2 * Math.max(0.85 * accel - g, 0.1))) * 1.1 + 30) braking = true;
-		const h = braking ? 0.1 : Math.min(2, Math.max(0.1, height / Math.max(speed, 1) / 4));
-		// the brake as `step` flies it: a speed for the height left, the thrust to hold it
-		let push = 0;
-		if (braking) {
-			const wanted = Math.max(TOUCHDOWN_SPEED, Math.min(Math.sqrt(2 * 0.5 * (accel - g) * Math.max(height, 0)), TOUCHDOWN_SPEED + 0.4 * height));
-			push = clamp(g + 3 * (speed - wanted), 0, accel);
+	const steps = 400;
+	let prev = 0;
+	for (let k = 1; k <= steps; k++) {
+		const t = (limit * k) / steps;
+		if (length(propagateUniversal(r, v, mu, t).r) <= radius) {
+			let lo = prev;
+			let hi = t;
+			for (let i = 0; i < 40; i++) {
+				const mid = (lo + hi) / 2;
+				if (length(propagateUniversal(r, v, mu, mid).r) <= radius) hi = mid;
+				else lo = mid;
+			}
+			return { t: hi, r: propagateUniversal(r, v, mu, hi).r };
 		}
-		const a = add(scale(r, -mu / length(r) ** 3), scale(unit(surface), -push));
-		v = add(v, scale(a, h));
-		r = add(r, scale(v, h));
-		t += h;
+		prev = t;
 	}
 	return null;
 }
 
 /**
  * The deorbit burn now (impulsive, retrograde, periapsis `DEORBIT_DEPTH` of the height under the
- * ground) and where the descent after it touches down (`descentTouchdown`): the touchdown's
- * along-track angle behind the target then (positive: the target is still ahead), rad, and the
- * miss, m. Null when it does not come down within an orbit.
+ * ground) and where its conic (no brake) comes down: the along-track angle of the target ahead of
+ * that impact, less `beyond` m (the impact is meant to fall that far past the target: the brake
+ * only ever shortens the fall), rad (positive: wait), and the miss, m. Null when it does not come
+ * down within an orbit.
  */
 export function deorbitAim(
 	r: Vec3,
@@ -480,18 +487,18 @@ export function deorbitAim(
 	rotation: Quat,
 	spin: Vec3,
 	target: { lat: number; lon: number },
-	accel: number
+	beyond: number
 ): { lead: number; miss: number; fall: number } | null {
 	const rr = length(r);
 	const rp = radius - DEORBIT_DEPTH * Math.max(0, rr - radius);
 	const after = scale(unit(v), visViva(mu, rr, (rr + rp) / 2));
 	const o = orbitOf(r, v, mu);
 	const turn = o.a > 0 ? 2 * Math.PI * Math.sqrt(o.a ** 3 / mu) : 3_600;
-	const hit = descentTouchdown(r, after, mu, radius, spin, accel, turn);
+	const hit = conicGroundHit(r, after, mu, radius, turn);
 	if (!hit) return null;
 	const goal = surfaceInertial(target, radius, rotation, spin, hit.t);
 	const h = unit(cross(r, v));
-	const lead = Math.atan2(dot(cross(hit.r, goal), h), dot(hit.r, goal));
+	const lead = Math.atan2(dot(cross(hit.r, goal), h), dot(hit.r, goal)) + beyond / radius;
 	return { lead, miss: surfaceDistance(hit.r, goal, radius), fall: hit.t };
 }
 
@@ -567,7 +574,10 @@ export const Land = defineAutopilot<LandMemory>({
 			const back = unit(scale(pilot.vessel.velocity, -1));
 			if (target && !memory.burning && o.periapsis > f.radius) {
 				// wait until a burn now comes down on the target (ADR 0309 point 4)
-				const aim = deorbitAim(r, pilot.vessel.velocity, f.mu, f.radius, rotation!, spin, target, accel);
+				// the conic falls past the target by the braking distance across the ground
+				const brakeAcross = BRAKE_SHARE * Math.sqrt(Math.max(0, accel * accel - g * g));
+				const beyond = (speed * speed) / (2 * Math.max(brakeAcross, 0.1));
+				const aim = deorbitAim(r, pilot.vessel.velocity, f.mu, f.radius, rotation!, spin, target, beyond);
 				pilot.pointAt(back);
 				pilot.throttle(0);
 				if (aim) {
@@ -606,50 +616,59 @@ export const Land = defineAutopilot<LandMemory>({
 		const steerSpeed = length(steer);
 		// the burn that stops the vessel just above the ground, with 15 % thrust in reserve
 		const stop = (speed * speed) / (2 * (0.85 * accel - g));
-		if (memory.stage === 'coast' && target) {
-			// steer the coast (plan 372): predict the touchdown twice a second and burn across toward the target
-			if (pilot.time - (memory.aimAt ?? -1e9) >= 0.5) {
-				memory.aimAt = pilot.time;
-				const td = descentTouchdown(r, pilot.vessel.velocity, f.mu, f.radius, spin, accel, 3_600);
-				if (td) {
-					const goal = surfaceInertial(target, f.radius, rotation!, spin, td.t);
-					const miss = sub(goal, td.r);
-					memory.fix = { ...miss, t: pilot.time + td.t };
-				} else memory.fix = null;
-			}
-			const fix = memory.fix;
-			const tgo = fix ? fix.t - pilot.time : 0;
-			const across = fix ? sub(fix, scale(up, dot(fix, up))) : { x: 0, y: 0, z: 0 };
-			const miss = length(across);
-			readouts['Target miss'] = Math.round(miss);
-			if (fix && miss > STEER_MISS && tgo > 30 && height > stop * 1.5 + 200) {
-				const dir = unit(across);
-				pilot.pointAt(dir);
-				const dv = miss / tgo;
-				pilot.throttle(angleBetween(noseOf(pilot), dir) < ALIGN ? clamp((dv * f.mass) / thrust, 0, 1) : 0);
-				return { phase: 'coast', status: `Steering to the target: ${Math.round(miss)} m off`, readouts };
-			}
-		}
+		// with a target: its offset over the ground, and the horizontal speed that stops on it
+		const goalNow = target ? surfaceInertial(target, f.radius, rotation!, spin, 0) : null;
+		const toGoal = goalNow ? sub(sub(goalNow, r), scale(up, dot(sub(goalNow, r), up))) : null;
+		const goalDistance = toGoal ? length(toGoal) : 0;
+		const brakeH = BRAKE_SHARE * Math.sqrt(Math.max(0, accel * accel - g * g));
+		const horizontal = sub(surface, scale(up, climb));
 		if (memory.stage === 'coast') {
 			pilot.pointAt(unit(scale(steer, -1)));
 			pilot.throttle(0);
-			if (height > stop * 1.1 + 30) {
+			// with a target the brake starts once stopping across the ground takes the distance left, or
+			// when the fall itself needs it (its vertical speed); without one, on the total speed
+			const late = target !== undefined && length(horizontal) >= Math.sqrt(2 * brakeH * goalDistance);
+			const fall = target ? (climb * climb) / (2 * Math.max(0.85 * accel - g, 0.1)) : stop;
+			if (height > fall * 1.1 + 30 && !late) {
 				return { phase: 'coast', status: `Burn in ${Math.round(height - stop)} m`, readouts };
 			}
 			memory.stage = 'brake';
 		}
-		if (memory.stage === 'brake') {
-			// a speed the remaining height stops at half the spare thrust, slowing to touchdown speed
-			// linearly over the last metres
+		if (memory.stage === 'brake' && toGoal) {
+			// fly to the target (plan 372, robust to the thrust-to-weight): track a velocity, across the
+			// ground toward the target on a stopping profile for the distance left (a share of the spare
+			// thrust, the rest absorbs errors), down on the height profile; thrust = the velocity error
+			// plus gravity
 			const h = Math.max(0, height);
-			const wanted = Math.max(
-				td,
-				Math.min(Math.sqrt(2 * 0.5 * (accel - g) * h), td + 0.4 * h)
-			);
+			const descent = DESCENT_SHARE * (accel - g);
+			// come down no faster than the crossing takes: reach the ground as the target is reached
+			const crossing = length(horizontal) / Math.max(brakeH, 0.1);
+			const down = Math.max(td, Math.min(Math.sqrt(2 * descent * h), td + 0.4 * h, h / Math.max(crossing, 1)));
+			// the distance left over the time the descent profile takes, never faster than stops on it
+			const timeLeft = Math.max(1, Math.sqrt((2 * h) / Math.max(descent, 0.1)));
+			const across =
+				h > TOUCHDOWN_AREA ? Math.min(Math.sqrt(2 * brakeH * goalDistance), goalDistance / timeLeft) : 0;
+			// the vertical first (gravity and the descent profile), then what thrust is left goes across
+			const vertical = clamp(g + VELOCITY_GAIN * (-down - climb), 0, accel);
+			const sideways = sub(scale(unit(toGoal), across), horizontal);
+			const room = Math.sqrt(Math.max(0, accel * accel - vertical * vertical));
+			const command = add(scale(up, vertical), scale(unit(sideways), Math.min(room, VELOCITY_GAIN * length(sideways))));
+			const dir = unit(command);
+			pilot.pointAt(dir);
+			const off = angleBetween(noseOf(pilot), dir);
+			pilot.throttle(clamp((length(command) * f.mass) / thrust, 0, 1) * (off < 15 * DEG ? 1 : 0.3));
+			if (height < 3 && speed < 3) memory.stage = 'touchdown';
+			return {
+				phase: 'brake',
+				status: `Braking onto the target: ${Math.round(goalDistance)} m to go`,
+				readouts
+			};
+		}
+		if (memory.stage === 'brake') {
 			pilot.pointAt(steerSpeed > 3 ? unit(scale(steer, -1)) : up);
 			const tilt = angleBetween(noseOf(pilot), up);
-			const need = g / Math.max(0.3, Math.cos(tilt)) + 3 * (steerSpeed - wanted);
-			pilot.throttle(clamp((need * f.mass) / thrust, 0, 1));
+			const { wanted, push } = brakeLaw(height, steerSpeed, accel, g, td, Math.cos(tilt));
+			pilot.throttle(clamp((push * f.mass) / thrust, 0, 1));
 			if (height < 3 && speed < 3) memory.stage = 'touchdown';
 			return { phase: 'brake', status: `Braking to ${wanted.toFixed(1)} m/s`, readouts };
 		}
