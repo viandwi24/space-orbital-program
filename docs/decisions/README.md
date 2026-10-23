@@ -328,3 +328,4 @@ An ADR records one decision, its context, and its consequences. ADRs are **appen
 | 0340 | [Tile-GPU hygiene: what three already does, and the trials that did not ship](0340-tile-gpu-hygiene-nothing-ships.md) | accepted | 2026-10-24 |
 | 0341 | [Rocks on the home ground: visual only, small, placed by cell](0341-rocks-on-the-home-ground.md) | accepted | 2026-10-24 |
 | 0342 | [Clouds v2: the model, and the weather map first](0342-clouds-v2-weather-first.md) | accepted | 2026-10-24 |
+| 0343 | [GPU terrain near the surface: a CDLOD quadtree on the cube-sphere](0343-gpu-terrain-cdlod.md) | accepted | 2026-10-24 |
