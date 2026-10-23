@@ -69,7 +69,7 @@ export function engineOutput(
  * is `massFlow · ratio / Σ(ratio · density)`.
  */
 export function propellantRates(
-	config: EngineConfigLike,
+	config: Pick<EngineConfigLike, 'propellants'>,
 	massFlow: number,
 	densityOf: (resource: string) => number
 ): { resource: string; rate: number }[] {

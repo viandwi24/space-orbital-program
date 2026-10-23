@@ -129,6 +129,7 @@ describe('RCS family (plan 277)', () => {
 		const { STOCK_RCS_PARTS } = await import('../src/parts/rcs.ts');
 		const thrusters = STOCK_RCS_PARTS.filter((p) => p.modules?.some(([m]) => m === ModuleRcs.id));
 		expect(thrusters.map((p) => p.id).sort()).toEqual([
+			'stock.rcs-bipropellant',
 			'stock.rcs-block',
 			'stock.rcs-block-5',
 			'stock.rcs-cold-gas',
@@ -154,5 +155,77 @@ describe('RCS family (plan 277)', () => {
 			rcsConfigSchema.parse(p.modules!.find(([m]) => m === ModuleRcs.id)![1]).nozzles;
 		expect(nozzlesOf(PartRcsBlock5).some((n) => n.dir[0] < -0.9)).toBe(true);
 		expect(nozzlesOf(PartRcsPair).every((n) => Math.abs(n.dir[1]) > 0.99)).toBe(true);
+	});
+});
+
+describe('RCS follow-ups (plan 299)', () => {
+	test('the bipropellant thruster draws liquid fuel and oxidizer at 9 : 11 by volume', async () => {
+		const { PartRcsBipropellant } = await import('../src/parts/rcs.ts');
+		const { LiquidFuel, Oxidizer } = await import('../src/index.ts');
+		const vessel = fakeVessel({ [LiquidFuel.id]: 1000, [Oxidizer.id]: 1000 });
+		const v = vessel as typeof vessel & { rcs: boolean; translateDemand: Vec3 };
+		v.rcs = true;
+		// one nozzle pushes +Y: full forward translation fires it alone
+		v.translateDemand = { x: 0, y: 1, z: 0 };
+		const ctx = contextFor(
+			ModuleRcs,
+			PartRcsBipropellant.modules!.find(([m]) => m === ModuleRcs.id)![1] as never,
+			vessel
+		);
+		for (let i = 0; i < 50; i++) ModuleRcs.update!(ctx, 0.02);
+		const fuel = 1000 - vessel.stock[LiquidFuel.id]!;
+		const ox = 1000 - vessel.stock[Oxidizer.id]!;
+		expect(fuel).toBeGreaterThan(0);
+		expect(fuel / ox).toBeCloseTo(0.9 / 1.1, 9);
+		// the whole mass is thrust × time / (Isp × g0) (one 3 kN nozzle for 1 s, vacuum)
+		const mass = fuel * LiquidFuel.density + ox * Oxidizer.density;
+		expect(mass).toBeCloseTo(3_000 / (290 * STANDARD_GRAVITY), 6);
+		// short of oxidizer the nozzle fires less, and dry at none
+		vessel.stock[Oxidizer.id] = 0;
+		ModuleRcs.update!(ctx, 0.02);
+		expect(ctx.state.dry).toBe(true);
+	});
+
+	test('with roll switched off, a roll command gives no torque; pitch still does', () => {
+		const config = ring();
+		const torqueFor = (demand: Vec3, axes: Record<string, boolean>) => {
+			const vessel = fakeVessel({ [Monopropellant.id]: 100 });
+			const v = vessel as typeof vessel & { rcs: boolean };
+			v.rcs = true;
+			vessel.demand = demand;
+			const ctx = contextFor(ModuleRcs, config as never, vessel);
+			for (const [axis, on] of Object.entries(axes)) ModuleRcs.actions!.setAxis!(ctx, axis, on);
+			ModuleRcs.update!(ctx, 0.02);
+			const torque = { x: 0, y: 0, z: 0 };
+			vessel.forces.forEach(({ force, point }) => {
+				const p = point ?? { x: 0, y: 0, z: 0 };
+				torque.x += p.y * force.z - p.z * force.y;
+				torque.y += p.z * force.x - p.x * force.z;
+				torque.z += p.x * force.y - p.y * force.x;
+			});
+			return torque;
+		};
+		const roll = { x: 0, y: 1, z: 0 };
+		expect(Math.abs(torqueFor(roll, {}).y)).toBeGreaterThan(1);
+		expect(torqueFor(roll, { roll: false })).toEqual({ x: 0, y: 0, z: 0 });
+		const pitch = { x: 1, y: 0, z: 0 };
+		expect(Math.abs(torqueFor(pitch, { roll: false }).x)).toBeGreaterThan(1);
+		expect(torqueFor(pitch, { pitch: false })).toEqual({ x: 0, y: 0, z: 0 });
+	});
+
+	test('a switched-off translation axis gives no force along it', () => {
+		const vessel = fakeVessel({ [Monopropellant.id]: 100 });
+		const v = vessel as typeof vessel & { rcs: boolean; translateDemand: Vec3 };
+		v.rcs = true;
+		v.translateDemand = { x: 0, y: 1, z: 0 };
+		const ctx = contextFor(ModuleRcs, blockConfig as never, vessel);
+		ModuleRcs.actions!.setAxis!(ctx, 'forward', false);
+		ModuleRcs.update!(ctx, 0.02);
+		expect(vessel.forces).toHaveLength(0);
+	});
+
+	test('a part without a propellant or a mix is refused', () => {
+		const { propellant: _p, ...none } = blockConfig;
+		expect(() => rcsConfigSchema.parse(none)).toThrow();
 	});
 });

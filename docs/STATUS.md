@@ -244,7 +244,7 @@
 | 296 | [Lunar lander parts: descent stage, ascent cabin, single landing legs, lander engines, lander RCS quads](plans/296-lunar-lander-parts.md) | dropped | — | Mission target Apollo 11 ("Selene"). Audited and rewritten 2026-10-24. |
 | 297 | [Space station modules: habitat, node hub, laboratory, truss segments, large rotating solar wings, radiators, airlock, cupola](plans/297-station-modules.md) | dropped | — | Mission target "Stasiun Cakrawala". Audited and rewritten 2026-10-24. |
 | 298 | [Satellites and a space telescope: the observation needs the door open and the target in view; the orbiter probe bus is an open choice](plans/298-satellites-and-telescope.md) | draft | — | Mission targets: orbiter, telescope, research satellite. Audited and rewritten 2026-10-24. |
-| 299 | [RCS follow-ups: a bipropellant (LF+Ox) thruster and pitch, yaw and roll toggles](plans/299-rcs-bipropellant-and-axis-toggles.md) | draft | — | Split from 277: both need sim work. Audited and rewritten 2026-10-24. |
+| 299 | [RCS follow-ups: a bipropellant (LF+Ox) thruster and pitch, yaw and roll toggles](plans/299-rcs-bipropellant-and-axis-toggles.md) | done | Worker C | Split from 277: both need sim work. Audited and rewritten 2026-10-24. |
 | 300 | [New pods: a 3-seat capsule with built-in chutes, a headlight descent module, a sphere capsule, a small cone capsule, lander cans and a crew cabin](plans/300-new-pods.md) | dropped | — | Split from 278. Audited and rewritten 2026-10-24. |
 | 302 | [Part-support modules: open/close, bay doors, fuel cell, single leg, staged panels](plans/302-part-support-modules.md) | done | part visuals session | Preparation audit for all the new parts. Journal 302. |
 | 301 | [A part model viewer page for debugging (/dev/parts)](plans/301-part-model-viewer.md) | done | part viewer session | Owner request 2026-10-21. `/dev/parts?part=…&compare=…`: every part, searchable by category; one part or a row on a grid floor (WebGL, WebGPU or its fallback); nodes, physics shape, wireframe, detail, deploy, articulation, firing; stats. Journal 301. |
@@ -644,3 +644,4 @@ The owner takes the remaining performance work on the M5; the M2 handles the fix
 - [003 — Core: world, registries, events](journal/003-core-world-registries-events.md)
 - [002 — Kepler orbital mechanics](journal/002-kepler-orbital-mechanics.md)
 - [001 — Repo bootstrap](journal/001-repo-bootstrap.md)
+- [299 — RCS bipropellant and axis toggles](journal/299-rcs-bipropellant-and-axis-toggles.md)

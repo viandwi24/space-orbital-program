@@ -76,6 +76,16 @@ export function fakeVessel(stock: Record<string, number> = {}): FakeVessel {
 		sun: { direction: null, flux: 1 },
 		rcs: false,
 		translateDemand: { x: 0, y: 0, z: 0 },
+		torqueDemandMasked: (mask) => ({
+			x: v.demand.x * mask.x,
+			y: v.demand.y * mask.y,
+			z: v.demand.z * mask.z
+		}),
+		translateDemandMasked: (mask) => ({
+			x: v.translateDemand.x * mask.x,
+			y: v.translateDemand.y * mask.y,
+			z: v.translateDemand.z * mask.z
+		}),
 		sunExposure: (_dt, factor) => v.sun.flux * Math.max(0, factor(v.sun.direction)),
 		situation: () => undefined,
 		science: { result: () => undefined, credit: () => {} },

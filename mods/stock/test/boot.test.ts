@@ -209,6 +209,7 @@ describe('stock boots through the loader', () => {
 			'stock.radial-decoupler',
 			'stock.radial-parachute',
 			'stock.radiator',
+			'stock.rcs-bipropellant',
 			'stock.rcs-block',
 			'stock.rcs-block-5',
 			'stock.rcs-cold-gas',
@@ -391,7 +392,8 @@ describe('stock boots through the loader', () => {
 			'stock.petal-panel-3',
 			'stock.rcs-block',
 			'stock.rcs-cold-gas',
-			// the RCS thrusters of plan 277
+			// the RCS thrusters of plan 277 and 299
+			'stock.rcs-bipropellant',
 			'stock.rcs-block-5',
 			'stock.rcs-pair',
 			'stock.rcs-linear',

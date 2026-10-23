@@ -258,6 +258,7 @@ export const STOCK_TECH = [
 			'stock.rcs-pair',
 			'stock.rcs-linear',
 			'stock.rcs-cold-gas',
+			'stock.rcs-bipropellant',
 			'stock.monoprop-tank',
 			'stock.monoprop-radial'
 		]

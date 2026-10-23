@@ -3,7 +3,7 @@ import { partCost } from '../costs.ts';
 import { ColdGas } from '../eva.ts';
 import { ModuleResourceContainer } from '../modules.ts';
 import { ModuleRcs } from '../rcs.ts';
-import { Monopropellant } from '../resources.ts';
+import { LiquidFuel, Monopropellant, Oxidizer } from '../resources.ts';
 import { stackNodes, type Vec3Tuple } from './shared.ts';
 
 // Reaction control (plan 211, ADR 0217): thrusters and their tanks.
@@ -209,12 +209,54 @@ export const PartMonopropRadial = definePart({
 	stagingIcon: 'tank'
 });
 
+/** Plan 299: a bronze four-way block that burns liquid fuel and oxidizer, 12 kN in all (KSP's Vernor kind). */
+const VERNOR_NOZZLES: Array<{ pos: Vec3Tuple; dir: Vec3Tuple }> = [
+	{ pos: [0.1, 0.2, 0], dir: [0, -1, 0] },
+	{ pos: [0.1, -0.2, 0], dir: [0, 1, 0] },
+	{ pos: [0.1, 0, 0.2], dir: [0, 0, -1] },
+	{ pos: [0.1, 0, -0.2], dir: [0, 0, 1] }
+];
+export const PartRcsBipropellant = definePart({
+	id: 'stock.rcs-bipropellant',
+	title: 'OrbitX RV-12 "Vernier"',
+	mass: kg(90),
+	cost: partCost(90, 'engine'),
+	impactTolerance: 8,
+	shape: { kind: 'box', size: [0.3, 0.45, 0.45] },
+	visual: {
+		kind: 'rcs-block',
+		palette: { primary: '#b0793a', secondary: '#2a2e35', accent: '#e8c27a' },
+		params: { nozzles: 4 },
+		puffs: { module: ModuleRcs.id, field: 'firing', nozzles: VERNOR_NOZZLES, length: 0.9 }
+	},
+	attach: radial(0.15),
+	crossfeed: false,
+	modules: [
+		[
+			ModuleRcs,
+			{
+				nozzles: VERNOR_NOZZLES,
+				// 3 kN a nozzle, 12 kN in all; liquid propellant burns at the engines' mix (9 : 11 by volume)
+				thrust: 3_000,
+				ispVacuum: 290,
+				ispSeaLevel: 120,
+				propellants: [
+					{ resource: LiquidFuel.id, ratio: 0.9 },
+					{ resource: Oxidizer.id, ratio: 1.1 }
+				]
+			}
+		]
+	],
+	stagingIcon: 'rcs'
+});
+
 export const STOCK_RCS_PARTS = [
 	PartRcsBlock,
 	PartRcsBlock5,
 	PartRcsPair,
 	PartRcsLinear,
 	PartColdGasThruster,
+	PartRcsBipropellant,
 	PartMonopropTank,
 	PartMonopropRadial
 ] as const;

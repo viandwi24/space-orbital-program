@@ -267,6 +267,14 @@ export interface VesselApi {
 	 */
 	readonly translateDemand: Vec3;
 	/**
+	 * `torqueDemand` with the vessel's axes switched on or off first (plan 299): `mask.x` pitch,
+	 * `y` roll, `z` yaw, each 0 or 1, applied about the vessel's axes before the demand is turned into
+	 * the part frame, so a part with a turned frame masks the right axis. Optional in test fakes.
+	 */
+	torqueDemandMasked?(mask: Vec3): Vec3;
+	/** `translateDemand` with the vessel's axes (`x` right, `y` forward, `z` up) masked first (plan 299). */
+	translateDemandMasked?(mask: Vec3): Vec3;
+	/**
 	 * Resources reachable from this part according to each resource's `flowMode` (and parts'
 	 * `crossfeed`). Amounts are in the resource's unit; `withdraw`/`deposit` return what moved.
 	 */

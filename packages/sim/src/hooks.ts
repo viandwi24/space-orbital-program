@@ -129,6 +129,16 @@ export function makeContext(core: SimCore, partId: EntityId, moduleId: string): 
 			if (!isTurned(part)) return { x: c.pitch, y: c.roll, z: c.yaw };
 			return qRotate(qConj(partRotation(part)), { x: c.pitch, y: c.roll, z: c.yaw });
 		},
+		torqueDemandMasked(mask) {
+			const c = effectiveControl(vessel);
+			const v = { x: c.pitch * mask.x, y: c.roll * mask.y, z: c.yaw * mask.z };
+			return isTurned(part) ? qRotate(qConj(partRotation(part)), v) : v;
+		},
+		translateDemandMasked(mask) {
+			const t = vessel.translate ?? { x: 0, y: 0, z: 0 };
+			const v = { x: t.x * mask.x, y: t.y * mask.y, z: t.z * mask.z };
+			return isTurned(part) ? qRotate(qConj(partRotation(part)), v) : v;
+		},
 		get rcs(): boolean {
 			return vessel.rcs === true;
 		},

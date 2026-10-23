@@ -1010,6 +1010,81 @@ exports[`stock part ids, masses, costs and modules match the snapshot 1`] = `
     ],
   },
   {
+    "cost": 540,
+    "id": "stock.rcs-bipropellant",
+    "mass": 90,
+    "modules": [
+      [
+        "stock.rcs",
+        {
+          "ispSeaLevel": 120,
+          "ispVacuum": 290,
+          "nozzles": [
+            {
+              "dir": [
+                0,
+                -1,
+                0,
+              ],
+              "pos": [
+                0.1,
+                0.2,
+                0,
+              ],
+            },
+            {
+              "dir": [
+                0,
+                1,
+                0,
+              ],
+              "pos": [
+                0.1,
+                -0.2,
+                0,
+              ],
+            },
+            {
+              "dir": [
+                0,
+                0,
+                -1,
+              ],
+              "pos": [
+                0.1,
+                0,
+                0.2,
+              ],
+            },
+            {
+              "dir": [
+                0,
+                0,
+                1,
+              ],
+              "pos": [
+                0.1,
+                0,
+                -0.2,
+              ],
+            },
+          ],
+          "propellants": [
+            {
+              "ratio": 0.9,
+              "resource": "stock.liquid-fuel",
+            },
+            {
+              "ratio": 1.1,
+              "resource": "stock.oxidizer",
+            },
+          ],
+          "thrust": 3000,
+        },
+      ],
+    ],
+  },
+  {
     "cost": 90,
     "id": "stock.monoprop-tank",
     "mass": 60,
