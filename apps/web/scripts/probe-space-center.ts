@@ -35,6 +35,9 @@ page.on('console', (m) => {
 page.on('pageerror', (e) => console.log(`[${at()}] pageerror: ${e.stack ?? e.message}`));
 
 await page.goto('/worlds');
+// PROBE_CHOICE: the renderer picked in Settings (webgpu|webgl)
+if (process.env.PROBE_CHOICE)
+	await page.evaluate((c) => localStorage.setItem('orbital.graphics.renderer', c), process.env.PROBE_CHOICE);
 await page.getByTestId('worlds-create').click();
 const form = page.getByTestId('create-world');
 await form.getByTestId('world-name').fill('Probe');
@@ -49,13 +52,40 @@ while (Date.now() < end) {
 	const state = await page.evaluate(() => {
 		const c = document.querySelector('canvas[data-engine]') as HTMLCanvasElement | null;
 		const loading = document.querySelector('[data-testid="loading-screen"]');
-		return `${c?.dataset.engine ?? '-'} | ${loading ? (loading as HTMLElement).innerText.replace(/\s+/g, ' ').slice(0, 160) : 'no loading screen'}`;
+		const all = [...document.querySelectorAll('canvas')].map((x) => `${x.dataset.testid ?? '?'}:${x.width}x${x.height}`).join(',');
+		const rep = (window as unknown as { __orbitalLoadReport?: () => { data: { backend: string; steps: unknown } } | null }).__orbitalLoadReport?.();
+		const step = document.querySelector('[data-testid="loading-screen"] p.step')?.textContent ?? '';
+		return `${c?.dataset.engine ?? '-'} [${all}] ${rep ? rep.data.backend + ' ' + JSON.stringify(rep.data.steps) : 'no report'} ${step} | ${loading ? (loading as HTMLElement).innerText.replace(/\s+/g, ' ').slice(0, 160) : 'no loading screen'}`;
 	});
 	if (state !== last) console.log(`[${at()}] ${state}`);
+	// PROBE_LOWER: click "Continue with lower quality" as soon as it shows
+	if (process.env.PROBE_LOWER && (await page.getByTestId('loading-lower').count()) > 0) {
+		console.log(`[${at()}] clicking "Continue with lower quality"`);
+		await page.getByTestId('loading-lower').click();
+	}
 	last = state;
 	if (state.includes('no loading screen') && !state.startsWith('-')) break;
 	await page.waitForTimeout(1000);
 }
+if (process.env.PROBE_DIAG)
+	console.log(
+		await page.evaluate(async () => {
+			const race = <T>(p: Promise<T>, ms: number) =>
+				Promise.race([p, new Promise((r) => setTimeout(() => r(`timeout ${ms} ms`), ms))]);
+			const gpu = (navigator as unknown as { gpu?: { requestAdapter(): Promise<unknown> } }).gpu;
+			const adapter = gpu ? await race(gpu.requestAdapter().then((a) => (a ? 'adapter' : 'null')), 5000) : 'no gpu';
+			const idb = await race(
+				new Promise((res) => {
+					const q = indexedDB.open('orbital-bakes', 1);
+					q.onsuccess = () => res('open');
+					q.onerror = () => res('error');
+					q.onblocked = () => res('blocked');
+				}),
+				5000
+			);
+			return `diag: requestAdapter ${adapter}; orbital-bakes ${idb}`;
+		})
+	);
 await page.waitForTimeout(5000);
 if (shot) await page.screenshot({ path: shot, type: 'jpeg', quality: 82 });
 await browser.close();

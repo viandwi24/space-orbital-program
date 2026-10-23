@@ -34,8 +34,8 @@ Fix what plan 387's visual QA pass listed for other owners (journal 387, "Listed
 
 ## Acceptance criteria
 
-- [ ] No TSL error on a Space Center load; `twins.test.ts` makes every twin against its scene material and checks each material gives the uniforms its shaders declare.
-- [ ] Headless Chromium on SwiftShader reaches the Space Center, or shows the "graphics unavailable" message; never stays on "Starting the graphics".
+- [x] No TSL error on a Space Center load; `twins.test.ts` makes every twin against its scene material and checks each material gives the uniforms its shaders declare.
+- [x] Headless Chromium on SwiftShader reaches the Space Center, or shows the "graphics unavailable" message; never stays on "Starting the graphics".
 - [ ] No square grid in a branch's terrain detail.
 - [ ] A branch HQ under construction shows its construction state.
 - [ ] In build mode the site stays visible above a compact Build bar, and the camera insets follow it.
@@ -49,3 +49,4 @@ Fix what plan 387's visual QA pass listed for other owners (journal 387, "Listed
 ## Log
 
 - 2026-10-23: Written from the main session's task. Item 1: the plasma wake shares the plume's shaders without `uPeriod`; the plume twin read it inside a `Fn`, so the node build failed (three then draws the fallback material and logs the error).
+- 2026-10-23: Item 2: on SwiftShader `navigator.gpu.requestAdapter()` never answered, so `rendererBackend()` held the load before any renderer existed, and "Continue with lower quality" returned at once without one. The probe now gives up after 4 s (WebGL); a load still on "Starting the graphics" after 20 s on WebGPU (three's own `init()` hanging) reloads the tab on WebGL (a session flag), and on WebGL says the graphics are unavailable with tips; lower quality during that step saves `low` and leaves WebGPU at once. SwiftShader reaches the Space Center on WebGL in about 60 s.

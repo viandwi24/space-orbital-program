@@ -15,6 +15,7 @@ import {
 
 import {
 	parseRendererChoice,
+	rendererBackendFrom,
 	resolveRendererBackend,
 	type RendererBackend,
 	type RendererChoice
@@ -290,10 +291,32 @@ export function saveRendererChoice(choice: RendererChoice): void {
 	}
 }
 
+/** How long the WebGPU adapter may take to answer before the game draws with WebGL (plan 388). */
+export const ADAPTER_TIMEOUT_MS = 4_000;
+
+/** `p`, or `fallback` when it has not settled after `ms`. */
+export function settleWithin<T>(p: Promise<T>, ms: number, fallback: T): Promise<T> {
+	return new Promise<T>((resolve) => {
+		const timer = setTimeout(() => resolve(fallback), ms);
+		p.then(
+			(v) => {
+				clearTimeout(timer);
+				resolve(v);
+			},
+			() => {
+				clearTimeout(timer);
+				resolve(fallback);
+			}
+		);
+	});
+}
+
 /**
  * Whether the browser has a WebGPU adapter, asked once. `navigator.gpu` alone is not enough: a
  * browser without a usable GPU (headless, a blocked driver) has the object and no adapter, and
- * three's WebGPU renderer then runs on its WebGL2 fallback, slower than the WebGL renderer.
+ * three's WebGPU renderer then runs on its WebGL2 fallback, slower than the WebGL renderer. With
+ * software rendering (SwiftShader) `requestAdapter` can also never answer: after
+ * `ADAPTER_TIMEOUT_MS` the answer is no (plan 388).
  */
 let webgpuProbe: Promise<boolean> | null = null;
 export function hasWebGPUAdapter(): Promise<boolean> {
@@ -302,21 +325,44 @@ export function hasWebGPUAdapter(): Promise<boolean> {
 			(Navigator & { gpu?: { requestAdapter(): Promise<unknown> } }) | undefined
 	)?.gpu;
 	webgpuProbe ??= gpu
-		? gpu
-				.requestAdapter()
-				.then((a) => a !== null && a !== undefined)
-				.catch(() => false)
+		? settleWithin(
+				gpu.requestAdapter().then((a) => a !== null && a !== undefined),
+				ADAPTER_TIMEOUT_MS,
+				false
+			)
 		: Promise.resolve(false);
 	return webgpuProbe;
 }
 
-/** The backend a view draws with: the address's, else the player's choice (Automatic: WebGPU where an adapter exists). */
+/**
+ * The tab's fallback renderer (plan 388): set when WebGPU did not start in time, so the reloaded
+ * page draws with WebGL. Kept for the tab's session only; the player's choice is untouched.
+ */
+const FALLBACK_KEY = 'orbital.graphics.fallback';
+
+export function loadRendererFallback(): RendererBackend | null {
+	try {
+		return sessionStorage.getItem(FALLBACK_KEY) === 'webgl' ? 'webgl' : null;
+	} catch {
+		return null;
+	}
+}
+
+export function saveRendererFallback(backend: RendererBackend | null): void {
+	try {
+		if (backend) sessionStorage.setItem(FALLBACK_KEY, backend);
+		else sessionStorage.removeItem(FALLBACK_KEY);
+	} catch {
+		// private mode: the reload asks for WebGL on its address instead
+	}
+}
+
+/** The backend a view draws with: the address's, else the tab's fallback, else the player's choice (Automatic: WebGPU where an adapter exists). */
 export async function rendererBackend(): Promise<RendererBackend> {
-	return resolveRendererBackend(
-		globalThis.location?.search ?? '',
-		loadRendererChoice(),
-		await hasWebGPUAdapter()
-	);
+	const search = globalThis.location?.search ?? '';
+	const fallback = loadRendererFallback();
+	if (fallback && !rendererBackendFrom(search)) return fallback;
+	return resolveRendererBackend(search, loadRendererChoice(), await hasWebGPUAdapter());
 }
 
 /** A graphics setting the player changed in Settings, wherever the dialog was opened. */
