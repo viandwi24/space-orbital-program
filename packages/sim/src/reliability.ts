@@ -21,7 +21,8 @@ import {
 	type Grade,
 	type ReliabilitySnapshot,
 	type SaveReliability,
-	type VesselDesign
+	type VesselDesign,
+	REPAIR_RANGE
 } from '@orbital/core';
 import { length, sub } from '@orbital/kepler';
 import { partDefOf, partOf, vesselOf, type SimCore } from './core.ts';
@@ -30,8 +31,7 @@ import { costMultiplier, economyOn, record, ruleOf } from './economy.ts';
 import { motionOf } from './orbit.ts';
 import { PART, VESSEL } from './state.ts';
 
-/** EVA boarding limits (ADR 0120), reused for a repair. */
-const REPAIR_RANGE = 50;
+/** EVA boarding limits (ADR 0120), reused for a repair; the range is core's `REPAIR_RANGE`. */
 const REPAIR_SPEED = 2;
 
 export interface ReliabilityRuntime extends SaveReliability {

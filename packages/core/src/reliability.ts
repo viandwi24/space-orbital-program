@@ -86,6 +86,9 @@ export interface AnomalyReport {
 	fixed: boolean;
 }
 
+/** An engineer on EVA repairs a failed part from at most this many metres (plan 130). */
+export const REPAIR_RANGE = 50;
+
 export interface FailedModule {
 	vessel: number;
 	part: number;

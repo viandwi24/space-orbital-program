@@ -97,6 +97,7 @@
 	import { dialogOpen } from '../../../lib/flight-modal';
 	import { crewSeats } from '../../../lib/inspector/crew-seats';
 	import { takeableSample } from '../../../lib/hud/take-sample';
+	import { repairOffer } from '../../../lib/hud/repair-offer';
 	import MapCardView from '../../../lib/hud/MapCardView.svelte';
 	import { mapCardFor, type MapCard } from '../../../lib/hud/map-card';
 	import StatusStrip from '../../../lib/hud/StatusStrip.svelte';
@@ -346,6 +347,14 @@
 	/** A sample the suit on EVA can take from a vessel part within reach (plan 260). */
 	const takeOffer = $derived(
 		hud?.eva && panelInput ? takeableSample(panelInput.snapshot, hud.eva.suit) : null
+	);
+	/** Failure modes an engineer can mend in the field (plan 130), from the loaded content. */
+	let repairableModes = $state.raw<ReadonlySet<string>>(new Set());
+	/** A repair the suit on EVA can make now (player-journey audit Q1, J6): an engineer, a failed part near. */
+	const repair = $derived(
+		hud?.eva && panelInput
+			? repairOffer(panelInput.snapshot, hud.eva.suit, (mode) => repairableModes.has(mode))
+			: null
 	);
 	const partLabel = (definition: string): string =>
 		vesselContent?.parts.get(definition)?.title ?? definition;
@@ -840,8 +849,10 @@
 			objectiveLabels,
 			actionGroups,
 			categories,
+			failureModes,
 			world: worldContent
 		} = loadContent();
+		repairableModes = new Set(failureModes.filter((m) => m.repairable).map((m) => m.id));
 		modKeybindings = keybindings;
 		modOverlays = overlays;
 		siteBuildings = worldContent.buildings;
@@ -2133,6 +2144,18 @@
 								onflag={() => flight?.plantFlag()}
 								onboard={() => flight?.board()}
 								onhelmet={() => flight?.helmet()}
+								repair={repair
+									? { label: `${partLabel(repair.definition)} (${repair.failure})` }
+									: null}
+								onrepair={() =>
+									repair &&
+									hud?.eva &&
+									void flight?.command({
+										type: 'repair',
+										suit: hud.eva.suit as EntityId,
+										vessel: repair.vessel,
+										part: repair.part
+									})}
 								sample={takeOffer ? { label: partLabel(takeOffer.definition) } : null}
 								ontake={() =>
 									takeOffer &&
