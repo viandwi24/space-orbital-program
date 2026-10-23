@@ -2409,7 +2409,7 @@ export function startFlight(options: FlightOptions): Flight {
 		onGraphicsChange((change) => {
 			if (change.kind === 'preset') flightApi.setGraphicsPreset(change.choice);
 			else if (change.kind === 'auto') flightApi.setAutoQuality(change.on);
-			else flightApi.setFrameCap(change.choice);
+			else if (change.kind === 'frameCap') flightApi.setFrameCap(change.choice);
 		})
 	);
 	return flightApi;

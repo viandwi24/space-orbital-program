@@ -46,6 +46,7 @@ export type SceneFacade = Pick<
 	| 'pickSite'
 	| 'projectSite'
 	| 'setReducedMotion'
+	| 'setBrightness'
 	| 'resetView'
 >;
 
@@ -117,6 +118,7 @@ export function sceneFacade(model: SceneModel): SceneFacade {
 		pickSite: (x, y) => model.pickSite(x, y),
 		projectSite: (p) => model.projectSite(p),
 		setReducedMotion: (on) => model.setReducedMotion(on),
+		setBrightness: (level) => model.setBrightness(level),
 		resetView: () => model.resetView()
 	};
 }

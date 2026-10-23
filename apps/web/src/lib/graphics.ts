@@ -317,6 +317,7 @@ export async function rendererBackend(): Promise<RendererBackend> {
 /** A graphics setting the player changed in Settings, wherever the dialog was opened. */
 export type GraphicsChange =
 	| { kind: 'preset'; choice: PresetChoice }
+	| { kind: 'brightness'; level: number }
 	| { kind: 'auto'; on: boolean }
 	| { kind: 'frameCap'; choice: FrameCapChoice };
 
@@ -336,4 +337,24 @@ export function onGraphicsChange(listener: (change: GraphicsChange) => void): ()
 	const handler = (e: Event): void => listener((e as CustomEvent<GraphicsChange>).detail);
 	changes.addEventListener('change', handler);
 	return () => changes.removeEventListener('change', handler);
+}
+
+const BRIGHTNESS_KEY = 'orbital.graphics.brightness';
+
+/** The Brightness setting, -1 (one stop darker) to 1 (one stop brighter); 0, the balance, by default. */
+export function loadBrightness(): number {
+	try {
+		const v = Number(localStorage.getItem(BRIGHTNESS_KEY));
+		return Number.isFinite(v) ? Math.min(1, Math.max(-1, v)) : 0;
+	} catch {
+		return 0;
+	}
+}
+
+export function saveBrightness(level: number): void {
+	try {
+		localStorage.setItem(BRIGHTNESS_KEY, String(Math.min(1, Math.max(-1, level))));
+	} catch {
+		// private mode: the level holds for this session only
+	}
 }

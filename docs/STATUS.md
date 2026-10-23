@@ -327,6 +327,21 @@ Decided by the owner on 2026-10-17 ("Fondasi Orbital", ADRs 0094 to 0108). Phase
 
 Existing drafts realigned on 2026-10-17: 063 (runway building), 065, 066, 067, 068 (after 084), 069 (base of the Hangar rail), 070 (comms index), 071 (needed by the Sol pack), 072 (after 112), 073 (phones still unsupported).
 
+## Next: performance on the M5 (owner, 2026-10-23)
+
+The owner takes the remaining performance work on the M5; the M2 handles the fixes. In order, from `docs/research/frame-budget-and-efficiency.md` §5:
+
+1. **Plan 368 (draft):** the Retina frame end on Apple GPUs (MSAA resolve, target formats, pass count). It is the largest unmeasured cost: `high` takes 33 ms frames on 6–9 ms of GPU work.
+2. **Plan 367 (draft):** vessel parts batched per material with `BatchedMesh`. Kronos V goes from about 350 draws to about 40, and the shadow pass halves.
+3. **Plan 365 (draft):** binary, transferable snapshot transport (today 0.15–0.28 ms and 50–110 KB a frame).
+4. **Plan 369 (draft):** a static site shadow map, for GPU time at the pad.
+5. **Not planned yet:**
+   - horizon culling of vessels and the site;
+   - KTX2 Earth textures and a texture budget (the plan 364 bake is 20/76/164 MB per preset, and the WebGPU planet pass uses about 14 of its 16 textures);
+   - the descriptor zod check each frame (about 185 KB a frame, plan 363 note);
+   - temporal clouds (held, ADR 0248).
+6. **Windows load time:** check plan 370 with a load log from a Windows PC (main menu → Developer → Download .json).
+
 ## Known issues / open questions
 
 - **Web vitest: two script-thread tests fail on main (found 2026-10-21, journal 291).** `apps/web/src/lib/sim-host-script-worker.test.ts`: "runs a script end to end in another thread" times out at 5 s and "a QuickJS builtin that ignores the interrupt budget…" fails; reproduced in a clean worktree of b767aeb0, so not caused by plan 291. Needs its own fix plan.

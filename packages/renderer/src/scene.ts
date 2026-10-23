@@ -518,6 +518,10 @@ export class SceneModel {
 	}
 
 	/** Reduced motion (plan 246): the effects drop their bright flashes. */
+	/** The player's Brightness level, -1 to 1 (Settings). */
+	setBrightness(level: number): void {
+		this.environment.setBrightness(level);
+	}
 	setReducedMotion(on: boolean): void {
 		this.effects.setReducedMotion(on);
 	}

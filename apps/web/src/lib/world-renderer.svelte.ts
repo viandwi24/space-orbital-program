@@ -20,6 +20,8 @@ import { partShapesOf } from './catalog';
 import {
 	emitGraphicsChange,
 	graphicsStart,
+	loadBrightness,
+	onGraphicsChange,
 	rendererBackend,
 	saveGraphicsPreset
 } from './graphics';
@@ -45,14 +47,16 @@ import {
 /** Where the world's loading stands, in order; `ready` once a frame was drawn after the warm-up. */
 export type WorldLoadStep = 'sim' | 'device' | 'programs' | 'views' | 'frame' | 'ready';
 
-export const WORLD_LOAD_STEPS: ReadonlyArray<{ step: Exclude<WorldLoadStep, 'ready'>; label: string }> =
-	[
-		{ step: 'sim', label: 'Starting the world' },
-		{ step: 'device', label: 'Starting the graphics' },
-		{ step: 'programs', label: 'Compiling graphics programs' },
-		{ step: 'views', label: 'Preparing the views' },
-		{ step: 'frame', label: 'Drawing the first frame' }
-	];
+export const WORLD_LOAD_STEPS: ReadonlyArray<{
+	step: Exclude<WorldLoadStep, 'ready'>;
+	label: string;
+}> = [
+	{ step: 'sim', label: 'Starting the world' },
+	{ step: 'device', label: 'Starting the graphics' },
+	{ step: 'programs', label: 'Compiling graphics programs' },
+	{ step: 'views', label: 'Preparing the views' },
+	{ step: 'frame', label: 'Drawing the first frame' }
+];
 
 /** What decides whether a new client can keep the renderer: the world it draws. */
 export function catalogKey(c: Catalog): string {
@@ -157,6 +161,7 @@ class WorldRenderer {
 	/** Counts `build`s, so a build that an `end` overtook does not install itself. */
 	private generation = 0;
 	private observer: ResizeObserver | null = null;
+	private offBrightness: (() => void) | null = null;
 
 	get ready(): boolean {
 		return this.step === 'ready';
@@ -224,6 +229,12 @@ class WorldRenderer {
 			};
 			this.watchCompiles(r);
 			if (stored === 0) void storePlanetMaps(key);
+			// the player's Brightness (Settings), now and whenever it changes, on every page of the world
+			r.setBrightness(loadBrightness());
+			this.offBrightness?.();
+			this.offBrightness = onGraphicsChange((change) => {
+				if (change.kind === 'brightness') r.setBrightness(change.level);
+			});
 			this.renderer = r;
 			this.key = key;
 			this.follow(client);
@@ -248,7 +259,8 @@ class WorldRenderer {
 					drawnAfter(2);
 				}
 			};
-			void r.precompile(onProgress)
+			void r
+				.precompile(onProgress)
 				.then(() => {
 					// the background presets are in: the stored log gets their pipelines too
 					if (this.renderer === r && this.ready) this.writeLog('ready');
@@ -345,7 +357,10 @@ class WorldRenderer {
 		return {
 			cache: seen ? 'cached' : 'first',
 			seenBefore: seen,
-			changedModules: changedSince(r.compiles.modules, memory.modules[moduleKey(cfg.backend, cfg.preset)])
+			changedModules: changedSince(
+				r.compiles.modules,
+				memory.modules[moduleKey(cfg.backend, cfg.preset)]
+			)
 		};
 	}
 
@@ -442,6 +457,8 @@ class WorldRenderer {
 		this.observer?.disconnect();
 		this.observer = null;
 		this.renderer?.dispose();
+		this.offBrightness?.();
+		this.offBrightness = null;
 		this.renderer = null;
 		this.key = '';
 	}

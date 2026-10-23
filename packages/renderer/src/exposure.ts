@@ -46,3 +46,13 @@ export function starVisibility(
 	const thin = smoothstep(0.25, 0.65, altitude / Math.max(atmosphereHeight, 1));
 	return Math.max(night, thin);
 }
+
+/**
+ * The player's Brightness setting (owner, 2026-10-22): a level from -1 to 1, default 0, as a
+ * factor on the adapted exposure, one stop either way (x0.5 to x2). It lifts nights and tames bright
+ * days together, as the brightness option of most games does.
+ */
+export const BRIGHTNESS_MIN = -1;
+export const BRIGHTNESS_MAX = 1;
+export const brightnessFactor = (level: number): number =>
+	Number.isFinite(level) ? 2 ** Math.min(BRIGHTNESS_MAX, Math.max(BRIGHTNESS_MIN, level)) : 1;

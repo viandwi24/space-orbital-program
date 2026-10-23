@@ -34,6 +34,7 @@ import { AIRLESS_EXPOSURE, airlessLight, type AirlessLight } from './airless-lig
 import {
 	NIGHT_SKY,
 	adaptExposure,
+	brightnessFactor,
 	exposureFor,
 	horizonDipDeg,
 	starVisibility
@@ -156,6 +157,8 @@ export class Environment {
 	private time = 0;
 	private cloudCover = 0.42;
 	private exposure = 1;
+	/** The player's brightness factor (Settings), on top of the adapted exposure. */
+	private brightness = 1;
 	private config: EnvironmentConfig;
 	/** The same heights the sim's ground uses (ADR 0043): the camera is held above them. */
 	private terrain: TerrainField;
@@ -333,6 +336,11 @@ export class Environment {
 		return sunFromHorizontal(frame, this.sunOverride.elevation, this.sunOverride.azimuth);
 	}
 
+	/** The player's Brightness level, -1 to 1 (0 is the default balance). */
+	setBrightness(level: number): void {
+		this.brightness = brightnessFactor(level);
+	}
+
 	update(input: EnvironmentFrameInput): void {
 		const { camera, bodyRender, bodyRotation } = input;
 		this.holdAboveGround(camera, bodyRender, bodyRotation);
@@ -496,7 +504,7 @@ export class Environment {
 		this.state.sun = sun;
 		this.state.sunElevationDeg = elevDeg;
 		this.state.altitude = alt;
-		this.state.exposure = this.exposure;
+		this.state.exposure = this.exposure * this.brightness;
 		this.state.envKey = key;
 		this.state.shadowActive = shadowActive;
 		this.state.up = up;

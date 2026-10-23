@@ -22,6 +22,8 @@
 		saveAutoQuality,
 		saveGraphicsPreset,
 		emitGraphicsChange,
+		loadBrightness,
+		saveBrightness,
 		type PresetChoice
 	} from '../graphics';
 	import type { RendererChoice } from '@orbital/renderer/backend';
@@ -65,6 +67,7 @@
 	let auto = $state(true);
 	let frameCap = $state<FrameCapChoice>('display');
 	let rendererChoice = $state<RendererChoice>('auto');
+	let brightness = $state(0);
 
 	// Read the stored choices each time the dialog opens, so two pages never disagree.
 	$effect(() => {
@@ -73,7 +76,13 @@
 		auto = loadAutoQuality();
 		frameCap = loadFrameCap();
 		rendererChoice = loadRendererChoice();
+		brightness = loadBrightness();
 	});
+	function chooseBrightness(level: number): void {
+		brightness = Math.min(1, Math.max(-1, Math.round(level * 10) / 10));
+		saveBrightness(brightness);
+		emitGraphicsChange({ kind: 'brightness', level: brightness });
+	}
 
 	function choosePreset(choice: PresetChoice): void {
 		preset = choice;
@@ -203,6 +212,33 @@
 					testid="setting-preset"
 				/>
 			</div>
+			<label class="row">
+				<div class="what">
+					<h3>Brightness</h3>
+					<p>
+						Lifts dark nights or tames bright days. The middle is the game's balance.
+						{#if brightness !== 0}<button
+								type="button"
+								class="link"
+								onclick={() => chooseBrightness(0)}
+								data-testid="setting-brightness-reset">Reset</button
+							>{/if}
+					</p>
+				</div>
+				<input
+					type="range"
+					min="-1"
+					max="1"
+					step="0.1"
+					value={brightness}
+					oninput={(e) => chooseBrightness(Number(e.currentTarget.value))}
+					aria-label="Brightness"
+					aria-valuetext={brightness === 0
+						? 'Default'
+						: `${brightness > 0 ? '+' : ''}${Math.round(brightness * 100)} %`}
+					data-testid="setting-brightness"
+				/>
+			</label>
 			<div class="row">
 				<div class="what">
 					<h3>Renderer</h3>
@@ -566,6 +602,16 @@
 		display: flex;
 		justify-content: flex-end;
 		margin-top: var(--s-5);
+	}
+	.link {
+		margin-left: 6px;
+		padding: 0;
+		border: 0;
+		background: none;
+		color: var(--accent, #7aa2ff);
+		font: inherit;
+		text-decoration: underline;
+		cursor: pointer;
 	}
 	.restarting {
 		margin-top: 6px;

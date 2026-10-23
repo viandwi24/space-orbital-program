@@ -289,6 +289,8 @@ export interface Renderer {
 	readonly preset: GraphicsPreset;
 	/** Drop the bright flashes of explosions and separations (plan 246: prefers-reduced-motion). */
 	setReducedMotion(on: boolean): void;
+	/** The player's Brightness, -1 to 1 (0 default): one stop darker to one stop brighter. */
+	setBrightness(level: number): void;
 	/**
 	 * The view state of a new scene again (plan 340, ADR 0290): map and site views off, the map's
 	 * scope, focus, highlight, path, layers and region overlay, the ghost, the part focus, the camera
