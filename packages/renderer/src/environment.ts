@@ -3,6 +3,7 @@
  * vessel, sky ambient, fog, exposure and the launch site (ADR 0027). Contains no
  * `WebGLRenderer`, so it runs in Bun; the facade adds PMREM and the post chain.
  */
+import { quantizeCover, stepCover, weatherCover } from './weather.ts';
 import {
 	LEGACY_ZONE,
 	createTerrainField,
@@ -84,6 +85,8 @@ export interface EnvironmentFrameInput {
 	mapView: boolean;
 	/** Wall-clock seconds since the last call (clouds, exposure adaptation). */
 	dt: number;
+	/** Game time, s: the weather's clock (plan 397); absent keeps the cover where it is. */
+	gameTime?: number;
 	/**
 	 * Local vertical (inertial, unit) to take the sun's elevation, the exposure and the shadow from,
 	 * instead of the radial of this body: a camera on a moon (ADR 0054).
@@ -159,6 +162,9 @@ export class Environment {
 	private cloudAngle = 0;
 	private time = 0;
 	private cloudCover = 0.42;
+	/** Wall-clock seconds until the cloud map may be baked with a new cover (plan 397). */
+	private coverWait = 0;
+	private coverStarted = false;
 	private exposure = 1;
 	/** The player's brightness factor (Settings), on top of the adapted exposure. */
 	private brightness = 1;
@@ -555,6 +561,18 @@ export class Environment {
 		if (shadowActive) this.sunLight.shadow.updateMatrices(this.sunLight);
 
 		this.cloudAngle += input.dt * 2.2e-5;
+		if (input.gameTime !== undefined) {
+			// the weather moves the cover a step at a time (plan 397, ADR 0341); the first frame takes it whole
+			const target = quantizeCover(weatherCover(this.worldTerrain.seed, input.gameTime));
+			if (!this.coverStarted) {
+				this.coverStarted = true;
+				this.cloudCover = target;
+			} else {
+				const next = stepCover(this.cloudCover, target, this.coverWait, input.dt);
+				this.cloudCover = next.cover;
+				this.coverWait = next.wait;
+			}
+		}
 		this.time += input.dt;
 		this.site.setLamps(siteLamps);
 		const shadowMatrix = new Matrix4().copy(this.sunLight.shadow.matrix);

@@ -1,7 +1,7 @@
 ---
 id: 397
 title: "Clouds v2: temporal cloud marching on TAAU's history, compute-baked 3D noise, a weather coverage map that changes over time, volumetric clouds near the vessel"
-status: draft
+status: in-progress
 owner: "Worker A"
 depends: [393, 395]
 phase: 9
@@ -72,3 +72,4 @@ Clouds look like weather and cost less. The cloud march runs temporally, a fract
 ## Log
 
 - 2026-10-24 — Created by the coordinator from refs/graphics-v2 (ADR 0330).
+- 2026-10-24 — Worker A: ADR 0342 (the model, staged). Stage 1 shipped: the weather cover from seed and game time, re-baked a step at a time, with unit tests. Open: the temporal march, compute noise, volumetric clouds, the quality switch, the M5 and look checks.
