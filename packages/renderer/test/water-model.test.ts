@@ -1,8 +1,12 @@
 import { describe, expect, test } from 'bun:test';
 import {
+	DETAIL_LAYERS,
 	WAVES,
 	WAVE_GRAVITY,
 	WAVE_PERIOD,
+	detailFade,
+	detailSlopeAt,
+	reflectOffSea,
 	seaHeight,
 	waveNumber,
 	waveOmega,
@@ -77,5 +81,39 @@ describe('ocean waves', () => {
 		}
 		expect(wavesResolvedAt(0.05)).toBe(WAVES.length);
 		expect(wavesResolvedAt(50)).toBe(0);
+	});
+});
+
+describe('the sea detail and its reflection (plan 401)', () => {
+	test('the detail normals fade to the analytic normal as the footprint grows', () => {
+		expect(detailSlopeAt(0.05)).toBeCloseTo(
+			DETAIL_LAYERS.reduce((a, d) => a + d.slope, 0),
+			12
+		);
+		let last = Infinity;
+		for (const fp of [0.05, 0.2, 0.5, 1, 2, 4, 8, 50]) {
+			const s = detailSlopeAt(fp);
+			expect(s).toBeLessThanOrEqual(last);
+			last = s;
+		}
+		expect(detailSlopeAt(8)).toBe(0);
+		// each layer is gone once a wavelength spans three pixels
+		for (const d of DETAIL_LAYERS) {
+			expect(detailFade(d.lambda, d.lambda / 3)).toBe(0);
+			expect(detailFade(d.lambda, d.lambda / 6)).toBe(1);
+		}
+	});
+
+	test('a ray at the horizon reflects to the horizon on a flat sea', () => {
+		const up: [number, number, number] = [0, 1, 0];
+		// a grazing ray down onto the sea leaves as a grazing ray up
+		const r = reflectOffSea([Math.cos(0.01), -Math.sin(0.01), 0], up);
+		expect(r[0]).toBeCloseTo(Math.cos(0.01), 12);
+		expect(r[1]).toBeCloseTo(Math.sin(0.01), 12);
+		// looking straight down reflects straight up
+		expect(reflectOffSea([0, -1, 0], up)).toEqual([0, 1, 0]);
+		// the length is kept
+		const q = reflectOffSea([0.3, -0.5, 0.8], up);
+		expect(Math.hypot(...q)).toBeCloseTo(Math.hypot(0.3, 0.5, 0.8), 12);
 	});
 });

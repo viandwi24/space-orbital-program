@@ -1,7 +1,7 @@
 ---
 id: 401
 title: "Ocean v2: sky reflection from the LUT sky, scrolled detail normal maps, a 64² FFT in WebGPU compute at high"
-status: draft
+status: blocked
 owner: "Worker C"
 depends: [393]
 phase: 9
@@ -83,3 +83,4 @@ Home's sea reflects the real sky: the horizon glow, the sunset colours and the d
 ## Log
 
 - 2026-10-24 — Created by the coordinator from refs/graphics-v2 (ADR 0330).
+- 2026-10-24 — Partly done (Worker C): sky reflection from the LUT on WebGPU, the scrolled detail normals, the CPU FFT reference and the `ocean` quality. Left: the WebGPU compute FFT and its textures and foam, the WebGL2 reflection and the cloud term, captures and frame times, the owner's look.

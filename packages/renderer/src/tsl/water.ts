@@ -5,7 +5,7 @@
  */
 import * as TSL from 'three/tsl';
 import { BEACH_SLOPE, BREAKER_INDEX, SHORE_MIN_DISTANCE, shoreOmega } from '../shore-wave.ts';
-import { WAVES, WAVE_GRAVITY, waveNumber, waveOmega } from '../water-model.ts';
+import { DETAIL_LAYERS, WAVES, WAVE_GRAVITY, waveNumber, waveOmega } from '../water-model.ts';
 
 /* TSL nodes are untyped proxies; three's TSL typings lag its runtime */
 type N = any;
@@ -24,7 +24,15 @@ export const waveGradient = (
 	p: N,
 	n: N,
 	footprint: N,
-	ctx: { east: N; north: N; time: N; anchors: N[]; noiseA: (p: N, lam: number, salt: number) => N }
+	ctx: {
+		east: N;
+		north: N;
+		time: N;
+		anchors: N[];
+		noiseA: (p: N, lam: number, salt: number) => N;
+		/** Add the scrolled detail normals (plan 401, Medium and up). */
+		detail?: boolean;
+	}
 ): { gradient: N; crest: N } => {
 	const seed = ctx.noiseA(p, 256, 91);
 	const warp = ctx.noiseA(p, 48, 92).sub(0.5).mul(6.0);
@@ -48,6 +56,30 @@ export const waveGradient = (
 		g = g.add(D.mul(a.mul(k).mul(cos(ph))));
 		crest = crest.add(a.mul(sin(ph)));
 	});
+	if (ctx.detail) {
+		// Two scrolled layers of fine ripples (plan 401) break the regular sine pattern close up: each is
+		// the slope of a value noise drifting in its own direction, faded by the footprint like a wave
+		// (gone from about three pixels a wavelength; `detailFade`).
+		DETAIL_LAYERS.forEach((d) => {
+			const fade = max(min(float(d.lambda).div(footprint.mul(3.0)).sub(1.0), 1.0), 0.0);
+			const drift = ctx.east
+				.mul(Math.cos(d.heading))
+				.add(ctx.north.mul(Math.sin(d.heading)))
+				.mul(ctx.time.mul(d.speed));
+			const q = p.add(drift);
+			const e = d.lambda * 0.15;
+			const n0 = ctx.noiseA(q, d.lambda, d.salt);
+			const nx = ctx.noiseA(q.add(ctx.east.mul(e)), d.lambda, d.salt);
+			const ny = ctx.noiseA(q.add(ctx.north.mul(e)), d.lambda, d.salt);
+			const slope = fade.mul(d.slope / 0.15);
+			g = g.add(
+				ctx.east
+					.mul(nx.sub(n0))
+					.add(ctx.north.mul(ny.sub(n0)))
+					.mul(slope)
+			);
+		});
+	}
 	return { gradient: g.sub(n.mul(dot(g, n))), crest };
 };
 

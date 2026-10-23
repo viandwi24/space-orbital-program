@@ -75,6 +75,8 @@ export interface PresetSettings {
 	plasma: 'low' | 'medium' | 'high';
 	/** Engine plumes (plan 400): Low draws the inner flame and the nozzle glow, no diamonds and no cluster light; Medium adds the outer flame, the diamonds and the cluster light; High is for the volumetric layer (plan 400 follow-up). */
 	plume: 'low' | 'medium' | 'high';
+	/** The sea (plan 401): Low the analytic waves with the sky reflection; Medium adds the scrolled detail normals; High is for the 64² FFT on WebGPU (plan 401 follow-up). */
+	ocean: 'low' | 'medium' | 'high';
 }
 
 /**
@@ -139,7 +141,8 @@ export const PRESETS: Readonly<Record<GraphicsPreset, PresetSettings>> = {
 		smokeParticles: 56,
 		debrisShards: 0,
 		plasma: 'low',
-		plume: 'low'
+		plume: 'low',
+		ocean: 'low'
 	},
 	medium: {
 		pixelRatioCap: 1.5,
@@ -173,7 +176,8 @@ export const PRESETS: Readonly<Record<GraphicsPreset, PresetSettings>> = {
 		smokeParticles: 160,
 		debrisShards: 24,
 		plasma: 'medium',
-		plume: 'medium'
+		plume: 'medium',
+		ocean: 'medium'
 	},
 	high: {
 		pixelRatioCap: 2,
@@ -208,7 +212,8 @@ export const PRESETS: Readonly<Record<GraphicsPreset, PresetSettings>> = {
 		smokeParticles: 320,
 		debrisShards: 48,
 		plasma: 'high',
-		plume: 'high'
+		plume: 'high',
+		ocean: 'high'
 	}
 };
 

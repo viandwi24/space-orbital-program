@@ -399,6 +399,7 @@ export class PlanetPassTSL {
 			settings.shaftTerrain !== s.shaftTerrain ||
 			settings.auroraSteps !== s.auroraSteps ||
 			settings.cloudShadowMap !== s.cloudShadowMap ||
+			settings.ocean !== s.ocean ||
 			settings.terrainSize > 0 !== s.terrainSize > 0 ||
 			settings.terrainPatch > 0 !== s.terrainPatch > 0 ||
 			settings.shadowMapSize > 0 !== s.shadowMapSize > 0;
@@ -543,6 +544,7 @@ export class PlanetPassTSL {
 			s.shaftTerrain,
 			s.auroraSteps,
 			s.cloudShadowMap,
+			s.ocean,
 			s.terrainSize > 0,
 			s.terrainPatch > 0,
 			s.shadowMapSize > 0
@@ -1382,7 +1384,8 @@ export class PlanetPassTSL {
 						north: uSiteNorth,
 						time: uTime,
 						anchors,
-						noiseA: nA
+						noiseA: nA,
+						detail: cfg.ocean !== 'low'
 					});
 					const calm = lakeOnly.mul(-0.8).add(1.0); // a lake has no swell
 					gWave.assign(wv.gradient.mul(calm));
@@ -2238,7 +2241,12 @@ export class PlanetPassTSL {
 							.mul(gloss.div(8.0 * PI))
 							.mul(ndl)
 							.mul(sh);
-						const refl = uSkyColour.mul(fres).mul(1.2);
+						// the sea reflects the sky in the reflected direction, read from the sky-view table
+						// (plan 401): the horizon glow, the sunset colours and the dark zenith, not one mean colour
+						const nW = transpose(uBodyInv).mul(normal);
+						const rW = normalize(rd.sub(nW.mul(dot(rd, nW).mul(2.0))));
+						const skyRefl = sky.inscatter(ro, rW).mul(SKY_GAIN);
+						const refl = skyRefl.mul(fres).mul(1.2);
 						lit.assign(
 							mix(lit, refl, fres.mul(0.9)).add(
 								uSunIrr.mul(sunT).mul(glint).mul(fres).mul(0.5).mul(sf.spec)
