@@ -15,8 +15,9 @@ import Stock from '@orbital/mod-stock';
 import { definePlugin, defineStrategy } from '@orbital/sdk';
 import { createSim, type Sim } from '../src/index.ts';
 import { tickDayLength } from '../src/tick.ts';
+import { strategyFactor } from '../src/economy.ts';
 import { openTree } from './helpers/tech.ts';
-import { rapier, twoStage } from './helpers/vessels.ts';
+import { rapier, stack, twoStage } from './helpers/vessels.ts';
 
 const world = (agency = 'government', seed = 3): WorldInfo => {
 	const base = legacyWorldInfo(seed);
@@ -212,6 +213,35 @@ describe('strategies', () => {
 		const before = funds(sim);
 		expect(sim.dispatch({ type: 'contract-accept', offer: offer!.id }).ok).toBe(true);
 		expect(funds(sim) - before).toBeCloseTo(offer!.advance[0]!.amount * 1.2, 6);
+		sim.dispose();
+	});
+});
+
+describe('Reuse first never pays more than the vessel (system audit D1)', () => {
+	test('it shrinks only the loss for distance: 1 on the pad, 0.1 becomes 0.28', () => {
+		expect(strategyFactor(1, 1.25)).toBe(1);
+		expect(strategyFactor(0.1, 1.25)).toBeCloseTo(0.28, 10);
+		expect(strategyFactor(0.5, 1)).toBe(0.5);
+		expect(strategyFactor(0.5, 0.8)).toBeCloseTo(0.4, 10);
+	});
+
+	test('a pod launched and recovered on the pad with Reuse first is no profit', async () => {
+		const sim = await make();
+		expect(sim.dispatch({ type: 'strategy-activate', strategy: 'stock.reuse-first' }).ok).toBe(
+			true
+		);
+		const before = funds(sim);
+		const r = sim.dispatch({
+			type: 'load-vessel',
+			design: stack('Pod', ['stock.command-pod'], []),
+			crew: []
+		});
+		if (!r.ok) throw new Error(r.reason);
+		for (let i = 0; i < 200; i++) sim.step(0.02);
+		const quote = sim.snapshot().vessels.find((v) => v.id === r.vessel)!.recovery!;
+		expect(quote.factor).toBe(1);
+		expect(sim.dispatch({ type: 'recover-vessel', vessel: r.vessel! }).ok).toBe(true);
+		expect(funds(sim)).toBeLessThanOrEqual(before);
 		sim.dispose();
 	});
 });

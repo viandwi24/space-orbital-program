@@ -6,7 +6,6 @@ import { multiplierOf, upkeepCharges } from './strategies.ts';
 import { gradeSurcharge } from './reliability.ts';
 import {
 	clampReputation,
-	contentsValue,
 	decayedReputation,
 	designCost,
 	ECONOMY_CAUSES,
@@ -19,7 +18,6 @@ import {
 	type Currency,
 	type EntityId,
 	type LedgerEntry,
-	type ModuleDefinition,
 	type RecoveryQuote,
 	type RuleValue,
 	type SaveEconomy,
@@ -97,28 +95,47 @@ export function chargeLaunch(core: SimCore, design: VesselDesign): void {
 }
 
 /**
- * Value of a live vessel: every part's cost plus its current contents (ADR 0113 point 2). An EVA
- * suit (a `walk` part) and a planted flag (hidden, with a `keep` module) were never bought, so
- * they are worth nothing: recovering them paid funds from nothing (system audit).
+ * What a live vessel holds (ADR 0113 point 2): its parts' cost, after the cost multiplier, and its
+ * contents in units per resource. An EVA suit (a `walk` part) and a planted flag (hidden, with a
+ * `keep` module) were never bought, so they hold nothing: recovering them paid funds from nothing
+ * (system audit).
  */
-export function vesselValue(core: SimCore, vesselId: EntityId): number {
-	let value = 0;
+export function vesselHoldings(
+	core: SimCore,
+	vesselId: EntityId
+): { hardware: number; contents: Map<string, number> } {
+	let hardware = 0;
+	const contents = new Map<string, number>();
 	for (const id of vesselOf(core, vesselId).parts) {
 		const part = partOf(core, id);
 		const def = partDefOf(core, part);
 		const planted =
 			def.catalog?.hidden === true && part.modules.some((m) => moduleDefOf(core, m.id).keep);
 		if (def.walk !== undefined || planted) continue;
-		value += def.cost ?? 0;
-		const stores: Array<{ module: ModuleDefinition; config: unknown; state: unknown }> = [];
+		hardware += def.cost ?? 0;
 		for (const m of part.modules) {
 			const module = moduleDefOf(core, m.id);
-			if (module.store)
-				stores.push({ module, config: m.config, state: moduleState(core, id, m.id) });
+			if (!module.store) continue;
+			const state = moduleState(core, id, m.id);
+			for (const r of module.store.resources(m.config, state)) {
+				const amount = module.store.amount(m.config, state, r);
+				if (amount > 0) contents.set(r, (contents.get(r) ?? 0) + amount);
+			}
 		}
-		value += contentsValue(stores, core.registries.resources);
 	}
-	return value * costMultiplier(core);
+	return { hardware: hardware * costMultiplier(core), contents };
+}
+
+/** The static price of `amount` units of `resource`, after the cost multiplier. */
+export const contentsPrice = (core: SimCore, resource: string, amount: number): number =>
+	amount * (core.registries.resources.get(resource)?.price ?? 0) * costMultiplier(core);
+
+/** Value of a live vessel: its parts' cost plus its contents at their static prices. */
+export function vesselValue(core: SimCore, vesselId: EntityId): number {
+	const { hardware, contents } = vesselHoldings(core, vesselId);
+	let value = hardware;
+	for (const [r, amount] of contents) value += contentsPrice(core, r, amount);
+	return value;
 }
 
 /** Recovery sites as body-fixed unit directions on the root body; until 084 the launch site. */
@@ -164,15 +181,24 @@ export function quoteRecovery(core: SimCore, vesselId: EntityId): RecoveryQuote 
 	const radius = core.root.def.radius;
 	const distance =
 		dir === null ? null : Math.min(...recoverySites(core).map((s) => greatCircle(dir, s, radius)));
-	return recoveryQuote(vesselValue(core, vesselId), distance, radius);
+	const quote = recoveryQuote(vesselValue(core, vesselId), distance, radius);
+	const factor = strategyFactor(quote.factor, multiplierOf(core, 'recovery'));
+	return { ...quote, factor, credit: quote.value * factor };
 }
+
+/**
+ * A recovery strategy's factor (plan 101; system audit D1): above 1 it shrinks only the loss for
+ * distance, `1 − (1 − f) / m`, so a recovery never pays more than the vessel is worth (Reuse first
+ * at ×1.25 paid 125 % on the pad, more than the launch cost); below 1 it scales the factor.
+ */
+export const strategyFactor = (factor: number, multiplier: number): number =>
+	multiplier >= 1 ? 1 - (1 - factor) / multiplier : factor * Math.max(0, multiplier);
 
 /** Credit the recovery (economy on) and return the quote; the caller removes the vessel. */
 export function creditRecovery(core: SimCore, vesselId: EntityId): RecoveryQuote {
 	const quote = quoteRecovery(core, vesselId);
 	if (economyOn(core) && quote.credit > 0) {
-		const credit = quote.credit * multiplierOf(core, 'recovery'); // strategies (plan 101)
-		record(core, 'funds', credit, ECONOMY_CAUSES.recovery, `vessel ${vesselId}`);
+		record(core, 'funds', quote.credit, ECONOMY_CAUSES.recovery, `vessel ${vesselId}`);
 	}
 	return quote;
 }
