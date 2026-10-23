@@ -36,7 +36,7 @@ import {
 	MID_OCTAVE_SALT,
 	SCALED_BLEND
 } from '../scaled-space-model.ts';
-import { DETAIL_CONTRAST, DETAIL_SIZE, DETAIL_TILE } from '../detail-textures.ts';
+import { DETAIL_CONTRAST, DETAIL_LOD_FADE, DETAIL_SIZE, DETAIL_TILE } from '../detail-textures.ts';
 import {
 	CLOUD_FILL,
 	CLOUD_GAIN_CAP,
@@ -452,6 +452,7 @@ uniform vec3 uCamToSite;   // camera minus launch site, body-fixed, m
 uniform vec3 uSiteEast;
 uniform vec3 uSiteNorth;
 uniform vec3 uSiteUp;
+uniform vec3 uSiteToOther; // launch site minus the other home site in view (a branch, plan 388), body-fixed, m
 uniform sampler2D uMap;
 uniform float uMapTexel;   // metres per map texel at the equator
 uniform vec3 uAmbient;     // sky irradiance at the camera (already times PI)
@@ -959,7 +960,8 @@ ${MID_OCTAVES_KM.map((km, k) => `	{
 	}
 
 	vec3 vS = vSite;
-	float siteDist = length(vS);
+	// the nearer of the launch site and a branch in view: no fields, relief or rivers round either
+	float siteDist = min(length(vS), length(vS + uSiteToOther));
 
 	// Hill shading: normal from finite differences of a few octaves, away from the launch site.
 	float reliefAmp = smoothstep(500.0, 2500.0, siteDist) * (1.0 - smoothstep(25.0, 160.0, footprint)) * landW * mix(0.45, 1.0, smoothstep(0.45, 0.85, e2 + rockMap * 0.25));
@@ -1087,9 +1089,12 @@ ${MID_OCTAVES_KM.map((km, k) => `	{
 		float lod4 = max(log2(footprint * ${f(DETAIL_SIZE / DETAIL_TILE.rock)}), 0.0);
 		vec3 q4 = pl / ${f(DETAIL_TILE.rock)};
 		vec4 d4 = textureLod(uDetail, q4.yz, lod4) * wT.x + textureLod(uDetail, q4.xz, lod4) * wT.y + textureLod(uDetail, q4.xy, lod4) * wT.z;
+		// a tile of a few texels repeats as a grid (plan 388): its detail fades out by its own level
+		d4 = mix(vec4(0.5), d4, 1.0 - smoothstep(${f(DETAIL_LOD_FADE[0])}, ${f(DETAIL_LOD_FADE[1])}, lod4));
 		float lod2 = max(log2(footprint * ${f(DETAIL_SIZE / DETAIL_TILE.grass)}), 0.0);
 		vec3 q2 = pl / ${f(DETAIL_TILE.grass)};
 		vec4 d2 = textureLod(uDetail, q2.yz, lod2) * wT.x + textureLod(uDetail, q2.xz, lod2) * wT.y + textureLod(uDetail, q2.xy, lod2) * wT.z;
+		d2 = mix(vec4(0.5), d2, 1.0 - smoothstep(${f(DETAIL_LOD_FADE[0])}, ${f(DETAIL_LOD_FADE[1])}, lod2));
 		float soft = mix(1.0 + (d2.y - 0.5) * ${f(2 * DETAIL_CONTRAST.grass)}, 1.0 + (d2.z - 0.5) * ${f(2 * DETAIL_CONTRAST.sand)}, wDesert);
 		float mult = mix(soft, 1.0 + (d4.x - 0.5) * ${f(2 * DETAIL_CONTRAST.rock)}, wRock);
 		mult = mix(mult, 1.0 + (d2.z - 0.5) * ${f(2 * DETAIL_CONTRAST.sand)}, wBeach);
