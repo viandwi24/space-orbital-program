@@ -194,7 +194,14 @@ async function record(page: Page, seconds: number) {
 /** Opens the booster rocket in the Hangar so `/flight` has a vessel (the Hangar keeps it for the flight). */
 async function setupVessel(page: Page): Promise<void> {
 	await page.goto('/vab');
-	await page.getByRole('button', { name: 'Load the booster rocket' }).click({ timeout: 120_000 });
+	await page.waitForFunction(
+		() => typeof (window as any).__orbitalVab?.loadBooster === 'function',
+		null,
+		{
+			timeout: 120_000
+		}
+	);
+	await page.evaluate(() => (window as any).__orbitalVab.loadBooster());
 	await page.waitForTimeout(1500);
 }
 
