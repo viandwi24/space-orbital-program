@@ -263,6 +263,7 @@ describe('registration and report', () => {
 			'crew-expression': [],
 			'crew-animation': [],
 			'crew-portrait': [],
+			autopilot: [],
 			'site-template': [],
 			antenna: [],
 			'ground-station': [],

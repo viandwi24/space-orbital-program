@@ -3,10 +3,7 @@
  * the blueprints mods register, as one list of cards with filters. Pure: the dialog draws it.
  */
 import type { BlueprintDefinition, BlueprintGoal, VesselDesign } from '@orbital/core';
-import { starterRocket } from '../design';
 import type { ContentLookups } from '../delta-v';
-import { asparagusRocket, boosterRocket, glider, moonShot } from './examples';
-import { MISSION_BLUEPRINTS } from './missions';
 import type { Content } from './state';
 import { designStats } from './stats';
 
@@ -17,7 +14,7 @@ export interface BlueprintCard {
 	title: string;
 	inspiredBy?: string;
 	origin: BlueprintOrigin;
-	goal: BlueprintGoal | 'deep-space';
+	goal: BlueprintGoal;
 	crew: number;
 	summary: string;
 	build(content: Content): VesselDesign;
@@ -38,80 +35,40 @@ export const GOAL_LABELS: Record<BlueprintCard['goal'], string> = {
 	surface: 'Surface'
 };
 
-/** The five examples the empty Hangar used to offer as text buttons. */
-const LEARN: readonly BlueprintCard[] = [
-	{
-		id: 'learn.two-stage',
-		title: 'Two-stage starter',
-		origin: 'learn',
-		goal: 'orbit',
-		crew: 1,
-		summary: 'A pod with a parachute on two stages: the first rocket to fly, and to bring home.',
-		build: () => starterRocket()
-	},
-	{
-		id: 'learn.boosters',
-		title: 'Booster rocket',
-		origin: 'learn',
-		goal: 'orbit',
-		crew: 1,
-		summary: 'A core with four solid boosters and four fins: staging boosters away.',
-		build: (content) => boosterRocket(content)
-	},
-	{
-		id: 'learn.asparagus',
-		title: 'Asparagus rocket',
-		origin: 'learn',
-		goal: 'orbit',
-		crew: 1,
-		summary: 'Four boosters feed the core through fuel lines and drop in pairs.',
-		build: (content) => asparagusRocket(content)
-	},
-	{
-		id: 'learn.moon-shot',
-		title: 'Moon shot',
-		origin: 'learn',
-		goal: 'moon',
-		crew: 1,
-		summary: 'A core with four boosters under a lander with legs: to the moon in one go.',
-		build: () => moonShot()
-	},
-	{
-		id: 'learn.glider',
-		title: 'Glider',
-		origin: 'learn',
-		goal: 'surface',
-		crew: 1,
-		summary: 'A pod and a tank with wings and a tail: it glides, it has no engine.',
-		build: (content) => glider(content)
-	}
-];
-
-/** Every card: learn, the famous missions, then the mods' blueprints. */
-export function allBlueprints(mods: readonly BlueprintDefinition[] = []): BlueprintCard[] {
-	return [
-		...LEARN,
-		...MISSION_BLUEPRINTS.map((m): BlueprintCard => ({
-			id: m.id,
-			title: m.title,
-			inspiredBy: m.inspiredBy,
-			origin: 'mission',
-			goal: m.goal,
-			crew: m.crew,
-			summary: m.summary,
-			build: (content) => m.build(content)
-		})),
-		...mods.map((b): BlueprintCard => ({
+/**
+ * Every card, from the registered blueprints (ADR 0316: stock registers the learn examples and the
+ * famous missions; a mod's go under "Mod" unless they name a `collection`).
+ */
+export function allBlueprints(defs: readonly BlueprintDefinition[] = []): BlueprintCard[] {
+	const origin = (d: BlueprintDefinition): BlueprintOrigin =>
+		d.collection === 'learn' ? 'learn' : d.collection === 'missions' ? 'mission' : 'mod';
+	const rank: Record<BlueprintOrigin, number> = { learn: 0, mission: 1, mod: 2 };
+	return defs
+		.map((b): BlueprintCard => ({
 			id: b.id,
 			title: b.title,
 			...(b.inspiredBy ? { inspiredBy: b.inspiredBy } : {}),
-			origin: 'mod',
+			origin: origin(b),
 			goal: b.goal,
 			crew: b.crew,
 			summary: b.summary,
 			build: () => b.design
 		}))
-	];
+		.sort((a, c) => rank[a.origin] - rank[c.origin]);
+}
+
+/**
+ * The registered id for `id`, or undefined. Ids from before ADR 0316 still resolve: a famous
+ * mission's bare id (`kronos-selene`) and a learn card's `learn.<name>` are stock's now.
+ */
+export function resolveBlueprintId(
+	id: string,
+	cards: readonly { id: string }[]
+): string | undefined {
+	const has = (x: string): boolean => cards.some((c) => c.id === x);
+	if (has(id)) return id;
+	const bare = id.startsWith('learn.') ? id.slice('learn.'.length) : id;
+	return has(`stock.${bare}`) ? `stock.${bare}` : undefined;
 }
 
 export interface BlueprintFilter {

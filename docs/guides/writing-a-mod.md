@@ -580,6 +580,28 @@ ctx.achievements.register(defineAchievement({
 - **Air:** an `atmosphere` (`scaleHeight`, `surfacePressure`, `height`) now draws a sky from the surface, haze over the ground and a lit limb from orbit, and the light on the planet comes through it. Optical depth follows the surface pressure (101 325 Pa is the home planet's look).
 - **Sea and shadows** come with the hills kind: water reflects the sky and the sun, and the terrain casts shadows near the camera.
 
+## How a body looks (API 0.1.113, plan 381, ADR 0318)
+
+`appearance` on a `defineBody` sets the colours and features the renderer, the map and the Create World art draw. It changes nothing in the physics.
+
+```ts
+appearance: {
+	palette: ['#b0603a', '#7c3c25', '#d38c5c'], // main colour first, 1 to 6
+	pattern: 'polar-caps', // mottled | polar-caps | lineae | volcanic | bands
+	sky: '#d6a27a', // the colour light takes in the air
+	haze: 0.35, // 0..1, dust or smog
+	clouds: { color: '#eedcae', altitude: 48_000, opacity: 0.96 },
+	rings: { inner: 7_700_000, outer: 12_600_000, color: '#d8c7a4', opacity: 0.7 }
+}
+```
+
+- A `craters` body is drawn with its palette in the pattern. Far away it is a plain lit sphere with the same colours, and its ground pass is built only when it covers a few dozen pixels or holds the active vessel.
+- A body without terrain and with `pattern: 'bands'` is a giant: bands, storms and its rings.
+- A cloud deck hides the ground from orbit and fades out as the camera sinks below it.
+- `sky` and `haze` colour the body's own air (on a `craters` body with an `atmosphere`).
+
+The stock system's bodies are the examples (`mods/stock/src/bodies.ts`). They also show how to write orbits against the ecliptic and a planet's equator (`orbitAgainst`) and tilt a pole (`tiltedPole`).
+
 ## Dock panels (API 0.1.52, plan 112, ADR 0149)
 
 A mod can add a panel to the flight dock. The view is data: each value is a pure function of the panel input, and a button or switch returns a command that the sim checks like any other.
@@ -1085,3 +1107,9 @@ ctx.blueprints.register(
 ```
 
 The Library shows its picture, goal and crew, parts, mass, Δv and liftoff TWR, and loads it into the Hangar.
+
+Since API 0.1.112 (ADR 0316) stock registers the game's own blueprints the same way: the learn examples and the famous missions, with ids such as `stock.two-stage` and `stock.kronos-selene`.
+- `collection: 'learn'` or `'missions'` files a card beside them. Without it, a card goes under "Mod".
+- `goal` may also be `deep-space`.
+- Stock's designs are generated from the Hangar's builders (`apps/web/scripts/bake-stock-blueprints.ts`), and a test keeps them equal.
+- Developer → Blueprints checks every registered blueprint and opens it in the sandbox Hangar.

@@ -38,6 +38,16 @@
 - **The Blueprints tab** (`lib/dev/blueprint-check.ts`): every card is built against the loaded plugins and checked for missing parts, node size mismatches and the Hangar's pre-flight checks; each opens in the sandbox.
 - `apps/web/scripts/capture-developer-tools.ts` takes the screenshots, optionally after installing a built package.
 
+## Follow-up: stock owns the blueprints (ADR 0316)
+
+The owner asked for the game's blueprints to belong to stock.
+- `mods/stock/src/blueprints.generated.ts` holds the twelve designs as `stock.<name>`, with `collection` `learn` or `missions` (API 0.1.112). Stock registers them.
+- `apps/web/src/lib/editor/blueprint-sources.ts` lists the builders, and `scripts/bake-stock-blueprints.ts` writes the file.
+- `stock-blueprints.test.ts` checks every registered design equals its builder's.
+- Everything else reads the registry: the Library, the start modal, `__orbitalVab.load*`, the lessons (`blueprint-registry.ts`), the mission tests and the developer tools.
+- Old ids resolve (`resolveBlueprintId`). The start modal's testids are now `vab-start-stock.<name>`, and the e2e spec was updated.
+- Bun and Node differ in the last bit of some of the builders' trigonometry, and in `-0`. The bake rounds to 12 significant digits, and the test compares the same way.
+
 ## What surprised me
 
 - FNV-1a's bit 20 barely changes for short ids (`c0`…`c39` all had the same bit), so a second eye colour never showed. Eye colour now draws from a remixed hash. The old kinds keep ADR 0291's bits, so existing crew keep their looks.

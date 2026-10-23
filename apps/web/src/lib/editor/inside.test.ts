@@ -4,7 +4,7 @@ import Stock from '@orbital/mod-stock';
 import { describe, expect, it } from 'vitest';
 import type { ContentLookups } from '../delta-v';
 import { openModules, seeThroughOf, shellsOf } from './inside';
-import { MISSION_BLUEPRINTS } from './missions';
+import { blueprintDesign } from '../blueprint-registry';
 
 const { registries } = loadPlugins([Stock]);
 const content: ContentLookups = {
@@ -12,7 +12,7 @@ const content: ContentLookups = {
 	modules: registries.modules,
 	resources: registries.resources
 };
-const build = (id: string) => MISSION_BLUEPRINTS.find((m) => m.id === id)!.build(content);
+const build = (id: string) => blueprintDesign(id, registries.blueprints.list());
 const indexOf = (d: ReturnType<typeof build>, part: string) =>
 	d.parts.find((p) => p.part === part)!.index;
 

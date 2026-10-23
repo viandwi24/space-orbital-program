@@ -5,6 +5,7 @@
  */
 import {
 	GRAVITATIONAL_CONSTANT,
+	bodyOrientation,
 	linkRange,
 	type AntennaDefinition,
 	type BodyDefinition,
@@ -33,8 +34,11 @@ export interface PlanBody {
 	id: string;
 	radius: number;
 	mu: number;
-	/** Spin, rad/s (`2π / rotationPeriod`, as the sim turns its stations). */
+	/** Spin, rad/s (`2π / rotationPeriod`). */
 	omega: number;
+	/** What turns its body-fixed points, as the sim turns its stations: the period and, for a body
+	 * with IAU elements (Sol), the pole and start angle. */
+	spin: Pick<BodyDefinition, 'rotationPeriod' | 'rotation'>;
 }
 
 /** A station: fixed on its body, turning with it. */
@@ -80,6 +84,27 @@ export const rotateY = (v: Vec3, angle: number): Vec3 => {
 	return { x: v.x * c + v.z * s, y: v.y, z: -v.x * s + v.z * c };
 };
 
+const quatRotate = (q: { x: number; y: number; z: number; w: number }, v: Vec3): Vec3 => {
+	const tx = 2 * (q.y * v.z - q.z * v.y);
+	const ty = 2 * (q.z * v.x - q.x * v.z);
+	const tz = 2 * (q.x * v.y - q.y * v.x);
+	return {
+		x: v.x + q.w * tx + (q.y * tz - q.z * ty),
+		y: v.y + q.w * ty + (q.z * tx - q.x * tz),
+		z: v.z + q.w * tz + (q.x * ty - q.y * tx)
+	};
+};
+
+/** A body-fixed vector of `body` in the system frame at `t` (the sim's `rotationAt`). */
+export const toInertial = (body: PlanBody, v: Vec3, t: number): Vec3 =>
+	quatRotate(bodyOrientation(body.spin, t), v);
+
+/** A system-frame vector in `body`'s body-fixed frame at `t`. */
+export function toBodyFixed(body: PlanBody, v: Vec3, t: number): Vec3 {
+	const q = bodyOrientation(body.spin, t);
+	return quatRotate({ x: -q.x, y: -q.y, z: -q.z, w: q.w }, v);
+}
+
 export function planWorld(bodies: readonly BodyDefinition[], commsScale = 1): PlanWorld {
 	const byId = new Map(bodies.map((b) => [b.id, b]));
 	return {
@@ -87,7 +112,8 @@ export function planWorld(bodies: readonly BodyDefinition[], commsScale = 1): Pl
 			id: b.id,
 			radius: b.radius,
 			mu: GRAVITATIONAL_CONSTANT * b.mass,
-			omega: (2 * Math.PI) / b.rotationPeriod
+			omega: (2 * Math.PI) / b.rotationPeriod,
+			spin: { rotationPeriod: b.rotationPeriod, ...(b.rotation ? { rotation: b.rotation } : {}) }
 		})),
 		nodes: bodies.map((b) => {
 			const parent = b.parent === undefined ? undefined : byId.get(b.parent);
@@ -116,8 +142,7 @@ const bodyOf = (world: PlanWorld, id: string): PlanBody => {
 export function positionOf(world: PlanWorld, node: PlanNode, t: number): Vec3 {
 	const centre = bodyCentre(world, node.body, t);
 	if (node.kind === 'station') {
-		const omega = bodyOf(world, node.body).omega;
-		return add(centre, rotateY(scale(node.dir, node.radius), omega * t));
+		return add(centre, toInertial(bodyOf(world, node.body), scale(node.dir, node.radius), t));
 	}
 	const mu = bodyOf(world, node.body).mu;
 	return add(centre, propagateUniversal(node.r, node.v, mu, t - node.t0).r);
@@ -180,13 +205,12 @@ export function planNodes(
 		const centre = bodyCentre(world, s.body, snapshot.t);
 		const rel = sub(s.position, centre);
 		const radius = length(rel);
-		const omega = bodyOf(world, s.body).omega;
 		out.push({
 			kind: 'station',
 			id: s.id,
 			label: s.label,
 			body: s.body,
-			dir: scale(rotateY(rel, -omega * snapshot.t), 1 / radius),
+			dir: scale(toBodyFixed(bodyOf(world, s.body), rel, snapshot.t), 1 / radius),
 			radius,
 			range: s.range
 		});

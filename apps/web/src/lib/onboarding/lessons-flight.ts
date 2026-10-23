@@ -2,7 +2,7 @@
  * Flight (plan 344): the Guidance Computer's ascent, a transfer to the moon, landing on it, walking
  * on it, science and comms.
  */
-import { MISSION_BLUEPRINTS } from '../editor/missions';
+import { blueprintDesign } from '../blueprint-registry';
 import type { Lesson } from './lessons';
 import {
 	HOME_AIR,
@@ -283,8 +283,7 @@ export const FLIGHT_LESSONS: readonly Lesson[] = [
 		title: 'Science',
 		summary:
 			'The Aurora research satellite on the pad: add the Science panel, run an experiment, transmit the result home.',
-		design: (content) =>
-			MISSION_BLUEPRINTS.find((m) => m.id === 'aurora-satellite')!.build(content),
+		design: () => blueprintDesign('stock.aurora-satellite'),
 		setup: [],
 		blocked: { actions: {}, places: closedPlaces() },
 		steps: [

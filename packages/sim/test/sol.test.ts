@@ -5,6 +5,7 @@
 import { describe, expect, test } from 'bun:test';
 import {
 	GRAVITATIONAL_CONSTANT,
+	LEGACY_SITE,
 	legacyWorldInfo,
 	type Snapshot,
 	type WorldInfo
@@ -116,4 +117,38 @@ describe('the sky on known dates (ADR 0184 point 4)', () => {
 			}
 		});
 	}
+});
+
+describe('the Space Center on a tilted, phased Earth (system audit)', () => {
+	test("the comms station stands where the vessel on the Space Center's pad stands", async () => {
+		// Create World puts a Sol world's site on the Earth; the Earth has IAU pole and start angle
+		const hq = {
+			...structuredClone(LEGACY_SITE),
+			id: 'space-center',
+			body: 'sol.earth',
+			latitude: 28.5 * DEG,
+			longitude: -80.6 * DEG
+		};
+		const sim = await make({ ...solWorld('1:1'), sites: [hq] });
+		sim.dispatch({ type: 'set-rule', rule: 'stock.comms', value: true });
+		const r = sim.dispatch({
+			type: 'load-vessel',
+			design: {
+				formatVersion: 1,
+				name: 'Pod',
+				parts: [{ index: 0, part: 'stock.command-pod' as never, parent: null }],
+				stages: []
+			}
+		});
+		expect(r.ok).toBe(true);
+		for (let i = 0; i < 5; i++) sim.step(0.02);
+		const snap = sim.snapshot();
+		const vessel = snap.vessels[0]!;
+		expect(String(vessel.soi)).toBe('sol.earth');
+		const station = snap.network!.stations.find((s) => s.id === 'site:space-center')!;
+		const atStation = sub(station.position, body(snap, 'sol.earth').position);
+		// the mast stands a few tens of metres over the pad; a wrong turn of the Earth is ~1000 km off
+		expect(Math.hypot(...Object.values(sub(atStation, vessel.position)))).toBeLessThan(200);
+		sim.dispose();
+	});
 });

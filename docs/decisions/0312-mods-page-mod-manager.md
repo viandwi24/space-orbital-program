@@ -25,7 +25,7 @@ The Mods page was a column of plain rows. It did not show what a mod adds, wheth
    - **Failed** or **Blocked** when it did not load, with the reason.
    - **Needs a reload** when it starts or stops on the next load.
    - **Off** when it is turned off.
-3. **The counts come from the loader's registries.** Every registry knows which plugin registered each entry (`Registry.owner`). `countsByPlugin` groups the entries into parts, blueprints, crew content, programs, panels, overlays and world content. Since plan 375 the page reads them from its loader log (`modBootLog()`, `readBootLog()`), along with the warnings the chip shows. Only autopilots, which are not a registry kind in the log, are counted from the registries. Each count links to `/developer?tab=<kind>&mod=<id>`.
+3. **The counts come from the loader's registries.** Every registry knows which plugin registered each entry (`Registry.owner`). `countsByPlugin` groups the entries into parts, blueprints, crew content, programs, panels, overlays and world content. Since plan 375 the page reads them from its loader log (`modBootLog()`, `readBootLog()`), along with the warnings the chip shows. Every count comes from the log, autopilots included. Without a stored log, the page counts from the registries' owners. Each count links to `/developer?tab=<kind>&mod=<id>`.
 4. **Dependencies and the API** are checked with `satisfies`. A dependency counts as met by a built-in or by an installed mod that is on.
 5. **Install.**
    - A drop zone (also a button for choosing a file) and the address field sit in a side panel, with the three steps of the safety flow.

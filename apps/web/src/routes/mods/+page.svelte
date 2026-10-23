@@ -52,12 +52,11 @@
 	});
 	const builtins = builtinModRows(BUILTIN_PLUGINS);
 	// what each booted plugin registered and its warnings: the loader log (plan 375, ADR 0312
-	// point 3); programs (autopilots) are not a registry kind there, so they come from the registries
+	// point 3); without one (it was never stored), the registries' owners
 	const bootLog = modBootLog() ?? readBootLog();
-	const registryCounts = countsByPlugin(
-		loadPlugins([...BUILTIN_PLUGINS, ...activePlugins()]).registries
-	);
-	const counts = bootLog ? countsFromLog(bootLog.mods, registryCounts) : registryCounts;
+	const counts = bootLog
+		? countsFromLog(bootLog.mods)
+		: countsByPlugin(loadPlugins([...BUILTIN_PLUGINS, ...activePlugins()]).registries);
 	const warningsOf = (id: string): readonly string[] =>
 		bootLog?.mods.find((m) => m.id === id)?.warnings ?? [];
 	let fileInput = $state<HTMLInputElement>();

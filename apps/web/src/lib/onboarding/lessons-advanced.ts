@@ -2,7 +2,7 @@
  * Advanced (plan 344): meeting and docking in orbit by hand and with the autopilots, a rover,
  * robotic parts, and keeping orbit tidy from the Mission Center.
  */
-import { MISSION_BLUEPRINTS } from '../editor/missions';
+import { blueprintDesign } from '../blueprint-registry';
 import type { Content } from '../editor/state';
 import type { Lesson, LessonSetupCall } from './lessons';
 import {
@@ -225,8 +225,7 @@ export const ADVANCED_LESSONS: readonly Lesson[] = [
 		title: 'Driving a rover',
 		summary:
 			'The Trailblazer rover on the pad: drive mode, throttle the wheels, steer, and brake to a stop.',
-		design: (content) =>
-			MISSION_BLUEPRINTS.find((m) => m.id === 'trailblazer-rover')!.build(content),
+		design: () => blueprintDesign('stock.trailblazer-rover'),
 		setup: [],
 		blocked: { actions: { stage: 'A rover has no stages.' }, places: closedPlaces() },
 		steps: [

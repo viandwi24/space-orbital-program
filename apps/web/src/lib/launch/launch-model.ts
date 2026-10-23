@@ -4,6 +4,7 @@
  */
 import {
 	CELL_SIZE,
+	defaultLaunchSpot,
 	footprint,
 	workingLevel,
 	type BuildingDefinition,
@@ -90,6 +91,23 @@ export function placementOf(
 	facility: Pick<Facility, 'east' | 'north'>
 ): VesselPlacement {
 	return { kind: 'site', site: site.id, at: { east: facility.east, north: facility.north } };
+}
+
+/**
+ * A quick launch (Shift+Launch skips the Launch screen): the primary site's first working pad, or
+ * runway for an aircraft, as the sim's default; with the buildings the running sim has (`live`).
+ * Undefined without a site: the sim's own default.
+ */
+export function quickLaunchPlacement(
+	sites: readonly Site[],
+	buildings: BuildingLookup,
+	aircraft: boolean,
+	live?: readonly { id: string; buildings?: Site['buildings'] }[]
+): VesselPlacement | undefined {
+	const site = sites[0];
+	if (!site) return undefined;
+	const now = live?.find((x) => x.id === site.id)?.buildings ?? site.buildings;
+	return placementOf(site, defaultLaunchSpot({ ...site, buildings: now }, buildings, aircraft));
 }
 
 // ---- the choice handed to the flight (ADR 0150 point 4) ----

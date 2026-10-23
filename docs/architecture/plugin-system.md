@@ -307,6 +307,8 @@ The `wheel-throttle` command (`value` -1..1) sets `VesselControl.wheelThrottle`:
 
 `ctx.blueprints.register(defineBlueprint({ id, title, inspiredBy?, goal, crew, summary, design }))` puts a ready-made design in the Hangar's Library under "Mod". `goal` is one of `orbit`, `moon`, `planet`, `station` or `surface`, and `design` is validated with `vesselDesignSchema`. The game's own learn examples and famous missions are still built in `apps/web` (`lib/editor/blueprints.ts`) with the editor's operations, which a mod cannot import.
 
+
+Since API 0.1.112 (ADR 0316), stock registers the game's own blueprints, baked from the Hangar's builders (`apps/web/src/lib/editor/blueprint-sources.ts`, `apps/web/scripts/bake-stock-blueprints.ts`) into `mods/stock/src/blueprints.generated.ts`. `BlueprintDefinition.collection` (`learn` or `missions`) files a card in the Library, and `goal` includes `deep-space`. The web app reads every blueprint from the registry; `resolveBlueprintId` maps the ids from before ADR 0316.
 ## Non-TypeScript mods
 
 JSON data files (`part.json`, `resource.json`) that reference module ids by string are accepted and validated with the same zod schemas. Same registry, no second system.

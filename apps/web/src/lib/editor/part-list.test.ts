@@ -4,7 +4,7 @@ import Stock from '@orbital/mod-stock';
 import { describe, expect, it } from 'vitest';
 import type { ContentLookups } from '../delta-v';
 import { shellsOf } from './inside';
-import { MISSION_BLUEPRINTS } from './missions';
+import { blueprintDesign } from '../blueprint-registry';
 import { partRows } from './part-list';
 
 const { registries } = loadPlugins([Stock]);
@@ -16,7 +16,7 @@ const content: ContentLookups = {
 
 describe('part list (plan 316)', () => {
 	it('lists every part of Kronos V once, the pod first, the lander inside the petals', () => {
-		const d = MISSION_BLUEPRINTS.find((m) => m.id === 'kronos-selene')!.build(content);
+		const d = blueprintDesign('stock.kronos-selene', registries.blueprints.list());
 		const shells = shellsOf(d, content.parts, content);
 		const rows = partRows(d, content.parts, shells);
 		expect(rows).toHaveLength(d.parts.length);

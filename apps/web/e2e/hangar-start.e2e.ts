@@ -27,7 +27,7 @@ test("Start a vessel: Build my own, Escape, a blueprint and Don't show again", a
 
 	// a recommended blueprint loads it and ends the coach mark
 	await page.getByTestId('menu-new').click();
-	await page.getByTestId('vab-start-learn.two-stage').click();
+	await page.getByTestId('vab-start-stock.two-stage').click();
 	await expect(modal).toBeHidden();
 	await expect(page.getByTestId('vab-coach')).toBeHidden();
 

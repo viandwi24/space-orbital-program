@@ -23,7 +23,7 @@ The review dialog, then a just-installed mod that needs a reload:
 
 ## Notes
 
-- **Follow-up, the same day.** The page now reads plan 375's loader log (`lib/mods/boot-log.ts`) for the counts (`countsFromLog`) and the warnings in the chip. Only programs still come from the registries, because autopilots are not a `RegistryKind` in the log. Without a log, the page falls back to `countsByPlugin(registries)`. The `/developer?tab=&mod=` links now land in the filtered viewers (5809a079).
+- **Follow-up, the same day.** The page now reads plan 375's loader log (`lib/mods/boot-log.ts`) for the counts (`countsFromLog`) and the warnings in the chip. Programs came from the registries at first, because autopilots were not a registry kind in the log. Since f9ee9323 the log counts them too, so every count now comes from the log. Without a stored log, the page falls back to `countsByPlugin(registries)`. The `/developer?tab=&mod=` links now land in the filtered viewers (5809a079).
 
 - The developer-tools session (plan 375) was told about the `/developer?tab=<kind>&mod=<id>` links. Until its viewers read those parameters, the links open the Developer page.
 - Stock blueprints are not counted yet: they are not registered through the stock plugin. Plan 375 is moving them there.

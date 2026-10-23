@@ -7,7 +7,17 @@ import { DEFINITION_ID_PATTERN } from './ids.ts';
 import type { VesselDesign } from './protocol.ts';
 import { vesselDesignSchema } from './protocol-schemas.ts';
 
-export const BLUEPRINT_GOALS = ['orbit', 'moon', 'planet', 'station', 'surface'] as const;
+export const BLUEPRINT_GOALS = [
+	'orbit',
+	'moon',
+	'planet',
+	'deep-space',
+	'station',
+	'surface'
+] as const;
+/** Where the Library files a card (plan 375, ADR 0316); absent: under "Mod". */
+export const BLUEPRINT_COLLECTIONS = ['learn', 'missions'] as const;
+export type BlueprintCollection = (typeof BLUEPRINT_COLLECTIONS)[number];
 export type BlueprintGoal = (typeof BLUEPRINT_GOALS)[number];
 
 export interface BlueprintDefinition {
@@ -21,6 +31,8 @@ export interface BlueprintDefinition {
 	crew: number;
 	/** One or two sentences for the card. */
 	summary: string;
+	/** `learn` or `missions` files it beside the game's own (ADR 0316); absent: "Mod". */
+	collection?: BlueprintCollection;
 	design: VesselDesign;
 }
 
@@ -33,5 +45,6 @@ export const blueprintDefinitionSchema = z.object({
 	goal: z.enum(BLUEPRINT_GOALS),
 	crew: z.number().int().min(0),
 	summary: z.string().min(1),
+	collection: z.enum(BLUEPRINT_COLLECTIONS).optional(),
 	design: vesselDesignSchema
 });

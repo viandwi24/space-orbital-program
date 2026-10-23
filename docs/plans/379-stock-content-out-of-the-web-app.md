@@ -26,11 +26,7 @@ ADR 0311 says content comes from plugins and stock is one plugin among them. Pla
 ## Scope
 
 **In:**
-- **Blueprints.** Stock registers the learn and mission blueprints. They build through editor operations today, so either:
-  - `BlueprintDefinition` gains an optional `build(content)` beside `design`, or
-  - the designs are baked to JSON at build time and checked by a test.
-  
-  An ADR decides which.
+- **Blueprints**: done ahead of this plan (owner, 2026-10-23; ADR 0316). Stock registers them as designs baked from the builders.
 - **Lessons.** A `lessons` registry: steps as data, and checks as pure functions of the snapshot and the Hangar state.
 - **Loading shots.** A `loadingShots` registry of image assets (format 3).
 
@@ -40,14 +36,12 @@ ADR 0311 says content comes from plugins and stock is one plugin among them. Pla
 
 ## Steps
 
-1. ADR: how a blueprint that is built rather than stored is registered.
-2. Move the learn and mission cards to stock. `/developer/blueprints` then shows them `by stock`.
-3. The lessons registry and stock's lessons.
-4. The loading shots registry.
+1. The lessons registry and stock's lessons.
+2. The loading shots registry.
 
 ## Acceptance criteria
 
-- [ ] `/developer/blueprints` lists no blueprint `by game`.
+- [ ] Lessons and loading shots are registered by stock and show in the developer tools by plugin.
 - [ ] `bun test`, `bun run typecheck`, `bun run build` and `bun run docs:check` pass.
 
 ## Docs checklist

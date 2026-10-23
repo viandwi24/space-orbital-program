@@ -64,7 +64,7 @@ describe('blueprint checks for the Blueprints tab (plan 375)', () => {
 	});
 
 	it('checks every built-in card without throwing', () => {
-		for (const c of allBlueprints([])) {
+		for (const c of allBlueprints(registries.blueprints.list())) {
 			const r = checkBlueprint(c, input);
 			expect(r.buildError).toBeUndefined();
 			expect(r.missing).toEqual([]);

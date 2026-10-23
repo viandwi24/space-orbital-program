@@ -10,7 +10,8 @@ import { createSim, type Sim } from '@orbital/sim';
 import { describe, expect, it } from 'vitest';
 import { subtreeOf } from '../design';
 import type { ContentLookups } from '../delta-v';
-import { Build, MISSION_BLUEPRINTS } from './missions';
+import { blueprintDesign } from '../blueprint-registry';
+import { Build } from './missions';
 
 const { registries } = loadPlugins([Stock]);
 const content: ContentLookups = {
@@ -18,7 +19,7 @@ const content: ContentLookups = {
 	modules: registries.modules,
 	resources: registries.resources
 };
-const blueprint = (id: string) => MISSION_BLUEPRINTS.find((m) => m.id === id)!.build(content);
+const blueprint = (id: string) => blueprintDesign(id, registries.blueprints.list());
 
 const newSim = () =>
 	createSim({

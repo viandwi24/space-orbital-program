@@ -35,6 +35,7 @@ import {
 	PHYSICS_WARP_MAX,
 	IDENTITY_RULES,
 	padLatLon,
+	defaultLaunchSpot,
 	resolveVesselDesign,
 	ruleChangeProblem,
 	ruleValueProblem,
@@ -45,7 +46,8 @@ import {
 	type ControlChannel,
 	type EntityId,
 	type Quat,
-	type Vec3
+	type Vec3,
+	type VesselPlacement
 } from '@orbital/core';
 import { bodyOfVessel } from './bodies.ts';
 import { MAX_WARP } from './constants.ts';
@@ -216,7 +218,7 @@ function loadVessel(
 	if (seats) return refuse(seats);
 	const locked = lockRefusal(core, command.design);
 	if (locked) return refuse(locked);
-	const placement = command.placement ?? { kind: 'surface' };
+	const placement = command.placement ?? defaultPlacement(core, command.design.aircraft === true);
 	// fuel from the launch site's storage, then the market (plan 097, ADR 0124 point 6)
 	const launchSite = launchSiteOf(core, placement);
 	const short = refuseLaunch(core, command.design, launchSite);
@@ -313,6 +315,22 @@ function loadVessel(
 	}
 	launchTrials(core, id); // reliability draws at load (plan 130, ADR 0156 point 1)
 	return accept(id);
+}
+
+/**
+ * Where a vessel goes without a placement (a quick launch, a script): the home planet's Space
+ * Center at its first working pad (runway for an aircraft), where its map marker and ground station
+ * are; a world whose site is not at (0, 0) must not launch from (0, 0). No site on the home body,
+ * or one founded in this run: the surface at (0, 0), as before.
+ */
+function defaultPlacement(core: SimCore, aircraft: boolean): VesselPlacement {
+	const site = sitesOf(core.info).find((s) => s.body === core.root.def.id);
+	if (!site || foundedInThisRun(core, site.id)) return { kind: 'surface' };
+	return {
+		kind: 'site',
+		site: site.id,
+		at: defaultLaunchSpot(site, core.registries.buildings, aircraft)
+	};
 }
 
 /**
