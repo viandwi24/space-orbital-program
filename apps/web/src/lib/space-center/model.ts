@@ -93,7 +93,7 @@ export function actionOf(provides: readonly string[]): BuildingAction {
 	return { kind: 'none', reason: 'Nothing to open here yet.' };
 }
 
-const HEIGHTS: Record<string, number> = {
+export const HEIGHTS: Record<string, number> = {
 	hangar: 32,
 	control: 12,
 	office: 13,

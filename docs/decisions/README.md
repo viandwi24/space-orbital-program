@@ -311,5 +311,6 @@ An ADR records one decision, its context, and its consequences. ADRs are **appen
 | 0323 | [A pod's own rations](0323-a-pods-own-rations.md) | accepted | 2026-10-23 |
 | 0324 | [A company's way out of debt](0324-a-company-s-way-out-of-debt.md) | accepted | 2026-10-23 |
 | 0325 | [The first contracts open from reputation −20, and reputation settles at 0](0325-reputation-floor-for-first-contracts.md) | accepted | 2026-10-23 |
+| 0326 | [The Space Center's camera frames the whole site, then each building from its entrance](0326-space-center-camera.md) | accepted | 2026-10-23 |
 | 0327 | [What a branch is for](0327-what-a-branch-is-for.md) | accepted | 2026-10-23 |
 | 0328 | [One onboarding hand-off](0328-one-onboarding-hand-off.md) | accepted | 2026-10-23 |

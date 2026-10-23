@@ -57,6 +57,12 @@
 		type SiteState
 	} from '../../../lib/space-center/model';
 	import { startSpaceCenter, type SpaceCenter } from '../../../lib/space-center/space-center-loop';
+	import {
+		bestView,
+		fitAll,
+		siteBoxes,
+		type ViewportSpec
+	} from '../../../lib/space-center/site-camera';
 	import { activeWorldId } from '../../../lib/worlds/worlds';
 	import TourOffer from '../../../lib/space-center/TourOffer.svelte';
 	import { modeWelcome } from '../../../lib/onboarding/welcome';
@@ -110,15 +116,49 @@
 			// private window or blocked storage: the choice lasts for this visit
 		}
 	}
-	/** Frames the camera on a building; the camera eases there unless the player prefers reduced motion. */
+	/**
+	 * The camera (plan 387, ADR 0326): null frames the whole site from its front; a building id
+	 * flies to that building's best view (its entrance side, clear of the others). Measured after
+	 * the overlay has drawn, so the strip and the panel it opens count as covered. The camera eases
+	 * there unless the player prefers reduced motion.
+	 */
 	function frame(id: string | null): void {
-		const row = id === null ? undefined : rows.find((r) => r.id === id);
-		const still = globalThis.matchMedia?.('(prefers-reduced-motion: reduce)').matches ?? false;
-		center?.renderer?.setSiteFocus(
-			row ? { east: row.anchor.east, north: row.anchor.north, up: 0 } : null,
-			{ ...(row ? { distance: 160 } : {}), animate: !still }
-		);
+		requestAnimationFrame(() => {
+			if (!site || !view) return;
+			const r = view.getBoundingClientRect();
+			const context = document.querySelector('.context')?.getBoundingClientRect();
+			const detail = document.querySelector('[data-testid="sc-detail"]')?.getBoundingClientRect();
+			const vp: ViewportSpec = {
+				width: r.width,
+				height: r.height,
+				fovY: (50 * Math.PI) / 180,
+				insets: {
+					top: 80,
+					left: 24,
+					right: detail ? Math.max(24, r.right - detail.left + 16) : 24,
+					bottom: context ? Math.max(60, r.bottom - context.top + 16) : 120
+				}
+			};
+			const { buildings, roads } = siteBoxes(site, buildingRegistry);
+			const target = id === null ? undefined : buildings.find((b) => b.id === id);
+			const v = target
+				? bestView(
+						target.box,
+						target.facing,
+						buildings.filter((b) => b !== target).map((b) => b.box),
+						vp
+					)
+				: fitAll(
+						[...buildings.map((b) => b.box), ...roads],
+						buildings.flatMap((b) => (b.facing === null ? [] : [b.facing])),
+						vp
+					);
+			const still = globalThis.matchMedia?.('(prefers-reduced-motion: reduce)').matches ?? false;
+			center?.renderer?.setSiteCamera(v, { animate: !still });
+		});
 	}
+	/** The site the camera last framed as a whole: a new site (or the first) is framed once. */
+	let framedSite: string | null = null;
 	let problem = $state<string | null>(null);
 	let build = $state<{ kind: string; rotation: Rotation } | null>(null);
 	let hover = $state.raw<{ cell: { i: number; j: number }; check: GhostCheck } | null>(null);
@@ -193,6 +233,11 @@
 		}
 		if (JSON.stringify(next) === JSON.stringify(site)) return;
 		site = next;
+		// on opening the page (and on a site switch) the camera frames the whole site (ADR 0326)
+		if (next && framedSite !== next.id && center?.renderer) {
+			framedSite = next.id;
+			frame(selected);
+		}
 		// the tour reads the site's buildings and whether money counts (plan 377)
 		scFeed.update({ buildings: next?.buildings ?? [], economy: s.economy?.enabled === true });
 	}
@@ -526,6 +571,10 @@
 		{menu}
 		{thumbnail}
 		{picture}
+		onstrip={() => {
+			// the strip takes the bottom of the view: the whole site moves up above it
+			if (!selected && !build) frame(null);
+		}}
 		build={build
 			? {
 					kind: build.kind,

@@ -40,7 +40,8 @@
 		onhover = () => {},
 		onframe = () => {},
 		onmark = () => {},
-		picture
+		picture,
+		onstrip = () => {}
 	}: {
 		rows: readonly BuildingRow[];
 		/** CSS pixel of each building's label, or null when off screen. */
@@ -85,6 +86,8 @@
 		onmark?: (id: string | null, danger: boolean) => void;
 		/** A building card's thumbnail (plan 349): a data URL once drawn, or null without a picture. */
 		picture?: (row: BuildingRow) => Promise<string> | null;
+		/** The Buildings strip opened or closed: the page re-frames the site around it (plan 387). */
+		onstrip?: (open: boolean) => void;
 	} = $props();
 
 	const current = $derived(rows.find((r) => r.id === selected) ?? null);
@@ -94,6 +97,7 @@
 	let buildOpen = $state(false);
 	let tool = $state<'place' | 'demolish'>('place');
 	let listOpen = $state(false);
+	$effect(() => onstrip(listOpen));
 	/** The strip's Flows or Market line, opened from its header (plan 349). */
 	let extra = $state<'flows' | 'market' | null>(null);
 	/** The card under the pointer or focus: its building is boxed in the scene (plan 349). */
@@ -464,7 +468,6 @@
 							class="bcard"
 							class:hot={row.id === hovered}
 							data-testid="sc-row-{row.id}"
-							data-tip={row.statusText}
 							onclick={() => clickPin(row.id)}
 							onfocus={() => hoverCard(row.id)}
 							onblur={() => hoverCard(null)}
@@ -481,7 +484,7 @@
 								</span>
 								<span class="bchip {row.status}">{STATUS_CHIP[row.status]}</span>
 							</span>
-							<span class="bname">{row.label}</span>
+							<span class="bname">{row.label}<span class="sr-only">, {row.statusText}</span></span>
 							<span class="bsub"
 								>{row.status === 'active'
 									? `Level ${row.level} of ${row.maxLevel}`
