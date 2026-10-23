@@ -34,6 +34,8 @@ Since plan 122 (ADR 0119) the renderer is told the home body (`SceneConfig.home`
 
 Since plan 402 (ADR 0341) the home ground away from the launch site has rocks: `rock-scatter.ts` places them by hashing a body-fixed lattice (two size classes, a biome weight from the sim's own height field, none near a site, none over 0.4 m so nothing a vessel could touch), `ground-rocks.ts` draws the ones near the camera as two instanced meshes (a detailed and a plain rock) under a root fixed to the body, filled from a cell cache a few milliseconds a frame; `PresetSettings.rocks` thins them (none on Low).
 
+Since plan 403 (ADR 0344) the scaled-space bake carries city lights: the alpha of its normal map holds a settlement density (`night-lights.ts`, written for the CPU, GLSL and TSL), and the ground shader shows it on the night side where the bake is read (`PresetSettings.nightLights`; none on Low).
+
 Since plan 027 the same pass also draws terrain heights (ADR 0036): `terrain-model.ts` is the reference height function, `shaders/terrain.glsl.ts` bakes it once into a cube map, and the planet shader sphere-traces it per pixel under a flat zone around the launch site and a bubble around a low camera. The heights are visual only; the sim's ground is still the flat tile on the reference sphere. Clouds are two shells in one atmosphere march (`cloud-model.ts`) and the sea is a sum of dispersive waves (`water-model.ts`, ADR 0037).
 
 
