@@ -52,7 +52,7 @@ A mod could not add or change any of it.
    - at most 512 KB each, inside the package's existing totals;
    - checked by its magic bytes.
    Format 1 and 2 packages still load. A portrait whose image the package lacks rejects the mod at install time, as a missing `.glb` does.
-5. **The API version goes to 0.1.110** for the new context keys and the patch target.
+5. **The API version goes to 0.1.111** for the new context keys and the patch target.
 
 ## Consequences
 

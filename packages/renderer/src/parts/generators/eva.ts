@@ -3,6 +3,7 @@
  * outfit (white suit, life-support pack, an open helmet so the face shows) and a planted flag
  * (pole, cloth, foot). The figure stands on the bottom of the part's box at true scale.
  */
+import { outfitFor } from '../../crew/content.ts';
 import { addCharacterToPart } from '../../crew/person.ts';
 import type { GenContext, GeneratedPart } from '../registry.ts';
 import { canopyDynamic } from './parachute.ts';
@@ -15,7 +16,7 @@ export function suit(ctx: GenContext): GeneratedPart {
 	// the stock suit's box is 1.8 m: the figure is `CREW_HEIGHT` tall in it; another box scales it
 	const k = size[1] / 1.8;
 	// the helmet is the moving piece: the `visible` articulation hides it while it is off (plan 249)
-	const pivot = addCharacterToPart(b, m, { outfit: 'eva' }, k, -size[1] / 2);
+	const pivot = addCharacterToPart(b, m, { outfit: outfitFor('eva').id }, k, -size[1] / 2);
 	return { pivot, dynamic: canopyDynamic(ctx, SUIT_CANOPY, size[1] / 2) };
 }
 

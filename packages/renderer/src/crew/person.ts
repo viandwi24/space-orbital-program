@@ -27,7 +27,7 @@ import {
 	type BoneName,
 	type Role
 } from './character.ts';
-import { DEFAULT_APPEARANCE, OUTFITS, type CharacterSpec } from './outfits.ts';
+import { DEFAULT_APPEARANCE, outfitOf, type CharacterSpec } from './outfits.ts';
 import type { PersonPose } from './poses.ts';
 
 /** The one material every walker shares: vertex colours, a soft cloth-and-vinyl finish. */
@@ -39,7 +39,7 @@ export function createCrewMaterial(): MeshStandardMaterial {
 
 /** One geometry of every piece, coloured per role, with skin indices (one bone each). */
 export function characterGeometry(spec: CharacterSpec): BufferGeometry {
-	const outfit = OUTFITS[spec.outfit];
+	const outfit = outfitOf(spec.outfit);
 	const look = spec.appearance ?? DEFAULT_APPEARANCE;
 	const colour = new Color();
 	const parts = buildCharacter(spec).map((p) => {

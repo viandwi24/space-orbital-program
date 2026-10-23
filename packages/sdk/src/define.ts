@@ -26,6 +26,11 @@ import type {
 	CategoryDefinition,
 	CrewNamesDefinition,
 	CrewTraitDefinition,
+	CrewAnimationDefinition,
+	CrewExpressionDefinition,
+	CrewLookDefinition,
+	CrewOutfitDefinition,
+	CrewPortraitDefinition,
 	AnyPatchDefinition,
 	BuildingDefinition,
 	ContractDefinition,
@@ -322,6 +327,34 @@ export const defineCrewTrait = (def: CrewTraitDefinition): CrewTraitDefinition =
 
 /** Syllables crew names are drawn from (two first, two or three last). Register with `ctx.crewNames`. */
 export const defineCrewNames = (def: CrewNamesDefinition): CrewNamesDefinition => def;
+
+// ---------------------------------------------------------------------------------------------
+// Crew content (plan 375, ADR 0313): how crew members look and move
+// ---------------------------------------------------------------------------------------------
+
+/**
+ * An outfit: body cut, colours, headwear, eyewear, a hand prop, a pack, and where the game may
+ * dress people in it (`uses`). Register with `ctx.crewOutfits`; recolour another plugin's outfit
+ * with a `crew-outfit` patch.
+ */
+export const defineCrewOutfit = (def: CrewOutfitDefinition): CrewOutfitDefinition => def;
+
+/** A skin colour, hair colour, hair style or eye colour crew ids draw from. Register with `ctx.crewLooks`. */
+export const defineCrewLook = (def: CrewLookDefinition): CrewLookDefinition => def;
+
+/** A face: eye shapes, brows and a mouth, answering a `mood`. Register with `ctx.crewExpressions`. */
+export const defineCrewExpression = (def: CrewExpressionDefinition): CrewExpressionDefinition =>
+	def;
+
+/**
+ * An animation for a role (`idle`, `walk`, `wave`, `work`, `eva`): keyframes or a pure pose
+ * function. The last registered for a role is the one the game plays. Register with
+ * `ctx.crewAnimations`.
+ */
+export const defineCrewAnimation = (def: CrewAnimationDefinition): CrewAnimationDefinition => def;
+
+/** A portrait image (an asset of the mod's package) for an outfit or one crew id. Register with `ctx.crewPortraits`. */
+export const defineCrewPortrait = (def: CrewPortraitDefinition): CrewPortraitDefinition => def;
 
 // ---------------------------------------------------------------------------------------------
 // defineSiteTemplate

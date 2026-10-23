@@ -69,7 +69,7 @@ describe('mod packages', () => {
 		};
 		expect(await errors('{nope')).toContain('not JSON');
 		expect(await errors({ hello: 1 })).toContain('Not an Orbital mod package');
-		expect(await errors({ ...good, formatVersion: 3 })).toContain('newer game');
+		expect(await errors({ ...good, formatVersion: 4 })).toContain('newer game');
 		expect(await errors({ ...good, manifest: { ...good.manifest, id: 'Bad Id' } })).toContain(
 			'manifest.id'
 		);

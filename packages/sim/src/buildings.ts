@@ -45,6 +45,7 @@ export function placeBuilding(
 		cell: { i: number; j: number };
 		rotation: Rotation;
 		id: string;
+		tour?: boolean;
 	}
 ): CommandResult {
 	const known = sitesOf(core.info).find((s) => s.id === command.site);
@@ -79,12 +80,18 @@ export function placeBuilding(
 			cell: { ...command.cell },
 			rotation: command.rotation,
 			level: 0,
-			...construction(core, level.buildDays)
+			...construction(core, level.buildDays),
+			// the tour's building keeps what it cost, for its removal (ADR 0314 point 4)
+			...(command.tour ? { refund: charged(core, level.cost) } : {})
 		}
 	];
 	site.roads = [...(site.roads ?? []), ...check.roads];
 	return { ok: true };
 }
+
+/** What `pay` debits for `cost`: nothing with the economy off. */
+const charged = (core: SimCore, cost: number): number =>
+	economyOn(core) && cost > 0 ? cost * costMultiplier(core) : 0;
 
 /** Debit a construction cost (economy on); the refusal text when funds do not cover it. */
 function pay(core: SimCore, cost: number, ref: string): string | undefined {
@@ -127,12 +134,14 @@ export function upgradeBuilding(
 	if (paid) return refuse(paid);
 	const site = writableSite(core, command.site)!;
 	const work = construction(core, next.buildDays, 'upgrading');
+	const refund =
+		placed.refund === undefined ? {} : { refund: placed.refund + charged(core, next.cost) };
 	site.buildings = (site.buildings ?? []).map((b) =>
 		b.id !== command.id
 			? b
 			: work.state === 'active'
-				? { ...b, level: b.level + 1, state: 'active' as const }
-				: { ...b, ...work }
+				? { ...b, ...refund, level: b.level + 1, state: 'active' as const }
+				: { ...b, ...refund, ...work }
 	);
 	if (work.state === 'active') {
 		core.events.emit('building:ready', {
@@ -214,11 +223,15 @@ export function removeBuilding(
 ): CommandResult {
 	const known = sitesOf(core.info).find((s) => s.id === command.site);
 	if (!known) return refuse(`unknown site "${command.site}"`);
-	if (!(known.buildings ?? []).some((b) => b.id === command.id)) {
+	const placed = (known.buildings ?? []).find((b) => b.id === command.id);
+	if (!placed) {
 		return refuse(`no building "${command.id}" on site "${command.site}"`);
 	}
 	const site = writableSite(core, command.site)!;
 	site.buildings = (site.buildings ?? []).filter((b) => b.id !== command.id);
+	// the tour's building gives back what it cost (ADR 0314 point 4)
+	if (placed.refund !== undefined && placed.refund > 0 && economyOn(core))
+		record(core, 'funds', placed.refund, ECONOMY_CAUSES.refund, command.id);
 	return { ok: true };
 }
 

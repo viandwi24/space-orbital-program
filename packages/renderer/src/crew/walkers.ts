@@ -3,15 +3,19 @@
  * staff. A spec gives an outfit, an id for the look, and a path (a spot, a circle, or a line paced
  * back and forth); poses are pure functions of time.
  */
+import type { CrewOutfitUse } from '@orbital/core';
 import type { Material, SkinnedMesh } from 'three';
-import { appearanceOf, type OutfitId } from './outfits.ts';
+import { appearanceOf, outfitsFor } from './outfits.ts';
 import { createCrewMaterial, createPerson } from './person.ts';
 import { personPose, type Action } from './poses.ts';
 
 export interface CrewSpec {
-	/** The character's outfit (plan 341, ADR 0291) and the id its look comes from. */
-	outfit: OutfitId;
+	/**
+	 * The id the look comes from, and an outfit id; without one the figure takes the next outfit
+	 * registered for the walkers' use (ADR 0313: a mod's Hangar outfit joins the crew).
+	 */
 	id: string;
+	outfit?: string;
 	/** What a standing figure does; walkers walk. */
 	action?: Exclude<Action, 'walk'>;
 	/** Path: a point, a circle around the platform, or a line paced back and forth. */
@@ -98,10 +102,17 @@ export interface Walkers {
  * vertex-coloured material. A figure's front is +z; the paths' yaw has the front at +x, hence the
  * quarter turn.
  */
-export function createWalkers(specs: readonly CrewSpec[]): Walkers {
+export function createWalkers(specs: readonly CrewSpec[], use: CrewOutfitUse): Walkers {
 	const material = createCrewMaterial();
-	const people = specs.map((spec) =>
-		createPerson({ outfit: spec.outfit, appearance: appearanceOf(spec.id) }, material)
+	const outfits = outfitsFor(use);
+	const people = specs.map((spec, i) =>
+		createPerson(
+			{
+				outfit: spec.outfit ?? outfits[i % outfits.length]!.id,
+				appearance: appearanceOf(spec.id)
+			},
+			material
+		)
 	);
 	return {
 		meshes: people.map((p) => p.mesh),

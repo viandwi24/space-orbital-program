@@ -290,7 +290,8 @@ export const commandSchema: z.ZodType<Command> = z.discriminatedUnion('type', [
 		kind: z.string().min(1),
 		cell: z.object({ i: z.int(), j: z.int() }),
 		rotation: z.union([z.literal(0), z.literal(90), z.literal(180), z.literal(270)]),
-		id: z.string().min(1)
+		id: z.string().min(1),
+		tour: z.boolean().optional()
 	}),
 	z.object({ type: z.literal('remove-building'), site: z.string().min(1), id: z.string().min(1) }),
 	z.object({ type: z.literal('upgrade-building'), site: z.string().min(1), id: z.string().min(1) }),

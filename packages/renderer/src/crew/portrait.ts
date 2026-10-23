@@ -5,8 +5,10 @@
  */
 import {
 	DEFAULT_APPEARANCE,
-	OUTFITS,
-	SKINS,
+	crewContentVersion,
+	expressionOf,
+	outfitOf,
+	portraitImageOf,
 	type Appearance,
 	type CharacterSpec,
 	type Expression,
@@ -31,15 +33,15 @@ const HEAD = { y: 1.27, a: 0.29, b: 0.315, n: 2.6 } as const;
 
 /** Paints a portrait into a `size` square: transparent outside a round backdrop. */
 export function paintPortrait(ctx: Ctx, size: number, spec: CharacterSpec, backdrop = true): void {
-	const o = OUTFITS[spec.outfit];
+	const o = outfitOf(spec.outfit);
 	const look = spec.appearance ?? DEFAULT_APPEARANCE;
-	const ex = spec.expression ?? 'happy';
+	const ex = expressionOf(spec.expression);
 	const S = size;
 	const s = S * 0.97; // px per metre
 	const cy = S * 0.47;
 	const X = (x: number) => S / 2 + x * s;
 	const Y = (y: number) => cy - (y - HEAD.y) * s;
-	const skin = SKINS[look.skin];
+	const skin = look.skin;
 	ctx.save();
 	ctx.clearRect(0, 0, S, S);
 	if (backdrop) {
@@ -167,7 +169,7 @@ export function paintPortrait(ctx: Ctx, size: number, spec: CharacterSpec, backd
 	paintHair(ctx, look, cover, X, Y, s);
 
 	// --- face ------------------------------------------------------------------------------------
-	paintFace(ctx, ex, o, X, Y, s);
+	paintFace(ctx, ex, o, look.eyeColour, X, Y, s);
 	paintHeadwear(ctx, o, spec.noHelmet ?? false, X, Y, s, headPath);
 	ctx.restore();
 }
@@ -247,17 +249,22 @@ function paintFace(
 	ctx: Ctx,
 	ex: Expression,
 	o: Outfit,
+	eyeColour: number,
 	X: (x: number) => number,
 	Y: (y: number) => number,
 	s: number
 ): void {
 	const ey = 1.245;
-	const dark = '#2a1a14';
+	const dark = hex(eyeColour);
+	const bright = (c: number, k: number): number =>
+		(Math.min(255, Math.round(((c >> 16) & 255) * k)) << 16) |
+		(Math.min(255, Math.round(((c >> 8) & 255) * k)) << 8) |
+		Math.min(255, Math.round((c & 255) * k));
 	const openEye = (side: number, k = 1): void => {
 		const x = side * 0.112;
 		const g = ctx.createLinearGradient(0, Y(ey + 0.08), 0, Y(ey - 0.08));
-		g.addColorStop(0, '#1a0f0b');
-		g.addColorStop(1, '#5a3424');
+		g.addColorStop(0, hex(bright(eyeColour, 0.62)));
+		g.addColorStop(1, hex(bright(eyeColour, 2.1)));
 		ctx.fillStyle = g;
 		ctx.beginPath();
 		ctx.ellipse(X(x), Y(ey), 0.06 * k * s, 0.078 * k * s, 0, 0, Math.PI * 2);
@@ -278,34 +285,28 @@ function paintFace(
 		else ctx.arc(X(side * 0.112), Y(ey + 0.02), 0.045 * s, Math.PI * 0.1, Math.PI * 0.9);
 		ctx.stroke();
 	};
-	const k = ex === 'surprised' ? 1.1 : ex === 'excited' ? 1.05 : 1;
-	if (ex === 'wink') {
-		openEye(1);
-		closedEye(-1, true);
-	} else if (ex === 'sleepy') {
-		closedEye(1, false);
-		closedEye(-1, false);
-	} else if (o.eyewear !== 'sunglasses') {
-		openEye(1, k);
-		openEye(-1, k);
+	const { left, right } = ex.eyes;
+	if (!(o.eyewear === 'sunglasses' && left === 'open' && right === 'open')) {
+		for (const [side, shape] of [
+			[1, left],
+			[-1, right]
+		] as const) {
+			if (shape === 'closed-up' || shape === 'closed-down') closedEye(side, shape === 'closed-up');
+			else openEye(side, shape === 'wide' ? 1.1 : shape === 'big' ? 1.05 : 1);
+		}
 	}
 
 	// brows
-	const tilt: Partial<Record<Expression, [number, number]>> = {
-		angry: [0.45, 0.45],
-		sad: [-0.4, -0.4],
-		confused: [0.25, -0.15],
-		surprised: [0, 0]
-	};
-	const [tl, tr] = tilt[ex] ?? [0.08, 0.08];
-	const by = ex === 'surprised' ? 1.375 : ex === 'angry' ? 1.335 : 1.35;
+	const [tl, tr] = ex.brows?.tilt ?? [0.08, 0.08];
+	const by = 1.35 + (ex.brows?.lift ?? 0);
+	const [rl, rr] = ex.brows?.raise ?? [0, 0];
 	ctx.strokeStyle = '#4a2c18';
 	ctx.lineWidth = 0.022 * s;
-	for (const [side, t] of [
-		[1, tl],
-		[-1, tr]
+	for (const [side, t, raise] of [
+		[1, tl, rl],
+		[-1, tr, rr]
 	] as const) {
-		const y = by + (ex === 'confused' && side === 1 ? 0.02 : 0);
+		const y = by + raise;
 		const dx = Math.cos(t) * 0.035;
 		const dy = Math.sin(t) * 0.035;
 		ctx.beginPath();
@@ -325,11 +326,10 @@ function paintFace(
 	ctx.fillStyle = '#5a1e24';
 	ctx.strokeStyle = '#5a1e24';
 	ctx.lineWidth = 0.02 * s;
-	switch (ex) {
-		case 'happy':
-		case 'wink':
-		case 'excited': {
-			const k = ex === 'excited' ? 1.3 : 1;
+	switch (ex.mouth) {
+		case 'smile':
+		case 'grin': {
+			const k = ex.mouth === 'grin' ? 1.3 : 1;
 			ctx.beginPath();
 			ctx.moveTo(X(-0.06 * k), Y(my + 0.012));
 			ctx.lineTo(X(0.06 * k), Y(my + 0.012));
@@ -348,24 +348,23 @@ function paintFace(
 			ctx.fill();
 			break;
 		}
-		case 'surprised':
+		case 'o':
 			ctx.beginPath();
 			ctx.ellipse(X(0), Y(my - 0.005), 0.032 * s, 0.042 * s, 0, 0, Math.PI * 2);
 			ctx.fill();
 			break;
-		case 'sleepy':
+		case 'small-o':
 			ctx.beginPath();
 			ctx.ellipse(X(0), Y(my), 0.02 * s, 0.024 * s, 0, 0, Math.PI * 2);
 			ctx.fill();
 			break;
-		case 'confused':
+		case 'tilt':
 			ctx.beginPath();
 			ctx.moveTo(X(-0.02), Y(my - 0.008));
 			ctx.lineTo(X(0.045), Y(my + 0.01));
 			ctx.stroke();
 			break;
-		case 'sad':
-		case 'angry':
+		case 'frown':
 			ctx.beginPath();
 			ctx.arc(X(0), Y(my - 0.035), 0.04 * s, Math.PI * 1.15, Math.PI * 1.85);
 			ctx.stroke();
@@ -496,10 +495,15 @@ function paintHeadwear(
 
 const cache = new Map<string, string>();
 
-/** A cached data URL of a portrait `size` px square (CSS pixels; drawn at 2x). Browser only. */
-export function portraitUrl(spec: CharacterSpec, size = 96): string {
+/**
+ * A cached data URL of a portrait `size` px square (CSS pixels; drawn at 2x). Browser only. A mod's
+ * portrait image for `crewId` or the outfit wins over the painted one (ADR 0313 point 1).
+ */
+export function portraitUrl(spec: CharacterSpec, size = 96, crewId?: string): string {
+	const image = portraitImageOf(crewId, spec.outfit);
+	if (image) return image;
 	const look = spec.appearance ?? DEFAULT_APPEARANCE;
-	const key = `${spec.outfit}|${look.skin}|${look.hairStyle}|${look.hairColour}|${look.seed}|${spec.expression ?? 'happy'}|${spec.noHelmet ? 1 : 0}|${size}`;
+	const key = `${crewContentVersion()}|${spec.outfit}|${look.skin}|${look.hairStyle}|${look.hairColour}|${look.eyeColour}|${look.seed}|${spec.expression ?? 'happy'}|${spec.noHelmet ? 1 : 0}|${size}`;
 	const hit = cache.get(key);
 	if (hit) return hit;
 	if (typeof document === 'undefined') return '';

@@ -27,6 +27,13 @@ import type { StrategyDefinition } from './strategies.ts';
 import type { AgencyDefinition } from './agencies.ts';
 import type { DiscoveryFactDefinition } from './discovery.ts';
 import type { CrewNamesDefinition, CrewTraitDefinition } from './crew.ts';
+import type {
+	CrewAnimationDefinition,
+	CrewExpressionDefinition,
+	CrewLookDefinition,
+	CrewOutfitDefinition,
+	CrewPortraitDefinition
+} from './crew-look.ts';
 import type { DataKindDefinition, DataStorage, NewDataItem } from './data.ts';
 import type { ActionGroupDefinition } from './action-groups.ts';
 import type { PresetDefinition, RuleDefinition, RuleValue } from './rules.ts';
@@ -158,6 +165,12 @@ export interface ReadonlyRegistries {
 	/** Crew traits and name syllables (plan 106, ADR 0176). */
 	crewTraits: ReadonlyRegistry<CrewTraitDefinition>;
 	crewNames: ReadonlyRegistry<CrewNamesDefinition>;
+	/** Crew content (plan 375, ADR 0313). */
+	crewOutfits: ReadonlyRegistry<CrewOutfitDefinition>;
+	crewLooks: ReadonlyRegistry<CrewLookDefinition>;
+	crewExpressions: ReadonlyRegistry<CrewExpressionDefinition>;
+	crewAnimations: ReadonlyRegistry<CrewAnimationDefinition>;
+	crewPortraits: ReadonlyRegistry<CrewPortraitDefinition>;
 }
 
 /** Vessel-wide control input set by `throttle` and `attitude` commands. */

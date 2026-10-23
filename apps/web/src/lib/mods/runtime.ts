@@ -14,6 +14,7 @@ import {
 	type ModBundle,
 	type LoadReport,
 	type ModProblemCode,
+	type Registries,
 	type PatchReport,
 	type Plugin
 } from '@orbital/core';
@@ -47,6 +48,8 @@ export interface ModRuntime {
 	patches: PatchReport[];
 	/** The booted set's load report (built-ins and mods), or null when it did not boot (plan 375). */
 	report: LoadReport | null;
+	/** The booted set's registries (every system's bodies), or null when it did not boot (plan 375). */
+	registries: Registries | null;
 	/** Decoded assets of the booted mods, by mod id then path (plan 375: portraits). */
 	assets: ReadonlyMap<string, ReadonlyMap<string, Uint8Array>>;
 	/** The loader log of this evaluation (plan 375). */
@@ -60,6 +63,7 @@ const EMPTY: ModRuntime = {
 	partAssets: new Map(),
 	patches: [],
 	report: null,
+	registries: null,
 	assets: new Map(),
 	log: null
 };
@@ -122,9 +126,10 @@ export async function evaluateMods(
 	// order the sim boots, so the mod manager shows what a flight will use.
 	const builtin = options.builtin ?? [...BUILTIN_PLUGINS];
 	let report: LoadReport | null = null;
+	let registries: Registries | null = null;
 	let bootError: unknown;
 	try {
-		report = loadPlugins([...builtin, ...resolved.plugins]).report;
+		({ report, registries } = loadPlugins([...builtin, ...resolved.plugins]));
 	} catch (e) {
 		bootError = e;
 	}
@@ -149,6 +154,7 @@ export async function evaluateMods(
 		partAssets,
 		patches: report?.patches ?? [],
 		report,
+		registries,
 		assets,
 		log
 	};

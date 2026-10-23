@@ -4,6 +4,12 @@
  */
 import { definePlugin } from '@orbital/sdk';
 import { HomeBody, MoonBody, SunBody } from './bodies.ts';
+import {
+	STOCK_CREW_ANIMATIONS,
+	STOCK_CREW_EXPRESSIONS,
+	STOCK_CREW_LOOKS,
+	STOCK_CREW_OUTFITS
+} from './crew-look.ts';
 import { ColdGas, ModuleFlag, ModuleHelmet, ModuleJetpack, STOCK_EVA_PARTS } from './eva.ts';
 import { engineOutput, ispAt, propellantRates } from './engine.ts';
 import {
@@ -182,6 +188,11 @@ export const Stock = definePlugin({
 		for (const mode of STOCK_FAILURE_MODES) ctx.failureModes.register(mode);
 		for (const trait of STOCK_CREW_TRAITS) ctx.crewTraits.register(trait);
 		ctx.crewNames.register(STOCK_CREW_NAMES);
+		// how crew look and move (plan 375, ADR 0313)
+		for (const outfit of STOCK_CREW_OUTFITS) ctx.crewOutfits.register(outfit);
+		for (const look of STOCK_CREW_LOOKS) ctx.crewLooks.register(look);
+		for (const face of STOCK_CREW_EXPRESSIONS) ctx.crewExpressions.register(face);
+		for (const animation of STOCK_CREW_ANIMATIONS) ctx.crewAnimations.register(animation);
 		for (const group of STOCK_ACTION_GROUPS) ctx.actionGroups.register(group);
 		ctx.panels.register(PanelScience);
 		for (const objective of STOCK_OBJECTIVES) ctx.objectives.register(objective);
@@ -288,6 +299,7 @@ export * from './bodies.ts';
 export * from './eva.ts';
 export * from './panels.ts';
 export * from './lights.ts';
+export * from './crew-look.ts';
 export * from './paint.ts';
 export * from './solar.ts';
 export * from './rcs.ts';

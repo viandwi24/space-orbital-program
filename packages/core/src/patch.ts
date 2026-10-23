@@ -6,10 +6,18 @@
  */
 import type { BuildingDefinition } from './buildings.ts';
 import type { CategoryDefinition } from './categories.ts';
+import type { CrewOutfitDefinition } from './crew-look.ts';
 import type { BodyDefinition, PartDefinition, ResourceDefinition } from './definitions.ts';
 import { replaceDefinition, type Registry } from './registry.ts';
 
-export const PATCH_TARGETS = ['part', 'resource', 'body', 'building', 'category'] as const;
+export const PATCH_TARGETS = [
+	'part',
+	'resource',
+	'body',
+	'building',
+	'category',
+	'crew-outfit'
+] as const;
 export type PatchTarget = (typeof PATCH_TARGETS)[number];
 
 /** Entry type of each patchable registry kind. */
@@ -21,6 +29,8 @@ export interface PatchEntryMap {
 	building: BuildingDefinition;
 	/** Plan 069 (ADR 0146). */
 	category: CategoryDefinition;
+	/** Plan 375 (ADR 0313 point 2). */
+	'crew-outfit': CrewOutfitDefinition;
 }
 
 /**
@@ -387,7 +397,14 @@ export function orderPatches(patches: readonly PatchSource[]): {
 /** Orders and applies `patches` to the registries; never throws for a bad patch (it is disabled). */
 export function applyPatches(input: ApplyPatchesInput): ApplyPatchesResult {
 	const { patches, registries, checkEntry } = input;
-	const provenance: Provenance = { part: {}, resource: {}, body: {}, building: {}, category: {} };
+	const provenance: Provenance = {
+		part: {},
+		resource: {},
+		body: {},
+		building: {},
+		category: {},
+		'crew-outfit': {}
+	};
 	const reports: PatchReport[] = [];
 	const { order, cyclic } = orderPatches(patches);
 

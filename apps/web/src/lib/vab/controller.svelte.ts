@@ -18,10 +18,20 @@ import {
 	surfaceSite,
 	type DesignTilt,
 	type PartDefinition,
+	type Plugin,
 	type PlacedBuilding,
 	type VesselDesign
 } from '@orbital/core';
-import { VabView, type GizmoAxis, type VabGizmo, type VabMarker } from '@orbital/renderer';
+import {
+	LOOK_KEYS,
+	VabView,
+	readLook,
+	saveLook,
+	type GizmoAxis,
+	type HangarLook,
+	type VabGizmo,
+	type VabMarker
+} from '@orbital/renderer';
 import { goto } from '$app/navigation';
 import { loadContent, partLookup, partShapesOf } from '../catalog';
 import { categoriesOf } from '../editor/categories';
@@ -204,9 +214,22 @@ function saveMarkerSetting(kind: 'com' | 'cot', on: boolean): void {
 	}
 }
 
+/** The plugin list the next controller loads (the developer sandbox's own set, plan 375). */
+let contentPlugins: readonly Plugin[] | undefined;
+
+/** Makes a controller whose content is `plugins` (undefined: the page's mod runtime, as a world). */
+export function withPlugins<T>(plugins: readonly Plugin[] | undefined, make: () => T): T {
+	contentPlugins = plugins;
+	try {
+		return make();
+	} finally {
+		contentPlugins = undefined;
+	}
+}
+
 export class VabController {
 	// --- content ---------------------------------------------------------------------------------------------
-	readonly loaded = loadContent();
+	readonly loaded = loadContent(undefined, contentPlugins);
 	readonly catalog = this.loaded.catalog;
 	readonly content = this.loaded.content;
 	readonly lookup = partLookup(this.catalog);
@@ -740,14 +763,31 @@ export class VabController {
 	readonly canUndo = $derived(canUndo(this.editor));
 	readonly canRedo = $derived(canRedo(this.editor));
 
-	constructor() {
-		const text = loadDraft();
+	/**
+	 * The developer sandbox (plan 375): no world, its own draft and library (database
+	 * `orbital-dev`), no launch, and the studio look by default.
+	 */
+	readonly sandbox: boolean;
+	private readonly keys: { draft: string | undefined; library: string | undefined; look: string };
+	/** The Hangar's look (plan 375): the realistic hangar or the studio, remembered per player. */
+	look = $state<HangarLook>('normal');
+
+	constructor(options: { sandbox?: boolean } = {}) {
+		this.sandbox = options.sandbox === true;
+		this.keys = this.sandbox
+			? { draft: 'orbital.dev.design', library: 'orbital.dev.library.current', look: LOOK_KEYS.sandbox }
+			: { draft: undefined, library: undefined, look: LOOK_KEYS.world };
+		this.look = readLook(this.keys.look, this.sandbox ? 'zen' : 'normal');
+		const text = loadDraft(this.keys.draft);
 		if (text !== null) {
 			const parsed = parseDesign(text, this.lookup);
 			if (parsed.ok) this.editor = createEditor(parsed.design, this.editorContent);
 		}
-		this.libraryId = loadLibraryId();
-		const primary = typeof indexedDB === 'undefined' ? memoryStore() : indexedDbStore();
+		this.libraryId = loadLibraryId(this.keys.library);
+		const primary =
+			typeof indexedDB === 'undefined'
+				? memoryStore()
+				: indexedDbStore(this.sandbox ? 'orbital-dev' : undefined);
 		this.store = withFallback(primary);
 
 		$effect(() => {
@@ -776,7 +816,7 @@ export class VabController {
 		$effect(() => {
 			const json = serialiseDesign(this.editor.design);
 			untrack(() => {
-				saveDraft(json);
+				saveDraft(json, this.keys.draft);
 				this.scheduleAutosave();
 			});
 		});
@@ -843,6 +883,7 @@ export class VabController {
 				providers: modelProviders(),
 				props: ['stock.tank-medium', 'stock.engine-lv'],
 				quality: initialGraphicsPreset() === 'low' ? 'low' : 'high',
+				look: this.look,
 				reducedMotion: matchMedia('(prefers-reduced-motion: reduce)').matches
 			});
 		} catch (error) {
@@ -925,6 +966,16 @@ export class VabController {
 		return p && r ? { x: r.left + p.x, y: r.top + p.y } : null;
 	}
 
+	/** Switches between the realistic hangar and the studio (plan 375); the tools stay the same. */
+	toggleLook(): void {
+		this.setLook(this.look === 'zen' ? 'normal' : 'zen');
+	}
+	setLook(look: HangarLook): void {
+		this.look = look;
+		saveLook(this.keys.look, look);
+		this.view?.setLook(look);
+	}
+
 	resize(): void {
 		if (!this.stageEl) return;
 		const r = this.stageEl.getBoundingClientRect();
@@ -954,7 +1005,7 @@ export class VabController {
 		this.libraryVolatile = this.store.degraded;
 		if (this.libraryId && !this.vesselEntries.some((e) => e.record.id === this.libraryId)) {
 			this.libraryId = null;
-			saveLibraryId(null);
+			saveLibraryId(null, this.keys.library);
 		}
 	}
 
@@ -987,7 +1038,7 @@ export class VabController {
 				thumbnail: design.parts.length > 0 ? this.thumbnail() : null
 			});
 			this.libraryId = record.id;
-			saveLibraryId(record.id);
+			saveLibraryId(record.id, this.keys.library);
 			this.libraryVolatile = this.store.degraded;
 			this.saveState = 'saved';
 			if (!this.libraryAsked) {
@@ -1014,7 +1065,7 @@ export class VabController {
 		this.disarm();
 		this.selected = null;
 		this.libraryId = id;
-		saveLibraryId(id);
+		saveLibraryId(id, this.keys.library);
 		this.editor = replaceDesign(this.editor, this.editorContent, entry.design);
 		this.saveState = 'idle';
 		this.libraryOpen = false;
@@ -1047,7 +1098,7 @@ export class VabController {
 		await deleteEntry(this.store, id);
 		if (id === this.libraryId) {
 			this.libraryId = null;
-			saveLibraryId(null);
+			saveLibraryId(null, this.keys.library);
 			this.saveState = 'idle';
 		}
 		await this.refreshLibrary();
@@ -1778,7 +1829,7 @@ export class VabController {
 		this.disarm();
 		this.selected = null;
 		this.libraryId = null;
-		saveLibraryId(null);
+		saveLibraryId(null, this.keys.library);
 		this.saveState = 'idle';
 		this.editor = replaceDesign(this.editor, this.editorContent, emptyDesign());
 		this.say('Started a new vessel.');
@@ -1787,7 +1838,7 @@ export class VabController {
 		this.disarm();
 		this.selected = null;
 		this.libraryId = null;
-		saveLibraryId(null);
+		saveLibraryId(null, this.keys.library);
 		this.editor = replaceDesign(this.editor, this.editorContent, starterRocket());
 		this.view?.frame();
 		this.say('Loaded the two-stage example, with a parachute for the way home.');
@@ -1796,7 +1847,7 @@ export class VabController {
 		this.disarm();
 		this.selected = null;
 		this.libraryId = null;
-		saveLibraryId(null);
+		saveLibraryId(null, this.keys.library);
 		this.editor = replaceDesign(this.editor, this.editorContent, boosterRocket(this.editorContent));
 		this.view?.frame();
 		this.say('Loaded the booster rocket: 23 parts with four boosters and four fins.');
@@ -1805,7 +1856,7 @@ export class VabController {
 		this.disarm();
 		this.selected = null;
 		this.libraryId = null;
-		saveLibraryId(null);
+		saveLibraryId(null, this.keys.library);
 		this.editor = replaceDesign(this.editor, this.editorContent, moonShot());
 		this.view?.frame();
 		this.say('Loaded the moon shot: a core with four boosters under a lander. Pick a trip below.');
@@ -1814,7 +1865,7 @@ export class VabController {
 		this.disarm();
 		this.selected = null;
 		this.libraryId = null;
-		saveLibraryId(null);
+		saveLibraryId(null, this.keys.library);
 		this.editor = replaceDesign(
 			this.editor,
 			this.editorContent,
@@ -1827,7 +1878,7 @@ export class VabController {
 		this.disarm();
 		this.selected = null;
 		this.libraryId = null;
-		saveLibraryId(null);
+		saveLibraryId(null, this.keys.library);
 		this.editor = replaceDesign(this.editor, this.editorContent, glider(this.editorContent));
 		this.view?.frame();
 		this.say('Loaded the glider: a pod and tank with two wings and a tail.');
@@ -1839,7 +1890,7 @@ export class VabController {
 		this.disarm();
 		this.selected = null;
 		this.libraryId = null;
-		saveLibraryId(null);
+		saveLibraryId(null, this.keys.library);
 		this.editor = replaceDesign(this.editor, this.editorContent, card.build(this.editorContent));
 		this.blueprintsOpen = false;
 		this.view?.frame();
@@ -1866,7 +1917,7 @@ export class VabController {
 		this.disarm();
 		this.selected = null;
 		this.libraryId = null;
-		saveLibraryId(null);
+		saveLibraryId(null, this.keys.library);
 		this.editor = replaceDesign(this.editor, this.editorContent, mission.build(this.editorContent));
 		this.view?.frame();
 		this.say(`Loaded ${mission.title}, inspired by ${mission.inspiredBy}.`);

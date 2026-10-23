@@ -24,8 +24,8 @@ import {
 } from 'three';
 import {
 	DEFAULT_APPEARANCE,
-	OUTFITS,
-	SKINS,
+	expressionOf,
+	outfitOf,
 	type Appearance,
 	type CharacterSpec,
 	type Expression,
@@ -101,13 +101,13 @@ export interface Piece {
 export function roleColour(role: Role, outfit: Outfit, look: Appearance): number {
 	switch (role) {
 		case 'skin':
-			return SKINS[look.skin];
+			return look.skin;
 		case 'hair':
 			return look.hairColour;
 		case 'eye':
 			return 0xffffff;
 		case 'pupil':
-			return 0x2a1a14;
+			return look.eyeColour;
 		case 'mouth':
 			return 0x5a1e24;
 		case 'tongue':
@@ -125,7 +125,7 @@ export function roleColour(role: Role, outfit: Outfit, look: Appearance): number
 		case 'boots':
 			return outfit.boots;
 		case 'gloves':
-			return outfit.gloves === 0x8ec5f2 ? SKINS[look.skin] : outfit.gloves;
+			return outfit.gloves === 'skin' ? look.skin : outfit.gloves;
 		case 'hat':
 			return outfit.headwearColour;
 		case 'dark':
@@ -227,6 +227,10 @@ const arcGeo = (r: number, tube: number, from: number, arc: number): BufferGeome
 
 type Add = (bone: BoneName, role: Role, g: BufferGeometry, helmet?: boolean) => void;
 
+/**
+ * The face from an expression's data (ADR 0313 point 1): each eye's shape, the brows' tilt, lift
+ * and raise, and the mouth. Sunglasses hide two plain open eyes.
+ */
 function face(add: Add, expression: Expression, eyewear: Outfit['eyewear']): void {
 	const ex = 0.112;
 	const ey = 1.245;
@@ -249,55 +253,27 @@ function face(add: Add, expression: Expression, eyewear: Outfit['eyewear']): voi
 		const g = arcGeo(0.045, 0.011, up ? 0 : Math.PI, Math.PI);
 		add('head', 'pupil', onFace(g, side * ex, ey + (up ? -0.015 : 0.02), 0.004));
 	};
-	const sunglasses = eyewear === 'sunglasses';
-	switch (expression) {
-		case 'wink':
-			open(1);
-			closed(-1, true);
-			break;
-		case 'sleepy':
-			closed(1, false);
-			closed(-1, false);
-			break;
-		case 'surprised':
-			open(1, 1.1);
-			open(-1, 1.1);
-			break;
-		case 'excited':
-			open(1, 1.05);
-			open(-1, 1.05);
-			break;
-		default:
-			if (!sunglasses) {
-				open(1);
-				open(-1);
-			}
+	const { left, right } = expression.eyes;
+	const hidden = eyewear === 'sunglasses' && left === 'open' && right === 'open';
+	if (!hidden) {
+		for (const [side, shape] of [
+			[1, left],
+			[-1, right]
+		] as const) {
+			if (shape === 'closed-up' || shape === 'closed-down') closed(side, shape === 'closed-up');
+			else open(side, shape === 'wide' ? 1.1 : shape === 'big' ? 1.05 : 1);
+		}
 	}
-	// brows: tilt by expression (positive lifts the outer end on the figure's left)
-	const tilt: Partial<Record<Expression, [number, number]>> = {
-		angry: [0.45, 0.45],
-		sad: [-0.4, -0.4],
-		confused: [0.25, -0.15],
-		surprised: [0, 0]
-	};
-	const [tl, tr] = tilt[expression] ?? [0.08, 0.08];
-	const by = expression === 'surprised' ? 1.375 : expression === 'angry' ? 1.335 : 1.35;
-	for (const [side, t] of [
-		[1, tl],
-		[-1, tr]
+	// brows: tilt (positive lifts the outer end), height and a raise for one side
+	const [tl, tr] = expression.brows?.tilt ?? [0.08, 0.08];
+	const by = 1.35 + (expression.brows?.lift ?? 0);
+	const [rl, rr] = expression.brows?.raise ?? [0, 0];
+	for (const [side, t, raise] of [
+		[1, tl, rl],
+		[-1, tr, rr]
 	] as const) {
 		const brow = new CapsuleGeometry(0.011, 0.06, 3, 6).rotateZ(Math.PI / 2);
-		add(
-			'head',
-			'hair',
-			onFace(
-				brow,
-				side * ex,
-				by + (expression === 'confused' && side === 1 ? 0.02 : 0),
-				0.004,
-				side * t
-			)
-		);
+		add('head', 'hair', onFace(brow, side * ex, by + raise, 0.004, side * t));
 	}
 	// cheeks
 	for (const side of [1, -1]) {
@@ -305,11 +281,10 @@ function face(add: Add, expression: Expression, eyewear: Outfit['eyewear']): voi
 	}
 	// mouth
 	const my = 1.125;
-	switch (expression) {
-		case 'happy':
-		case 'wink':
-		case 'excited': {
-			const big = expression === 'excited' ? 1.3 : 1;
+	switch (expression.mouth) {
+		case 'smile':
+		case 'grin': {
+			const big = expression.mouth === 'grin' ? 1.3 : 1;
 			const m = superEllipsoid(0.06 * big, 0.05 * big, 0.018, 2.2, 14, 8, [
 				Math.PI / 2,
 				Math.PI / 2
@@ -322,19 +297,18 @@ function face(add: Add, expression: Expression, eyewear: Outfit['eyewear']): voi
 			);
 			break;
 		}
-		case 'surprised':
+		case 'o':
 			add('head', 'mouth', onFace(ellipsoid(0.032, 0.042, 0.012), 0, my - 0.005, 0.003));
 			break;
-		case 'sleepy':
+		case 'small-o':
 			add('head', 'mouth', onFace(ellipsoid(0.02, 0.024, 0.01), 0, my, 0.003));
 			break;
-		case 'confused': {
+		case 'tilt': {
 			const m = new CapsuleGeometry(0.01, 0.05, 3, 6).rotateZ(Math.PI / 2 + 0.25);
 			add('head', 'mouth', onFace(m, 0.01, my, 0.004));
 			break;
 		}
-		case 'sad':
-		case 'angry':
+		case 'frown':
 			add('head', 'mouth', onFace(arcGeo(0.04, 0.011, 0, Math.PI), 0, my - 0.035, 0.004));
 			break;
 	}
@@ -861,9 +835,9 @@ function legs(add: Add, o: Outfit): void {
 
 /** Every piece of a figure, in the figure frame, bind pose. */
 export function buildCharacter(spec: CharacterSpec): Piece[] {
-	const o = OUTFITS[spec.outfit];
+	const o = outfitOf(spec.outfit);
 	const look = spec.appearance ?? DEFAULT_APPEARANCE;
-	const expression = spec.expression ?? 'happy';
+	const expression = expressionOf(spec.expression);
 	const pieces: Piece[] = [];
 	const add: Add = (bone, role, geometry, helmet) => {
 		for (const name of Object.keys(geometry.attributes)) {

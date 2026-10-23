@@ -615,6 +615,8 @@ export interface Snapshot {
 			state: 'active' | 'planned' | 'building' | 'upgrading';
 			/** Tick day on which construction is done (plan 096, ADR 0123). */
 			readyDay?: number;
+			/** Funds a tour building gives back on removal (ADR 0314 point 4). */
+			refund?: number;
 		}>;
 		roads: Array<{ i: number; j: number }>;
 		/** Outposts (plan 128, ADR 0125 point 4). */
@@ -1001,7 +1003,13 @@ export type Command =
 			cell: { i: number; j: number };
 			rotation: 0 | 90 | 180 | 270;
 			id: string;
+			/**
+			 * The Space Center tour's building (plan 377, ADR 0314 point 4): what is paid for it is kept
+			 * on it as `refund` and given back when it is removed.
+			 */
+			tour?: boolean;
 	  }
+	/** Remove a building (plan 096); a building with a `refund` gives its funds back (ADR 0314). */
 	| { type: 'remove-building'; site: string; id: string }
 	/** Upgrade a working building one level (plan 096, ADR 0123 point 1): debits the next level's cost. */
 	| { type: 'upgrade-building'; site: string; id: string }

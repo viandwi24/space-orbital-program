@@ -1,17 +1,17 @@
 /** Hand-off of the current design from /vab to /flight. localStorage can throw or be absent. */
 const KEY = 'orbital.design';
 
-export function saveDraft(json: string): void {
+export function saveDraft(json: string, key = KEY): void {
 	try {
-		localStorage.setItem(KEY, json);
+		localStorage.setItem(key, json);
 	} catch {
 		// private mode or quota: the VAB shows the design anyway; /flight will report "no design"
 	}
 }
 
-export function loadDraft(): string | null {
+export function loadDraft(key = KEY): string | null {
 	try {
-		return localStorage.getItem(KEY);
+		return localStorage.getItem(key);
 	} catch {
 		return null;
 	}
@@ -39,18 +39,18 @@ export function loadScript(designName: string): string | null {
 /** Id of the library record the working design autosaves into (plan 029, ADR 0041). */
 const LIBRARY_ID_KEY = 'orbital.library.current';
 
-export function saveLibraryId(id: string | null): void {
+export function saveLibraryId(id: string | null, key = LIBRARY_ID_KEY): void {
 	try {
-		if (id === null) localStorage.removeItem(LIBRARY_ID_KEY);
-		else localStorage.setItem(LIBRARY_ID_KEY, id);
+		if (id === null) localStorage.removeItem(key);
+		else localStorage.setItem(key, id);
 	} catch {
 		// private mode or quota: the next load starts without a linked record
 	}
 }
 
-export function loadLibraryId(): string | null {
+export function loadLibraryId(key = LIBRARY_ID_KEY): string | null {
 	try {
-		return localStorage.getItem(LIBRARY_ID_KEY);
+		return localStorage.getItem(key);
 	} catch {
 		return null;
 	}
