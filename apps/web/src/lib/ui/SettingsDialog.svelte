@@ -11,7 +11,6 @@
 	import SavesPanel from '../save/SavesPanel.svelte';
 	import { DEBRIS_CAPS, UI_SCALES, type TouchChoice } from '../settings/settings';
 	import {
-		clearGraphicsPreset,
 		loadAutoQuality,
 		loadFrameCap,
 		saveFrameCap,
@@ -20,13 +19,27 @@
 		loadRendererChoice,
 		saveRendererChoice,
 		saveAutoQuality,
-		saveGraphicsPreset,
 		emitGraphicsChange,
 		loadBrightness,
 		saveBrightness,
 		type PresetChoice
 	} from '../graphics';
 	import type { RendererChoice } from '@orbital/renderer/backend';
+	import type { LookChoice, LookId } from '@orbital/renderer/presets';
+	import {
+		MIN_RESOLUTION_SCALE,
+		effectiveLooks,
+		effectiveScale,
+		kindOf,
+		loadProfile,
+		presetOfProfile,
+		saveProfile,
+		withLook,
+		withPreset,
+		withScale,
+		type ProfileKind,
+		type ProfilePreset
+	} from '../graphics-profile';
 	import { settings } from '../settings/settings.svelte';
 	import { fatalSave, saveAndReload } from '../fatal-error.svelte';
 	import { markActiveWorldForDebug } from '../debug/world-mark';
@@ -63,6 +76,9 @@
 			modOverlays = [];
 		}
 	});
+	let profile = $state(loadProfile());
+	/** What the preset row shows: a named preset, or Custom once a look or the scale was set by hand. */
+	const kind = $derived<ProfileKind>(kindOf(profile));
 	let preset = $state<PresetChoice>('auto');
 	let auto = $state(true);
 	let frameCap = $state<FrameCapChoice>('display');
@@ -72,6 +88,7 @@
 	// Read the stored choices each time the dialog opens, so two pages never disagree.
 	$effect(() => {
 		if (!open) return;
+		profile = loadProfile();
 		preset = presetChoice();
 		auto = loadAutoQuality();
 		frameCap = loadFrameCap();
@@ -84,12 +101,27 @@
 		emitGraphicsChange({ kind: 'brightness', level: brightness });
 	}
 
-	function choosePreset(choice: PresetChoice): void {
-		preset = choice;
-		if (choice === 'auto') clearGraphicsPreset();
-		else saveGraphicsPreset(choice);
-		onpreset?.(choice);
-		emitGraphicsChange({ kind: 'preset', choice });
+	function choosePreset(choice: ProfileKind): void {
+		// Custom is only what the rows below make of it; it is not a preset to pick
+		if (choice === 'custom') return;
+		profile = withPreset(choice as ProfilePreset);
+		saveProfile(profile);
+		const legacy = presetOfProfile(profile) ?? 'auto';
+		preset = legacy;
+		onpreset?.(legacy);
+		emitGraphicsChange({ kind: 'preset', choice: legacy });
+		emitGraphicsChange({ kind: 'looks', looks: effectiveLooks(profile) });
+		emitGraphicsChange({ kind: 'scale', scale: effectiveScale(profile) });
+	}
+	function chooseLook(id: LookId, choice: LookChoice): void {
+		profile = withLook(profile, id, choice);
+		saveProfile(profile);
+		emitGraphicsChange({ kind: 'looks', looks: effectiveLooks(profile) });
+	}
+	function chooseScale(scale: number | null): void {
+		profile = withScale(profile, scale);
+		saveProfile(profile);
+		emitGraphicsChange({ kind: 'scale', scale: effectiveScale(profile) });
 	}
 	/** The renderer is built once per page: a change saves the world and reloads, with a note meanwhile. */
 	let restarting = $state(false);
@@ -129,7 +161,28 @@
 		{ value: 'auto', label: 'Automatic', hint: 'Measured on this device while you play' },
 		{ value: 'low', label: 'Low', hint: 'Fewest effects, fastest' },
 		{ value: 'medium', label: 'Medium', hint: 'Shadows and denser terrain' },
-		{ value: 'high', label: 'High', hint: 'Everything on' }
+		{ value: 'high', label: 'High', hint: 'Everything on' },
+		{ value: 'ultra', label: 'Ultra', hint: 'Every look at its highest, full resolution' },
+		{ value: 'custom', label: 'Custom', hint: 'Set by hand below' }
+	] as const;
+	const lookRows = [
+		{
+			id: 'plasma',
+			title: 'Re-entry and aero',
+			hint: 'Plasma colours, condensation and shock cones'
+		},
+		{
+			id: 'plume',
+			title: 'Engine plumes',
+			hint: 'Flame layers, shock diamonds and the light of a cluster'
+		},
+		{ id: 'ocean', title: 'Sea', hint: 'Sky reflection and fine ripples' }
+	] as const;
+	const lookOptions = [
+		{ value: 'auto', label: 'Preset', hint: 'Follows the quality preset' },
+		{ value: 'low', label: 'Low', hint: 'Cheapest' },
+		{ value: 'medium', label: 'Medium', hint: 'Balanced' },
+		{ value: 'high', label: 'High', hint: 'Fullest' }
 	] as const;
 	const frameCapOptions = [
 		{ value: 'display', label: 'Display', hint: 'As fast as the screen refreshes' },
@@ -207,7 +260,7 @@
 				</div>
 				<Segmented
 					label="Graphics quality"
-					value={preset}
+					value={kind}
 					options={presetOptions}
 					onchange={choosePreset}
 					testid="setting-preset"
@@ -257,6 +310,49 @@
 					testid="setting-renderer"
 				/>
 			</div>
+			{#each lookRows as row (row.id)}
+				<div class="row">
+					<div class="what">
+						<h3>{row.title}</h3>
+						<p>
+							{row.hint}. A level you pick here stays; the automatic adjustment never changes it.
+						</p>
+					</div>
+					<Segmented
+						label={row.title}
+						value={profile.looks[row.id]}
+						options={lookOptions}
+						onchange={(c) => chooseLook(row.id, c)}
+						testid="setting-look-{row.id}"
+					/>
+				</div>
+			{/each}
+			<label class="row">
+				<div class="what">
+					<h3>Resolution</h3>
+					<p>
+						The share of the screen's pixels the 3D view draws at.
+						{#if profile.resolutionScale === null}Automatic: the quality adjustment sets it.{:else}Held
+							at {Math.round(profile.resolutionScale * 100)} %.
+							<button
+								class="link"
+								type="button"
+								onclick={() => chooseScale(null)}
+								data-testid="setting-resolution-auto">Automatic</button
+							>{/if}
+					</p>
+				</div>
+				<input
+					type="range"
+					min={MIN_RESOLUTION_SCALE * 100}
+					max="100"
+					step="5"
+					value={Math.round((profile.resolutionScale ?? 1) * 100)}
+					oninput={(e) => chooseScale(Number(e.currentTarget.value) / 100)}
+					aria-label="Resolution scale"
+					data-testid="setting-resolution"
+				/>
+			</label>
 			<div class="row">
 				<div class="what">
 					<h3>Frame rate limit</h3>

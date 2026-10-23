@@ -63,8 +63,8 @@ describe('Automatic by measured headroom (plan 362, ADR 0304)', () => {
 		expect(parseFrameCap(null)).toBe('display');
 		expect(parseFrameCap('60')).toBe('60');
 		expect(parseFrameCap('120')).toBe('120');
-expect(frameCapFps('120')).toBe(120);
-expect(parseFrameCap('144')).toBe('display');
+		expect(frameCapFps('120')).toBe(120);
+		expect(parseFrameCap('144')).toBe('display');
 		expect(frameCapFps('display')).toBeNull();
 		expect(frameCapFps('30')).toBe(30);
 	});
@@ -106,7 +106,11 @@ describe('the 120 Hz lock target (plan 395, ADR 0338)', () => {
 		expect(learnedKey('webgpu', 120)).toBe('webgpu@120');
 		expect(learnedKey('webgpu', 60)).toBe('webgpu');
 		const stored = JSON.stringify({ 'webgpu@120': { preset: 'high', scale: 1, taau: 0.6 } });
-		expect(parseLearnedLevel(stored, 'webgpu@120')).toEqual({ preset: 'high', scale: 1, taau: 0.6 });
+		expect(parseLearnedLevel(stored, 'webgpu@120')).toEqual({
+			preset: 'high',
+			scale: 1,
+			taau: 0.6
+		});
 		expect(parseLearnedLevel(stored, 'webgpu')).toBeNull();
 	});
 });

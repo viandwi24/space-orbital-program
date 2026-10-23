@@ -10,7 +10,8 @@ import {
 	parsePreset,
 	selectPreset,
 	type DeviceCapabilities,
-	type GraphicsPreset
+	type GraphicsPreset,
+	type LookChoices
 } from '@orbital/renderer/presets';
 
 import { refreshOf, tierOf } from '@orbital/renderer/device-tier';
@@ -216,7 +217,10 @@ export const learnedKey = (backend: string, targetHz: number): string =>
 export function parseLearnedLevel(value: unknown, backend: string): LearnedLevel | null {
 	if (typeof value !== 'string') return null;
 	try {
-		const all = JSON.parse(value) as Record<string, { preset?: unknown; scale?: unknown; taau?: unknown }>;
+		const all = JSON.parse(value) as Record<
+			string,
+			{ preset?: unknown; scale?: unknown; taau?: unknown }
+		>;
 		const entry = all?.[backend];
 		const preset = parsePreset(entry?.preset);
 		const scale = Number(entry?.scale);
@@ -430,7 +434,11 @@ export type GraphicsChange =
 	| { kind: 'preset'; choice: PresetChoice }
 	| { kind: 'brightness'; level: number }
 	| { kind: 'auto'; on: boolean }
-	| { kind: 'frameCap'; choice: FrameCapChoice };
+	| { kind: 'frameCap'; choice: FrameCapChoice }
+	/** The levels the player pinned for the looks (plan 404); the world's renderer applies them. */
+	| { kind: 'looks'; looks: LookChoices }
+	/** The resolution scale the player pinned, or null for the governor's. */
+	| { kind: 'scale'; scale: number | null };
 
 const changes = new EventTarget();
 

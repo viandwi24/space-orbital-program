@@ -301,3 +301,37 @@ export function detailOf(settings: PresetSettings): PartDetail {
 		textureSize: settings.partTexture
 	};
 }
+
+/**
+ * Per-look quality (plan 404, ADR 0339): the looks that have a level of their own. A preset sets each
+ * look's level (`PresetSettings.plasma`, `plume`, `ocean`); the player may pin one, which wins over the
+ * preset and over the governor's steps (a governor step changes the preset, never a pinned look).
+ */
+export const LOOKS = ['plasma', 'plume', 'ocean'] as const;
+export type LookId = (typeof LOOKS)[number];
+export type LookLevel = 'low' | 'medium' | 'high';
+/** The player's choice for a look: a level, or `auto` to follow the preset. */
+export type LookChoice = LookLevel | 'auto';
+export type LookChoices = Record<LookId, LookChoice>;
+
+export const LOOK_LEVELS: readonly LookLevel[] = ['low', 'medium', 'high'];
+export const AUTO_LOOKS: Readonly<LookChoices> = { plasma: 'auto', plume: 'auto', ocean: 'auto' };
+
+/** The pinned levels (`auto` looks have none). Set by the host from the player's profile. */
+const pinned: Partial<Record<LookId, LookLevel>> = {};
+
+/** Pins the looks the player chose and frees the rest; the host then re-applies the preset. */
+export function setLookChoices(choices: Partial<LookChoices>): void {
+	for (const id of LOOKS) {
+		const c = choices[id];
+		if (c === 'low' || c === 'medium' || c === 'high') pinned[id] = c;
+		else delete pinned[id];
+	}
+}
+
+/** The level a look is drawn at: the player's pin, else the preset's. */
+export const lookLevel = (settings: PresetSettings, id: LookId): LookLevel =>
+	pinned[id] ?? settings[id];
+
+/** Whether the player pinned a look. */
+export const lookPinned = (id: LookId): boolean => pinned[id] !== undefined;

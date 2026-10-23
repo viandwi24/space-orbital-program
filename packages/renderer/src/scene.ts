@@ -97,7 +97,7 @@ import {
 } from './terrain-shadow.ts';
 import { OverlayLayer, type OverlayInput } from './overlay-layer.ts';
 import { DEFAULT_ORIGIN_THRESHOLD, ZERO, toRenderSpace, updateOrigin } from './origin.ts';
-import { PRESETS, detailOf, type GraphicsPreset } from './presets.ts';
+import { PRESETS, detailOf, lookLevel, type GraphicsPreset } from './presets.ts';
 import { projectWorldPoint, type ScreenPoint } from './project.ts';
 import {
 	MAX_REMNANTS,
@@ -409,7 +409,7 @@ export class SceneModel {
 		this.config = config;
 		const settings = PRESETS[config.preset ?? 'high'];
 		this.partsPreset = config.preset ?? 'high';
-		plumeQuality.level = settings.plume;
+		plumeQuality.level = lookLevel(settings, 'plume');
 		this.factory = this.makeFactory(this.partsPreset);
 		this.threshold = config.originThreshold ?? DEFAULT_ORIGIN_THRESHOLD;
 		const primary = config.bodies.find((b) => b.id === config.home) ?? config.bodies[0];
@@ -613,7 +613,7 @@ export class SceneModel {
 	setPreset(preset: GraphicsPreset, resources?: GraphicsPreset, keepParts = false): void {
 		this.environment.setPreset(preset, resources);
 		this.effects.setPreset(PRESETS[preset]);
-		plumeQuality.level = PRESETS[preset].plume;
+		plumeQuality.level = lookLevel(PRESETS[preset], 'plume');
 		for (const moon of this.moons.values()) moon.setShadowSteps(SHADOW_STEPS[preset]);
 		// a governor step keeps the part detail of the resource preset (plan 373, ADR 0310): rebuilding
 		// the models made new materials and their shadow pipelines in flight, 0.1 to 0.2 s on the M2

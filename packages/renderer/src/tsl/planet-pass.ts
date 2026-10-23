@@ -54,7 +54,13 @@ import {
 	LAKE_SHAPE
 } from '@orbital/core';
 import { TERRAIN_VEIL, type Atmosphere } from '../atmosphere-model.ts';
-import { GRAPHICS_PRESETS, PRESETS, type PresetSettings } from '../presets.ts';
+import {
+	GRAPHICS_PRESETS,
+	PRESETS,
+	lookLevel,
+	type LookLevel,
+	type PresetSettings
+} from '../presets.ts';
 import {
 	SLOPE_EXAGGERATION,
 	SLOPE_EXAGGERATION_RANGE,
@@ -356,12 +362,15 @@ export class PlanetPassTSL {
 	private bakeQuad: QuadMesh | null = null;
 	private readonly up = new Vector3();
 	private readonly sun = new Vector3();
+	/** The sea's level the shader was last built for (a pinned look changes it without the preset changing). */
+	private oceanLevel: LookLevel;
 
 	constructor(
 		private readonly planet: PlanetPass,
 		private readonly atm: Atmosphere,
 		private settings: PresetSettings
 	) {
+		this.oceanLevel = lookLevel(settings, 'ocean');
 		this.sky = createLutSky(atm);
 		const v = newVariant();
 		this.material = v.full;
@@ -426,11 +435,12 @@ export class PlanetPassTSL {
 			settings.shaftTerrain !== s.shaftTerrain ||
 			settings.auroraSteps !== s.auroraSteps ||
 			settings.cloudShadowMap !== s.cloudShadowMap ||
-			settings.ocean !== s.ocean ||
+			lookLevel(settings, 'ocean') !== this.oceanLevel ||
 			settings.terrainSize > 0 !== s.terrainSize > 0 ||
 			settings.terrainPatch > 0 !== s.terrainPatch > 0 ||
 			settings.shadowMapSize > 0 !== s.shadowMapSize > 0;
 		this.settings = settings;
+		this.oceanLevel = lookLevel(settings, 'ocean');
 	}
 
 	/**
@@ -601,7 +611,7 @@ export class PlanetPassTSL {
 			s.shaftTerrain,
 			s.auroraSteps,
 			s.cloudShadowMap,
-			s.ocean,
+			lookLevel(s, 'ocean'),
 			s.terrainSize > 0,
 			s.terrainPatch > 0,
 			s.shadowMapSize > 0
@@ -1449,7 +1459,7 @@ export class PlanetPassTSL {
 						time: uTime,
 						anchors,
 						noiseA: nA,
-						detail: cfg.ocean !== 'low'
+						detail: lookLevel(cfg, 'ocean') !== 'low'
 					});
 					const calm = lakeOnly.mul(-0.8).add(1.0); // a lake has no swell
 					gWave.assign(wv.gradient.mul(calm));

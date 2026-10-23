@@ -90,6 +90,7 @@ import {
 	type LearnedLevel
 } from './graphics';
 import { heatMarks } from './hud/heat-marks';
+import { effectiveScale, loadProfile } from './graphics-profile';
 import { HUD_FRAME_HZ } from './hud/hud-rate';
 import { modeForAction } from './hud/sas-model';
 import {
@@ -1592,7 +1593,10 @@ export function startFlight(options: FlightOptions): Flight {
 		const live = governor?.targetFps;
 		return learnedKey(
 			backend,
-			live ?? (lockCeiling(probeCapabilities(), navigator.userAgent) >= 120 && measuredRefreshHz() >= 100 ? 120 : 60)
+			live ??
+				(lockCeiling(probeCapabilities(), navigator.userAgent) >= 120 && measuredRefreshHz() >= 100
+					? 120
+					: 60)
 		);
 	}
 
@@ -1616,7 +1620,8 @@ export function startFlight(options: FlightOptions): Flight {
 		// a governor level keeps the world's map and terrain sizes (plan 373, ADR 0310)
 		if (level.preset !== renderer.preset) renderer.setPreset(level.preset, { governed: true });
 		syncGlass();
-		renderer.setRenderScale(level.scale);
+		// a resolution scale the player pinned (plan 404) is the governor's floor and ceiling alike
+		renderer.setRenderScale(effectiveScale(loadProfile()) ?? level.scale);
 		renderer.setPlanetScale(level.planetScale);
 		// the TAAU rung: no resource of the scene changes with it (plan 395); null follows the preset
 		renderer.setTaau?.(level.taau ?? null);
@@ -2519,6 +2524,10 @@ export function startFlight(options: FlightOptions): Flight {
 			if (change.kind === 'preset') flightApi.setGraphicsPreset(change.choice);
 			else if (change.kind === 'auto') flightApi.setAutoQuality(change.on);
 			else if (change.kind === 'frameCap') flightApi.setFrameCap(change.choice);
+			else if (change.kind === 'scale') {
+				const held = effectiveScale(loadProfile());
+				if (held !== null) renderer?.setRenderScale(held);
+			}
 		})
 	);
 	return flightApi;

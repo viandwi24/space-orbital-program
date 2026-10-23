@@ -28,6 +28,8 @@ import {
 	saveRendererFallback
 } from './graphics';
 import { rendererBackendFrom } from '@orbital/renderer/backend';
+import { setLookChoices } from '@orbital/renderer/presets';
+import { effectiveLooks, loadProfile } from './graphics-profile';
 import type { Catalog } from './messages';
 import { modelProviders } from './mods/asset-models';
 import type { SimClient } from './sim-client';
@@ -287,6 +289,8 @@ class WorldRenderer {
 			const config: RendererConfig = bootPreset
 				? { ...base, bootPreset, onBootSwap: () => this.writeLog('ready') }
 				: base;
+			// the looks the player pinned (plan 404) are in place before the scene is built
+			setLookChoices(effectiveLooks(loadProfile()));
 			let r: Renderer;
 			try {
 				r = createRenderer(config);
@@ -306,6 +310,11 @@ class WorldRenderer {
 			this.offBrightness?.();
 			this.offBrightness = onGraphicsChange((change) => {
 				if (change.kind === 'brightness') r.setBrightness(change.level);
+				else if (change.kind === 'looks') {
+					setLookChoices(change.looks);
+					// the same preset again: the looks read their pins, the sea's shader rebuilds if its level moved
+					r.setPreset(r.preset, { governed: true });
+				}
 			});
 			this.renderer = r;
 			this.key = key;

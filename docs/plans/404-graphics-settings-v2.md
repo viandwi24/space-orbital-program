@@ -1,7 +1,7 @@
 ---
 id: 404
 title: "Graphics settings v2: a switch and quality per look, an Ultra preset, a resolution-scale slider, 120 fps, defaults from the device tier"
-status: draft
+status: done
 owner: "Worker C"
 depends: [395, 399, 400, 401]
 phase: 9
@@ -88,3 +88,4 @@ Settings → Graphics gives the player a switch and a quality level for each loo
 ## Log
 
 - 2026-10-24 — Created by the coordinator from refs/graphics-v2 (ADR 0330).
+- 2026-10-24 — Done for the looks that exist (Worker C, ADR 0339): the profile, Ultra and Custom, a row per look (re-entry, plumes, sea), the resolution slider, the governor contract. Left: rows for looks whose plans land later, the frame-time checks and the owner's look ([manual]).

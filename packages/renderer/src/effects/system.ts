@@ -25,7 +25,7 @@ import {
 	Quaternion,
 	Vector3
 } from 'three';
-import type { PresetSettings } from '../presets.ts';
+import { lookLevel, type PresetSettings } from '../presets.ts';
 import { toRenderSpace } from '../origin.ts';
 import {
 	add,
@@ -492,7 +492,7 @@ export class Effects {
 				acc.blast += (vacuum ? vacuumDustRate(input) : groundBlastRate(input)) * dt;
 				acc.trail += exhaustTrailRate(input) * dt * TRAIL_PARTICLE_SHARE;
 				const exhaust = rotate(part.orientation, vec(0, -1, 0));
-				if (this.settings.plume !== 'low') {
+				if (lookLevel(this.settings, 'plume') !== 'low') {
 					let colour = this.glowColours.get(spec);
 					if (!colour) {
 						colour = resolveTemplate(spec.template, spec.color).colours.outer;
@@ -614,7 +614,7 @@ export class Effects {
 
 	/** The cluster lights of this frame (plan 400): a pooled light per cluster, the rest at intensity 0. */
 	private writeClusterLights(): void {
-		const on = this.settings.plume !== 'low';
+		const on = lookLevel(this.settings, 'plume') !== 'low';
 		if (on && this.clusterPool.length === 0) {
 			for (let i = 0; i < CLUSTER_LIGHTS; i++) {
 				const light = new PointLight(0xffa860, 0, 0, 2);
@@ -1097,7 +1097,7 @@ export class Effects {
 		const at = (s: number): Vec3 => vec(root.x + fwd.x * s, root.y + fwd.y * s, root.z + fwd.z * s);
 		const tip = at(profile.front + 0.6);
 		// the colours of the three layers from the heating, the speed and the body's palette (plan 399)
-		const quality = this.settings.plasma;
+		const quality = lookLevel(this.settings, 'plasma');
 		const palette = paletteFor(info.id, info.atmosphere);
 		const heating = heatingOf(
 			stagnationFlux(airDensity(info.atmosphere, altitude), PLASMA_NOSE_RADIUS, speed),
