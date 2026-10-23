@@ -97,7 +97,15 @@
 	let buildOpen = $state(false);
 	let tool = $state<'place' | 'demolish'>('place');
 	let listOpen = $state(false);
-	$effect(() => onstrip(listOpen));
+	/** The build bar's cards are folded away (plan 388). */
+	let buildFolded = $state(false);
+	// the strip, the build bar opening and its cards folding all change what covers the site's
+	// bottom: the page re-frames it above them (plans 387, 388)
+	$effect(() => {
+		void mode;
+		void buildFolded;
+		onstrip(listOpen);
+	});
 	/** The strip's Flows or Market line, opened from its header (plan 349). */
 	let extra = $state<'flows' | 'market' | null>(null);
 	/** The card under the pointer or focus: its building is boxed in the scene (plan 349). */
@@ -516,6 +524,7 @@
 				ondone={closeBuild}
 				built={builtCount}
 				placing={build ? placingChip : undefined}
+				bind:collapsed={buildFolded}
 			/>
 		{:else if mode === 'focus'}
 			<nav class="bar" aria-label="Building navigation" data-testid="sc-focus-bar">

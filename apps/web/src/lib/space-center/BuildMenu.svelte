@@ -4,6 +4,8 @@
 	 * row one is BUILD, the category tabs, the Place and Demolish tools and Done; row two is the open
 	 * category's cards (thumbnail, chip, name, facts, why it cannot be built here), the placement
 	 * chip while a ghost is out, or the Demolish hint. Hover or focus shows a card's levels.
+	 * Compact (plan 388): one short row of cards, the thumbnail beside the name, and a chevron that
+	 * folds the cards away so only the tabs stay over the site.
 	 */
 	import type { Snippet } from 'svelte';
 	import type { CategoryIcon } from '@orbital/core';
@@ -19,7 +21,8 @@
 		ontool = () => {},
 		ondone = () => {},
 		built = {},
-		placing
+		placing,
+		collapsed = $bindable(false)
 	}: {
 		menu: readonly BuildCategory[];
 		/** A card's picture (a data URL), or null when it has none; resolves once drawn. */
@@ -34,6 +37,8 @@
 		built?: Readonly<Record<string, number>>;
 		/** The placement chip, drawn in place of the cards while a ghost is out. */
 		placing?: Snippet;
+		/** The cards are folded away (plan 388): only the top row shows. */
+		collapsed?: boolean;
 	} = $props();
 
 	// the first category is open when the bar opens (V3 §1.2: a tab is always chosen)
@@ -68,6 +73,7 @@
 	});
 	function pickCat(id: string): void {
 		open = id;
+		collapsed = false;
 		detail = null;
 		ontool('place');
 	}
@@ -152,6 +158,19 @@
 				><svg viewBox="0 0 24 24" width="17" height="17" aria-hidden="true"><path d={DOZER} /></svg
 				><span class="dot" aria-hidden="true"></span></button
 			>
+			<button
+				type="button"
+				class="tool fold"
+				class:folded={collapsed}
+				aria-expanded={!collapsed}
+				aria-label={collapsed ? 'Show the buildings' : 'Hide the buildings'}
+				data-tip={collapsed ? 'Show the buildings' : 'Hide the buildings'}
+				data-testid="sc-build-fold"
+				onclick={() => (collapsed = !collapsed)}
+				><svg viewBox="0 0 24 24" width="17" height="17" aria-hidden="true"
+					><path d="M6 9 L12 15 L18 9" /></svg
+				></button
+			>
 			<span class="rule" aria-hidden="true"></span>
 			<button type="button" class="done" data-testid="sc-build-done" onclick={ondone}>Done</button>
 		</div>
@@ -169,7 +188,7 @@
 		</div>
 	{:else if placing}
 		{@render placing()}
-	{:else if row}
+	{:else if row && !collapsed}
 		<!-- svelte-ignore a11y_no_noninteractive_element_interactions, a11y_interactive_supports_focus -->
 		<div
 			class="row"
@@ -194,24 +213,25 @@
 					onfocus={() => (detail = card.id)}
 					onblur={() => detail === card.id && (detail = null)}
 				>
-					<span class="head">
-						<span class="thumb">
-							{#if pictures[card.id]}
-								<img src={pictures[card.id]} alt="" data-testid="sc-thumb-{card.id}" />
-							{:else}
-								<Icon {...iconProps(row.icon)} size={16} />
-							{/if}
-						</span>
-						{#if chip}<span class="chip">{chip}</span>{/if}
+					<span class="thumb">
+						{#if pictures[card.id]}
+							<img src={pictures[card.id]} alt="" data-testid="sc-thumb-{card.id}" />
+						{:else}
+							<Icon {...iconProps(row.icon)} size={16} />
+						{/if}
 					</span>
-					<span class="name">{card.label}</span>
-					{#if card.reason}<span class="why" id="sc-why-{card.id}">{card.reason}</span>
-					{:else}<span class="facts">{cardFacts(card)}</span>{/if}
+					<span class="text">
+						<span class="name"
+							>{card.label}{#if chip}<span class="chip">{chip}</span>{/if}</span
+						>
+						{#if card.reason}<span class="why" id="sc-why-{card.id}">{card.reason}</span>
+						{:else}<span class="facts">{cardFacts(card)}</span>{/if}
+					</span>
 				</button>
 			{/each}
 		</div>
 	{/if}
-	{#if shown && tool === 'place' && !placing}
+	{#if shown && tool === 'place' && !placing && !collapsed}
 		<div class="detail" role="tooltip" data-testid="build-detail">
 			<strong>{shown.label}</strong>
 			{#if shown.description}<p>{shown.description}</p>{/if}
@@ -384,15 +404,14 @@
 	}
 	.card {
 		position: relative;
-		flex: 1 0 11rem;
-		max-width: 15rem;
-		min-height: 5.75rem;
+		flex: 1 0 12.5rem;
+		max-width: 16rem;
+		min-height: 3.25rem;
 		box-sizing: border-box;
 		display: flex;
-		flex-direction: column;
-		align-items: flex-start;
-		gap: 0.5rem;
-		padding: 0.625rem;
+		align-items: center;
+		gap: 0.625rem;
+		padding: 0.4375rem 0.625rem 0.4375rem 0.4375rem;
 		border: 1px solid transparent;
 		border-radius: 12px;
 		background: rgb(255 255 255 / 0.035);
@@ -409,17 +428,18 @@
 		cursor: not-allowed;
 		opacity: 0.5;
 	}
-	.head {
+	.text {
+		min-width: 0;
 		display: flex;
-		align-items: center;
-		justify-content: space-between;
-		width: 100%;
+		flex-direction: column;
+		gap: 0.25rem;
 	}
 	.thumb {
+		flex: none;
 		display: grid;
 		place-items: center;
-		width: 2.75rem;
-		height: 1.75rem;
+		width: 3rem;
+		height: 2.375rem;
 		border-radius: 7px;
 		background: var(--surface-tile);
 		color: var(--text-secondary);
@@ -431,9 +451,11 @@
 		object-fit: cover;
 	}
 	.chip {
+		display: inline-flex;
+		vertical-align: middle;
+		margin-left: 0.375rem;
 		height: 1rem;
 		padding: 0 0.375rem;
-		display: flex;
 		align-items: center;
 		border-radius: var(--radius-pill);
 		background: rgb(255 255 255 / 0.1);
@@ -446,12 +468,24 @@
 		font-size: var(--t-button);
 		font-weight: 600;
 		line-height: 1;
+		white-space: nowrap;
 	}
 	.facts,
 	.why {
 		font-size: var(--t-label);
 		line-height: 1.3;
 		color: var(--text-muted);
+		display: -webkit-box;
+		-webkit-line-clamp: 2;
+		line-clamp: 2;
+		-webkit-box-orient: vertical;
+		overflow: hidden;
+	}
+	.fold svg {
+		transition: transform 0.15s ease;
+	}
+	.fold.folded svg {
+		transform: rotate(180deg);
 	}
 	.why {
 		color: var(--warn);
@@ -488,10 +522,10 @@
 	}
 	.detail {
 		position: absolute;
+		/* at the bar's right end, out of the site's middle (plan 388) */
 		bottom: calc(100% + 0.5rem);
-		left: 50%;
-		transform: translateX(-50%);
-		width: min(30rem, calc(100vw - 3rem));
+		right: 0;
+		width: min(26rem, calc(100vw - 3rem));
 		padding: 0.75rem 0.875rem;
 		border-radius: 14px;
 		font-size: var(--t-small);
