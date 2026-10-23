@@ -97,3 +97,61 @@ describe('the script sandbox lives with the world (plan 239)', () => {
 		expect(made).toBe(2);
 	});
 });
+
+describe('a world opened from a save resumes every saved script (plan 322)', () => {
+	it('each saved script gets a sandbox of its own and a resume message', async () => {
+		const posted: unknown[] = [];
+		const opened: number[] = [];
+		let worker: WorkerLike | undefined;
+		const made: number[] = [];
+		let id = 0;
+		const session = createWorldSession(
+			() => {
+				worker = {
+					postMessage: (m: unknown) => void posted.push(m),
+					onmessage: null,
+					onerror: null,
+					terminate: () => {}
+				};
+				return createSimClient(worker);
+			},
+			() => {
+				const mine = id++;
+				made.push(mine);
+				return {
+					open: async () => {
+						opened.push(mine);
+						return new MessageChannel().port1;
+					},
+					close: () => {},
+					status: { state: 'none', reports: [], contained: false },
+					onStatus: () => () => {}
+				};
+			}
+		);
+		await session.acquire('w-1', async () => ({}));
+		worker!.onmessage?.({
+			data: {
+				kind: 'ready',
+				savedScripts: [
+					{ vessel: 3, name: 'A script' },
+					{ vessel: 8, name: 'B script' }
+				],
+				plugins: [],
+				parts: [],
+				bodies: [],
+				resources: []
+			}
+		} as MessageEvent);
+		for (let i = 0; i < 50 && opened.length < 2; i++) await new Promise((r) => setTimeout(r, 5));
+		await new Promise((r) => setTimeout(r, 20));
+		// two sandboxes, one per script, and a resume for each vessel
+		expect(opened.sort()).toEqual([0, 1]);
+		expect(session.scriptSandbox(3)).not.toBe(session.scriptSandbox(8));
+		const resumes = posted.filter(
+			(m) => (m as { kind?: string; resume?: boolean }).kind === 'script-start'
+		) as Array<{ vessel: number; resume?: boolean }>;
+		expect(resumes.map((m) => m.vessel).sort()).toEqual([3, 8]);
+		expect(resumes.every((m) => m.resume === true)).toBe(true);
+	});
+});

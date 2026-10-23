@@ -484,6 +484,12 @@
 	);
 	let script = $state.raw<ScriptView>(idleScript());
 	let sandbox = $state.raw<SandboxStatus>({ state: 'none', reports: [], contained: false });
+	/** Follows the active vessel's script sandbox (plan 322); set once the flight starts. */
+	let sandboxWatch: ((id: number) => void) | null = null;
+	$effect(() => {
+		const id = vesselShown?.id;
+		if (id !== undefined) sandboxWatch?.(Number(id));
+	});
 	/** Set while the editor holds text from outside that the player has not confirmed running (plan 030). */
 	let imported = $state<ImportInfo | null>(null);
 	let backup = $state<string | null>(null);
@@ -1050,7 +1056,15 @@
 		source = loadScript(designName) ?? '';
 		// the world's sandbox (plan 239): a script keeps running when this page goes
 		const scriptSandbox = worldSession.scriptSandbox() ?? startScriptSandbox();
-		const offSandbox = scriptSandbox.onStatus((s) => (sandbox = s));
+		// each vessel's script has a sandbox of its own (plan 322); the panel shows the active vessel's
+		let offSandbox = (): void => {};
+		const watchSandbox = (id: number): void => {
+			offSandbox();
+			const box = worldSession.scriptSandbox(id) ?? scriptSandbox;
+			offSandbox = box.onStatus((s) => (sandbox = s));
+		};
+		sandboxWatch = watchSandbox;
+		watchSandbox(-1);
 		// The syntax check uses a sandbox of its own, opened on the first check (plan 058, ADR 0085).
 		const checkSandbox = startScriptSandbox();
 		checker = createScriptChecker({
@@ -1115,6 +1129,7 @@
 			onScript: (v) => (script = v),
 			onGraphics: (p) => (graphics = p),
 			sandbox: scriptSandbox,
+			sandboxFor: (id) => worldSession.scriptSandbox(id),
 			onFrame: (f: FrameData) => {
 				deck?.paint(f.navball);
 				markers?.place(f.map, f.maneuver?.apsides ?? []);

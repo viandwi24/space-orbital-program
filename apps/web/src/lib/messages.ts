@@ -178,8 +178,11 @@ export type ClientMessage =
 			name?: string;
 			resume?: boolean;
 	  }
-	/** `keep`: the world is closing; the script stays saved on its vessel to resume later. */
-	| { kind: 'script-stop'; keep?: boolean }
+	/**
+	 * `keep`: the world is closing; the script stays saved on its vessel to resume later. `vessel`:
+	 * stop that vessel's script only (plan 322); without it every script stops.
+	 */
+	| { kind: 'script-stop'; keep?: boolean; vessel?: number }
 	| { kind: 'dispose' };
 
 export type WorkerMessage =
@@ -196,6 +199,8 @@ export type WorkerMessage =
 	| { kind: 'error'; message: string }
 	| {
 			kind: 'script-status';
+			/** The vessel whose script this is (plan 322); absent in old fixtures. */
+			vessel?: number;
 			status: ScriptState;
 			error?: string;
 			/** 1-based line of the script where `error` happened, when the engine said. */
@@ -204,7 +209,7 @@ export type WorkerMessage =
 			lastMs: number;
 			maxMs: number;
 	  }
-	| { kind: 'script-log'; lines: string[] }
+	| { kind: 'script-log'; lines: string[]; vessel?: number }
 	/** A stage fired in the sim (`stage:activated`), whoever sent the command: page, autopilot or script. */
 	| { kind: 'stage'; vessel: number; stage: number }
 	/** Other sim events worth a toast (flameout, damage, mode changes, loss). */
@@ -281,6 +286,7 @@ export function parseWorkerMessage(data: unknown): WorkerMessage | null {
 				: null;
 		case 'script-status':
 			return SCRIPT_STATES.includes(data.status) &&
+				(data.vessel === undefined || typeof data.vessel === 'number') &&
 				typeof data.lastMs === 'number' &&
 				typeof data.maxMs === 'number' &&
 				(data.error === undefined || typeof data.error === 'string') &&
@@ -291,7 +297,9 @@ export function parseWorkerMessage(data: unknown): WorkerMessage | null {
 				? (data as unknown as WorkerMessage)
 				: null;
 		case 'script-log':
-			return Array.isArray(data.lines) && data.lines.every((l) => typeof l === 'string')
+			return Array.isArray(data.lines) &&
+				data.lines.every((l) => typeof l === 'string') &&
+				(data.vessel === undefined || typeof data.vessel === 'number')
 				? (data as unknown as WorkerMessage)
 				: null;
 		case 'stage':
@@ -358,7 +366,11 @@ export function parseClientMessage(data: unknown): ClientMessage | null {
 	if (data.kind === 'design' && typeof data.id === 'number' && typeof data.vessel === 'number')
 		return { kind: 'design', id: data.id, vessel: data.vessel };
 	if (data.kind === 'script-stop')
-		return data.keep === true ? { kind: 'script-stop', keep: true } : { kind: 'script-stop' };
+		return {
+			kind: 'script-stop',
+			...(data.keep === true ? { keep: true } : {}),
+			...(typeof data.vessel === 'number' ? { vessel: data.vessel } : {})
+		};
 	if (data.kind === 'pause' && typeof data.paused === 'boolean') {
 		return { kind: 'pause', paused: data.paused };
 	}

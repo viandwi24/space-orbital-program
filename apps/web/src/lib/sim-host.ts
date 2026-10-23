@@ -176,25 +176,47 @@ export function createSimHost(options: SimHostOptions): SimHost {
 	let unsubscribeEvents: (() => void)[] = [];
 	let paused = false;
 
-	// --- script (plan 018, ADR 0031): the runner lives in its own Worker, fed after each sim step --
-	let session: ScriptSession | null = null;
-	/** The vessel the running script controls; commands for any other are dropped. */
-	let scriptVessel = -1;
-	let lastMs = 0;
-	let maxMs = 0;
-	let lastStatusAt = 0;
-	let lines: string[] = [];
-	let lastRefusal = '';
-	/** Answers to the script's commands, offered with its next snapshot (ADR 0039, plan 032). */
-	let verdicts: CommandVerdict[] = [];
-	/** The script's memory not yet committed to the sim, and when it was last (plan 320, ADR 0276). */
-	let pendingMemory: Record<string, unknown> | undefined;
-	let memoryAt = 0;
+	// --- scripts (plan 018, ADR 0031; one per vessel since plan 322, ADR 0303): each runner lives in its
+	// own Worker, fed after each sim step --
+	/** One vessel's script run: its session, log, verdicts, memory and warp hold. */
+	interface ScriptRun {
+		/** The vessel the script controls; commands for any other are dropped. */
+		vessel: number;
+		session: ScriptSession | null;
+		lastMs: number;
+		maxMs: number;
+		lastStatusAt: number;
+		lines: string[];
+		lastRefusal: string;
+		/** Answers to the script's commands, offered with its next snapshot (ADR 0039, plan 032). */
+		verdicts: CommandVerdict[];
+		/** The script's memory not yet committed to the sim, and when it was last (plan 320, ADR 0276). */
+		pendingMemory: Record<string, unknown> | undefined;
+		memoryAt: number;
+		/** Warp hold (ADR 0039): the script's attitude is not passed on; the latest one waits here. */
+		holding: boolean;
+		heldAttitude: Command | undefined;
+	}
+	const runs = new Map<number, ScriptRun>();
+	const newRun = (vessel: number): ScriptRun => ({
+		vessel,
+		session: null,
+		lastMs: 0,
+		maxMs: 0,
+		lastStatusAt: 0,
+		lines: [],
+		lastRefusal: '',
+		verdicts: [],
+		pendingMemory: undefined,
+		memoryAt: 0,
+		holding: false,
+		heldAttitude: undefined
+	});
+	/** The runs with a live session. */
+	const liveRuns = (): ScriptRun[] => [...runs.values()].filter((r) => r.session !== null);
 	/** Last accepted throttle per vessel: a script that burns cannot be put on rails. */
 	const throttles = new Map<number, number>();
-	/** Warp hold (ADR 0039): the script's attitude is not passed on; the latest one waits here. */
-	let holding = false;
-	let heldAttitude: Command | undefined;
+	/** The one waiting time-warp request: it holds every scripted vessel in flight until all are on rails. */
 	let pendingWarp: {
 		command: WarpCommand;
 		since: number;
@@ -215,12 +237,15 @@ export function createSimHost(options: SimHostOptions): SimHost {
 		}
 		return result;
 	};
-	/** End the hold and give the vessel the attitude the script last asked for. */
-	const releaseHold = (): void => {
-		holding = false;
-		const attitude = heldAttitude;
-		heldAttitude = undefined;
+	/** End one run's hold and give its vessel the attitude the script last asked for. */
+	const releaseHold = (run: ScriptRun): void => {
+		run.holding = false;
+		const attitude = run.heldAttitude;
+		run.heldAttitude = undefined;
 		if (attitude && sim) dispatchTracked(attitude);
+	};
+	const releaseAll = (): void => {
+		for (const run of runs.values()) if (run.holding) releaseHold(run);
 	};
 	const cancelPending = (why: string): void => {
 		const request = pendingWarp;
@@ -228,105 +253,122 @@ export function createSimHost(options: SimHostOptions): SimHost {
 		request?.reply({ ok: false, reason: why });
 	};
 	/**
-	 * Time warp. Without a script it is the sim's own rule. With one, a vessel still in flight is
-	 * given the chance to go on rails: the script's attitude demand is zeroed and held and the
-	 * request waits for the vessel's idle time (ADR 0039).
+	 * Time warp. Without a script it is the sim's own rule. With scripts, every scripted vessel still
+	 * in flight is given the chance to go on rails: each script's attitude demand is zeroed and held
+	 * and the request waits for the vessels' idle time (ADR 0039, ADR 0303).
 	 */
 	function requestWarp(command: WarpCommand, reply: (r: CommandResult) => void): void {
 		if (!sim) return reply({ ok: false, reason: 'the simulation is not ready yet' });
 		const { factor } = command;
 		cancelPending('superseded by a newer time warp request');
+		const scripted = liveRuns();
 		const direct = (): void => {
 			const result = sim!.dispatch(command);
-			if (result.ok && factor <= 1) releaseHold();
-			else if (result.ok && session) holding = true;
+			if (result.ok && factor <= 1) releaseAll();
+			else if (result.ok) for (const run of scripted) run.holding = true;
 			reply(result);
 		};
-		if (factor <= 1 || !session) return direct();
-		const vessel = sim.snapshot().vessels.find((v) => Number(v.id) === scriptVessel);
-		if (!vessel || vessel.mode === 'on-rails') return direct();
-		// physics warp needs no rails, and a burn is clamped to it by the sim (plan 206, ADR 0202)
-		if (factor <= PHYSICS_WARP_MAX || (throttles.get(scriptVessel) ?? 0) > 0) return direct();
-		holding = true;
-		dispatchTracked({
-			type: 'attitude',
-			vessel: entityId(scriptVessel),
-			pitch: 0,
-			yaw: 0,
-			roll: 0
+		if (factor <= 1 || scripted.length === 0) return direct();
+		const vessels = sim.snapshot().vessels;
+		const inFlight = scripted.filter((run) => {
+			const v = vessels.find((x) => Number(x.id) === run.vessel);
+			return v !== undefined && v.mode !== 'on-rails';
 		});
+		if (inFlight.length === 0) return direct();
+		// physics warp needs no rails, and a burn is clamped to it by the sim (plan 206, ADR 0202)
+		if (factor <= PHYSICS_WARP_MAX || inFlight.some((run) => (throttles.get(run.vessel) ?? 0) > 0))
+			return direct();
+		for (const run of inFlight) {
+			run.holding = true;
+			dispatchTracked({
+				type: 'attitude',
+				vessel: entityId(run.vessel),
+				pitch: 0,
+				yaw: 0,
+				roll: 0
+			});
+		}
 		pendingWarp = { command, since: options.now(), reply };
 	}
-	/** Retry a waiting request: accepted once the vessel is on rails, refused after `WARP_PENDING_MS`. */
+	/** Retry a waiting request: accepted once the vessels are on rails, refused after `WARP_PENDING_MS`. */
 	function servicePendingWarp(): void {
 		const request = pendingWarp;
 		if (!request || !sim) return;
 		const result = sim.dispatch(request.command);
 		if (result.ok) {
 			pendingWarp = null;
-			// clamped to physics warp (plan 206): the vessel stays in flight, so nothing is held
-			if ((result.granted ?? request.command.factor) <= PHYSICS_WARP_MAX) releaseHold();
+			// clamped to physics warp (plan 206): the vessels stay in flight, so nothing is held
+			if ((result.granted ?? request.command.factor) <= PHYSICS_WARP_MAX) releaseAll();
 			request.reply(result);
 		} else if (options.now() - request.since > WARP_PENDING_MS) {
 			pendingWarp = null;
-			releaseHold();
+			releaseAll();
 			request.reply(result);
 		}
 	}
-	/** The script ended (finished, failed, stopped, terminated): nothing holds the vessel any more. */
-	function scriptGone(): void {
-		const waiting = pendingWarp !== null;
-		const request = pendingWarp;
-		pendingWarp = null;
-		releaseHold();
-		if (waiting && request && sim) request.reply(sim.dispatch(request.command));
+	/** A script ended (finished, failed, stopped, terminated): its vessel is not held any more. */
+	function scriptGone(run: ScriptRun): void {
+		releaseHold(run);
+		// the request waited for this script's vessel too: with no other hold left it is retried now
+		if (pendingWarp && !liveRuns().some((r) => r.holding)) {
+			const request = pendingWarp;
+			pendingWarp = null;
+			if (sim) request.reply(sim.dispatch(request.command));
+		}
 	}
 
-	const postStatus = (status: ScriptState, error?: string, errorLine?: number): void => {
-		lastStatusAt = options.now();
+	const postStatus = (
+		run: ScriptRun,
+		status: ScriptState,
+		error?: string,
+		errorLine?: number
+	): void => {
+		run.lastStatusAt = options.now();
 		options.post({
 			kind: 'script-status',
+			vessel: run.vessel,
 			status,
 			...(error === undefined ? {} : { error }),
 			...(errorLine === undefined ? {} : { errorLine }),
-			lastMs,
-			maxMs
+			lastMs: run.lastMs,
+			maxMs: run.maxMs
 		});
 	};
-	const flushLines = (): void => {
-		if (lines.length === 0) return;
-		const out = lines.slice(0, MAX_LOG_LINES_PER_TICK);
-		if (lines.length > out.length) out.push(`... ${lines.length - out.length} more lines dropped`);
-		lines = [];
-		options.post({ kind: 'script-log', lines: out });
+	const flushLines = (run: ScriptRun): void => {
+		if (run.lines.length === 0) return;
+		const out = run.lines.slice(0, MAX_LOG_LINES_PER_TICK);
+		if (run.lines.length > out.length)
+			out.push(`... ${run.lines.length - out.length} more lines dropped`);
+		run.lines = [];
+		options.post({ kind: 'script-log', vessel: run.vessel, lines: out });
 	};
 	/** Commit the script's memory to its vessel, so a save carries it (ADR 0276 point 6). */
-	const commitMemory = (): void => {
-		const memory = pendingMemory;
-		pendingMemory = undefined;
-		memoryAt = options.now();
-		if (!memory || !sim || scriptVessel < 0) return;
-		const r = sim.dispatch({ type: 'script-memory', vessel: entityId(scriptVessel), memory });
-		if (!r.ok) lines.push(`! memory: ${r.reason}`);
+	const commitMemory = (run: ScriptRun): void => {
+		const memory = run.pendingMemory;
+		run.pendingMemory = undefined;
+		run.memoryAt = options.now();
+		if (!memory || !sim) return;
+		const r = sim.dispatch({ type: 'script-memory', vessel: entityId(run.vessel), memory });
+		if (!r.ok) run.lines.push(`! memory: ${r.reason}`);
 	};
 	/**
 	 * The script's run is over: `reason` detaches it from its vessel (it is no longer saved); null
 	 * keeps it saved to resume when the world opens again (ADR 0276 point 6).
 	 */
-	const forget = (reason: string | null): void => {
-		if (!sim || scriptVessel < 0) return;
-		if (reason === null) commitMemory();
+	const forget = (run: ScriptRun, reason: string | null): void => {
+		if (!sim) return;
+		if (reason === null) commitMemory(run);
 		else {
-			pendingMemory = undefined;
-			sim.dispatch({ type: 'script-detach', vessel: entityId(scriptVessel), reason });
+			run.pendingMemory = undefined;
+			sim.dispatch({ type: 'script-detach', vessel: entityId(run.vessel), reason });
 		}
 	};
-	const endScript = (reason: string | null = 'stopped'): void => {
-		const had = session !== null;
-		session?.close();
-		session = null;
-		if (had) forget(reason);
-		scriptGone();
+	const endScript = (run: ScriptRun, reason: string | null = 'stopped'): void => {
+		const had = run.session !== null;
+		run.session?.close();
+		run.session = null;
+		if (had) forget(run, reason);
+		scriptGone(run);
 	};
 	/** Commands a script may issue (what the runner builds); the Worker is not trusted to stay within them. */
 	const SCRIPT_COMMANDS: readonly string[] = [
@@ -341,46 +383,49 @@ export function createSimHost(options: SimHostOptions): SimHost {
 		'node-remove',
 		'target-set'
 	];
-	const allowed = (command: Command): boolean =>
+	const allowed = (command: Command, vessel: number): boolean =>
 		command.type === 'warp' ||
 		command.type === 'warp-to' ||
 		(SCRIPT_COMMANDS.includes(command.type) &&
 			'vessel' in command &&
-			Number(command.vessel) === scriptVessel);
+			Number(command.vessel) === vessel);
 
-	function onScriptResult(active: ScriptSession, result: ScriptResult): void {
-		if (active !== session || !sim) return;
-		lastMs = result.elapsedMs;
-		maxMs = Math.max(maxMs, result.elapsedMs);
-		lines.push(...result.lines);
-		if (result.memory) pendingMemory = result.memory;
-		if (pendingMemory && options.now() - memoryAt >= SCRIPT_MEMORY_MS) commitMemory();
+	function onScriptResult(run: ScriptRun, active: ScriptSession, result: ScriptResult): void {
+		if (active !== run.session || !sim) return;
+		run.lastMs = result.elapsedMs;
+		run.maxMs = Math.max(run.maxMs, result.elapsedMs);
+		run.lines.push(...result.lines);
+		if (result.memory) run.pendingMemory = result.memory;
+		if (run.pendingMemory && options.now() - run.memoryAt >= SCRIPT_MEMORY_MS) commitMemory(run);
 		result.commands.forEach((command, index) => {
 			const seq = result.seqs?.[index];
 			const answer = (r: CommandResult): void => {
 				if (!r.ok) {
 					const text = `! ${command.type}: ${r.reason}`;
-					if (text !== lastRefusal) lines.push(text);
-					lastRefusal = text;
+					if (text !== run.lastRefusal) run.lines.push(text);
+					run.lastRefusal = text;
 				}
 				if (seq !== undefined) {
-					verdicts.push({ seq, ok: r.ok, ...(r.ok ? {} : { reason: r.reason }) });
+					run.verdicts.push({ seq, ok: r.ok, ...(r.ok ? {} : { reason: r.reason }) });
 				}
 			};
-			if (!allowed(command)) {
-				lines.push(`! ${String((command as { type?: unknown }).type)}: not allowed for scripts`);
-				if (seq !== undefined) verdicts.push({ seq, ok: false, reason: 'not allowed for scripts' });
+			if (!allowed(command, run.vessel)) {
+				run.lines.push(
+					`! ${String((command as { type?: unknown }).type)}: not allowed for scripts`
+				);
+				if (seq !== undefined)
+					run.verdicts.push({ seq, ok: false, reason: 'not allowed for scripts' });
 				return;
 			}
 			if (command.type === 'warp' || command.type === 'warp-to')
 				return requestWarp(command, answer);
-			if (holding) {
+			if (run.holding) {
 				if (command.type === 'attitude') {
 					if (command.pitch !== 0 || command.yaw !== 0 || command.roll !== 0) {
-						heldAttitude = command;
+						run.heldAttitude = command;
 						return answer({ ok: false, reason: HELD_REASON });
 					}
-					heldAttitude = undefined; // a zero demand: nothing to give back later
+					run.heldAttitude = undefined; // a zero demand: nothing to give back later
 				} else if (
 					pendingWarp &&
 					(command.type === 'stage' ||
@@ -388,20 +433,20 @@ export function createSimHost(options: SimHostOptions): SimHost {
 						(command.type === 'throttle' && command.value > 0))
 				) {
 					cancelPending(`the script issued ${command.type} while time warp was pending`);
-					releaseHold();
+					releaseAll();
 				}
 			}
 			answer(dispatchTracked(command));
 		});
-		flushLines();
+		flushLines(run);
 		if (result.status !== 'running') {
-			session = null; // the session closed itself
-			forget(result.status === 'finished' ? 'finished' : (result.error ?? result.status));
-			scriptGone();
-			flushLines();
-			postStatus(result.status, result.error, result.errorLine);
-		} else if (options.now() - lastStatusAt >= SCRIPT_STATUS_MS) {
-			postStatus('running');
+			run.session = null; // the session closed itself
+			forget(run, result.status === 'finished' ? 'finished' : (result.error ?? result.status));
+			scriptGone(run);
+			flushLines(run);
+			postStatus(run, result.status, result.error, result.errorLine);
+		} else if (options.now() - run.lastStatusAt >= SCRIPT_STATUS_MS) {
+			postStatus(run, 'running');
 		}
 	}
 
@@ -409,20 +454,23 @@ export function createSimHost(options: SimHostOptions): SimHost {
 		asked: string,
 		vessel: number,
 		port: ScriptPortLike | undefined,
-		run: { name?: string; resume?: boolean } = {}
+		start: { name?: string; resume?: boolean } = {}
 	): void {
-		endScript(run.resume ? null : 'replaced by a new Run');
-		pendingMemory = undefined;
-		memoryAt = options.now();
-		lastMs = 0;
-		maxMs = 0;
-		lines = [];
-		lastRefusal = '';
-		verdicts = [];
+		// a new Run replaces the script of this vessel only; the others go on (plan 322)
+		const run = runs.get(vessel) ?? newRun(vessel);
+		runs.set(vessel, run);
+		endScript(run, start.resume ? null : 'replaced by a new Run');
+		run.pendingMemory = undefined;
+		run.memoryAt = options.now();
+		run.lastMs = 0;
+		run.maxMs = 0;
+		run.lines = [];
+		run.lastRefusal = '';
+		run.verdicts = [];
 		// A port that is not used must not stay open in the sandbox.
 		const refuse = (why: string): void => {
 			port?.close();
-			postStatus('failed', why);
+			postStatus(run, 'failed', why);
 		};
 		if (!sim) return refuse('the simulation is not ready yet');
 		if (!options.spawnScriptWorker) return refuse('scripting is not available');
@@ -430,10 +478,10 @@ export function createSimHost(options: SimHostOptions): SimHost {
 			return refuse(`vessel ${vessel} does not exist`);
 		}
 		// a resumed run is the script saved on the vessel, with its memory (ADR 0276 point 6)
-		const saved = run.resume ? sim.scripts().find((x) => Number(x.vessel) === vessel) : undefined;
-		if (run.resume && !saved) return refuse(`vessel ${vessel} has no saved script`);
+		const saved = start.resume ? sim.scripts().find((x) => Number(x.vessel) === vessel) : undefined;
+		if (start.resume && !saved) return refuse(`vessel ${vessel} has no saved script`);
 		const source = saved?.source ?? asked;
-		const name = saved?.name ?? run.name ?? 'Script';
+		const name = saved?.name ?? start.name ?? 'Script';
 		const attached = sim.dispatch({
 			type: 'script-attach',
 			vessel: entityId(vessel),
@@ -442,8 +490,7 @@ export function createSimHost(options: SimHostOptions): SimHost {
 			...(saved ? { resumed: true } : {})
 		});
 		if (!attached.ok) return refuse(attached.reason);
-		postStatus('starting');
-		scriptVessel = vessel;
+		postStatus(run, 'starting');
 		let created: ScriptSession;
 		try {
 			created = createScriptSession({
@@ -470,29 +517,38 @@ export function createSimHost(options: SimHostOptions): SimHost {
 					? {}
 					: { bootTimeoutMs: options.scriptBootTimeoutMs }),
 				onReady: () => {
-					if (created === session) postStatus('running');
+					if (created === run.session) postStatus(run, 'running');
 				},
-				onResult: (result) => onScriptResult(created, result),
+				onResult: (result) => onScriptResult(run, created, result),
 				onDead: (status, error) => {
-					if (created !== session) return;
-					session = null;
-					forget(error);
-					scriptGone();
-					flushLines();
-					postStatus(status, error);
+					if (created !== run.session) return;
+					run.session = null;
+					forget(run, error);
+					scriptGone(run);
+					flushLines(run);
+					postStatus(run, status, error);
 				}
 			});
 		} catch (error) {
 			return refuse(error instanceof Error ? error.message : String(error));
 		}
-		session = created;
+		run.session = created;
 	}
 
-	/** `keep`: the world is closing; the script stays saved on its vessel (ADR 0276 point 6). */
-	function stopScript(keep = false): void {
-		endScript(keep ? null : 'stopped');
-		lines = [];
-		postStatus('stopped');
+	/**
+	 * Stop the script of `vessel`, or every script without one. `keep`: the world is closing; the
+	 * scripts stay saved on their vessels (ADR 0276 point 6).
+	 */
+	function stopScript(keep = false, vessel?: number): void {
+		const targets =
+			vessel === undefined ? [...runs.values()] : [runs.get(vessel)].filter((r) => r !== undefined);
+		for (const run of targets) {
+			endScript(run, keep ? null : 'stopped');
+			run.lines = [];
+			postStatus(run, 'stopped');
+		}
+		if (vessel !== undefined) runs.delete(vessel);
+		else runs.clear();
 	}
 
 	const fail = (error: unknown): void => {
@@ -523,16 +579,19 @@ export function createSimHost(options: SimHostOptions): SimHost {
 			}
 			// The sim ends a warp itself (a finished `warp-to`, a change of sphere): the script's
 			// attitude must not stay held after that (ADR 0039).
-			if (holding && !pendingWarp && sim.warp <= 1) releaseHold();
+			if (!pendingWarp && sim.warp <= 1) releaseAll();
 			const snapshot = sim.snapshot();
-			session?.poll();
+			for (const run of runs.values()) run.session?.poll();
 			if (!paused) {
 				servicePendingWarp();
-				flushLines();
-				// The script may answer within this call (an in-process double): new verdicts must survive.
-				const batch = verdicts;
-				verdicts = [];
-				if (session && !session.tick(snapshot, batch)) verdicts = [...batch, ...verdicts];
+				for (const run of [...runs.values()]) {
+					flushLines(run);
+					// The script may answer within this call (an in-process double): new verdicts must survive.
+					const batch = run.verdicts;
+					run.verdicts = [];
+					if (run.session && !run.session.tick(snapshot, batch))
+						run.verdicts = [...batch, ...run.verdicts];
+				}
 			}
 			options.post({ kind: 'snapshot', snapshot, warp: sim.warp, stepMs });
 		} catch (error) {
@@ -545,7 +604,7 @@ export function createSimHost(options: SimHostOptions): SimHost {
 
 	function dispose(): void {
 		disposed = true;
-		endScript();
+		for (const run of runs.values()) endScript(run);
 		cancel?.();
 		cancel = null;
 		for (const off of unsubscribeEvents) off();
@@ -723,13 +782,14 @@ export function createSimHost(options: SimHostOptions): SimHost {
 					),
 					// `program-stop` (the Delete key, Abort) ended the running script in the sim
 					created.events.on('script:detached', (e) => {
-						if (session === null || Number(e.vessel) !== scriptVessel) return;
-						session.close();
-						session = null;
-						scriptGone();
-						lines.push(`script stopped: ${e.reason}`);
-						flushLines();
-						postStatus('stopped');
+						const run = runs.get(Number(e.vessel));
+						if (!run || run.session === null) return;
+						run.session.close();
+						run.session = null;
+						scriptGone(run);
+						run.lines.push(`script stopped: ${e.reason}`);
+						flushLines(run);
+						postStatus(run, 'stopped');
 					}),
 					// the mod World API (plan 343, ADR 0292): notices and focus requests
 					created.events.on('mod:notice', (e) =>
@@ -802,7 +862,7 @@ export function createSimHost(options: SimHostOptions): SimHost {
 				return;
 			}
 			if (message.kind === 'script-stop') {
-				stopScript(message.keep === true);
+				stopScript(message.keep === true, message.vessel);
 				return;
 			}
 			// `init` and `save` are answered by the Worker entry (save/worker-save.ts), not by the host.

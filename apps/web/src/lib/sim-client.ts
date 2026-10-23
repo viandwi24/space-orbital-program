@@ -49,8 +49,11 @@ export interface SimClient {
 	 * world that opens does for `savedScripts`.
 	 */
 	resumeScript(vessel: number, port: MessagePort): void;
-	/** `keep`: the world is closing; the script stays saved on its vessel to resume later. */
-	stopScript(keep?: boolean): void;
+	/**
+	 * `keep`: the world is closing; the script stays saved on its vessel to resume later. `vessel`:
+	 * stop that vessel's script only (plan 322); without it every script stops.
+	 */
+	stopScript(keep?: boolean, vessel?: number): void;
 	/** Vessels whose saved script can resume, from the sim's boot (empty before `ready`). */
 	readonly savedScripts: ReadonlyArray<{ vessel: number; name: string }>;
 	onScript(listener: (event: ScriptEvent) => void): () => void;
@@ -214,8 +217,13 @@ export function createSimClient(worker: WorkerLike): SimClient {
 				]);
 			else port.close();
 		},
-		stopScript(keep) {
-			if (!disposed) worker.postMessage({ kind: 'script-stop', ...(keep ? { keep: true } : {}) });
+		stopScript(keep, vessel) {
+			if (!disposed)
+				worker.postMessage({
+					kind: 'script-stop',
+					...(keep ? { keep: true } : {}),
+					...(vessel === undefined ? {} : { vessel })
+				});
 		},
 		get savedScripts() {
 			return savedScripts;

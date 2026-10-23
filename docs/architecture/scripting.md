@@ -106,4 +106,8 @@ A running script is recorded on its vessel (`VesselState.script = { name, source
 
 ## Known limits
 
-Scripts are JavaScript, not TypeScript; one script per world at a time (several at once: draft plan 322); the editor has no completion or auto-indent (Tab still moves focus); telemetry only covers the controlled vessel; no target or maneuver data (the sim has neither, draft plan 035).
+Scripts are JavaScript, not TypeScript; one script per vessel, several vessels at once (the host's session map, ADR 0332); the editor has no completion or auto-indent (Tab still moves focus); telemetry only covers the controlled vessel; no target or maneuver data (the sim has neither, draft plan 035).
+
+## Several scripts (plan 322, ADR 0332)
+
+`createSimHost` keeps a run per scripted vessel (`runs: Map<vessel, ScriptRun>`): the session, log, verdicts, uncommitted memory and the warp hold of that script. A Run replaces its own vessel's script only; each script's commands are allowed for its own vessel. The world session keeps a sandbox (one iframe and Worker) per scripted vessel, and a world that opens resumes every saved script, each in its own sandbox. `script-status` and `script-log` carry `vessel`; `script-stop { vessel }` stops one script and the programs list's script Stop is `script-detach`, which leaves the autopilot engaged. A rails warp holds every scripted vessel in flight and is granted once all are on rails.

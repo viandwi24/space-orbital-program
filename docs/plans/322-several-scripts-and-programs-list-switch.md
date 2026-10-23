@@ -1,8 +1,8 @@
 ---
 id: 322
 title: "Several scripts at once, one per vessel; a script-only stop"
-status: draft
-owner: ""
+status: done
+owner: "Worker C"
 depends: [320, 359]
 phase: 0
 created: 2026-10-21
@@ -49,18 +49,19 @@ Each vessel can run its own script at the same time (ADR 0276 point 7 keeps one 
 
 ## Acceptance criteria
 
-- [ ] web vitest: two vessels each run a script; both dispatch with their own vessel; stopping one leaves the other; a world opened from a save with two scripts resumes both.
-- [ ] web vitest: a warp request with two scripted vessels in flight holds both attitudes and is granted once both are on rails.
-- [ ] web vitest: the script-only stop ends the script and the vessel's autopilot stays engaged.
-- [ ] `bun run typecheck`, web vitest with `CI=true`, `bun run docs:check` pass.
+- [x] web vitest (`sim-host-scripts.test.ts`, `world-session.test.ts`): two vessels each run a script; both dispatch with their own vessel; stopping one leaves the other; a world opened from a save with two scripts resumes both.
+- [x] web vitest: a warp request with two scripted vessels in flight holds both attitudes and is granted once both are on rails.
+- [x] The script-only stop (`script-detach`) ends the script and the vessel's autopilot stays engaged (sim test `programs.test.ts`; the programs list sends it; web vitest for the stop command).
+- [x] `bun run typecheck`, web vitest with `CI=true`, `bun run docs:check` pass.
 
 ## Docs checklist
 
-- [ ] `docs/STATUS.md` updated (board row).
-- [ ] `docs/journal/322-several-scripts-and-programs-list-switch.md` written.
-- [ ] `docs/architecture/scripting.md` describes the session map; ADR 0276 point 7 superseded by a new ADR.
+- [x] `docs/STATUS.md` updated (board row).
+- [x] `docs/journal/322-several-scripts-and-programs-list-switch.md` written.
+- [x] `docs/architecture/scripting.md` describes the session map; ADR 0276 point 7 superseded by a new ADR.
 
 ## Log
 
 - 2026-10-24 — Rewritten by the coordinator after an audit against main @ 4c546c02: Switch to from the programs list is done by plan 359 (ADR 0302) and the StatusBar Stop is now `ProgramsPopover`, so that scope is removed; added a script-only stop; remaining: the per-vessel session map, resuming every saved script, the warp hold over several vessels and a new ADR superseding ADR 0276 point 7; depends add 359.
 - 2026-10-21 — Drafted by the vessel programs session: plan 320 kept one script per world to leave ADR 0039's warp hold unchanged.
+- 2026-10-24 — Done by Worker C: ADR 0332 supersedes ADR 0276 point 7. The host's run map, a sandbox and Worker per scripted vessel, every saved script resumed, per-vessel status and log, the warp hold over all scripted vessels, `script-stop { vessel }` and a programs-list script Stop that leaves the autopilot engaged.

@@ -225,4 +225,20 @@ describe('autopilots are programs too (ADR 0276 with ADR 0271)', () => {
 		expect(ended).toEqual(['disengaged Delete key']);
 		sim.dispose();
 	});
+
+	test('script-detach (the programs list Stop on a script row) leaves the autopilot engaged (plan 322)', async () => {
+		const { sim, vessel, state } = await engaged();
+		expect(
+			sim.dispatch({ type: 'script-attach', vessel, name: 'hold', source: 'print(1)' }).ok
+		).toBe(true);
+		const detached: string[] = [];
+		sim.events.on('script:detached', (e) => detached.push(e.reason));
+		expect(
+			sim.dispatch({ type: 'script-detach', vessel, reason: 'stopped from the programs list' }).ok
+		).toBe(true);
+		expect(detached).toEqual(['stopped from the programs list']);
+		expect(state().script).toBeUndefined();
+		expect(state().autopilot).toBeDefined();
+		sim.dispose();
+	});
 });

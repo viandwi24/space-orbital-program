@@ -101,12 +101,15 @@ export function panelOf(row: ProgramRow, panels: readonly ProgramPanel[]): Progr
 	return panels.find((p) => p.id.startsWith(`${plugin}.`) && p.contexts.includes('flight')) ?? null;
 }
 
-/** What a row's Stop sends: an autopilot disengages alone; a script stops the vessel's programs. */
+/**
+ * What a row's Stop sends: an autopilot disengages alone, and a script detaches alone (plan 322:
+ * the vessel's autopilot stays engaged). `program-stop` (the Delete key, Abort) ends both.
+ */
 export function stopCommand(row: ProgramRow): Command {
 	return row.kind === 'autopilot'
 		? { type: 'autopilot-disengage', vessel: entityId(row.vessel) }
 		: {
-				type: 'program-stop',
+				type: 'script-detach',
 				vessel: entityId(row.vessel),
 				reason: 'stopped from the programs list'
 			};

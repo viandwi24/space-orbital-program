@@ -195,9 +195,12 @@
 	}
 	/** A script runs in the world (plan 239): outside Flight a sign offers to go back or stop it. */
 	let scriptRunning = $state(false);
+	/** The vessels whose script is running (plan 322); the sign shows while there is any. */
+	const scriptVessels = new Set<number>();
 	function stopScript(): void {
 		worldSession.client?.stopScript();
-		worldSession.scriptSandbox()?.close();
+		for (const v of scriptVessels) worldSession.scriptSandbox(v)?.close();
+		scriptVessels.clear();
 		scriptRunning = false;
 	}
 	// the backup reminder (plan 230): after the first hour of play, then weekly; "later" waits a day
@@ -484,9 +487,14 @@
 				// a script keeps flying when the player leaves Flight (plan 239, ADR 0232)
 				client.onScript((e) => {
 					if (e.kind !== 'script-status') return;
-					scriptRunning = scriptIsActive(e.status);
-					// the script ended: the iframe goes, and with it a Worker still spinning (ADR 0038)
-					if (!scriptRunning) worldSession.scriptSandbox()?.close();
+					const v = e.vessel ?? -1;
+					if (scriptIsActive(e.status)) scriptVessels.add(v);
+					else {
+						scriptVessels.delete(v);
+						// the script ended: its iframe goes, and with it a Worker still spinning (ADR 0038)
+						worldSession.scriptSandbox(v)?.close();
+					}
+					scriptRunning = scriptVessels.size > 0;
 				}),
 				client.onSimEvent((e) => {
 					if (e.type === 'vessel-destroyed')

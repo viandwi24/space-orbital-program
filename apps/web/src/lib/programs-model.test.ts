@@ -103,12 +103,12 @@ describe('the programs popover (plan 359)', () => {
 		]);
 	});
 
-	it('Stop disengages an autopilot alone and stops a script with program-stop', () => {
+	it('Stop disengages an autopilot alone and detaches a script alone (plan 322)', () => {
 		const rendezvous = rows.find((r) => r.title === 'Rendezvous')!;
 		const hop = rows.find((r) => r.title === 'hop')!;
 		expect(stopCommand(rendezvous)).toEqual({ type: 'autopilot-disengage', vessel: 1 });
 		expect(stopCommand(hop)).toEqual({
-			type: 'program-stop',
+			type: 'script-detach',
 			vessel: 4,
 			reason: 'stopped from the programs list'
 		});

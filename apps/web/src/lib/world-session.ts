@@ -71,7 +71,7 @@ export interface WorldSession {
 	 * script keeps flying its vessel when the player leaves Flight. Flight runs and stops scripts
 	 * in it; leaving the world or a restart (a load) closes it. Null where scripting is unavailable.
 	 */
-	scriptSandbox(): ScriptSandbox | null;
+	scriptSandbox(vessel?: number): ScriptSandbox | null;
 	/**
 	 * A menu or dialog that pauses as the place "Menu" does (plan 205): `source` holds it while
 	 * `on`; the layout decides with the player's choices and the world's rule.
@@ -88,7 +88,8 @@ export function createWorldSession(
 	start: (boot: SimBoot) => SimClient,
 	makeSandbox?: () => ScriptSandbox
 ): WorldSession {
-	let sandbox: ScriptSandbox | null = null;
+	/** One sandbox per scripted vessel (plan 322: a Worker each); `-1` is the one without a vessel. */
+	const sandboxes = new Map<number, ScriptSandbox>();
 	let worldId: string | null = null;
 	let client: SimClient | null = null;
 	let booting: Promise<SimClient> | null = null;
@@ -116,21 +117,22 @@ export function createWorldSession(
 	}
 
 	/**
-	 * A world that opens restarts the script saved on its vessel, with its memory (plan 320, ADR
-	 * 0276 point 6). One script runs per world, so only the first saved one resumes.
+	 * A world that opens restarts every script saved on a vessel, with its memory (plan 320, ADR
+	 * 0276 point 6; one script per vessel since plan 322), each in a sandbox of its own.
 	 */
 	function resumeSaved(next: SimClient): void {
-		const first = next.savedScripts[0];
-		if (client !== next || !first) return;
-		const box = session.scriptSandbox();
-		if (!box) return;
-		box.open().then(
-			(port) => {
-				if (client === next) next.resumeScript(first.vessel, port);
-				else port.close();
-			},
-			() => {}
-		);
+		if (client !== next) return;
+		for (const saved of [...next.savedScripts]) {
+			const box = session.scriptSandbox(saved.vessel);
+			if (!box) continue;
+			box.open().then(
+				(port) => {
+					if (client === next) next.resumeScript(saved.vessel, port);
+					else port.close();
+				},
+				() => {}
+			);
+		}
 	}
 
 	const session: WorldSession = {
@@ -183,9 +185,10 @@ export function createWorldSession(
 			session.end();
 			return adopt(id, start(boot));
 		},
-		scriptSandbox() {
-			if (!sandbox && makeSandbox) sandbox = makeSandbox();
-			return sandbox;
+		scriptSandbox(vessel = -1) {
+			let box = sandboxes.get(vessel);
+			if (!box && makeSandbox) sandboxes.set(vessel, (box = makeSandbox()));
+			return box ?? null;
 		},
 		end() {
 			offSnapshot?.();
@@ -193,8 +196,8 @@ export function createWorldSession(
 			// the script ends with its world (plan 239): its Worker goes with the sandbox's iframe;
 			// it stays saved on its vessel and resumes when the world opens again (plan 320)
 			client?.stopScript(true);
-			sandbox?.close();
-			sandbox = null; // a closed sandbox is not handed to the next world (plan 262)
+			for (const box of sandboxes.values()) box.close();
+			sandboxes.clear(); // a closed sandbox is not handed to the next world (plan 262)
 			client?.dispose();
 			client = null;
 			booting = null;

@@ -284,6 +284,8 @@ export interface FlightOptions {
 	 * (tests, a browser that cannot provide it) Run reports a failed script.
 	 */
 	sandbox?: ScriptSandbox;
+	/** The sandbox of one vessel's script (plan 322: a Worker each); falls back to `sandbox`. */
+	sandboxFor?: (vessel: number) => ScriptSandbox | null;
 	/** The achievements profile (plan 102, ADR 0147); without one nothing unlocks (tests). */
 	profile?: ProfileStore;
 	/**
@@ -569,10 +571,16 @@ export function startFlight(options: FlightOptions): Flight {
 	});
 	let audioView: AudioFlightView | null = null;
 	let modal = false;
-	let script: ScriptView = idleScript();
+	/** Every vessel's script (plan 322): the panel shows the active vessel's. */
+	const scripts = new Map<number, ScriptView>();
+	const scriptOf = (id: EntityId | null): ScriptView =>
+		(id === null ? undefined : scripts.get(Number(id))) ?? idleScript();
 	let scriptDirty = false;
 	/** Counts Runs and Stops, so a sandbox that finishes starting after a newer action is dropped. */
-	let scriptRun = 0;
+	/** Counts each vessel's Runs and Stops (plan 322). */
+	const scriptRuns = new Map<number, number>();
+	const sandboxOf = (id: number): ScriptSandbox | undefined =>
+		options.sandboxFor?.(id) ?? options.sandbox;
 	/** The HUD for `design` and, for a vessel that already flew, its part indices and stages fired. */
 	function makeHud(
 		c: Catalog,
@@ -618,6 +626,7 @@ export function startFlight(options: FlightOptions): Flight {
 		const now = client.latest?.vessels.find((x) => Number(x.id) === id) ?? v;
 		design = { ...record.design, name: now.name ?? record.design.name };
 		vessel = entityId(id);
+		scriptDirty = true; // the panel shows this vessel's script now (plan 322)
 		// the script stays with the vessel it flies (plan 320, ADR 0276): switching does not stop it
 		throttle = sentThrottle = 0;
 		padThrottle = false;
@@ -1720,7 +1729,7 @@ export function startFlight(options: FlightOptions): Flight {
 			publish();
 			if (scriptDirty) {
 				scriptDirty = false;
-				options.onScript?.(script);
+				options.onScript?.(scriptOf(vessel));
 			}
 		}
 	}
@@ -1845,11 +1854,14 @@ export function startFlight(options: FlightOptions): Flight {
 	);
 	offClient.push(
 		client.onScript((event) => {
-			script = reduceScript(script, event);
-			scriptDirty = true;
+			// an event names its vessel since plan 322; an old fixture's is the active one
+			const key = event.vessel ?? (vessel === null ? null : Number(vessel));
+			if (key === null) return;
+			scripts.set(key, reduceScript(scripts.get(key) ?? idleScript(), event));
+			if (vessel !== null && key === Number(vessel)) scriptDirty = true;
 			// The script ended (or never ran): removing the iframe also kills a Worker that is still
 			// spinning inside a native builtin (ADR 0038).
-			if (event.kind === 'script-status' && !scriptIsActive(event.status)) options.sandbox?.close();
+			if (event.kind === 'script-status' && !scriptIsActive(event.status)) sandboxOf(key)?.close();
 		})
 	);
 	offClient.push(
@@ -2220,23 +2232,28 @@ export function startFlight(options: FlightOptions): Flight {
 		runScript(source) {
 			if (vessel === null) return;
 			const target = Number(vessel);
-			const run = ++scriptRun;
+			const run = (scriptRuns.get(target) ?? 0) + 1;
+			scriptRuns.set(target, run);
 			const show = (status: 'starting' | 'failed', error?: string): void => {
-				script = reduceScript(script, {
-					kind: 'script-status',
-					status,
-					...(error === undefined ? {} : { error }),
-					lastMs: 0,
-					maxMs: 0
-				});
+				scripts.set(
+					target,
+					reduceScript(scripts.get(target) ?? idleScript(), {
+						kind: 'script-status',
+						vessel: target,
+						status,
+						...(error === undefined ? {} : { error }),
+						lastMs: 0,
+						maxMs: 0
+					})
+				);
 				scriptDirty = true;
 			};
-			const sandbox = options.sandbox;
+			const sandbox = sandboxOf(target);
 			if (!sandbox) return show('failed', 'scripting is not available here');
 			show('starting');
 			sandbox.open().then(
 				(port) => {
-					if (run === scriptRun && !disposed) {
+					if (run === scriptRuns.get(target) && !disposed) {
 						// the programs list names the script after its vessel (plan 320)
 						const name = client.latest?.vessels.find((v) => Number(v.id) === target)?.name;
 						client.startScript(source, target, port, name ? `${name} script` : undefined);
@@ -2244,7 +2261,7 @@ export function startFlight(options: FlightOptions): Flight {
 				},
 				(error: unknown) => {
 					// A newer Run (or Stop) closed this sandbox while it started: nothing to report.
-					if (run === scriptRun && !disposed) {
+					if (run === scriptRuns.get(target) && !disposed) {
 						show(
 							'failed',
 							`script sandbox: ${error instanceof Error ? error.message : String(error)}`
@@ -2254,9 +2271,11 @@ export function startFlight(options: FlightOptions): Flight {
 			);
 		},
 		stopScript() {
-			scriptRun += 1;
-			client.stopScript();
-			options.sandbox?.close();
+			// this vessel's script only (plan 322): the others keep flying
+			if (vessel === null) return;
+			scriptRuns.set(Number(vessel), (scriptRuns.get(Number(vessel)) ?? 0) + 1);
+			client.stopScript(false, Number(vessel));
+			sandboxOf(Number(vessel))?.close();
 		},
 		async recover() {
 			if (vessel === null) return { ok: false, reason: 'there is no vessel to recover' };
@@ -2421,6 +2440,7 @@ export function startFlight(options: FlightOptions): Flight {
 			setGlassFallback(document.documentElement, false);
 			for (const off of offClient) off();
 			if (ownsClient) {
+				for (const id of scripts.keys()) sandboxOf(id)?.close();
 				options.sandbox?.close();
 				client.dispose();
 			}
