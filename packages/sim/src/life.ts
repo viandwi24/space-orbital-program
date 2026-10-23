@@ -344,7 +344,12 @@ export function lifeSupportSnapshot(
 	const rationsLeft = end === null ? 0 : Math.max(0, end - core.t);
 	const consumables = rates.consumables.map(({ resource, rate }) => {
 		const amount = amountAvailable(core, vessel, vessel.root, resource);
-		return { resource, amount, rate, timeLeft: rationsLeft + (rate > 0 ? amount / rate : Infinity) };
+		return {
+			resource,
+			amount,
+			rate,
+			timeLeft: rationsLeft + (rate > 0 ? amount / rate : Infinity)
+		};
 	});
 	if (rates.scrub) {
 		const amount = amountAvailable(core, vessel, vessel.root, CHARGE_RESOURCE);
