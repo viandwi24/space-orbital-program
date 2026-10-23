@@ -1484,6 +1484,7 @@ export class SceneModel {
 			...(moonUp ? { up: moonUp, ...this.moonAir() } : {}),
 			vesselRadius: this.vesselRadius,
 			mapView: this.map,
+			gameTime: this.simTime,
 			dt
 		});
 		// The active vessel in a terrain shadow on a moon gets less of the sun's light (the ground

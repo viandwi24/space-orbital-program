@@ -3,6 +3,7 @@
  * vessel, sky ambient, fog, exposure and the launch site (ADR 0027). Contains no
  * `WebGLRenderer`, so it runs in Bun; the facade adds PMREM and the post chain.
  */
+import { quantizeCover, stepCover, weatherCover } from './weather.ts';
 import {
 	LEGACY_ZONE,
 	createTerrainField,
@@ -44,6 +45,7 @@ import { PlanetPass } from './planet.ts';
 import { PRESETS, settingsFor, shadowSizeAt, type GraphicsPreset } from './presets.ts';
 import { fitShadow } from './shadow-fit.ts';
 import { liftAboveTerrain } from './terrain-patch.ts';
+import { GroundRocks } from './ground-rocks.ts';
 import { LaunchSite, SiteBuildings } from './site-meshes.ts';
 import { DEG, dot, length, rotate, rotateInverse, sub, vec } from './vec.ts';
 
@@ -83,6 +85,8 @@ export interface EnvironmentFrameInput {
 	mapView: boolean;
 	/** Wall-clock seconds since the last call (clouds, exposure adaptation). */
 	dt: number;
+	/** Game time, s: the weather's clock (plan 397); absent keeps the cover where it is. */
+	gameTime?: number;
 	/**
 	 * Local vertical (inertial, unit) to take the sun's elevation, the exposure and the shadow from,
 	 * instead of the radial of this body: a camera on a moon (ADR 0054).
@@ -124,6 +128,8 @@ export class Environment {
 	readonly atmosphere: Atmosphere;
 	readonly planet: PlanetPass;
 	readonly site: LaunchSite;
+	/** Rocks away from the site (plan 402). */
+	readonly rocks: GroundRocks;
 	readonly sunLight: DirectionalLight;
 	readonly hemisphere: HemisphereLight;
 	readonly fog: FogExp2;
@@ -156,6 +162,9 @@ export class Environment {
 	private cloudAngle = 0;
 	private time = 0;
 	private cloudCover = 0.42;
+	/** Wall-clock seconds until the cloud map may be baked with a new cover (plan 397). */
+	private coverWait = 0;
+	private coverStarted = false;
 	private exposure = 1;
 	/** The player's brightness factor (Settings), on top of the adapted exposure. */
 	private brightness = 1;
@@ -195,6 +204,12 @@ export class Environment {
 			settings.tufts,
 			config.siteBuildings === true
 		);
+		this.rocks = new GroundRocks(
+			body.radius,
+			this.terrain,
+			this.worldTerrain.zones ?? [],
+			this.worldTerrain.seed
+		);
 		this.sunLight = new DirectionalLight(0xffffff, this.atmosphere.sunIrradiance);
 		this.sunLight.name = 'sun';
 		this.sunLight.shadow.bias = SHADOW_BIAS;
@@ -207,6 +222,7 @@ export class Environment {
 			this.planet.mesh,
 			this.planet.edgeMesh,
 			this.site.root,
+			this.rocks.root,
 			this.sunLight,
 			this.sunLight.target,
 			this.hemisphere
@@ -312,6 +328,7 @@ export class Environment {
 		const s = settingsFor(this.preset, this.resources);
 		this.planet.setQuality(s);
 		this.site.setTrees(s.trees, s.tufts);
+		this.rocks.setQuality(s.rocks);
 		const shadows = s.shadowMapSize > 0;
 		this.sunLight.castShadow = shadows;
 		const wanted = shadowSizeAt(this.shadowMapSide(), this.viewRatio);
@@ -413,6 +430,14 @@ export class Environment {
 			siteLongitude: this.config.site.longitude
 		});
 		this.site.place(bodyRender, bodyRotation);
+		// rocks only where the camera is over the home planet's own ground
+		if (input.mapView || input.airless || input.air) this.rocks.root.visible = false;
+		else
+			this.rocks.update(
+				rotateInverse(bodyRotation, sub(cameraRender, bodyRender)),
+				bodyRender,
+				bodyRotation
+			);
 		this.site.setDetail(Math.hypot(frame.camToSite.x, frame.camToSite.y, frame.camToSite.z));
 		this.site.animate({
 			dt: input.dt,
@@ -536,6 +561,18 @@ export class Environment {
 		if (shadowActive) this.sunLight.shadow.updateMatrices(this.sunLight);
 
 		this.cloudAngle += input.dt * 2.2e-5;
+		if (input.gameTime !== undefined) {
+			// the weather moves the cover a step at a time (plan 397, ADR 0341); the first frame takes it whole
+			const target = quantizeCover(weatherCover(this.worldTerrain.seed, input.gameTime));
+			if (!this.coverStarted) {
+				this.coverStarted = true;
+				this.cloudCover = target;
+			} else {
+				const next = stepCover(this.cloudCover, target, this.coverWait, input.dt);
+				this.cloudCover = next.cover;
+				this.coverWait = next.wait;
+			}
+		}
 		this.time += input.dt;
 		this.site.setLamps(siteLamps);
 		const shadowMatrix = new Matrix4().copy(this.sunLight.shadow.matrix);

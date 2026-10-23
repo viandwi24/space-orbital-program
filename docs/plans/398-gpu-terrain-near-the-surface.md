@@ -1,7 +1,7 @@
 ---
 id: 398
 title: "GPU terrain near the surface: a compute CDLOD quadtree with indirect draws below about 20 km, real silhouettes, detail normal maps"
-status: draft
+status: in-progress
 owner: "Worker A"
 depends: [393]
 phase: 9
@@ -74,3 +74,4 @@ Below about 20 km the ground is a rasterised mesh, not a per-pixel ray march: a 
 ## Log
 
 - 2026-10-24 — Created by the coordinator from refs/graphics-v2 (ADR 0330).
+- 2026-10-24 — Worker A: ADR 0343 and stage 1: the CDLOD quadtree reference (cube-sphere mapping, selection, ranges, morph) with unit tests. Open: the compute walk, mesh, composition, handover, normal maps, height check, M5 numbers.

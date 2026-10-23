@@ -325,3 +325,7 @@ An ADR records one decision, its context, and its consequences. ADRs are **appen
 | 0337 | [Collisions that never miss: a load range, merged physics frames, a ground plane that clears the footprint](0337-collisions-that-never-miss.md) | accepted | 2026-10-24 |
 | 0338 | [A governor for 120 Hz: a lock of 120 or 60, TAAU as the fast axis](0338-governor-for-120hz.md) | accepted | 2026-10-24 |
 | 0339 | [The graphics profile: presets, per-look levels, a pinned scale, and what the governor may change](0339-graphics-profile-and-governor-contract.md) | accepted | 2026-10-24 |
+| 0340 | [Tile-GPU hygiene: what three already does, and the trials that did not ship](0340-tile-gpu-hygiene-nothing-ships.md) | accepted | 2026-10-24 |
+| 0341 | [Rocks on the home ground: visual only, small, placed by cell](0341-rocks-on-the-home-ground.md) | accepted | 2026-10-24 |
+| 0342 | [Clouds v2: the model, and the weather map first](0342-clouds-v2-weather-first.md) | accepted | 2026-10-24 |
+| 0343 | [GPU terrain near the surface: a CDLOD quadtree on the cube-sphere](0343-gpu-terrain-cdlod.md) | accepted | 2026-10-24 |

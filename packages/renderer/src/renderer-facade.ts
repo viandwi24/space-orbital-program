@@ -65,6 +65,7 @@ export type DebugFacade = Pick<
 	| 'silhouetteAA'
 	| 'scaledSpace'
 	| 'groundDetail'
+	| 'groundRocks'
 	| 'setMoonTint'
 	| 'setMoonDetail'
 	| 'dishAims'
@@ -138,6 +139,12 @@ export function debugFacade(model: SceneModel): DebugFacade {
 			return true;
 		},
 		setPartTemperature: (kelvin) => model.setDebugTemperature(kelvin),
+		groundRocks: () => ({
+			count: env.rocks.count,
+			visible: env.rocks.root.visible,
+			near: env.rocks.near.count,
+			far: env.rocks.far.count
+		}),
 		focusPart: (definition, occurrence) => model.setDebugFocus(definition, occurrence),
 		dishAims: () => env.site.dishAims.map((a) => ({ ...a })),
 		stepEffects(seconds) {
