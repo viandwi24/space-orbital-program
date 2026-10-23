@@ -610,7 +610,9 @@
 		});
 	}
 	let tall = $state(true);
-	const ballSize = $derived(tall ? 180 : 144);
+	// the navball module's size (V3 §2.4; compact by default since plan 377, Settings → Interface)
+	const compactBall = $derived(settings.ui.navball !== 'normal');
+	const ballSize = $derived(compactBall ? (tall ? 144 : 128) : tall ? 180 : 144);
 	// The toolbar's Staging and Nav buttons (plan 088, ADR 0144 point 5).
 	let navOpen = $state(true);
 	/** The staging box at the bottom right (V3 §2.3: a menu-bar toggle). */

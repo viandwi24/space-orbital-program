@@ -179,6 +179,13 @@
 	.modes.dim .mode:not(.active) {
 		color: var(--text-disabled);
 	}
+	/* the hit area stays at least 24 px when the compact module shrinks the buttons (plan 377) */
+	.mode::after {
+		content: '';
+		position: absolute;
+		inset: min(0px, calc((32 * var(--u) - 1.5rem) / 2));
+		border-radius: 50%;
+	}
 	.mode:hover:not(:disabled) {
 		background: var(--surface-track);
 	}
@@ -226,6 +233,11 @@
 		height: calc(26 * var(--u));
 		background: var(--surface-solid);
 		box-shadow: 0 0 0 1px var(--border-subtle);
+	}
+	.m-maneuver::after,
+	.m-target::after,
+	.m-anti-target::after {
+		inset: min(0px, calc((26 * var(--u) - 1.5rem) / 2));
 	}
 	.m-maneuver {
 		left: calc(108 * var(--u));

@@ -355,6 +355,21 @@
 					testid="setting-perf-overlay"
 				/>
 			</div>
+			<div class="row">
+				<div class="what">
+					<h3>Compact navball</h3>
+					<p>
+						A smaller navball module in Flight, with tighter readouts and SAS buttons. Off: the full
+						size.
+					</p>
+				</div>
+				<Switch
+					checked={settings.ui.navball !== 'normal'}
+					label="Compact navball"
+					onchange={(on) => settings.setInterface({ navball: on ? 'compact' : 'normal' })}
+					testid="setting-compact-navball"
+				/>
+			</div>
 		{:else if tab === 'game'}
 			<div class="row">
 				<div class="what">
