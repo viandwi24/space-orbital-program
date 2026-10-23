@@ -107,12 +107,12 @@ describe('re-entry heating (plan 014, ADR 0023)', () => {
 	test('the same entry with a heat shield loses nothing and burns ablator', async () => {
 		const run = await fly(shieldedProbe(), deorbit);
 		console.log(
-			`shielded: end ${run.end}, peak ${run.peak.toFixed(0)} K, ablator left ${run.ablator?.toFixed(2)} of 120`
+			`shielded: end ${run.end}, peak ${run.peak.toFixed(0)} K, ablator left ${run.ablator?.toFixed(2)} of 300`
 		);
 		expect(run.end).toBe('low');
 		expect(run.damaged).toEqual([]);
 		expect(run.parts).toBe(4);
-		expect(run.ablator!).toBeLessThan(120);
+		expect(run.ablator!).toBeLessThan(300); // the realistic shield's (plan 380)
 		expect(run.ablator!).toBeGreaterThan(0);
 		expect(run.peak).toBeLessThan(900); // below the tank limit
 	});

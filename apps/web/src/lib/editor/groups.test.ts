@@ -14,7 +14,8 @@ import { createEditor, deleteSubtree, undo } from './state';
 
 const { registries } = loadPlugins([Stock]);
 const content = { parts: registries.parts, modules: registries.modules };
-const LEGS = 5;
+// the moon shot's legs (index 4 since plan 380 left one wheel on its lander)
+const LEGS = 4;
 const legs = { part: LEGS, module: 'stock.landing-leg', action: 'setDeployed' };
 
 describe('the Hangar action group editor (plan 218)', () => {

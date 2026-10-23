@@ -488,16 +488,17 @@ describe('build-time settings (plan 218)', () => {
 	});
 
 	it('a tank fill keeps the other resources and is refused above capacity', () => {
+		// the moon shot's lander tank (index 2 since plan 380)
 		const s0 = createEditor(moonShot(), content);
-		const fill = buildRow(s0.design, content, 3)!.controls.find((c) =>
+		const fill = buildRow(s0.design, content, 2)!.controls.find((c) =>
 			c.id.startsWith('fill:stock.liquid-fuel')
 		)!;
 		expect(fill.buildOnly).toBe(true);
 		const half = (fill.max as number) / 2;
-		const s1 = setBuildSetting(s0, content, 3, fill, half);
-		const row = buildRow(s1.design, content, 3)!;
+		const s1 = setBuildSetting(s0, content, 2, fill, half);
+		const row = buildRow(s1.design, content, 2)!;
 		expect(row.controls.find((c) => c.id === fill.id)!.value).toBe(half);
 		expect(row.controls.find((c) => c.id === 'fill:stock.oxidizer')!.value).toBeGreaterThan(half);
-		expect(() => setBuildSetting(s0, content, 3, fill, (fill.max as number) * 2)).toThrow();
+		expect(() => setBuildSetting(s0, content, 2, fill, (fill.max as number) * 2)).toThrow();
 	});
 });

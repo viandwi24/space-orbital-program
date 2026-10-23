@@ -17,16 +17,22 @@ import { resolve } from '$app/paths';
 import { untrack } from 'svelte';
 import {
 	homeBodyOf,
+	loadPlugins,
 	mat3OfQuat,
 	surfaceHalfHeight,
 	surfacePoint,
 	surfaceSite,
+	type BodyDefinition,
 	type DesignTilt,
 	type PartDefinition,
 	type Plugin,
 	type PlacedBuilding,
-	type VesselDesign
+	type SystemChoice,
+	type VesselDesign,
+	type WorldInfo
 } from '@orbital/core';
+import { BUILTIN_PLUGINS } from '../builtins';
+import { activePlugins } from '../mods/runtime';
 import {
 	LOOK_KEYS,
 	VabView,
@@ -236,7 +242,9 @@ export function withPlugins<T>(plugins: readonly Plugin[] | undefined, make: () 
 
 export class VabController {
 	// --- content ---------------------------------------------------------------------------------------------
-	readonly loaded = loadContent(undefined, contentPlugins);
+	/** The plugins the content comes from (the page's mod runtime, or the sandbox's own set). */
+	readonly plugins: readonly Plugin[] = contentPlugins ?? [...BUILTIN_PLUGINS, ...activePlugins()];
+	readonly loaded = loadContent(undefined, this.plugins);
 	readonly catalog = this.loaded.catalog;
 	readonly content = this.loaded.content;
 	readonly lookup = partLookup(this.catalog);
@@ -250,14 +258,37 @@ export class VabController {
 		list: () => this.catalog.parts,
 		get: (id: string) => this.catalog.parts.find((p) => p.id === id)
 	};
-	readonly body = homeBodyOf(this.catalog.bodies)!;
-	readonly gravity = bodyMu(this.body) / (this.body.radius * this.body.radius);
-	/** What the loaded bodies offer as a trip (plan 034): mod bodies are in the list without any code. */
-	readonly destinations = destinationsOf(this.catalog.bodies);
+	/**
+	 * The world's bodies (plan 380, ADR 0317): parts are the same in every system, the bodies are not.
+	 * The stock system until `useWorld` reads the active world's system and variant.
+	 */
+	bodies = $state.raw<readonly BodyDefinition[]>(this.catalog.bodies);
+	private homeId = $state.raw<string | undefined>(undefined);
+	readonly body = $derived(
+		(this.homeId && this.bodies.find((b) => b.id === this.homeId)) || homeBodyOf(this.bodies)!
+	);
+	readonly gravity = $derived(bodyMu(this.body) / (this.body.radius * this.body.radius));
+	/** What the world's bodies offer as a trip (plan 034): mod bodies are in the list without any code. */
+	readonly destinations = $derived(destinationsOf(this.bodies, this.body.id));
 	readonly defaultName = emptyDesign().name;
 	readonly symmetryCounts = SYMMETRY_COUNTS;
 
 	defOf = (id: string): PartDefinition | undefined => this.lookup.get(id);
+
+	/**
+	 * The active world's system (plan 380): its bodies for the trip line, the checks' gravity and the
+	 * Δv picker. The parts stay: they are the same in every system (ADR 0317).
+	 */
+	useWorld(info: Pick<WorldInfo, 'systemId' | 'variant' | 'sites'> | undefined): void {
+		if (!info || info.systemId === 'stock') return;
+		const { registries } = loadPlugins(this.plugins, {
+			system: { id: info.systemId, variant: info.variant }
+		});
+		this.bodies = registries.bodies.list();
+		this.homeId = homeBodyOf(this.bodies, info)?.id;
+		this.system = { id: info.systemId, variant: info.variant };
+		this.statsBodyId = String(this.body.id);
+	}
 
 	// --- state -----------------------------------------------------------------------------------------------
 	editor = $state.raw<EditorState>(createEditor(emptyDesign(), this.editorContent));
@@ -296,16 +327,18 @@ export class VabController {
 	flagged = $state.raw<number[]>([]);
 	environment = $state<Environment>('sea-level');
 	/** Δv and TWR are for this body (plan 218): the home body until the picker chooses another. */
-	statsBodyId = $state(String(this.body.id));
+	statsBodyId = $state(String(homeBodyOf(this.catalog.bodies)!.id));
 	/** The bodies of the picker: those with a surface (no star), home first. */
-	readonly statsBodies = [
-		this.body,
-		...this.catalog.bodies.filter((b) => b !== this.body && b.star !== true)
-	].map((b) => ({ id: String(b.id), label: bodyLabel(String(b.id)) }));
+	readonly statsBodies = $derived(
+		[this.body, ...this.bodies.filter((b) => b !== this.body && b.star !== true)].map((b) => ({
+			id: String(b.id),
+			label: bodyLabel(String(b.id))
+		}))
+	);
 	/** m above the surface for the "altitude" situation; null at the surface (sea level). */
 	statsAltitude = $state<number | null>(null);
 	readonly statsBody = $derived(
-		this.catalog.bodies.find((b) => String(b.id) === this.statsBodyId) ?? this.body
+		this.bodies.find((b) => String(b.id) === this.statsBodyId) ?? this.body
 	);
 	readonly situation = $derived(
 		situationAt(
@@ -343,8 +376,10 @@ export class VabController {
 	libraryOpen = $state(false);
 	/** The blueprint Library dialog (plan 285). */
 	blueprintsOpen = $state(false);
+	/** The world's system (plan 380): a blueprint builds its design for it. */
+	private system = $state.raw<SystemChoice>({ id: 'stock' });
 	/** Every blueprint card: learn, famous missions, mods (plan 285, ADR 0263). */
-	readonly blueprints = allBlueprints(this.loaded.blueprints);
+	readonly blueprints = $derived(allBlueprints(this.loaded.blueprints, this.system));
 	private readonly blueprintThumbs = new Map<string, string | null>();
 	vesselEntries = $state.raw<LibraryEntry[]>([]);
 	assemblyEntries = $state.raw<LibraryEntry[]>([]);
@@ -1884,11 +1919,13 @@ export class VabController {
 	}
 	/** A card's picture, drawn once from the Hangar's view and kept (plan 285); null without a view. */
 	blueprintThumbnail(id: string): string | null {
-		if (this.blueprintThumbs.has(id)) return this.blueprintThumbs.get(id)!;
+		// a blueprint may have its own design per system (plan 380)
+		const key = `${id}@${this.system.id}:${this.system.variant ?? ''}`;
+		if (this.blueprintThumbs.has(key)) return this.blueprintThumbs.get(key)!;
 		const card = this.cardOf(id);
 		if (!card || !this.view) return null;
 		const url = this.assemblyThumbnail(card.build(this.editorContent));
-		this.blueprintThumbs.set(id, url);
+		this.blueprintThumbs.set(key, url);
 		return url;
 	}
 	/** The card read-outs (plan 285). */

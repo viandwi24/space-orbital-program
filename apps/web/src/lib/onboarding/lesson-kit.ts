@@ -4,15 +4,27 @@
  * `lessons.ts`, which imports the level files.
  */
 import type { EntityId } from '@orbital/core';
+import { HomeBody, MoonBody, SunBody } from '@orbital/mod-stock';
+import { systemFacts } from '../worlds/system-facts';
+
+const STOCK_BODIES = [SunBody, HomeBody, MoonBody];
 import type { Lesson, LessonPlace, LessonSetupCall, LessonStep } from './lessons';
 
 /** Stands for the lesson vessel's id in a setup call's arguments (`runLessonSetup`). */
 export const FOCUS = '$focus' as unknown as EntityId;
 
-/** Radius of the stock home planet, m. */
-export const HOME_RADIUS = 600_000;
+/** Radius of the stock home planet, m (lessons fly in a stock world, plan 229). */
+export const HOME_RADIUS = HomeBody.radius;
 /** Top of Home's air, m: the orbit lessons' line. */
-export const HOME_AIR = 70_000;
+export const HOME_AIR = HomeBody.atmosphere!.height;
+/** What the stock system asks of a rocket (plan 380): computed from its bodies, like any world's. */
+export const STOCK_FACTS = systemFacts(STOCK_BODIES)!;
+/** `80 km`. */
+export const kmText = (m: number): string => `${Math.round(m / 1000)} km`;
+/** The lesson texts' numbers, from the stock bodies: the low orbit, the air's top, Δv to orbit. */
+export const LOW = kmText(STOCK_FACTS.lowOrbit);
+export const AIR = kmText(HOME_AIR);
+export const DV = `${(STOCK_FACTS.dvToOrbit / 1000).toFixed(1)} km/s`;
 /** The parking orbit the orbit lessons start in, m. */
 export const PARKING = 100_000;
 /** The docking target leads by this much along the orbit, m (Auto Dock starts within 250 m). */

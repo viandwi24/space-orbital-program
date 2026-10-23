@@ -3,7 +3,7 @@ import type { Command, EntityId } from '@orbital/core';
 import { newSim, twoStage } from './helpers/vessels.ts';
 
 /** The same command script, by step number, against a fresh sim; returns the state at t = 100 s. */
-async function run(): Promise<{ snapshot: string; world: string; time: number }> {
+async function run(): Promise<{ snapshot: string; world: string; time: number; most: number }> {
 	const sim = await newSim();
 	const loaded = sim.dispatch({ type: 'load-vessel', design: twoStage() });
 	if (!loaded.ok) throw new Error(loaded.reason);
@@ -23,14 +23,17 @@ async function run(): Promise<{ snapshot: string; world: string; time: number }>
 		[3_000, [{ type: 'stage', vessel }]], // fires the decoupler: a second vessel appears
 		[3_500, [{ type: 'throttle', vessel, value: 1 }]]
 	]);
+	let most = 0;
 	for (let i = 0; i < 5_000; i++) {
 		for (const c of script.get(i) ?? []) {
 			const r = sim.dispatch(c);
 			if (!r.ok) throw new Error(`step ${i}: ${r.reason}`);
 		}
 		sim.step(0.02);
+		if (i % 50 === 0) most = Math.max(most, sim.snapshot().vessels.length);
 	}
 	return {
+		most,
 		snapshot: JSON.stringify(sim.snapshot()),
 		world: JSON.stringify(sim.world.serialize()),
 		time: sim.time
@@ -41,7 +44,8 @@ test('two runs of the same command script give byte-identical snapshots at t = 1
 	const a = await run();
 	const b = await run();
 	expect(a.time).toBeCloseTo(100, 6);
-	expect(JSON.parse(a.snapshot).vessels.length).toBeGreaterThanOrEqual(2); // the split happened
+	// the split happened (the light realistic lower stage of plan 380 may be gone again by 100 s)
+	expect(a.most).toBeGreaterThanOrEqual(2);
 	expect(b.snapshot).toBe(a.snapshot);
 	expect(b.world).toBe(a.world);
 });

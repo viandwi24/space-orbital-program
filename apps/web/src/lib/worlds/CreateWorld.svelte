@@ -15,6 +15,7 @@
 	} from '@orbital/core';
 	import { untrack } from 'svelte';
 	import type { WorldCatalog } from './catalog';
+	import { factsLine } from './system-facts';
 	import { modeArt, withAlpha } from './mode-art';
 	import SystemArt from './SystemArt.svelte';
 	import {
@@ -93,10 +94,9 @@
 	const chosenVariant = $derived(active.variants.find((v) => v.variant === variant));
 	// the variant's declared home wins over the body order (a system listing its planets by distance)
 	const homeId = $derived(chosenVariant?.home ?? homeBodyOf(active.bodies)?.id);
-	/** `Δv to orbit ≈ 9.4 km/s · Moon in 4.9 days`, from the pack's data. */
-	const factsText = (f: NonNullable<(typeof active.variants)[number]['facts']>): string =>
-		`Δv to orbit ≈ ${(f.dvToOrbit / 1000).toFixed(1)} km/s` +
-		(f.moonTransfer === undefined ? '' : ` · Moon in ${(f.moonTransfer / 86_400).toFixed(1)} days`);
+	/** `Δv to orbit ≈ 9.2 km/s · Moon in 4.9 days`: the Δv from the variant's bodies (plan 380). */
+	const factsText = (v: (typeof active.variants)[number]): string =>
+		v.computed ? factsLine(v.computed, v.facts?.moonTransfer) : '';
 	let fixedDate = $state('2000-01-01');
 	let gravity = $state('patched');
 	let siteChoice = $state(untrack(() => initialSite));
@@ -459,7 +459,7 @@
 													class="sr-only"
 												/>
 												<span class="sname">{v.label}</span>
-												{#if v.facts}<span class="facts">{factsText(v.facts)}</span>{/if}
+												{#if v.computed}<span class="facts">{factsText(v)}</span>{/if}
 												{#if v.description}<span class="sdesc">{v.description}</span>{/if}
 											</label>
 										{/each}
@@ -810,6 +810,14 @@
 						{#if active.variants.length > 1}<div>
 								<dt>Scale</dt>
 								<dd>{chosenVariant?.label}</dd>
+							</div>{/if}
+						{#if chosenVariant?.computed}<div>
+								<dt>Difficulty</dt>
+								<dd data-testid="summary-dv-orbit">
+									{chosenVariant.computed.difficulty} · Δv to orbit {(
+										chosenVariant.computed.dvToOrbit / 1000
+									).toFixed(1)} km/s
+								</dd>
 							</div>{/if}
 						<div>
 							<dt>Launch site</dt>

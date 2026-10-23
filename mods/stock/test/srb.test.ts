@@ -38,9 +38,9 @@ describe('solid rocket motors (plan 210)', () => {
 		const idle = burn(1, 0);
 		expect(idle.seconds).toBeCloseTo(full.seconds, 6);
 		expect(full.vessel.stock[SolidFuel.id]).toBeLessThan(1e-9);
-		// 330 u × 7.5 kg at 150 kN / (200 s × g0): about 32 s
-		expect(full.seconds).toBeGreaterThan(30);
-		expect(full.seconds).toBeLessThan(36);
+		// 330 u × 7.5 kg at 150 kN / (240 s × g0): about 39 s (an early solid's Isp, plan 380)
+		expect(full.seconds).toBeGreaterThan(36);
+		expect(full.seconds).toBeLessThan(42);
 	});
 
 	test('at a 50 % limiter its burn time doubles and its thrust halves', () => {

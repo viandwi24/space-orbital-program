@@ -45,7 +45,8 @@ const VARIANTS = {
 		rocket: realScaleRocket,
 		turnEnd: 40_000,
 		turnPitch: 1.45,
-		engine: { thrust: 1_200_000, isp: 420 },
+		// the upper stage's J-2-class engine
+		engine: { thrust: 1_000_000, isp: 421 },
 		/** Share of a two-day watch the station hears a 100 km lunar orbiter, at least. */
 		linkShare: 0.25
 	},
@@ -53,7 +54,7 @@ const VARIANTS = {
 		rocket: rescaledRocket,
 		turnEnd: 20_000,
 		turnPitch: 1.4,
-		engine: { thrust: 400_000, isp: 330 },
+		engine: { thrust: 215_000, isp: 305 },
 		linkShare: 0.25
 	}
 } as const;

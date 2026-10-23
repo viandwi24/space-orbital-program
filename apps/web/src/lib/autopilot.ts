@@ -3,8 +3,8 @@
  * stack through browser automation is not feasible (attitude needs closed-loop control at the
  * snapshot rate), so the manual run of plan 009 uses this. It is a port of the scripted ascent in
  * `packages/sim/test/helpers/ascent.ts`, talks to the sim only through snapshots and `dispatch`
- * (the same path as the keyboard), and is crude on purpose: vertical to 10 km, pitch-over towards
- * east by 40 km, cut at 80 km apoapsis, coast, circularise at apoapsis.
+ * (the same path as the keyboard), and is crude on purpose: vertical to 1 km, pitch-over towards
+ * east by 30 km, cut at 80 km apoapsis, coast, circularise at apoapsis.
  */
 import type {
 	BodyDefinition,
@@ -69,11 +69,12 @@ export function createAutopilot(given: AutopilotOptions) {
 	};
 	const mu = GRAVITATIONAL_CONSTANT * o.body.mass;
 	const radius = o.body.radius;
-	const turnStart = o.turnStart ?? 10_000;
-	const turnEnd = o.turnEnd ?? 40_000;
+	// an early, flat turn since plan 380 (the starter's realistic early-era parts, ADR 0317)
+	const turnStart = o.turnStart ?? 1_000;
+	const turnEnd = o.turnEnd ?? 30_000;
 	const targetApo = o.apoapsis ?? 80_000;
 	const targetPeri = o.periapsis ?? 76_000;
-	const pitchMax = o.turnPitch ?? Math.PI / 4;
+	const pitchMax = o.turnPitch ?? 1.45;
 	const partDefs = new Map(o.parts.map((p) => [p.id as string, p]));
 	const density = new Map(o.resources.map((r) => [r.id as string, r.density ?? 0]));
 	let phase: AutopilotPhase = 'ascent';

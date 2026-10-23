@@ -244,7 +244,8 @@ export const Circularize = defineAutopilot<CircularizeMemory>({
 // ---- ascent to orbit ------------------------------------------------------------------------
 
 export interface AscentMemory extends NodeMemory {
-	stage: 'launch' | 'ascent' | 'coast' | 'circularize';
+	/** `insert` (plan 380): the closed-loop burn into orbit; `coast` and `circularize` remain for older saves. */
+	stage: 'launch' | 'ascent' | 'insert' | 'coast' | 'circularize';
 	/** Target orbit altitude above the radius, m. */
 	altitude: number;
 	/** Altitude where the turn ends (pitch 0), m. */
@@ -254,7 +255,16 @@ export interface AscentMemory extends NodeMemory {
 	/** Wanted orbit inclination, rad (plan 332); 0 flies due east. Absent in older saves. */
 	inclination?: number;
 	planned: boolean;
+	/** Circularizations planned again because the periapsis stayed in the air (plan 380); absent: 0. */
+	replans?: number;
 }
+
+/** The ascent holds the acceleration to this, in g0 (plan 380): realistic engines on a light stack would loft it. */
+const ASCENT_MAX_G = 3;
+/** Circularizations the ascent plans again when one leaves the periapsis in the air. */
+const MAX_REPLANS = 2;
+/** The insertion ends with the periapsis this close under the target, m. */
+const INSERT_DONE = 5_000;
 
 /**
  * Up and the launch heading at the vessel, inertial axes: due east, or turned toward north for an
@@ -279,10 +289,16 @@ function localAxes(pilot: VesselPilot, inclination = 0, correction = 0): { up: V
 	return { up, east: heading };
 }
 
+/** The throttle that holds the acceleration to `ASCENT_MAX_G` (1 without thrust). */
+function maxGThrottle(pilot: VesselPilot, mass: number): number {
+	const thrust = pilot.maxThrust;
+	return thrust > 0 ? clamp((ASCENT_MAX_G * 9.80665 * mass) / thrust, 0.05, 1) : 1;
+}
+
 export const Ascent = defineAutopilot<AscentMemory>({
 	id: 'guidance.ascent',
 	title: 'Ascent to orbit',
-	description: 'Launches, flies a gravity turn east, stages when the engines run dry and circularizes.',
+	description: 'Launches, flies a gravity turn east, stages when the engines run dry and burns on into orbit.',
 	start(pilot, params) {
 		const f = facts(pilot);
 		if (typeof f === 'string') throw new Error(f);
@@ -342,22 +358,67 @@ export const Ascent = defineAutopilot<AscentMemory>({
 				y: up.y * Math.sin(pitch) + east.y * Math.cos(pitch),
 				z: up.z * Math.sin(pitch) + east.z * Math.cos(pitch)
 			}));
-			// ease off as the apoapsis nears the target, so it is not overshot
-			pilot.throttle(clamp((memory.altitude - apo) / 2_000, 0.05, 1));
+			// never above 3 g, as real launchers throttle: a light stack on realistic engines lofts otherwise
+			pilot.throttle(maxGThrottle(pilot, f.mass));
+			// the apoapsis is there: cut and coast up to it (a lofted climb). The turn done below the target
+			// (a real-scale ascent, flat in the thin air): burn on into orbit at once (plan 380)
 			if (apo >= memory.altitude) {
 				pilot.throttle(0);
 				memory.stage = 'coast';
-			}
+			} else if (done >= 1) memory.stage = 'insert';
 			return { phase: 'ascent', status: `Pitch ${Math.round(pitch / DEG)}°`, readouts };
+		}
+		if (memory.stage === 'insert') {
+			autoStage(pilot, memory);
+			const { up, east } = localAxes(pilot, memory.inclination ?? 0);
+			const v = pilot.vessel.velocity;
+			const rr = length(r);
+			const vz = dot(v, up);
+			const vh = Math.sqrt(Math.max(0, dot(v, v) - vz * vz));
+			// a time-to-go law (PEG-like): reach circular speed in `tgo` at the target altitude with no climb
+			// left; the vertical thrust holds gravity less the centrifugal part plus the climb correction
+			const thrust = pilot.maxThrust;
+			const accel = thrust > 0 ? Math.min(thrust / f.mass, ASCENT_MAX_G * 9.80665) : 0;
+			const gEff = f.mu / (rr * rr) - (vh * vh) / rr;
+			const across = Math.sqrt(Math.max(accel * accel - gEff * gEff, (0.3 * accel) ** 2));
+			const tgo = clamp((Math.sqrt(f.mu / rr) - vh) / Math.max(across, 1e-3), 30, 600);
+			// damped: at most half a g of correction, so it neither lofts nor dives
+			const climb = clamp((2 * (memory.altitude - altitude - vz * tgo)) / (tgo * tgo), -4.9, 4.9);
+			const sine = accel > 0 ? clamp((gEff + climb) / accel, -0.5, 0.95) : 0;
+			const pitch = Math.asin(sine);
+			pilot.pointAt(unit({
+				x: up.x * Math.sin(pitch) + east.x * Math.cos(pitch),
+				y: up.y * Math.sin(pitch) + east.y * Math.cos(pitch),
+				z: up.z * Math.sin(pitch) + east.z * Math.cos(pitch)
+			}));
+			const pe = o.periapsis - f.radius;
+			// in orbit near the target, or above the air with the apoapsis well past it (an overshoot)
+			if (pe > air && (pe >= memory.altitude - INSERT_DONE || apo > memory.altitude + 4 * INSERT_DONE)) {
+				pilot.throttle(0);
+				return { phase: 'done', status: 'In orbit', readouts, done: true };
+			}
+			// ease off as the periapsis nears the target
+			pilot.throttle(Math.min(maxGThrottle(pilot, f.mass), clamp((memory.altitude - INSERT_DONE - pe) / 20_000, 0.05, 1)));
+			// no engine burning and nothing left to stage, some seconds after the last stage lit
+			if (thrust <= 0 && pilot.nextStage === null && pilot.time - memory.stagedAt > 5)
+				return { phase: 'insert', abort: 'out of propellant before orbit' };
+			return { phase: 'insert', status: `Inserting: pitch ${Math.round(pitch / DEG)}°`, readouts };
 		}
 		if (memory.stage === 'coast') {
 			pilot.sas('prograde', 'orbit');
 			// drag lowers the apoapsis on the way out of the air: top it up
 			pilot.throttle(apo < memory.altitude - 300 ? 0.1 : 0);
-			if (altitude > air && altitude > 0.5 * memory.altitude) {
-				pilot.throttle(0);
-				memory.stage = 'circularize';
-			}
+			// the insertion burn starts half its length before the apoapsis (plan 380): the engines'
+			// gimbal turns a heavy stack, where a node's alignment waited on the wheels alone
+			const up = unit(r);
+			const vz = dot(pilot.vessel.velocity, up);
+			const rr = length(r);
+			const gEff = Math.max(f.mu / (rr * rr) - (dot(pilot.vessel.velocity, pilot.vessel.velocity) - vz * vz) / rr, 0.1);
+			const ra = o.apoapsis;
+			const dvCirc = Math.sqrt(f.mu / ra) - length(cross(r, pilot.vessel.velocity)) / ra;
+			const accel = Math.min(pilot.maxThrust / f.mass, ASCENT_MAX_G * 9.80665);
+			const burn = accel > 0 ? dvCirc / accel : 60;
+			if (altitude > 0.5 * air && vz / gEff <= burn / 2) memory.stage = 'insert';
 			return { phase: 'coast', status: 'Coasting to the apoapsis', readouts };
 		}
 		if (!memory.planned) {
@@ -368,6 +429,13 @@ export const Ascent = defineAutopilot<AscentMemory>({
 			return { phase: 'circularize', status: 'Planned the circularization', readouts };
 		}
 		const step = stepNode(pilot, memory);
+		// a long burn can end with the periapsis still in the air: circularize again at the next apoapsis
+		if (step.done && o.periapsis - f.radius < air && (memory.replans ?? 0) < MAX_REPLANS) {
+			memory.replans = (memory.replans ?? 0) + 1;
+			memory.planned = false;
+			Object.assign(memory, { ...newNodeMemory(), stagedAt: memory.stagedAt });
+			return { phase: 'circularize', status: 'Circularizing again: the periapsis is in the air', readouts };
+		}
 		return { ...step, readouts: { ...readouts, ...step.readouts } };
 	}
 });

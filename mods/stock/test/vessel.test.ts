@@ -66,9 +66,10 @@ const UPPER = ['stock.command-pod', 'stock.reaction-wheel', 'stock.tank-small', 
 describe('reference two-stage vessel (pod, wheel, small tank, engine | decoupler, small tank, engine)', () => {
 	const v = twoStage(UPPER, ['stock.decoupler', 'stock.tank-small', 'stock.engine-lv']);
 
-	test('masses are what the docs say: wet 12 890 kg, upper stage 6 890 kg', () => {
-		expect(v.m0).toBeCloseTo(12_890, 6);
-		expect(UPPER.reduce((s, p) => s + wet(p), 0)).toBeCloseTo(6_890, 6);
+	// realistic early-era stats since plan 380 (ADR 0317): 1 160 kg tanks, a 275 kg LV-T30
+	test('masses: wet 12 760 kg, upper stage 6 825 kg', () => {
+		expect(v.m0).toBeCloseTo(12_760, 6);
+		expect(UPPER.reduce((s, p) => s + wet(p), 0)).toBeCloseTo(6_825, 6);
 	});
 
 	test('can reach orbit: Δv >= 3 800 m/s (about 3 400 m/s is needed) and sea-level TWR > 1.3', () => {

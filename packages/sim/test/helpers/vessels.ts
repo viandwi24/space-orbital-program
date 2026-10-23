@@ -91,6 +91,28 @@ export const lander = (): VesselDesign =>
 	);
 
 /**
+ * The lander on three later-tier 1.875 m tanks, for powered landings from a 100 km orbit of Home (plan
+ * 380): with its two early-era medium tanks (ADR 0317) `lander` has too little Δv for the landing law.
+ * Three keep its mass near the old lander's when the final descent starts, as the law expects.
+ */
+export const orbitLander = (): VesselDesign =>
+	stack(
+		'Orbit lander',
+		[
+			'stock.command-pod',
+			'stock.reaction-wheel',
+			'stock.tank-1875',
+			'stock.tank-1875',
+			'stock.tank-1875',
+			'stock.engine-lv',
+			'stock.landing-legs'
+		],
+		[[5]]
+	);
+/** Root to the feet of `orbitLander`, m: `lander`'s 10.8 with three 3.75 m tanks for its two 4 m ones. */
+export const ORBIT_LANDER_ROOT_TO_FOOT = 14.05;
+
+/**
  * Pod, wheel, two tanks and an engine in a stack (indices 0-4, top to bottom) with `n` boosters
  * hung on the lower tank by radial decouplers (ADR 0034): decoupler `10 + 3k`, booster `11 + 3k`,
  * nose cone `12 + 3k`, all in symmetry group 1 at `2 pi k / n`. Stage 0 lights the core engine and
@@ -247,18 +269,23 @@ export function moonShot(): VesselDesign {
 		'stock.command-pod',
 		'stock.reaction-wheel',
 		'stock.reaction-wheel',
-		'stock.tank-medium',
+		// since plan 380 (ADR 0317) a later-tier 1.875 m tank on the lander (9 t of propellant on 730 kg,
+		// where the early medium tank weighs 2.3 t), and a second core tank and the four-chamber
+		// cluster: the early-era core falls short of orbit and the lander finishes the ascent
+		'stock.tank-1875',
 		'stock.engine-lv',
 		'stock.landing-legs',
 		'stock.decoupler',
 		'stock.tank-medium',
-		'stock.engine-lv'
+		'stock.tank-medium',
+		'stock.engine-cluster'
 	];
 	// Indices into `chain`.
 	const landerEngine = 4;
 	const decoupler = 6;
 	const coreTank = 7;
-	const coreEngine = 8;
+	const lowerTank = 8;
+	const coreEngine = 9;
 	const parts: VesselDesign['parts'] = chain.map((part, index) => ({
 		index,
 		part: partId(part),
@@ -291,7 +318,7 @@ export function moonShot(): VesselDesign {
 				index: 40 + k,
 				part: partId('stock.fin'),
 				parent: {
-					index: coreTank,
+					index: lowerTank,
 					parentNode: 'surface',
 					node: 'radial',
 					radial: { angle: angle + Math.PI / 4, y: -0.7 }

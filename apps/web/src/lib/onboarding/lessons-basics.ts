@@ -3,7 +3,16 @@
  * coming home, and the Space Center.
  */
 import type { Lesson } from './lessons';
-import { HOME_AIR, IN_PARKING_ORBIT, LIGHT, RAISED_ORBIT, closedPlaces } from './lesson-kit';
+import {
+	AIR,
+	DV,
+	HOME_AIR,
+	IN_PARKING_ORBIT,
+	LIGHT,
+	LOW,
+	RAISED_ORBIT,
+	closedPlaces
+} from './lesson-kit';
 import { pathfinder, pathfinderCapsule, skylark } from './lesson-vessels';
 
 export const BASIC_LESSONS: readonly Lesson[] = [
@@ -154,7 +163,7 @@ export const BASIC_LESSONS: readonly Lesson[] = [
 		level: 'basics',
 		title: 'Orbit by hand',
 		summary:
-			'Pathfinder on the pad: lift off, turn east early, drop the booster, push the apoapsis to 80 km, then circularise at the top.',
+			`Pathfinder on the pad: lift off, turn east early, drop the booster, push the apoapsis to ${LOW}, then circularise at the top.`,
 		design: pathfinder,
 		setup: [],
 		blocked: { actions: {}, places: closedPlaces() },
@@ -191,10 +200,10 @@ export const BASIC_LESSONS: readonly Lesson[] = [
 			{
 				id: 'apoapsis',
 				point: 'dock-tab-host.orbit',
-				title: 'Apoapsis to 80 km',
-				text: 'Burn until Ap in the Orbit panel passes 80 km, then cut with {key:throttleCut}. Above 70 km there is no air to slow you.',
+				title: `Apoapsis to ${LOW}`,
+				text: `Burn until Ap in the Orbit panel passes ${LOW}, then cut with {key:throttleCut}. Above ${AIR} there is no air to slow you.`,
 				touchText:
-					'Burn until Ap in the Orbit panel passes 80 km, then tap Cut. Above 70 km there is no air to slow you.',
+					`Burn until Ap in the Orbit panel passes ${LOW}, then tap Cut. Above ${AIR} there is no air to slow you.`,
 				actions: ['throttleCut'],
 				targets: { panels: ['host.orbit'] },
 				done: (o) => (o.apoapsis ?? 0) >= 78_000 && o.throttle < 0.05
@@ -203,9 +212,9 @@ export const BASIC_LESSONS: readonly Lesson[] = [
 				id: 'circularise',
 				point: 'hud-warp',
 				title: 'Circularise',
-				text: 'Coast to the top: {key:warpUp} speeds up time and {key:warpDown} slows it again. A few seconds before Ap, point prograde and burn until Pe is above 70 km too.',
+				text: `Coast to the top: {key:warpUp} speeds up time and {key:warpDown} slows it again. A few seconds before Ap, point prograde and burn until Pe is above ${AIR} too.`,
 				touchText:
-					'Coast to the top (the warp buttons speed up time). A few seconds before Ap, point prograde and burn until Pe is above 70 km too.',
+					`Coast to the top (the warp buttons speed up time). A few seconds before Ap, point prograde and burn until Pe is above ${AIR} too.`,
 				actions: ['warpUp', 'sasPrograde'],
 				done: (o) => (o.periapsis ?? -Infinity) >= HOME_AIR
 			}
@@ -213,7 +222,7 @@ export const BASIC_LESSONS: readonly Lesson[] = [
 		goal: (o) => (o.periapsis ?? -Infinity) >= HOME_AIR,
 		debrief:
 			'In orbit: you fall round Home faster than you fall towards it. The early, gentle turn is what saves fuel; turning late spends it climbing straight up.',
-		hint: 'In your world, fly the same arc with any rocket of 3.4 km/s or more; the Guidance Computer’s Ascent tab can fly it for you (Flight lessons).'
+		hint: `In your world, fly the same arc with any rocket that covers the Hangar’s Low orbit line (${DV} at Home, more in the Sol systems); the Guidance Computer’s Ascent tab can fly it for you (Flight lessons).`
 	},
 	{
 		id: 'nodes',

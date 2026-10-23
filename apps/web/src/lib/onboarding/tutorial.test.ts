@@ -163,6 +163,31 @@ describe('tutorial steps', () => {
 	});
 });
 
+describe('the orbit line follows the world (plan 380)', () => {
+	it('{air} reads the world air top, and the steps complete above it, not at 70 km', () => {
+		const ap = TUTORIAL_STEPS.find((s) => s.id === 'apoapsis')!;
+		expect(stepText(ap, DEFAULT_KEYMAP)).toContain('passes 70 km');
+		expect(stepText(ap, DEFAULT_KEYMAP, false, 100_000)).toContain('passes 100 km');
+		const at = (apoapsis: number, airTop?: number) => ({
+			scene: 'flight' as const,
+			flight: {
+				throttle: 1,
+				stagesFired: 1,
+				altitude: 50_000,
+				sasOn: true,
+				sasMode: 'prograde',
+				map: false,
+				apoapsis,
+				periapsis: null,
+				...(airTop === undefined ? {} : { airTop })
+			}
+		});
+		expect(ap.done(at(80_000))).toBe(true);
+		expect(ap.done(at(80_000, 100_000))).toBe(false);
+		expect(ap.done(at(101_000, 100_000))).toBe(true);
+	});
+});
+
 describe('key placeholders', () => {
 	it('every placeholder names a real action and none is left after resolving', () => {
 		for (const s of TUTORIAL_STEPS) {

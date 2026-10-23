@@ -1,6 +1,8 @@
 /**
  * Sol's scale variants (plan 124, ADR 0184 point 5): `1:1`, and `rescaled` with sizes ×k, masses ×k²
  * and distances ×k^(2/3), k = 1/4, so surface gravity, every period, date and angle stay real.
+ * Parts are the same in both (plan 380, ADR 0317): the variant patches bodies only, and the Δv to
+ * orbit Create World shows is computed by the host from these bodies.
  */
 import {
 	defineSystemVariant,
@@ -8,10 +10,9 @@ import {
 	type AnyPatchDefinition,
 	type BodyDefinition
 } from '@orbital/sdk';
-import { BALANCE_1_1, BALANCE_RESCALED } from './balance.ts';
 import { SOL_BODIES, SolEarth, SolMoon } from './bodies.ts';
 
-/** Size factor of the rescaled variant: the Earth is 1 593 km across, 2.65 times stock's home. */
+/** Size factor of the rescaled variant: the Earth's radius is 1 593 km, 2.65 times stock's home. */
 export const RESCALE = 0.25;
 /** Distance factor that keeps every orbital period with masses ×k² (a³/μ unchanged). */
 export const RESCALE_DISTANCE = RESCALE ** (2 / 3);
@@ -92,14 +93,12 @@ export const VariantRealScale = defineSystemVariant({
 	variant: '1:1',
 	label: 'Real scale (1:1)',
 	description:
-		'The real solar system at its real size: about 9.4 km/s to a low Earth orbit, rockets that need three stages, and real distances to everything.',
+		'The real solar system at its real size: rockets that need real staging, and real distances to everything.',
 	home: SolEarth.id,
 	facts: {
-		dvToOrbit: 9_400,
 		moonTransfer: moonTransfer(SolEarth, SolMoon, 200_000),
-		notes: 'For experienced players: stock parts are rebalanced to real-world efficiency.'
-	},
-	patches: BALANCE_1_1
+		notes: 'For experienced players: real rockets, real staging.'
+	}
 });
 
 const rescaledEarth = rescaledBody(SolEarth);
@@ -109,14 +108,13 @@ export const VariantRescaled = defineSystemVariant({
 	variant: 'rescaled',
 	label: 'Rescaled (1/4)',
 	description:
-		'Real dates, tilts and orbits with bodies a quarter of their size: the Earth is 1 593 km across, about 5 km/s to orbit, and the Moon, the planets and every calendar date stay where they really are.',
+		'Real dates, tilts and orbits with bodies a quarter of their size: the Earth is 3 186 km across, and the Moon, the planets and every calendar date stay where they really are.',
 	home: SolEarth.id,
 	facts: {
-		dvToOrbit: 5_000,
 		moonTransfer: moonTransfer(rescaledEarth, rescaledBody(SolMoon), 80_000),
 		notes: 'A step up from the stock system, with the real sky.'
 	},
-	patches: [...scalePatches(), ...BALANCE_RESCALED]
+	patches: scalePatches()
 });
 
 export const SOL_VARIANTS = [VariantRealScale, VariantRescaled] as const;

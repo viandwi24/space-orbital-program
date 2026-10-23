@@ -340,7 +340,7 @@ describe('format 10: the solid BST-1 (plan 210, ADR 0203)', () => {
 		expect(read.formatVersion).toBe(10);
 		const comps = read.world.components as Record<string, Record<string, Record<string, unknown>>>;
 		const part = comps['sim.part']!['2'] as { modules: Array<{ id: string; config: unknown }> };
-		expect(part.modules[0]!.config).toMatchObject({ solid: true, ispVacuum: 200 });
+		expect(part.modules[0]!.config).toMatchObject({ solid: true, ispVacuum: 240 });
 		expect(part.modules[1]!.config).toEqual({
 			contents: { 'stock.solid-fuel': { capacity: 330 } }
 		});

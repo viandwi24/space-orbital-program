@@ -2,7 +2,15 @@
  * The Hangar's blueprint Library (plan 285, ADR 0263): the learn examples, the famous missions and
  * the blueprints mods register, as one list of cards with filters. Pure: the dialog draws it.
  */
-import type { BlueprintDefinition, BlueprintGoal, VesselDesign } from '@orbital/core';
+import {
+	blueprintDesignFor,
+	blueprintFits,
+	blueprintSystems,
+	type BlueprintDefinition,
+	type BlueprintGoal,
+	type SystemChoice,
+	type VesselDesign
+} from '@orbital/core';
 import type { ContentLookups } from '../delta-v';
 import type { Content } from './state';
 import { designStats } from './stats';
@@ -17,8 +25,17 @@ export interface BlueprintCard {
 	goal: BlueprintGoal;
 	crew: number;
 	summary: string;
+	/** The systems it is designed for, as the card says them: `Stock · Sol 1:1` (plan 380). */
+	systems: string;
+	/** Designed for the world's system (else it may fall short there, or be overkill). */
+	fits: boolean;
+	/** The design for the world's system (a per-system design when it has one). */
 	build(content: Content): VesselDesign;
 }
+
+/** `Stock`, `Sol 1:1`, `Sol`: a blueprint system as a card says it. */
+const systemLabel = (s: { system: string; variant?: string }): string =>
+	`${s.system.charAt(0).toUpperCase()}${s.system.slice(1)}${s.variant ? ` ${s.variant}` : ''}`;
 
 export const ORIGIN_LABELS: Record<BlueprintOrigin, string> = {
 	learn: 'Learn',
@@ -39,7 +56,11 @@ export const GOAL_LABELS: Record<BlueprintCard['goal'], string> = {
  * Every card, from the registered blueprints (ADR 0316: stock registers the learn examples and the
  * famous missions; a mod's go under "Mod" unless they name a `collection`).
  */
-export function allBlueprints(defs: readonly BlueprintDefinition[] = []): BlueprintCard[] {
+export function allBlueprints(
+	defs: readonly BlueprintDefinition[] = [],
+	/** The world's system (plan 380): each card builds its design for it. */
+	system: SystemChoice = { id: 'stock' }
+): BlueprintCard[] {
 	const origin = (d: BlueprintDefinition): BlueprintOrigin =>
 		d.collection === 'learn' ? 'learn' : d.collection === 'missions' ? 'mission' : 'mod';
 	const rank: Record<BlueprintOrigin, number> = { learn: 0, mission: 1, mod: 2 };
@@ -52,7 +73,9 @@ export function allBlueprints(defs: readonly BlueprintDefinition[] = []): Bluepr
 			goal: b.goal,
 			crew: b.crew,
 			summary: b.summary,
-			build: () => b.design
+			systems: blueprintSystems(b).map(systemLabel).join(' · '),
+			fits: blueprintFits(b, system.id, system.variant),
+			build: () => blueprintDesignFor(b, system.id, system.variant)
 		}))
 		.sort((a, c) => rank[a.origin] - rank[c.origin]);
 }

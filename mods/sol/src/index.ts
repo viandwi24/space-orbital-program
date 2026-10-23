@@ -1,7 +1,7 @@
 /**
  * @orbital/mod-sol — the real solar system (plan 124, ADR 0184), written against @orbital/sdk like
  * any third-party mod: the Sun, the planets and the Moon from JPL and IAU data, in two scale
- * variants with their balance profiles.
+ * variants. Parts are the same in both (plan 380, ADR 0317).
  */
 import { definePlugin } from '@orbital/sdk';
 import { SOL_BODIES } from './bodies.ts';
@@ -19,5 +19,4 @@ export default Sol;
 
 export * from './bodies.ts';
 export * from './variants.ts';
-export * from './balance.ts';
 export * from './designs.ts';

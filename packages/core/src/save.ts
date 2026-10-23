@@ -471,8 +471,9 @@ export const SIM_SAVE_MIGRATIONS: Readonly<Record<number, SaveMigration>> = {
 export const BST1_SOLID = {
 	engine: {
 		thrust: 150_000,
-		ispVacuum: 200,
-		ispSeaLevel: 175,
+		// realistic since plan 380 (ADR 0317): an early solid's
+		ispVacuum: 240,
+		ispSeaLevel: 215,
 		propellants: [{ resource: 'stock.solid-fuel', ratio: 1 }],
 		gimbal: { range: 0, rate: 20 },
 		solid: true

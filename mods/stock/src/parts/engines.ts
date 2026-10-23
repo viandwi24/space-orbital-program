@@ -2,13 +2,29 @@ import { definePart, kg } from '@orbital/sdk';
 import { partCost } from '../costs.ts';
 import { ModuleEngine, ModuleResourceContainer } from '../modules.ts';
 import { LiquidFuel, Oxidizer, SolidFuel } from '../resources.ts';
+import { engineCost, engineMass, lfoxKg, tankDryMass } from './realism.ts';
 import { BOOSTER_RADIUS, cylinder, stackNodes, WIDE_RADIUS } from './shared.ts';
+
+/**
+ * The LV-T30's dry mass (plan 380, ADR 0317): a first-tier engine, realistic for its era (V-2,
+ * Redstone): heavy for its thrust.
+ */
+const LV_MASS = engineMass('kerolox-early', 215_000);
+/** The KR-4's: four chambers on one plate (the RD-107 of 1957 reached 306 s; this one is a first-tier cluster). */
+const CLUSTER_MASS = engineMass('kerolox-early', 340_000, 4);
+/** The LB-1's: a bare early 0.8 m tank of its 2.5 t of propellant and its 150 kN engine. */
+const LIQUID_BOOSTER_MASS =
+	tankDryMass(lfoxKg(225), 0.8, 'early') + engineMass('kerolox-early', 150_000);
+/** The LV-909's: an early storable vacuum engine (AJ10-104 class). */
+const VACUUM_MASS = engineMass('hypergolic-early', 60_000);
+/** The RE-I5's: a Merlin 1D class engine. */
+const WIDE_MASS = engineMass('kerolox-sl', 650_000);
 
 export const PartEngineLV = definePart({
 	id: 'stock.engine-lv',
 	title: 'LV-T30 Liquid Engine',
-	mass: kg(1_250),
-	cost: partCost(1_250, 'engine'),
+	mass: kg(LV_MASS),
+	cost: engineCost('kerolox-early', 215_000),
 	impactTolerance: 4,
 	shape: cylinder(1.2),
 	visual: {
@@ -33,8 +49,8 @@ export const PartEngineLV = definePart({
 			ModuleEngine,
 			{
 				thrust: 215_000,
-				ispVacuum: 300,
-				ispSeaLevel: 280,
+				ispVacuum: 250,
+				ispSeaLevel: 215,
 				propellants: [
 					{ resource: LiquidFuel.id, ratio: 0.9 },
 					{ resource: Oxidizer.id, ratio: 1.1 }
@@ -54,8 +70,8 @@ export const PartEngineLV = definePart({
 export const PartEngineCluster = definePart({
 	id: 'stock.engine-cluster',
 	title: 'KR-4 Cluster Engine',
-	mass: kg(1_850),
-	cost: partCost(1_850, 'engine'),
+	mass: kg(CLUSTER_MASS),
+	cost: engineCost('kerolox-early', 340_000),
 	impactTolerance: 4,
 	shape: cylinder(1.2),
 	visual: {
@@ -84,8 +100,8 @@ export const PartEngineCluster = definePart({
 			ModuleEngine,
 			{
 				thrust: 340_000,
-				ispVacuum: 295,
-				ispSeaLevel: 272,
+				ispVacuum: 265,
+				ispSeaLevel: 230,
 				propellants: [
 					{ resource: LiquidFuel.id, ratio: 0.9 },
 					{ resource: Oxidizer.id, ratio: 1.1 }
@@ -168,8 +184,8 @@ export const PartBooster = solidBooster({
 	radius: BOOSTER_RADIUS,
 	height: 3.2,
 	thrust: 150_000,
-	ispVacuum: 200,
-	ispSeaLevel: 175,
+	ispVacuum: 240,
+	ispSeaLevel: 215,
 	fuel: 330,
 	bellExit: 0.3,
 	plumeLength: 6
@@ -182,8 +198,8 @@ export const PartBooster = solidBooster({
 export const PartBoosterLiquid = definePart({
 	id: 'stock.booster-liquid',
 	title: 'LB-1 Liquid Booster',
-	mass: kg(450),
-	cost: partCost(450, 'engine'),
+	mass: kg(LIQUID_BOOSTER_MASS),
+	cost: partCost(LIQUID_BOOSTER_MASS, 'engine'),
 	impactTolerance: 5,
 	shape: { kind: 'cylinder', radius: BOOSTER_RADIUS, height: 3.2 },
 	visual: {
@@ -207,8 +223,8 @@ export const PartBoosterLiquid = definePart({
 			ModuleEngine,
 			{
 				thrust: 150_000,
-				ispVacuum: 270,
-				ispSeaLevel: 250,
+				ispVacuum: 255,
+				ispSeaLevel: 220,
 				propellants: [
 					{ resource: LiquidFuel.id, ratio: 0.9 },
 					{ resource: Oxidizer.id, ratio: 1.1 }
@@ -231,8 +247,8 @@ export const PartSrbSmall = solidBooster({
 	radius: BOOSTER_RADIUS,
 	height: 1.6,
 	thrust: 70_000,
-	ispVacuum: 185,
-	ispSeaLevel: 165,
+	ispVacuum: 230,
+	ispSeaLevel: 210,
 	fuel: 110,
 	bellExit: 0.24,
 	plumeLength: 4
@@ -246,8 +262,8 @@ export const PartSrbLarge = solidBooster({
 	radius: 0.625,
 	height: 6,
 	thrust: 300_000,
-	ispVacuum: 210,
-	ispSeaLevel: 180,
+	ispVacuum: 250,
+	ispSeaLevel: 225,
 	fuel: 870,
 	bellExit: 0.45,
 	plumeLength: 9
@@ -257,8 +273,8 @@ export const PartSrbLarge = solidBooster({
 export const PartEngineVacuum = definePart({
 	id: 'stock.engine-vacuum',
 	title: 'LV-909 Vacuum Engine',
-	mass: kg(500),
-	cost: partCost(500, 'engine'),
+	mass: kg(VACUUM_MASS),
+	cost: engineCost('hypergolic-early', 60_000),
 	impactTolerance: 4,
 	shape: cylinder(0.9),
 	visual: {
@@ -281,8 +297,8 @@ export const PartEngineVacuum = definePart({
 			ModuleEngine,
 			{
 				thrust: 60_000,
-				ispVacuum: 345,
-				ispSeaLevel: 85,
+				ispVacuum: 280,
+				ispSeaLevel: 100,
 				propellants: [
 					{ resource: LiquidFuel.id, ratio: 0.9 },
 					{ resource: Oxidizer.id, ratio: 1.1 }
@@ -298,8 +314,8 @@ export const PartEngineVacuum = definePart({
 export const PartEngineWide = definePart({
 	id: 'stock.engine-wide',
 	title: 'RE-I5 Wide Engine',
-	mass: kg(3_000),
-	cost: partCost(3_000, 'engine'),
+	mass: kg(WIDE_MASS),
+	cost: engineCost('kerolox-sl', 650_000),
 	impactTolerance: 4,
 	shape: cylinder(1.8, WIDE_RADIUS),
 	visual: {
@@ -322,8 +338,8 @@ export const PartEngineWide = definePart({
 			ModuleEngine,
 			{
 				thrust: 650_000,
-				ispVacuum: 320,
-				ispSeaLevel: 280,
+				ispVacuum: 311,
+				ispSeaLevel: 282,
 				propellants: [
 					{ resource: LiquidFuel.id, ratio: 0.9 },
 					{ resource: Oxidizer.id, ratio: 1.1 }

@@ -35,9 +35,11 @@ export interface AscentOptions {
 }
 
 export const defaultAscent: AscentOptions = {
-	turnStart: 10_000,
-	turnEnd: 40_000,
-	turnPitch: Math.PI / 4,
+	// an early, flat turn since plan 380: the reference rocket's realistic early-era stats (ADR 0317)
+	// leave no Δv for a vertical climb to 10 km
+	turnStart: 1_000,
+	turnEnd: 30_000,
+	turnPitch: 1.45,
 	apoapsis: 80_000,
 	periapsis: 76_000,
 	bandwidth: 0.5
@@ -140,9 +142,10 @@ export function createAscent(sim: Sim, vessel: EntityId, opts: AscentOptions = d
 				const vApo = Math.sqrt(mu * (2 / apoR - 1 / orbit.a));
 				const dv = Math.sqrt(mu / apoR) - vApo;
 				const { mass } = massProperties(v, rotate(v.orientation, UP_Y));
-				// Rocket equation for one engine (vacuum thrust 215 kN, Isp 300 s): the burn is shorter
-				// than dv·m/F because the vessel gets lighter, and centring it on apoapsis matters.
-				const engine = opts.engine ?? { thrust: 215_000, isp: 300 };
+				// Rocket equation for one engine (the stock LV-T30's figures, read from its part since its
+				// stats are realistic, plan 380): the burn is shorter than dv·m/F because the vessel gets
+				// lighter, and centring it on apoapsis matters.
+				const engine = opts.engine ?? stockEngine(sim);
 				const ve = engine.isp * 9.80665;
 				const burn = (mass * ve * (1 - Math.exp(-dv / ve))) / engine.thrust;
 				if (toApo <= burn / 2) {
@@ -170,4 +173,14 @@ export function createAscent(sim: Sim, vessel: EntityId, opts: AscentOptions = d
 		},
 		log
 	};
+}
+
+/** The stock LV-T30's vacuum thrust (N) and Isp (s), as registered. */
+function stockEngine(sim: Sim): { thrust: number; isp: number } {
+	const part = sim.registries.parts.get('stock.engine-lv')!;
+	const config = part.modules!.find(([m]) => m === 'stock.engine')![1] as {
+		thrust: number;
+		ispVacuum: number;
+	};
+	return { thrust: config.thrust, isp: config.ispVacuum };
 }

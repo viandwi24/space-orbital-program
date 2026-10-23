@@ -7,10 +7,20 @@ import { UP_Y, rotate } from './helpers/attitude.ts';
 import { newTestSim } from './helpers/test-mod.ts';
 import { boosted } from './helpers/vessels.ts';
 
-/** The same vessel with its fins swapped for `finPart`. */
-const swapFins = (design: VesselDesign, finPart: string): VesselDesign => ({
+/**
+ * The same vessel with its fins swapped for `finPart`; with `ballast`, a 1.3 t 1.25 m capsule for the
+ * 0.28 t LV-T30: tail-heavy and slim, as the 1.25 t LV-T30 made it before its realistic stats (plan
+ * 380), so the bare rocket is unstable (nothing is lit in these coasts).
+ */
+const swapFins = (design: VesselDesign, finPart: string, ballast = false): VesselDesign => ({
 	...design,
-	parts: design.parts.map((p) => (p.part === 'stock.fin' ? { ...p, part: partId(finPart) } : p))
+	parts: design.parts.map((p) =>
+		p.part === 'stock.fin'
+			? { ...p, part: partId(finPart) }
+			: ballast && p.part === 'stock.engine-lv'
+				? { ...p, part: partId('stock.capsule-sphere') }
+				: p
+	)
 });
 
 const OMEGA = (2 * Math.PI) / 21_600;
@@ -26,7 +36,8 @@ async function coast(
 	alt: number,
 	speed: number,
 	seconds: number,
-	finPart = 'stock.fin'
+	finPart = 'stock.fin',
+	ballast = false
 ) {
 	const sim = await newTestSim();
 	const a = (aoa * Math.PI) / 180;
@@ -41,7 +52,7 @@ async function coast(
 	};
 	const res = sim.dispatch({
 		type: 'load-vessel',
-		design: swapFins(boosted(0, fins), finPart),
+		design: swapFins(boosted(0, fins), finPart, ballast),
 		placement: {
 			kind: 'state',
 			position: { x: 600_000 + alt, y: 0, z: 0 },
@@ -67,8 +78,8 @@ async function coast(
 
 describe('fins (ADR 0035)', () => {
 	test('four fins keep the coasting rocket within 8 degrees of prograde; without them it tumbles past 30', async () => {
-		const finned = await coast(4, 4, 20_000, 1_500, 12);
-		const bare = await coast(0, 4, 20_000, 1_500, 12);
+		const finned = await coast(4, 4, 20_000, 1_500, 12, 'stock.fin', true);
+		const bare = await coast(0, 4, 20_000, 1_500, 12, 'stock.fin', true);
 		expect(Math.max(...finned)).toBeLessThan(8);
 		expect(Math.max(...bare)).toBeGreaterThan(30);
 		// The bare rocket's error grows monotonically at first; the finned one comes back through zero.

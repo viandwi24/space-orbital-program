@@ -128,7 +128,7 @@ Use these terms consistently in code, docs, and UI.
 | **Mission Center** | The one screen with the whole system, tracking, upcoming events, contracts and crew; replaces KSP's Tracking Station and Mission Control. |
 | **Patch** | A typed change of registered data by another mod (`definePatch`), applied at load with provenance (ADR 0104). |
 | **Provenance** | Per patched field, the plugins that set it: the registering one first, then each patching plugin in apply order (`LoadReport.provenance`, shown on `/mods`; ADR 0170). |
-| **Scale variant** | A version of a star system at a size and distance scale (the Sol pack's `1:1` and `rescaled`) with its own balance patches (ADR 0103). |
+| **Scale variant** | A version of a star system at a size and distance scale (the Sol pack's `1:1` and `rescaled`) that patches its bodies, never parts: parts are the same in every system and the scale sets the difficulty (ADRs 0103, 0317). |
 | **Sol pack** | The real solar system as an in-repo mod package with orbits from JPL elements with secular rates and a lunar model. |
 | **AN / DN** | Ascending and descending node: where the vessel's orbit crosses the reference plane going north or south. The reference is the target's orbit plane when the target shares the vessel's sphere, else the body's equator; the map marks both and can warp to them (plan 224). |
 | **Alarm** | A user alarm kept by the sim (plan 224, ADR 0223): a time, a vessel's apsis, sphere change or node less a lead, or a transfer window. It stops any warp when it comes, for any vessel, posts to the bell and then leaves the list. |

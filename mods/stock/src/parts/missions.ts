@@ -46,6 +46,14 @@ import {
 	ModuleExperiment
 } from '../science.ts';
 import { ModuleRtg, ModuleSolarPanel } from '../solar.ts';
+import {
+	engineCost,
+	engineMass,
+	lfoxKg,
+	tankCost,
+	tankDryMass,
+	type EngineKind
+} from './realism.ts';
 import { stackNodes, type Vec3Tuple } from './shared.ts';
 
 const WHITE = { primary: '#e9ebee', secondary: '#2a2e35', accent: '#e0572b' };
@@ -340,7 +348,8 @@ export const PartSuppliesRadial = definePart({
 	id: 'stock.life-support-radial',
 	title: 'OrbitX LS-1 "Ration"',
 	mass: kg(40),
-	cost: partCost(40, 'command'),
+	// stores, like the LS-0 pack: the tank rate, not a pod's (system audit #25, plan 380)
+	cost: partCost(40, 'tank'),
 	impactTolerance: 8,
 	shape: box(0.3, 0.6, 0.3),
 	visual: { kind: 'container', palette: WHITE, params: { kind: 'supplies' } },
@@ -980,15 +989,19 @@ function enginePlate(opts: {
 	ring: number;
 	exit: number;
 	thrust: number;
-	massKg: number;
 	centre: boolean;
+	/** The plate's engine kind and Isp (plan 380: its real counterpart's). */
+	kind: EngineKind;
+	ispVacuum: number;
+	ispSeaLevel: number;
 }) {
+	const massKg = engineMass(opts.kind, opts.thrust, opts.bells);
 	const h2 = opts.height / 2;
 	return definePart({
 		id: opts.id,
 		title: opts.title,
-		mass: kg(opts.massKg),
-		cost: partCost(opts.massKg, 'engine'),
+		mass: kg(massKg),
+		cost: engineCost(opts.kind, opts.thrust),
 		impactTolerance: 4,
 		shape: cyl(opts.size / 2, opts.height),
 		visual: {
@@ -1015,8 +1028,8 @@ function enginePlate(opts: {
 				ModuleEngine,
 				{
 					thrust: opts.thrust,
-					ispVacuum: 304,
-					ispSeaLevel: 265,
+					ispVacuum: opts.ispVacuum,
+					ispSeaLevel: opts.ispSeaLevel,
 					propellants: lfox,
 					// big first-stage engines gimbal 5–10° (F-1 6°, RS-25 10.5°; plan 309)
 					gimbal: { range: 5, rate: 10 }
@@ -1035,8 +1048,11 @@ export const PartEnginePlate5 = enginePlate({
 	ring: 1.45,
 	exit: 0.75,
 	thrust: 7_000_000,
-	massKg: 16_000,
-	centre: true
+	centre: true,
+	// the F-1's figures (S-IC)
+	kind: 'kerolox-sl',
+	ispVacuum: 304,
+	ispSeaLevel: 263
 });
 export const PartEnginePlate9 = enginePlate({
 	id: 'stock.engine-plate-9',
@@ -1047,8 +1063,11 @@ export const PartEnginePlate9 = enginePlate({
 	ring: 1.15,
 	exit: 0.42,
 	thrust: 4_000_000,
-	massKg: 9_000,
-	centre: true
+	centre: true,
+	// the Merlin 1D's (Falcon 9)
+	kind: 'kerolox-sl',
+	ispVacuum: 311,
+	ispSeaLevel: 282
 });
 export const PartEnginePlate8 = enginePlate({
 	id: 'stock.engine-plate-8',
@@ -1059,15 +1078,52 @@ export const PartEnginePlate8 = enginePlate({
 	ring: 1.25,
 	exit: 0.4,
 	thrust: 3_200_000,
-	massKg: 8_000,
-	centre: false
+	centre: false,
+	// hydrolox, the RS-25's (the Shuttle's mains; Kronos V's third stage)
+	kind: 'hydrolox-sl',
+	ispVacuum: 452,
+	ispSeaLevel: 366
+});
+
+/**
+ * The S-IC's five F-1s at their real thrust (plan 380, ADR 0317): a 7.5 m plate for a Saturn V the
+ * real size, under the 7.5 m tanks. 38.85 MN in vacuum, 33.6 MN at sea level.
+ */
+export const PartEnginePlateF1 = enginePlate({
+	id: 'stock.engine-plate-f1',
+	title: 'OrbitX GP-F1X "Colossus"',
+	size: 7.5,
+	height: 4.5,
+	bells: 5,
+	ring: 2.2,
+	exit: 1.1,
+	thrust: 5 * 7_770_000,
+	centre: true,
+	kind: 'kerolox-sl',
+	ispVacuum: 304,
+	ispSeaLevel: 263
+});
+/** The S-II's five J-2s (plan 380): a 5 m hydrolox plate, 5.17 MN in vacuum. */
+export const PartEnginePlateJ2 = enginePlate({
+	id: 'stock.engine-plate-j2',
+	title: 'OrbitX GP-J5 "Quintet"',
+	size: 5,
+	height: 3.4,
+	bells: 5,
+	ring: 1.5,
+	exit: 0.62,
+	thrust: 5 * 1_033_000,
+	centre: true,
+	kind: 'hydrolox-vac',
+	ispVacuum: 421,
+	ispSeaLevel: 200
 });
 
 export const PartEngineVacuumXl = definePart({
 	id: 'stock.engine-vacuum-xl',
 	title: 'OrbitX GP-J2 "Void"',
-	mass: kg(2_500),
-	cost: partCost(2_500, 'engine'),
+	mass: kg(engineMass('hydrolox-vac', 1_000_000)),
+	cost: engineCost('hydrolox-vac', 1_000_000),
 	impactTolerance: 4,
 	shape: cyl(1.25, 2.6),
 	visual: {
@@ -1090,7 +1146,7 @@ export const PartEngineVacuumXl = definePart({
 			ModuleEngine,
 			{
 				thrust: 1_000_000,
-				ispVacuum: 420,
+				ispVacuum: 421,
 				ispSeaLevel: 200,
 				propellants: lfox,
 				gimbal: { range: 3, rate: 10 }
@@ -1140,6 +1196,9 @@ export const PartEscapeTower = definePart({
 });
 
 // ---- shuttle (plan 295) ------------------------------------------------------------------------
+
+/** The external tank's dry mass: a modern tank of its size class (plan 380; the Shuttle's own was 3.5 %). */
+const EXTERNAL_TANK_DRY = tankDryMass(lfoxKg(17_280), 3.75, 'modern');
 
 export const PartOrbiterNose = definePart({
 	id: 'stock.orbiter-nose',
@@ -1282,8 +1341,8 @@ export const PartDeltaWing = definePart({
 export const PartExternalTank = definePart({
 	id: 'stock.external-tank',
 	title: 'OrbitX UA-T "Big Barrel"',
-	mass: kg(24_000),
-	cost: partCost(24_000, 'tank'),
+	mass: kg(EXTERNAL_TANK_DRY),
+	cost: tankCost(lfoxKg(17_280)),
 	impactTolerance: 5,
 	shape: cyl(1.875, 20),
 	visual: { kind: 'external-tank', palette: WHITE, params: { node: 3.75 } },
@@ -1398,5 +1457,8 @@ export const STOCK_MISSION_PARTS = [
 	PartExternalTank,
 	PartSrbXl,
 	// plan 356, after every older part so their order stays
-	PartOrbiterBay
+	PartOrbiterBay,
+	// plan 380: the Saturn V's own engines, for Kronos V at real scale
+	PartEnginePlateF1,
+	PartEnginePlateJ2
 ] as const;

@@ -17,6 +17,7 @@ import {
 import Stock from '@orbital/mod-stock';
 import { BUILTIN_PLUGINS } from '../builtins';
 import { activePlugins } from '../mods/runtime';
+import { systemFacts, type SystemFacts } from './system-facts';
 import type { RuleCatalog } from './world-model';
 
 export interface WorldCatalog extends RuleCatalog {
@@ -48,6 +49,8 @@ export interface WorldSystem {
 		label: string;
 		description?: string;
 		facts?: SystemVariantDefinition['facts'];
+		/** What the variant's own bodies ask of a rocket (plan 380): Δv to orbit and to the moon. */
+		computed: SystemFacts | null;
 		/** The variant's declared home body (its Space Center stands there); else core's rule. */
 		home?: string;
 	}>;
@@ -101,7 +104,7 @@ export function systemsOf(plugins: readonly Plugin[]): WorldSystem[] {
 			label: 'Stock system',
 			bodies,
 			calendar: calendarOf(bodies),
-			variants: [{ variant: 'default', label: 'Stock' }]
+			variants: [{ variant: 'default', label: 'Stock', computed: systemFacts(bodies) }]
 		}
 	];
 	for (const id of [...new Set(declared.map((v) => v.system))]) {
@@ -120,6 +123,11 @@ export function systemsOf(plugins: readonly Plugin[]): WorldSystem[] {
 				label: v.label,
 				description: v.description,
 				facts: v.facts,
+				// each variant's own bodies (the rescaled Earth is not the 1:1 one)
+				computed: systemFacts(
+					loadPlugins(plugins, { system: { id, variant: v.variant } }).registries.bodies.list(),
+					v.home
+				),
 				...(v.home ? { home: v.home } : {})
 			})),
 			...art(variants)

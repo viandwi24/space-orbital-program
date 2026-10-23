@@ -22,8 +22,11 @@ export interface SystemVariantDefinition extends Illustrated {
 	description: string;
 	/** Body a world without a site on a loaded body starts on. */
 	home: string;
-	/** What Create World shows: Δv to a low orbit (m/s) and a transfer to the home's moon (s). */
-	facts: { dvToOrbit: number; moonTransfer?: number; notes?: string };
+	/**
+	 * What Create World shows: a transfer to the home's moon (s) and notes. The Δv to a low orbit is
+	 * computed by the host from the variant's bodies (ADR 0317); a declared `dvToOrbit` is ignored.
+	 */
+	facts: { dvToOrbit?: number; moonTransfer?: number; notes?: string };
 	/** Applied only in worlds of this variant, like any patch of the declaring plugin (ADR 0170). */
 	patches?: readonly AnyPatchDefinition[];
 }
@@ -36,7 +39,7 @@ export const systemVariantDefinitionSchema = z.object({
 	description: z.string().min(1),
 	home: definitionIdSchema,
 	facts: z.object({
-		dvToOrbit: z.number().positive(),
+		dvToOrbit: z.number().positive().optional(),
 		moonTransfer: z.number().positive().optional(),
 		notes: z.string().optional()
 	}),

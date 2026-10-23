@@ -444,6 +444,9 @@ export const STOCK_TECH = [
 			'stock.fairing-base-7500',
 			'stock.engine-plate-5',
 			'stock.engine-plate-9',
+			// plan 380: Kronos V at real scale
+			'stock.engine-plate-f1',
+			'stock.engine-plate-j2',
 			'stock.external-tank',
 			'stock.srb-xl',
 			'stock.orbiter-nose',

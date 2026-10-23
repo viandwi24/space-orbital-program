@@ -50,15 +50,15 @@ describe('stability read-out', () => {
 		expect(s.state).toBe('unfinned');
 		expect(s.fins).toBe(0);
 		// Hand computation, heights from the part table (pod 0, wheel -0.7, tank -1.9, engine -3.5,
-		// decoupler -4.2, tank -5.3, engine -6.9 m):
-		// - dry centre of mass: (100 * -0.7 + 250 * -1.9 + 1250 * -3.5 + 50 * -4.2 + 250 * -5.3 + 1250 * -6.9) / 3990 = -3.7794 m,
-		//   and the pod's 840 kg sit 0.12 m low in it (plan 265): -0.12 * 840 / 3990 = -0.0253 m more, -3.8047 m
+		// decoupler -4.2, tank -5.3, engine -6.9 m), with the realistic early-era masses (plan 380):
+		// - dry centre of mass: (100 * -0.7 + 1160 * -1.9 + 275 * -3.5 + 50 * -4.2 + 1160 * -5.3 + 275 * -6.9) / 3860 = -2.9772 m,
+		//   and the pod's 840 kg sit 0.12 m low in it (plan 265): -0.12 * 840 / 3860 = -0.0261 m more, -3.0033 m
 		// - pressure: every part has the same drag coefficient, the cross-flow area is 2 r h, so
 		//   the mean of y weighted by the heights (1, 0.4, 2, 1.2, 0.2, 2, 1.2) = -28 / 8 = -3.5 m
-		expect(s.comEmpty!).toBeCloseTo(-3.8047, 3);
+		expect(s.comEmpty!).toBeCloseTo(-3.0033, 3);
 		expect(s.cop!).toBeCloseTo(-3.5, 6);
-		// Full tanks (fuel adds mass to the two tanks): -3.6555 m, and -3.6634 m with the pod's low mass.
-		expect(s.com!).toBeCloseTo(-3.6634, 3);
+		// Full tanks (fuel adds 4 450 kg to each tank): -3.4116 m, and -3.4195 m with the pod's low mass.
+		expect(s.com!).toBeCloseTo(-3.4195, 3);
 		expect(s.calibre).toBeCloseTo(1.25, 2);
 	});
 

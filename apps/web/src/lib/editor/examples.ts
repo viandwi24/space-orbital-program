@@ -120,8 +120,9 @@ export function glider(content: Content): VesselDesign {
 
 /**
  * The two-stage stock rocket that reaches the moon in `packages/sim/test/moon-mission.test.ts`
- * (plan 044), top to bottom: pod, two wheels, a medium tank, the lander engine and legs, a
- * decoupler, a medium tank and an engine (the core), and four liquid boosters (LB-1, the sim test's;
+ * (plan 044), top to bottom: pod, a wheel, a medium tank, the lander engine and legs, a
+ * decoupler, two medium tanks and the four-chamber cluster (the core: since plan 380 the first tech
+ * tiers' parts are early-era, ADR 0317), and four liquid boosters (LB-1, the sim test's;
  * the BST-1 became a solid motor in plan 210) at half thrust with nose cones and four fins on the
  * core tank. Stage 1 lights the core and the boosters, stage 2 drops the boosters,
  * stage 3 drops the core and lights the lander. The trip planner of the stats strip measures it
@@ -130,18 +131,20 @@ export function glider(content: Content): VesselDesign {
 export function moonShot(): VesselDesign {
 	const chain = [
 		'stock.command-pod',
-		'stock.reaction-wheel',
+		// one wheel since plan 380: the early-era lander (ADR 0317) has no 100 kg to spare
 		'stock.reaction-wheel',
 		'stock.tank-medium',
 		'stock.engine-lv',
 		'stock.landing-legs',
 		'stock.decoupler',
 		'stock.tank-medium',
-		'stock.engine-lv'
+		'stock.tank-medium',
+		'stock.engine-cluster'
 	];
-	const landerEngine = 4;
-	const decoupler = 6;
-	const coreTank = 7;
+	const landerEngine = 3;
+	const decoupler = 5;
+	const coreTank = 6;
+	const lowerTank = 7;
 	const coreEngine = 8;
 	const parts: VesselDesign['parts'] = chain.map((part, index) => ({
 		index,
@@ -164,8 +167,8 @@ export function moonShot(): VesselDesign {
 				part: partId('stock.booster-liquid'),
 				parent: { index: 20 + 3 * k, parentNode: 'outer', node: 'radial' },
 				symmetry: 2,
-				// half thrust off the pad: liftoff TWR about 1.4, the boosters burn longer
-				settings: { 'stock.engine': { limiter: 0.5 } }
+				// three-quarter thrust off the pad: liftoff TWR about 1.3, the boosters burn longer
+				settings: { 'stock.engine': { limiter: 0.75 } }
 			},
 			{
 				index: 22 + 3 * k,
@@ -177,7 +180,7 @@ export function moonShot(): VesselDesign {
 				index: 40 + k,
 				part: partId('stock.fin'),
 				parent: {
-					index: coreTank,
+					index: lowerTank,
 					parentNode: 'surface',
 					node: 'radial',
 					radial: { angle: angle + Math.PI / 4, y: -0.7 }

@@ -83,7 +83,12 @@ const DATA: unknown = [
 				}
 			],
 			stages: [[6], [4, 3], [7]]
-		}
+		},
+		systems: [
+			{
+				system: 'stock'
+			}
+		]
 	},
 	{
 		id: 'stock.boosters',
@@ -353,7 +358,12 @@ const DATA: unknown = [
 				[7, 8, 9, 10],
 				[3, 4]
 			]
-		}
+		},
+		systems: [
+			{
+				system: 'stock'
+			}
+		]
 	},
 	{
 		id: 'stock.asparagus',
@@ -775,7 +785,12 @@ const DATA: unknown = [
 				[7, 8, 9, 10],
 				[3, 4]
 			]
-		}
+		},
+		systems: [
+			{
+				system: 'stock'
+			}
+		]
 	},
 	{
 		id: 'stock.moon-shot',
@@ -804,7 +819,7 @@ const DATA: unknown = [
 				},
 				{
 					index: 2,
-					part: 'stock.reaction-wheel',
+					part: 'stock.tank-medium',
 					parent: {
 						index: 1,
 						parentNode: 'bottom',
@@ -813,7 +828,7 @@ const DATA: unknown = [
 				},
 				{
 					index: 3,
-					part: 'stock.tank-medium',
+					part: 'stock.engine-lv',
 					parent: {
 						index: 2,
 						parentNode: 'bottom',
@@ -822,7 +837,7 @@ const DATA: unknown = [
 				},
 				{
 					index: 4,
-					part: 'stock.engine-lv',
+					part: 'stock.landing-legs',
 					parent: {
 						index: 3,
 						parentNode: 'bottom',
@@ -831,7 +846,7 @@ const DATA: unknown = [
 				},
 				{
 					index: 5,
-					part: 'stock.landing-legs',
+					part: 'stock.decoupler',
 					parent: {
 						index: 4,
 						parentNode: 'bottom',
@@ -840,7 +855,7 @@ const DATA: unknown = [
 				},
 				{
 					index: 6,
-					part: 'stock.decoupler',
+					part: 'stock.tank-medium',
 					parent: {
 						index: 5,
 						parentNode: 'bottom',
@@ -858,7 +873,7 @@ const DATA: unknown = [
 				},
 				{
 					index: 8,
-					part: 'stock.engine-lv',
+					part: 'stock.engine-cluster',
 					parent: {
 						index: 7,
 						parentNode: 'bottom',
@@ -869,7 +884,7 @@ const DATA: unknown = [
 					index: 20,
 					part: 'stock.radial-decoupler',
 					parent: {
-						index: 7,
+						index: 6,
 						parentNode: 'surface',
 						node: 'radial',
 						radial: {
@@ -890,7 +905,7 @@ const DATA: unknown = [
 					symmetry: 2,
 					settings: {
 						'stock.engine': {
-							limiter: 0.5
+							limiter: 0.75
 						}
 					}
 				},
@@ -922,7 +937,7 @@ const DATA: unknown = [
 					index: 23,
 					part: 'stock.radial-decoupler',
 					parent: {
-						index: 7,
+						index: 6,
 						parentNode: 'surface',
 						node: 'radial',
 						radial: {
@@ -943,7 +958,7 @@ const DATA: unknown = [
 					symmetry: 2,
 					settings: {
 						'stock.engine': {
-							limiter: 0.5
+							limiter: 0.75
 						}
 					}
 				},
@@ -975,7 +990,7 @@ const DATA: unknown = [
 					index: 26,
 					part: 'stock.radial-decoupler',
 					parent: {
-						index: 7,
+						index: 6,
 						parentNode: 'surface',
 						node: 'radial',
 						radial: {
@@ -996,7 +1011,7 @@ const DATA: unknown = [
 					symmetry: 2,
 					settings: {
 						'stock.engine': {
-							limiter: 0.5
+							limiter: 0.75
 						}
 					}
 				},
@@ -1028,7 +1043,7 @@ const DATA: unknown = [
 					index: 29,
 					part: 'stock.radial-decoupler',
 					parent: {
-						index: 7,
+						index: 6,
 						parentNode: 'surface',
 						node: 'radial',
 						radial: {
@@ -1049,7 +1064,7 @@ const DATA: unknown = [
 					symmetry: 2,
 					settings: {
 						'stock.engine': {
-							limiter: 0.5
+							limiter: 0.75
 						}
 					}
 				},
@@ -1081,9 +1096,14 @@ const DATA: unknown = [
 			stages: [
 				[8, 21, 24, 27, 30],
 				[20, 23, 26, 29],
-				[6, 4]
+				[5, 3]
 			]
-		}
+		},
+		systems: [
+			{
+				system: 'stock'
+			}
+		]
 	},
 	{
 		id: 'stock.glider',
@@ -1178,7 +1198,15 @@ const DATA: unknown = [
 				}
 			],
 			stages: []
-		}
+		},
+		systems: [
+			{
+				system: 'stock'
+			},
+			{
+				system: 'sol'
+			}
+		]
 	},
 	{
 		id: 'stock.kronos-selene',
@@ -1840,7 +1868,740 @@ const DATA: unknown = [
 				}
 			],
 			stages: [[48], [46, 45, 3], [42, 41], [20, 21], [19], [22], [23], [28, 29], [5], [0]]
-		}
+		},
+		systems: [
+			{
+				system: 'stock'
+			},
+			{
+				system: 'sol',
+				variant: 'rescaled'
+			},
+			{
+				system: 'sol',
+				variant: '1:1',
+				design: {
+					formatVersion: 3,
+					name: 'Kronos V + Selene',
+					parts: [
+						{
+							index: 0,
+							part: 'stock.pod-3',
+							parent: null,
+							settings: {
+								'stock.paint': {
+									paint: 'steel'
+								}
+							}
+						},
+						{
+							index: 1,
+							part: 'stock.adapter-small',
+							parent: {
+								index: 0,
+								parentNode: 'top',
+								node: 'bottom'
+							}
+						},
+						{
+							index: 2,
+							part: 'stock.docking-port-small',
+							parent: {
+								index: 1,
+								parentNode: 'top',
+								node: 'bottom'
+							}
+						},
+						{
+							index: 3,
+							part: 'stock.escape-tower',
+							parent: {
+								index: 2,
+								parentNode: 'top',
+								node: 'bottom'
+							}
+						},
+						{
+							index: 4,
+							part: 'stock.heat-shield-wide',
+							parent: {
+								index: 0,
+								parentNode: 'bottom',
+								node: 'top'
+							}
+						},
+						{
+							index: 5,
+							part: 'stock.decoupler-wide',
+							parent: {
+								index: 4,
+								parentNode: 'bottom',
+								node: 'top'
+							}
+						},
+						{
+							index: 6,
+							part: 'stock.tank-wide',
+							parent: {
+								index: 5,
+								parentNode: 'bottom',
+								node: 'top'
+							},
+							settings: {
+								'stock.paint': {
+									paint: 'service'
+								}
+							}
+						},
+						{
+							index: 7,
+							part: 'stock.rcs-block-5',
+							parent: {
+								index: 6,
+								parentNode: 'surface',
+								node: 'radial',
+								radial: {
+									angle: 0.785398163397,
+									y: 0.3
+								}
+							},
+							symmetry: 0
+						},
+						{
+							index: 8,
+							part: 'stock.rcs-block-5',
+							parent: {
+								index: 6,
+								parentNode: 'surface',
+								node: 'radial',
+								radial: {
+									angle: 2.35619449019,
+									y: 0.3
+								}
+							},
+							symmetry: 0
+						},
+						{
+							index: 9,
+							part: 'stock.rcs-block-5',
+							parent: {
+								index: 6,
+								parentNode: 'surface',
+								node: 'radial',
+								radial: {
+									angle: 3.92699081699,
+									y: 0.3
+								}
+							},
+							symmetry: 0
+						},
+						{
+							index: 10,
+							part: 'stock.rcs-block-5',
+							parent: {
+								index: 6,
+								parentNode: 'surface',
+								node: 'radial',
+								radial: {
+									angle: 5.49778714378,
+									y: 0.3
+								}
+							},
+							symmetry: 0
+						},
+						{
+							index: 11,
+							part: 'stock.rcs-block',
+							parent: {
+								index: 0,
+								parentNode: 'surface',
+								node: 'radial',
+								radial: {
+									angle: 0.785398163397,
+									y: -0.2
+								}
+							},
+							symmetry: 1
+						},
+						{
+							index: 12,
+							part: 'stock.rcs-block',
+							parent: {
+								index: 0,
+								parentNode: 'surface',
+								node: 'radial',
+								radial: {
+									angle: 2.35619449019,
+									y: -0.2
+								}
+							},
+							symmetry: 1
+						},
+						{
+							index: 13,
+							part: 'stock.rcs-block',
+							parent: {
+								index: 0,
+								parentNode: 'surface',
+								node: 'radial',
+								radial: {
+									angle: 3.92699081699,
+									y: -0.2
+								}
+							},
+							symmetry: 1
+						},
+						{
+							index: 14,
+							part: 'stock.rcs-block',
+							parent: {
+								index: 0,
+								parentNode: 'surface',
+								node: 'radial',
+								radial: {
+									angle: 5.49778714378,
+									y: -0.2
+								}
+							},
+							symmetry: 1
+						},
+						{
+							index: 15,
+							part: 'stock.monoprop-radial',
+							parent: {
+								index: 6,
+								parentNode: 'surface',
+								node: 'radial',
+								radial: {
+									angle: 1.57079632679,
+									y: 0
+								}
+							},
+							symmetry: 2
+						},
+						{
+							index: 16,
+							part: 'stock.monoprop-radial',
+							parent: {
+								index: 6,
+								parentNode: 'surface',
+								node: 'radial',
+								radial: {
+									angle: 4.71238898038,
+									y: 0
+								}
+							},
+							symmetry: 2
+						},
+						{
+							index: 17,
+							part: 'stock.antenna-dish-fold',
+							parent: {
+								index: 6,
+								parentNode: 'surface',
+								node: 'radial',
+								radial: {
+									angle: 0,
+									y: -0.3
+								}
+							}
+						},
+						{
+							index: 18,
+							part: 'stock.fuel-cell',
+							parent: {
+								index: 6,
+								parentNode: 'surface',
+								node: 'radial',
+								radial: {
+									angle: 3.14159265359,
+									y: -0.3
+								}
+							}
+						},
+						{
+							index: 19,
+							part: 'stock.engine-wide',
+							parent: {
+								index: 6,
+								parentNode: 'bottom',
+								node: 'top'
+							}
+						},
+						{
+							index: 20,
+							part: 'stock.decoupler-wide',
+							parent: {
+								index: 19,
+								parentNode: 'bottom',
+								node: 'top'
+							}
+						},
+						{
+							index: 21,
+							part: 'stock.payload-petals',
+							parent: {
+								index: 20,
+								parentNode: 'bottom',
+								node: 'top'
+							}
+						},
+						{
+							index: 22,
+							part: 'stock.decoupler',
+							parent: {
+								index: 21,
+								parentNode: 'inner',
+								node: 'bottom'
+							}
+						},
+						{
+							index: 23,
+							part: 'stock.lander-descent',
+							parent: {
+								index: 22,
+								parentNode: 'top',
+								node: 'bottom'
+							}
+						},
+						{
+							index: 24,
+							part: 'stock.landing-leg-single',
+							parent: {
+								index: 23,
+								parentNode: 'surface',
+								node: 'radial',
+								radial: {
+									angle: 0.785398163397,
+									y: -0.2
+								}
+							},
+							symmetry: 3
+						},
+						{
+							index: 25,
+							part: 'stock.landing-leg-single',
+							parent: {
+								index: 23,
+								parentNode: 'surface',
+								node: 'radial',
+								radial: {
+									angle: 2.35619449019,
+									y: -0.2
+								}
+							},
+							symmetry: 3
+						},
+						{
+							index: 26,
+							part: 'stock.landing-leg-single',
+							parent: {
+								index: 23,
+								parentNode: 'surface',
+								node: 'radial',
+								radial: {
+									angle: 3.92699081699,
+									y: -0.2
+								}
+							},
+							symmetry: 3
+						},
+						{
+							index: 27,
+							part: 'stock.landing-leg-single',
+							parent: {
+								index: 23,
+								parentNode: 'surface',
+								node: 'radial',
+								radial: {
+									angle: 5.49778714378,
+									y: -0.2
+								}
+							},
+							symmetry: 3
+						},
+						{
+							index: 28,
+							part: 'stock.decoupler',
+							parent: {
+								index: 23,
+								parentNode: 'top',
+								node: 'bottom'
+							}
+						},
+						{
+							index: 29,
+							part: 'stock.lander-ascent',
+							parent: {
+								index: 28,
+								parentNode: 'top',
+								node: 'bottom'
+							}
+						},
+						{
+							index: 30,
+							part: 'stock.rcs-block',
+							parent: {
+								index: 29,
+								parentNode: 'surface',
+								node: 'radial',
+								radial: {
+									angle: 0.785398163397,
+									y: 0.4
+								}
+							},
+							symmetry: 4
+						},
+						{
+							index: 31,
+							part: 'stock.rcs-block',
+							parent: {
+								index: 29,
+								parentNode: 'surface',
+								node: 'radial',
+								radial: {
+									angle: 2.35619449019,
+									y: 0.4
+								}
+							},
+							symmetry: 4
+						},
+						{
+							index: 32,
+							part: 'stock.rcs-block',
+							parent: {
+								index: 29,
+								parentNode: 'surface',
+								node: 'radial',
+								radial: {
+									angle: 3.92699081699,
+									y: 0.4
+								}
+							},
+							symmetry: 4
+						},
+						{
+							index: 33,
+							part: 'stock.rcs-block',
+							parent: {
+								index: 29,
+								parentNode: 'surface',
+								node: 'radial',
+								radial: {
+									angle: 5.49778714378,
+									y: 0.4
+								}
+							},
+							symmetry: 4
+						},
+						{
+							index: 34,
+							part: 'stock.rcs-block',
+							parent: {
+								index: 23,
+								parentNode: 'surface',
+								node: 'radial',
+								radial: {
+									angle: 0.785398163397,
+									y: 0.3
+								}
+							},
+							symmetry: 5
+						},
+						{
+							index: 35,
+							part: 'stock.rcs-block',
+							parent: {
+								index: 23,
+								parentNode: 'surface',
+								node: 'radial',
+								radial: {
+									angle: 2.35619449019,
+									y: 0.3
+								}
+							},
+							symmetry: 5
+						},
+						{
+							index: 36,
+							part: 'stock.rcs-block',
+							parent: {
+								index: 23,
+								parentNode: 'surface',
+								node: 'radial',
+								radial: {
+									angle: 3.92699081699,
+									y: 0.3
+								}
+							},
+							symmetry: 5
+						},
+						{
+							index: 37,
+							part: 'stock.rcs-block',
+							parent: {
+								index: 23,
+								parentNode: 'surface',
+								node: 'radial',
+								radial: {
+									angle: 5.49778714378,
+									y: 0.3
+								}
+							},
+							symmetry: 5
+						},
+						{
+							index: 38,
+							part: 'stock.antenna-whip-radial',
+							parent: {
+								index: 29,
+								parentNode: 'surface',
+								node: 'radial',
+								radial: {
+									angle: 1.57079632679,
+									y: -0.3
+								}
+							}
+						},
+						{
+							index: 39,
+							part: 'stock.docking-port-small',
+							parent: {
+								index: 29,
+								parentNode: 'top',
+								node: 'bottom'
+							}
+						},
+						{
+							index: 40,
+							part: 'stock.tank-3750-long',
+							parent: {
+								index: 21,
+								parentNode: 'bottom',
+								node: 'top'
+							}
+						},
+						{
+							index: 41,
+							part: 'stock.tank-3750',
+							parent: {
+								index: 40,
+								parentNode: 'bottom',
+								node: 'top'
+							},
+							settings: {
+								'stock.paint': {
+									paint: 'aft-band'
+								}
+							}
+						},
+						{
+							index: 42,
+							part: 'stock.engine-plate-8',
+							parent: {
+								index: 41,
+								parentNode: 'bottom',
+								node: 'top'
+							}
+						},
+						{
+							index: 43,
+							part: 'stock.decoupler-3750',
+							parent: {
+								index: 42,
+								parentNode: 'bottom',
+								node: 'top'
+							}
+						},
+						{
+							index: 44,
+							part: 'stock.adapter-3750-5000',
+							parent: {
+								index: 43,
+								parentNode: 'bottom',
+								node: 'top'
+							}
+						},
+						{
+							index: 45,
+							part: 'stock.tank-5000-long',
+							parent: {
+								index: 44,
+								parentNode: 'bottom',
+								node: 'top'
+							},
+							settings: {
+								'stock.paint': {
+									paint: 'top-band'
+								}
+							}
+						},
+						{
+							index: 46,
+							part: 'stock.tank-5000-long',
+							parent: {
+								index: 45,
+								parentNode: 'bottom',
+								node: 'top'
+							}
+						},
+						{
+							index: 47,
+							part: 'stock.tank-5000',
+							parent: {
+								index: 46,
+								parentNode: 'bottom',
+								node: 'top'
+							}
+						},
+						{
+							index: 48,
+							part: 'stock.engine-plate-j2',
+							parent: {
+								index: 47,
+								parentNode: 'bottom',
+								node: 'top'
+							}
+						},
+						{
+							index: 49,
+							part: 'stock.decoupler-5000',
+							parent: {
+								index: 48,
+								parentNode: 'bottom',
+								node: 'top'
+							}
+						},
+						{
+							index: 50,
+							part: 'stock.adapter-5000-7500',
+							parent: {
+								index: 49,
+								parentNode: 'bottom',
+								node: 'top'
+							}
+						},
+						{
+							index: 51,
+							part: 'stock.tank-7500-long',
+							parent: {
+								index: 50,
+								parentNode: 'bottom',
+								node: 'top'
+							},
+							settings: {
+								'stock.paint': {
+									paint: 'roll'
+								}
+							}
+						},
+						{
+							index: 52,
+							part: 'stock.tank-7500-long',
+							parent: {
+								index: 51,
+								parentNode: 'bottom',
+								node: 'top'
+							}
+						},
+						{
+							index: 53,
+							part: 'stock.tank-7500-long',
+							parent: {
+								index: 52,
+								parentNode: 'bottom',
+								node: 'top'
+							}
+						},
+						{
+							index: 54,
+							part: 'stock.tank-7500',
+							parent: {
+								index: 53,
+								parentNode: 'bottom',
+								node: 'top'
+							},
+							settings: {
+								'stock.paint': {
+									paint: 'roll'
+								}
+							}
+						},
+						{
+							index: 55,
+							part: 'stock.engine-plate-f1',
+							parent: {
+								index: 54,
+								parentNode: 'bottom',
+								node: 'top'
+							},
+							settings: {
+								'stock.paint': {
+									paint: 'foil-engines'
+								}
+							}
+						},
+						{
+							index: 56,
+							part: 'stock.fin',
+							parent: {
+								index: 54,
+								parentNode: 'surface',
+								node: 'radial',
+								radial: {
+									angle: 0.785398163397,
+									y: -0.7
+								}
+							},
+							symmetry: 6
+						},
+						{
+							index: 57,
+							part: 'stock.fin',
+							parent: {
+								index: 54,
+								parentNode: 'surface',
+								node: 'radial',
+								radial: {
+									angle: 2.35619449019,
+									y: -0.7
+								}
+							},
+							symmetry: 6
+						},
+						{
+							index: 58,
+							part: 'stock.fin',
+							parent: {
+								index: 54,
+								parentNode: 'surface',
+								node: 'radial',
+								radial: {
+									angle: 3.92699081699,
+									y: -0.7
+								}
+							},
+							symmetry: 6
+						},
+						{
+							index: 59,
+							part: 'stock.fin',
+							parent: {
+								index: 54,
+								parentNode: 'surface',
+								node: 'radial',
+								radial: {
+									angle: 5.49778714378,
+									y: -0.7
+								}
+							},
+							symmetry: 6
+						}
+					],
+					stages: [[55], [49, 48, 3], [43, 42], [20, 21], [19], [22], [23], [28, 29], [5], [0]]
+				}
+			}
+		]
 	},
 	{
 		id: 'stock.wayfarer-shuttle',
@@ -2289,7 +3050,12 @@ const DATA: unknown = [
 				}
 			],
 			stages: [[29, 25, 26], [23, 24], [21, 2], [4]]
-		}
+		},
+		systems: [
+			{
+				system: 'stock'
+			}
+		]
 	},
 	{
 		id: 'stock.horizon-station',
@@ -2818,7 +3584,1110 @@ const DATA: unknown = [
 				}
 			],
 			stages: [[29, 38, 39, 40, 41], [34, 35, 36, 37], [26]]
-		}
+		},
+		systems: [
+			{
+				system: 'stock'
+			},
+			{
+				system: 'sol',
+				variant: 'rescaled',
+				design: {
+					formatVersion: 3,
+					name: 'Horizon Station',
+					parts: [
+						{
+							index: 0,
+							part: 'stock.hub',
+							parent: null
+						},
+						{
+							index: 1,
+							part: 'stock.docking-port',
+							parent: {
+								index: 0,
+								parentNode: 'top',
+								node: 'bottom'
+							}
+						},
+						{
+							index: 2,
+							part: 'stock.airlock',
+							parent: {
+								index: 0,
+								parentNode: 'east',
+								node: 'bottom'
+							},
+							tilt: {
+								x: 0,
+								y: 0,
+								z: -1.57079632679
+							}
+						},
+						{
+							index: 3,
+							part: 'stock.docking-port-small',
+							parent: {
+								index: 2,
+								parentNode: 'top',
+								node: 'bottom'
+							}
+						},
+						{
+							index: 4,
+							part: 'stock.cupola',
+							parent: {
+								index: 0,
+								parentNode: 'west',
+								node: 'bottom'
+							},
+							tilt: {
+								x: 0,
+								y: 0,
+								z: 1.57079632679
+							}
+						},
+						{
+							index: 5,
+							part: 'stock.satellite-bus',
+							parent: {
+								index: 0,
+								parentNode: 'north',
+								node: 'bottom'
+							},
+							tilt: {
+								x: 1.57079632679,
+								y: 0,
+								z: 0
+							}
+						},
+						{
+							index: 6,
+							part: 'stock.docking-port',
+							parent: {
+								index: 5,
+								parentNode: 'top',
+								node: 'bottom'
+							}
+						},
+						{
+							index: 7,
+							part: 'stock.docking-port',
+							parent: {
+								index: 0,
+								parentNode: 'south',
+								node: 'bottom'
+							},
+							tilt: {
+								x: -1.57079632679,
+								y: 0,
+								z: 0
+							}
+						},
+						{
+							index: 8,
+							part: 'stock.adapter-large',
+							parent: {
+								index: 0,
+								parentNode: 'bottom',
+								node: 'top'
+							}
+						},
+						{
+							index: 9,
+							part: 'stock.hab-module',
+							parent: {
+								index: 8,
+								parentNode: 'bottom',
+								node: 'top'
+							}
+						},
+						{
+							index: 10,
+							part: 'stock.solar-array-xl',
+							parent: {
+								index: 9,
+								parentNode: 'surface',
+								node: 'radial',
+								radial: {
+									angle: 1.57079632679,
+									y: 0.5
+								}
+							},
+							symmetry: 0
+						},
+						{
+							index: 11,
+							part: 'stock.solar-array-xl',
+							parent: {
+								index: 9,
+								parentNode: 'surface',
+								node: 'radial',
+								radial: {
+									angle: 4.71238898038,
+									y: 0.5
+								}
+							},
+							symmetry: 0
+						},
+						{
+							index: 12,
+							part: 'stock.radiator',
+							parent: {
+								index: 9,
+								parentNode: 'surface',
+								node: 'radial',
+								radial: {
+									angle: 0,
+									y: -0.3
+								}
+							},
+							symmetry: 1
+						},
+						{
+							index: 13,
+							part: 'stock.radiator',
+							parent: {
+								index: 9,
+								parentNode: 'surface',
+								node: 'radial',
+								radial: {
+									angle: 3.14159265359,
+									y: -0.3
+								}
+							},
+							symmetry: 1
+						},
+						{
+							index: 14,
+							part: 'stock.rcs-block',
+							parent: {
+								index: 9,
+								parentNode: 'surface',
+								node: 'radial',
+								radial: {
+									angle: 0.785398163397,
+									y: 0.8
+								}
+							},
+							symmetry: 2
+						},
+						{
+							index: 15,
+							part: 'stock.rcs-block',
+							parent: {
+								index: 9,
+								parentNode: 'surface',
+								node: 'radial',
+								radial: {
+									angle: 2.35619449019,
+									y: 0.8
+								}
+							},
+							symmetry: 2
+						},
+						{
+							index: 16,
+							part: 'stock.rcs-block',
+							parent: {
+								index: 9,
+								parentNode: 'surface',
+								node: 'radial',
+								radial: {
+									angle: 3.92699081699,
+									y: 0.8
+								}
+							},
+							symmetry: 2
+						},
+						{
+							index: 17,
+							part: 'stock.rcs-block',
+							parent: {
+								index: 9,
+								parentNode: 'surface',
+								node: 'radial',
+								radial: {
+									angle: 5.49778714378,
+									y: 0.8
+								}
+							},
+							symmetry: 2
+						},
+						{
+							index: 18,
+							part: 'stock.rcs-block',
+							parent: {
+								index: 9,
+								parentNode: 'surface',
+								node: 'radial',
+								radial: {
+									angle: 0.785398163397,
+									y: -0.8
+								}
+							},
+							symmetry: 3
+						},
+						{
+							index: 19,
+							part: 'stock.rcs-block',
+							parent: {
+								index: 9,
+								parentNode: 'surface',
+								node: 'radial',
+								radial: {
+									angle: 2.35619449019,
+									y: -0.8
+								}
+							},
+							symmetry: 3
+						},
+						{
+							index: 20,
+							part: 'stock.rcs-block',
+							parent: {
+								index: 9,
+								parentNode: 'surface',
+								node: 'radial',
+								radial: {
+									angle: 3.92699081699,
+									y: -0.8
+								}
+							},
+							symmetry: 3
+						},
+						{
+							index: 21,
+							part: 'stock.rcs-block',
+							parent: {
+								index: 9,
+								parentNode: 'surface',
+								node: 'radial',
+								radial: {
+									angle: 5.49778714378,
+									y: -0.8
+								}
+							},
+							symmetry: 3
+						},
+						{
+							index: 22,
+							part: 'stock.monoprop-radial',
+							parent: {
+								index: 9,
+								parentNode: 'surface',
+								node: 'radial',
+								radial: {
+									angle: 2.35619449019,
+									y: -1
+								}
+							},
+							symmetry: 4
+						},
+						{
+							index: 23,
+							part: 'stock.monoprop-radial',
+							parent: {
+								index: 9,
+								parentNode: 'surface',
+								node: 'radial',
+								radial: {
+									angle: 5.49778714378,
+									y: -1
+								}
+							},
+							symmetry: 4
+						},
+						{
+							index: 24,
+							part: 'stock.antenna-dish-fold',
+							parent: {
+								index: 9,
+								parentNode: 'surface',
+								node: 'radial',
+								radial: {
+									angle: 3.14159265359,
+									y: -0.6
+								}
+							}
+						},
+						{
+							index: 25,
+							part: 'stock.docking-port-large',
+							parent: {
+								index: 9,
+								parentNode: 'bottom',
+								node: 'top'
+							}
+						},
+						{
+							index: 26,
+							part: 'stock.decoupler-wide',
+							parent: {
+								index: 25,
+								parentNode: 'bottom',
+								node: 'top'
+							}
+						},
+						{
+							index: 27,
+							part: 'stock.adapter-2500-3750',
+							parent: {
+								index: 26,
+								parentNode: 'bottom',
+								node: 'top'
+							}
+						},
+						{
+							index: 28,
+							part: 'stock.tank-3750',
+							parent: {
+								index: 27,
+								parentNode: 'bottom',
+								node: 'top'
+							}
+						},
+						{
+							index: 29,
+							part: 'stock.tank-3750-short',
+							parent: {
+								index: 28,
+								parentNode: 'bottom',
+								node: 'top'
+							}
+						},
+						{
+							index: 30,
+							part: 'stock.engine-plate-8',
+							parent: {
+								index: 29,
+								parentNode: 'bottom',
+								node: 'top'
+							}
+						},
+						{
+							index: 31,
+							part: 'stock.decoupler-3750',
+							parent: {
+								index: 30,
+								parentNode: 'bottom',
+								node: 'top'
+							}
+						},
+						{
+							index: 32,
+							part: 'stock.adapter-3750-5000',
+							parent: {
+								index: 31,
+								parentNode: 'bottom',
+								node: 'top'
+							}
+						},
+						{
+							index: 33,
+							part: 'stock.tank-5000-long',
+							parent: {
+								index: 32,
+								parentNode: 'bottom',
+								node: 'top'
+							}
+						},
+						{
+							index: 34,
+							part: 'stock.tank-5000-long',
+							parent: {
+								index: 33,
+								parentNode: 'bottom',
+								node: 'top'
+							}
+						},
+						{
+							index: 35,
+							part: 'stock.engine-plate-5',
+							parent: {
+								index: 34,
+								parentNode: 'bottom',
+								node: 'top'
+							}
+						},
+						{
+							index: 36,
+							part: 'stock.fin',
+							parent: {
+								index: 34,
+								parentNode: 'surface',
+								node: 'radial',
+								radial: {
+									angle: 0.785398163397,
+									y: -0.7
+								}
+							},
+							symmetry: 5
+						},
+						{
+							index: 37,
+							part: 'stock.fin',
+							parent: {
+								index: 34,
+								parentNode: 'surface',
+								node: 'radial',
+								radial: {
+									angle: 2.35619449019,
+									y: -0.7
+								}
+							},
+							symmetry: 5
+						},
+						{
+							index: 38,
+							part: 'stock.fin',
+							parent: {
+								index: 34,
+								parentNode: 'surface',
+								node: 'radial',
+								radial: {
+									angle: 3.92699081699,
+									y: -0.7
+								}
+							},
+							symmetry: 5
+						},
+						{
+							index: 39,
+							part: 'stock.fin',
+							parent: {
+								index: 34,
+								parentNode: 'surface',
+								node: 'radial',
+								radial: {
+									angle: 5.49778714378,
+									y: -0.7
+								}
+							},
+							symmetry: 5
+						},
+						{
+							index: 40,
+							part: 'stock.radial-decoupler',
+							parent: {
+								index: 34,
+								parentNode: 'surface',
+								node: 'radial',
+								radial: {
+									angle: 0,
+									y: -0.2
+								}
+							},
+							symmetry: 6
+						},
+						{
+							index: 41,
+							part: 'stock.radial-decoupler',
+							parent: {
+								index: 34,
+								parentNode: 'surface',
+								node: 'radial',
+								radial: {
+									angle: 3.14159265359,
+									y: -0.2
+								}
+							},
+							symmetry: 6
+						},
+						{
+							index: 42,
+							part: 'stock.srb-xl',
+							parent: {
+								index: 40,
+								parentNode: 'outer',
+								node: 'radial'
+							},
+							symmetry: 7
+						},
+						{
+							index: 43,
+							part: 'stock.srb-xl',
+							parent: {
+								index: 41,
+								parentNode: 'outer',
+								node: 'radial'
+							},
+							symmetry: 7
+						},
+						{
+							index: 44,
+							part: 'stock.nose-cone-1875',
+							parent: {
+								index: 42,
+								parentNode: 'top',
+								node: 'bottom'
+							},
+							symmetry: 8
+						},
+						{
+							index: 45,
+							part: 'stock.nose-cone-1875',
+							parent: {
+								index: 43,
+								parentNode: 'top',
+								node: 'bottom'
+							},
+							symmetry: 8
+						}
+					],
+					stages: [[35, 42, 43], [40, 41], [30, 31], [26]]
+				}
+			},
+			{
+				system: 'sol',
+				variant: '1:1',
+				design: {
+					formatVersion: 3,
+					name: 'Horizon Station',
+					parts: [
+						{
+							index: 0,
+							part: 'stock.hub',
+							parent: null
+						},
+						{
+							index: 1,
+							part: 'stock.docking-port',
+							parent: {
+								index: 0,
+								parentNode: 'top',
+								node: 'bottom'
+							}
+						},
+						{
+							index: 2,
+							part: 'stock.airlock',
+							parent: {
+								index: 0,
+								parentNode: 'east',
+								node: 'bottom'
+							},
+							tilt: {
+								x: 0,
+								y: 0,
+								z: -1.57079632679
+							}
+						},
+						{
+							index: 3,
+							part: 'stock.docking-port-small',
+							parent: {
+								index: 2,
+								parentNode: 'top',
+								node: 'bottom'
+							}
+						},
+						{
+							index: 4,
+							part: 'stock.cupola',
+							parent: {
+								index: 0,
+								parentNode: 'west',
+								node: 'bottom'
+							},
+							tilt: {
+								x: 0,
+								y: 0,
+								z: 1.57079632679
+							}
+						},
+						{
+							index: 5,
+							part: 'stock.satellite-bus',
+							parent: {
+								index: 0,
+								parentNode: 'north',
+								node: 'bottom'
+							},
+							tilt: {
+								x: 1.57079632679,
+								y: 0,
+								z: 0
+							}
+						},
+						{
+							index: 6,
+							part: 'stock.docking-port',
+							parent: {
+								index: 5,
+								parentNode: 'top',
+								node: 'bottom'
+							}
+						},
+						{
+							index: 7,
+							part: 'stock.docking-port',
+							parent: {
+								index: 0,
+								parentNode: 'south',
+								node: 'bottom'
+							},
+							tilt: {
+								x: -1.57079632679,
+								y: 0,
+								z: 0
+							}
+						},
+						{
+							index: 8,
+							part: 'stock.adapter-large',
+							parent: {
+								index: 0,
+								parentNode: 'bottom',
+								node: 'top'
+							}
+						},
+						{
+							index: 9,
+							part: 'stock.hab-module',
+							parent: {
+								index: 8,
+								parentNode: 'bottom',
+								node: 'top'
+							}
+						},
+						{
+							index: 10,
+							part: 'stock.solar-array-xl',
+							parent: {
+								index: 9,
+								parentNode: 'surface',
+								node: 'radial',
+								radial: {
+									angle: 1.57079632679,
+									y: 0.5
+								}
+							},
+							symmetry: 0
+						},
+						{
+							index: 11,
+							part: 'stock.solar-array-xl',
+							parent: {
+								index: 9,
+								parentNode: 'surface',
+								node: 'radial',
+								radial: {
+									angle: 4.71238898038,
+									y: 0.5
+								}
+							},
+							symmetry: 0
+						},
+						{
+							index: 12,
+							part: 'stock.radiator',
+							parent: {
+								index: 9,
+								parentNode: 'surface',
+								node: 'radial',
+								radial: {
+									angle: 0,
+									y: -0.3
+								}
+							},
+							symmetry: 1
+						},
+						{
+							index: 13,
+							part: 'stock.radiator',
+							parent: {
+								index: 9,
+								parentNode: 'surface',
+								node: 'radial',
+								radial: {
+									angle: 3.14159265359,
+									y: -0.3
+								}
+							},
+							symmetry: 1
+						},
+						{
+							index: 14,
+							part: 'stock.rcs-block',
+							parent: {
+								index: 9,
+								parentNode: 'surface',
+								node: 'radial',
+								radial: {
+									angle: 0.785398163397,
+									y: 0.8
+								}
+							},
+							symmetry: 2
+						},
+						{
+							index: 15,
+							part: 'stock.rcs-block',
+							parent: {
+								index: 9,
+								parentNode: 'surface',
+								node: 'radial',
+								radial: {
+									angle: 2.35619449019,
+									y: 0.8
+								}
+							},
+							symmetry: 2
+						},
+						{
+							index: 16,
+							part: 'stock.rcs-block',
+							parent: {
+								index: 9,
+								parentNode: 'surface',
+								node: 'radial',
+								radial: {
+									angle: 3.92699081699,
+									y: 0.8
+								}
+							},
+							symmetry: 2
+						},
+						{
+							index: 17,
+							part: 'stock.rcs-block',
+							parent: {
+								index: 9,
+								parentNode: 'surface',
+								node: 'radial',
+								radial: {
+									angle: 5.49778714378,
+									y: 0.8
+								}
+							},
+							symmetry: 2
+						},
+						{
+							index: 18,
+							part: 'stock.rcs-block',
+							parent: {
+								index: 9,
+								parentNode: 'surface',
+								node: 'radial',
+								radial: {
+									angle: 0.785398163397,
+									y: -0.8
+								}
+							},
+							symmetry: 3
+						},
+						{
+							index: 19,
+							part: 'stock.rcs-block',
+							parent: {
+								index: 9,
+								parentNode: 'surface',
+								node: 'radial',
+								radial: {
+									angle: 2.35619449019,
+									y: -0.8
+								}
+							},
+							symmetry: 3
+						},
+						{
+							index: 20,
+							part: 'stock.rcs-block',
+							parent: {
+								index: 9,
+								parentNode: 'surface',
+								node: 'radial',
+								radial: {
+									angle: 3.92699081699,
+									y: -0.8
+								}
+							},
+							symmetry: 3
+						},
+						{
+							index: 21,
+							part: 'stock.rcs-block',
+							parent: {
+								index: 9,
+								parentNode: 'surface',
+								node: 'radial',
+								radial: {
+									angle: 5.49778714378,
+									y: -0.8
+								}
+							},
+							symmetry: 3
+						},
+						{
+							index: 22,
+							part: 'stock.monoprop-radial',
+							parent: {
+								index: 9,
+								parentNode: 'surface',
+								node: 'radial',
+								radial: {
+									angle: 2.35619449019,
+									y: -1
+								}
+							},
+							symmetry: 4
+						},
+						{
+							index: 23,
+							part: 'stock.monoprop-radial',
+							parent: {
+								index: 9,
+								parentNode: 'surface',
+								node: 'radial',
+								radial: {
+									angle: 5.49778714378,
+									y: -1
+								}
+							},
+							symmetry: 4
+						},
+						{
+							index: 24,
+							part: 'stock.antenna-dish-fold',
+							parent: {
+								index: 9,
+								parentNode: 'surface',
+								node: 'radial',
+								radial: {
+									angle: 3.14159265359,
+									y: -0.6
+								}
+							}
+						},
+						{
+							index: 25,
+							part: 'stock.docking-port-large',
+							parent: {
+								index: 9,
+								parentNode: 'bottom',
+								node: 'top'
+							}
+						},
+						{
+							index: 26,
+							part: 'stock.decoupler-wide',
+							parent: {
+								index: 25,
+								parentNode: 'bottom',
+								node: 'top'
+							}
+						},
+						{
+							index: 27,
+							part: 'stock.adapter-2500-3750',
+							parent: {
+								index: 26,
+								parentNode: 'bottom',
+								node: 'top'
+							}
+						},
+						{
+							index: 28,
+							part: 'stock.tank-3750',
+							parent: {
+								index: 27,
+								parentNode: 'bottom',
+								node: 'top'
+							}
+						},
+						{
+							index: 29,
+							part: 'stock.tank-3750-short',
+							parent: {
+								index: 28,
+								parentNode: 'bottom',
+								node: 'top'
+							}
+						},
+						{
+							index: 30,
+							part: 'stock.engine-plate-8',
+							parent: {
+								index: 29,
+								parentNode: 'bottom',
+								node: 'top'
+							}
+						},
+						{
+							index: 31,
+							part: 'stock.decoupler-3750',
+							parent: {
+								index: 30,
+								parentNode: 'bottom',
+								node: 'top'
+							}
+						},
+						{
+							index: 32,
+							part: 'stock.adapter-3750-5000',
+							parent: {
+								index: 31,
+								parentNode: 'bottom',
+								node: 'top'
+							}
+						},
+						{
+							index: 33,
+							part: 'stock.tank-5000-long',
+							parent: {
+								index: 32,
+								parentNode: 'bottom',
+								node: 'top'
+							}
+						},
+						{
+							index: 34,
+							part: 'stock.tank-5000-long',
+							parent: {
+								index: 33,
+								parentNode: 'bottom',
+								node: 'top'
+							}
+						},
+						{
+							index: 35,
+							part: 'stock.engine-plate-5',
+							parent: {
+								index: 34,
+								parentNode: 'bottom',
+								node: 'top'
+							}
+						},
+						{
+							index: 36,
+							part: 'stock.fin',
+							parent: {
+								index: 34,
+								parentNode: 'surface',
+								node: 'radial',
+								radial: {
+									angle: 0.785398163397,
+									y: -0.7
+								}
+							},
+							symmetry: 5
+						},
+						{
+							index: 37,
+							part: 'stock.fin',
+							parent: {
+								index: 34,
+								parentNode: 'surface',
+								node: 'radial',
+								radial: {
+									angle: 2.35619449019,
+									y: -0.7
+								}
+							},
+							symmetry: 5
+						},
+						{
+							index: 38,
+							part: 'stock.fin',
+							parent: {
+								index: 34,
+								parentNode: 'surface',
+								node: 'radial',
+								radial: {
+									angle: 3.92699081699,
+									y: -0.7
+								}
+							},
+							symmetry: 5
+						},
+						{
+							index: 39,
+							part: 'stock.fin',
+							parent: {
+								index: 34,
+								parentNode: 'surface',
+								node: 'radial',
+								radial: {
+									angle: 5.49778714378,
+									y: -0.7
+								}
+							},
+							symmetry: 5
+						},
+						{
+							index: 40,
+							part: 'stock.radial-decoupler',
+							parent: {
+								index: 34,
+								parentNode: 'surface',
+								node: 'radial',
+								radial: {
+									angle: 0,
+									y: -0.2
+								}
+							},
+							symmetry: 6
+						},
+						{
+							index: 41,
+							part: 'stock.radial-decoupler',
+							parent: {
+								index: 34,
+								parentNode: 'surface',
+								node: 'radial',
+								radial: {
+									angle: 3.14159265359,
+									y: -0.2
+								}
+							},
+							symmetry: 6
+						},
+						{
+							index: 42,
+							part: 'stock.srb-xl',
+							parent: {
+								index: 40,
+								parentNode: 'outer',
+								node: 'radial'
+							},
+							symmetry: 7
+						},
+						{
+							index: 43,
+							part: 'stock.srb-xl',
+							parent: {
+								index: 41,
+								parentNode: 'outer',
+								node: 'radial'
+							},
+							symmetry: 7
+						},
+						{
+							index: 44,
+							part: 'stock.nose-cone-1875',
+							parent: {
+								index: 42,
+								parentNode: 'top',
+								node: 'bottom'
+							},
+							symmetry: 8
+						},
+						{
+							index: 45,
+							part: 'stock.nose-cone-1875',
+							parent: {
+								index: 43,
+								parentNode: 'top',
+								node: 'bottom'
+							},
+							symmetry: 8
+						}
+					],
+					stages: [[35, 42, 43], [40, 41], [30, 31], [26]]
+				}
+			}
+		]
 	},
 	{
 		id: 'stock.moonwatch-orbiter',
@@ -3146,7 +5015,369 @@ const DATA: unknown = [
 				}
 			],
 			stages: [[22], [18, 19], [15, 16]]
-		}
+		},
+		systems: [
+			{
+				system: 'stock'
+			},
+			{
+				system: 'sol',
+				design: {
+					formatVersion: 3,
+					name: 'Moonwatch Orbiter',
+					parts: [
+						{
+							index: 0,
+							part: 'stock.antenna-relay',
+							parent: null
+						},
+						{
+							index: 1,
+							part: 'stock.satellite-bus',
+							parent: {
+								index: 0,
+								parentNode: 'bottom',
+								node: 'top'
+							}
+						},
+						{
+							index: 2,
+							part: 'stock.rtg-radial',
+							parent: {
+								index: 1,
+								parentNode: 'surface',
+								node: 'radial',
+								radial: {
+									angle: 0,
+									y: 0
+								}
+							}
+						},
+						{
+							index: 3,
+							part: 'stock.thermometer-radial',
+							parent: {
+								index: 1,
+								parentNode: 'surface',
+								node: 'radial',
+								radial: {
+									angle: 1.57079632679,
+									y: 0.3
+								}
+							}
+						},
+						{
+							index: 4,
+							part: 'stock.magnetometer-boom',
+							parent: {
+								index: 1,
+								parentNode: 'surface',
+								node: 'radial',
+								radial: {
+									angle: 3.14159265359,
+									y: 0
+								}
+							}
+						},
+						{
+							index: 5,
+							part: 'stock.solar-wings',
+							parent: {
+								index: 1,
+								parentNode: 'bottom',
+								node: 'top'
+							}
+						},
+						{
+							index: 6,
+							part: 'stock.tank-small',
+							parent: {
+								index: 5,
+								parentNode: 'bottom',
+								node: 'top'
+							}
+						},
+						{
+							index: 7,
+							part: 'stock.rcs-block',
+							parent: {
+								index: 1,
+								parentNode: 'surface',
+								node: 'radial',
+								radial: {
+									angle: 0.785398163397,
+									y: 0.3
+								}
+							},
+							symmetry: 0
+						},
+						{
+							index: 8,
+							part: 'stock.rcs-block',
+							parent: {
+								index: 1,
+								parentNode: 'surface',
+								node: 'radial',
+								radial: {
+									angle: 2.35619449019,
+									y: 0.3
+								}
+							},
+							symmetry: 0
+						},
+						{
+							index: 9,
+							part: 'stock.rcs-block',
+							parent: {
+								index: 1,
+								parentNode: 'surface',
+								node: 'radial',
+								radial: {
+									angle: 3.92699081699,
+									y: 0.3
+								}
+							},
+							symmetry: 0
+						},
+						{
+							index: 10,
+							part: 'stock.rcs-block',
+							parent: {
+								index: 1,
+								parentNode: 'surface',
+								node: 'radial',
+								radial: {
+									angle: 5.49778714378,
+									y: 0.3
+								}
+							},
+							symmetry: 0
+						},
+						{
+							index: 11,
+							part: 'stock.rcs-block',
+							parent: {
+								index: 6,
+								parentNode: 'surface',
+								node: 'radial',
+								radial: {
+									angle: 0.785398163397,
+									y: -0.5
+								}
+							},
+							symmetry: 1
+						},
+						{
+							index: 12,
+							part: 'stock.rcs-block',
+							parent: {
+								index: 6,
+								parentNode: 'surface',
+								node: 'radial',
+								radial: {
+									angle: 2.35619449019,
+									y: -0.5
+								}
+							},
+							symmetry: 1
+						},
+						{
+							index: 13,
+							part: 'stock.rcs-block',
+							parent: {
+								index: 6,
+								parentNode: 'surface',
+								node: 'radial',
+								radial: {
+									angle: 3.92699081699,
+									y: -0.5
+								}
+							},
+							symmetry: 1
+						},
+						{
+							index: 14,
+							part: 'stock.rcs-block',
+							parent: {
+								index: 6,
+								parentNode: 'surface',
+								node: 'radial',
+								radial: {
+									angle: 5.49778714378,
+									y: -0.5
+								}
+							},
+							symmetry: 1
+						},
+						{
+							index: 15,
+							part: 'stock.engine-vacuum',
+							parent: {
+								index: 6,
+								parentNode: 'bottom',
+								node: 'top'
+							}
+						},
+						{
+							index: 16,
+							part: 'stock.decoupler',
+							parent: {
+								index: 15,
+								parentNode: 'bottom',
+								node: 'top'
+							}
+						},
+						{
+							index: 17,
+							part: 'stock.adapter-large',
+							parent: {
+								index: 16,
+								parentNode: 'bottom',
+								node: 'top'
+							}
+						},
+						{
+							index: 18,
+							part: 'stock.adapter-2500-3750',
+							parent: {
+								index: 17,
+								parentNode: 'bottom',
+								node: 'top'
+							}
+						},
+						{
+							index: 19,
+							part: 'stock.tank-3750',
+							parent: {
+								index: 18,
+								parentNode: 'bottom',
+								node: 'top'
+							}
+						},
+						{
+							index: 20,
+							part: 'stock.tank-3750-short',
+							parent: {
+								index: 19,
+								parentNode: 'bottom',
+								node: 'top'
+							}
+						},
+						{
+							index: 21,
+							part: 'stock.engine-plate-8',
+							parent: {
+								index: 20,
+								parentNode: 'bottom',
+								node: 'top'
+							}
+						},
+						{
+							index: 22,
+							part: 'stock.decoupler-3750',
+							parent: {
+								index: 21,
+								parentNode: 'bottom',
+								node: 'top'
+							}
+						},
+						{
+							index: 23,
+							part: 'stock.adapter-3750-5000',
+							parent: {
+								index: 22,
+								parentNode: 'bottom',
+								node: 'top'
+							}
+						},
+						{
+							index: 24,
+							part: 'stock.tank-5000-long',
+							parent: {
+								index: 23,
+								parentNode: 'bottom',
+								node: 'top'
+							}
+						},
+						{
+							index: 25,
+							part: 'stock.tank-5000-long',
+							parent: {
+								index: 24,
+								parentNode: 'bottom',
+								node: 'top'
+							}
+						},
+						{
+							index: 26,
+							part: 'stock.engine-plate-5',
+							parent: {
+								index: 25,
+								parentNode: 'bottom',
+								node: 'top'
+							}
+						},
+						{
+							index: 27,
+							part: 'stock.fin',
+							parent: {
+								index: 25,
+								parentNode: 'surface',
+								node: 'radial',
+								radial: {
+									angle: 0.785398163397,
+									y: -0.7
+								}
+							},
+							symmetry: 2
+						},
+						{
+							index: 28,
+							part: 'stock.fin',
+							parent: {
+								index: 25,
+								parentNode: 'surface',
+								node: 'radial',
+								radial: {
+									angle: 2.35619449019,
+									y: -0.7
+								}
+							},
+							symmetry: 2
+						},
+						{
+							index: 29,
+							part: 'stock.fin',
+							parent: {
+								index: 25,
+								parentNode: 'surface',
+								node: 'radial',
+								radial: {
+									angle: 3.92699081699,
+									y: -0.7
+								}
+							},
+							symmetry: 2
+						},
+						{
+							index: 30,
+							part: 'stock.fin',
+							parent: {
+								index: 25,
+								parentNode: 'surface',
+								node: 'radial',
+								radial: {
+									angle: 5.49778714378,
+									y: -0.7
+								}
+							},
+							symmetry: 2
+						}
+					],
+					stages: [[26], [21, 22], [15, 16]]
+				}
+			}
+		]
 	},
 	{
 		id: 'stock.horizon-telescope',
@@ -3448,7 +5679,343 @@ const DATA: unknown = [
 				}
 			],
 			stages: [[20], [16, 17], [13, 14]]
-		}
+		},
+		systems: [
+			{
+				system: 'stock'
+			},
+			{
+				system: 'sol',
+				design: {
+					formatVersion: 3,
+					name: 'Horizon Telescope',
+					parts: [
+						{
+							index: 0,
+							part: 'stock.telescope',
+							parent: null
+						},
+						{
+							index: 1,
+							part: 'stock.satellite-bus',
+							parent: {
+								index: 0,
+								parentNode: 'bottom',
+								node: 'top'
+							}
+						},
+						{
+							index: 2,
+							part: 'stock.antenna-dish-fold',
+							parent: {
+								index: 1,
+								parentNode: 'surface',
+								node: 'radial',
+								radial: {
+									angle: 0,
+									y: 0.2
+								}
+							}
+						},
+						{
+							index: 3,
+							part: 'stock.solar-wings',
+							parent: {
+								index: 1,
+								parentNode: 'bottom',
+								node: 'top'
+							}
+						},
+						{
+							index: 4,
+							part: 'stock.tank-small',
+							parent: {
+								index: 3,
+								parentNode: 'bottom',
+								node: 'top'
+							}
+						},
+						{
+							index: 5,
+							part: 'stock.rcs-block',
+							parent: {
+								index: 0,
+								parentNode: 'surface',
+								node: 'radial',
+								radial: {
+									angle: 0.785398163397,
+									y: -0.5
+								}
+							},
+							symmetry: 0
+						},
+						{
+							index: 6,
+							part: 'stock.rcs-block',
+							parent: {
+								index: 0,
+								parentNode: 'surface',
+								node: 'radial',
+								radial: {
+									angle: 2.35619449019,
+									y: -0.5
+								}
+							},
+							symmetry: 0
+						},
+						{
+							index: 7,
+							part: 'stock.rcs-block',
+							parent: {
+								index: 0,
+								parentNode: 'surface',
+								node: 'radial',
+								radial: {
+									angle: 3.92699081699,
+									y: -0.5
+								}
+							},
+							symmetry: 0
+						},
+						{
+							index: 8,
+							part: 'stock.rcs-block',
+							parent: {
+								index: 0,
+								parentNode: 'surface',
+								node: 'radial',
+								radial: {
+									angle: 5.49778714378,
+									y: -0.5
+								}
+							},
+							symmetry: 0
+						},
+						{
+							index: 9,
+							part: 'stock.rcs-block',
+							parent: {
+								index: 4,
+								parentNode: 'surface',
+								node: 'radial',
+								radial: {
+									angle: 0.785398163397,
+									y: -0.5
+								}
+							},
+							symmetry: 1
+						},
+						{
+							index: 10,
+							part: 'stock.rcs-block',
+							parent: {
+								index: 4,
+								parentNode: 'surface',
+								node: 'radial',
+								radial: {
+									angle: 2.35619449019,
+									y: -0.5
+								}
+							},
+							symmetry: 1
+						},
+						{
+							index: 11,
+							part: 'stock.rcs-block',
+							parent: {
+								index: 4,
+								parentNode: 'surface',
+								node: 'radial',
+								radial: {
+									angle: 3.92699081699,
+									y: -0.5
+								}
+							},
+							symmetry: 1
+						},
+						{
+							index: 12,
+							part: 'stock.rcs-block',
+							parent: {
+								index: 4,
+								parentNode: 'surface',
+								node: 'radial',
+								radial: {
+									angle: 5.49778714378,
+									y: -0.5
+								}
+							},
+							symmetry: 1
+						},
+						{
+							index: 13,
+							part: 'stock.engine-vacuum',
+							parent: {
+								index: 4,
+								parentNode: 'bottom',
+								node: 'top'
+							}
+						},
+						{
+							index: 14,
+							part: 'stock.decoupler',
+							parent: {
+								index: 13,
+								parentNode: 'bottom',
+								node: 'top'
+							}
+						},
+						{
+							index: 15,
+							part: 'stock.adapter-large',
+							parent: {
+								index: 14,
+								parentNode: 'bottom',
+								node: 'top'
+							}
+						},
+						{
+							index: 16,
+							part: 'stock.adapter-2500-3750',
+							parent: {
+								index: 15,
+								parentNode: 'bottom',
+								node: 'top'
+							}
+						},
+						{
+							index: 17,
+							part: 'stock.tank-3750',
+							parent: {
+								index: 16,
+								parentNode: 'bottom',
+								node: 'top'
+							}
+						},
+						{
+							index: 18,
+							part: 'stock.tank-3750-short',
+							parent: {
+								index: 17,
+								parentNode: 'bottom',
+								node: 'top'
+							}
+						},
+						{
+							index: 19,
+							part: 'stock.engine-plate-8',
+							parent: {
+								index: 18,
+								parentNode: 'bottom',
+								node: 'top'
+							}
+						},
+						{
+							index: 20,
+							part: 'stock.decoupler-3750',
+							parent: {
+								index: 19,
+								parentNode: 'bottom',
+								node: 'top'
+							}
+						},
+						{
+							index: 21,
+							part: 'stock.adapter-3750-5000',
+							parent: {
+								index: 20,
+								parentNode: 'bottom',
+								node: 'top'
+							}
+						},
+						{
+							index: 22,
+							part: 'stock.tank-5000-long',
+							parent: {
+								index: 21,
+								parentNode: 'bottom',
+								node: 'top'
+							}
+						},
+						{
+							index: 23,
+							part: 'stock.tank-5000-long',
+							parent: {
+								index: 22,
+								parentNode: 'bottom',
+								node: 'top'
+							}
+						},
+						{
+							index: 24,
+							part: 'stock.engine-plate-5',
+							parent: {
+								index: 23,
+								parentNode: 'bottom',
+								node: 'top'
+							}
+						},
+						{
+							index: 25,
+							part: 'stock.fin',
+							parent: {
+								index: 23,
+								parentNode: 'surface',
+								node: 'radial',
+								radial: {
+									angle: 0.785398163397,
+									y: -0.7
+								}
+							},
+							symmetry: 2
+						},
+						{
+							index: 26,
+							part: 'stock.fin',
+							parent: {
+								index: 23,
+								parentNode: 'surface',
+								node: 'radial',
+								radial: {
+									angle: 2.35619449019,
+									y: -0.7
+								}
+							},
+							symmetry: 2
+						},
+						{
+							index: 27,
+							part: 'stock.fin',
+							parent: {
+								index: 23,
+								parentNode: 'surface',
+								node: 'radial',
+								radial: {
+									angle: 3.92699081699,
+									y: -0.7
+								}
+							},
+							symmetry: 2
+						},
+						{
+							index: 28,
+							part: 'stock.fin',
+							parent: {
+								index: 23,
+								parentNode: 'surface',
+								node: 'radial',
+								radial: {
+									angle: 5.49778714378,
+									y: -0.7
+								}
+							},
+							symmetry: 2
+						}
+					],
+					stages: [[24], [19, 20], [13, 14]]
+				}
+			}
+		]
 	},
 	{
 		id: 'stock.aurora-satellite',
@@ -3725,7 +6292,318 @@ const DATA: unknown = [
 				}
 			],
 			stages: [[17], [13, 14], [11]]
-		}
+		},
+		systems: [
+			{
+				system: 'stock'
+			},
+			{
+				system: 'sol',
+				design: {
+					formatVersion: 3,
+					name: 'Aurora Research Satellite',
+					parts: [
+						{
+							index: 0,
+							part: 'stock.satellite-bus',
+							parent: null
+						},
+						{
+							index: 1,
+							part: 'stock.magnetometer-boom',
+							parent: {
+								index: 0,
+								parentNode: 'surface',
+								node: 'radial',
+								radial: {
+									angle: 0,
+									y: 0
+								}
+							}
+						},
+						{
+							index: 2,
+							part: 'stock.solar-fold',
+							parent: {
+								index: 0,
+								parentNode: 'surface',
+								node: 'radial',
+								radial: {
+									angle: 1.57079632679,
+									y: 0
+								}
+							},
+							symmetry: 0
+						},
+						{
+							index: 3,
+							part: 'stock.solar-fold',
+							parent: {
+								index: 0,
+								parentNode: 'surface',
+								node: 'radial',
+								radial: {
+									angle: 4.71238898038,
+									y: 0
+								}
+							},
+							symmetry: 0
+						},
+						{
+							index: 4,
+							part: 'stock.antenna-whip-radial',
+							parent: {
+								index: 0,
+								parentNode: 'surface',
+								node: 'radial',
+								radial: {
+									angle: 3.14159265359,
+									y: 0.3
+								}
+							}
+						},
+						{
+							index: 5,
+							part: 'stock.barometer-radial',
+							parent: {
+								index: 0,
+								parentNode: 'surface',
+								node: 'radial',
+								radial: {
+									angle: 3.14159265359,
+									y: -0.3
+								}
+							}
+						},
+						{
+							index: 6,
+							part: 'stock.thermometer-radial',
+							parent: {
+								index: 0,
+								parentNode: 'surface',
+								node: 'radial',
+								radial: {
+									angle: 0.785398163397,
+									y: 0.3
+								}
+							}
+						},
+						{
+							index: 7,
+							part: 'stock.rcs-block',
+							parent: {
+								index: 0,
+								parentNode: 'surface',
+								node: 'radial',
+								radial: {
+									angle: 2.35619449019,
+									y: -0.35
+								}
+							},
+							symmetry: 1
+						},
+						{
+							index: 8,
+							part: 'stock.rcs-block',
+							parent: {
+								index: 0,
+								parentNode: 'surface',
+								node: 'radial',
+								radial: {
+									angle: 5.49778714378,
+									y: -0.35
+								}
+							},
+							symmetry: 1
+						},
+						{
+							index: 9,
+							part: 'stock.rcs-block',
+							parent: {
+								index: 0,
+								parentNode: 'surface',
+								node: 'radial',
+								radial: {
+									angle: 2.35619449019,
+									y: 0.35
+								}
+							},
+							symmetry: 2
+						},
+						{
+							index: 10,
+							part: 'stock.rcs-block',
+							parent: {
+								index: 0,
+								parentNode: 'surface',
+								node: 'radial',
+								radial: {
+									angle: 5.49778714378,
+									y: 0.35
+								}
+							},
+							symmetry: 2
+						},
+						{
+							index: 11,
+							part: 'stock.decoupler',
+							parent: {
+								index: 0,
+								parentNode: 'bottom',
+								node: 'top'
+							}
+						},
+						{
+							index: 12,
+							part: 'stock.adapter-large',
+							parent: {
+								index: 11,
+								parentNode: 'bottom',
+								node: 'top'
+							}
+						},
+						{
+							index: 13,
+							part: 'stock.adapter-2500-3750',
+							parent: {
+								index: 12,
+								parentNode: 'bottom',
+								node: 'top'
+							}
+						},
+						{
+							index: 14,
+							part: 'stock.tank-3750',
+							parent: {
+								index: 13,
+								parentNode: 'bottom',
+								node: 'top'
+							}
+						},
+						{
+							index: 15,
+							part: 'stock.tank-3750-short',
+							parent: {
+								index: 14,
+								parentNode: 'bottom',
+								node: 'top'
+							}
+						},
+						{
+							index: 16,
+							part: 'stock.engine-plate-8',
+							parent: {
+								index: 15,
+								parentNode: 'bottom',
+								node: 'top'
+							}
+						},
+						{
+							index: 17,
+							part: 'stock.decoupler-3750',
+							parent: {
+								index: 16,
+								parentNode: 'bottom',
+								node: 'top'
+							}
+						},
+						{
+							index: 18,
+							part: 'stock.adapter-3750-5000',
+							parent: {
+								index: 17,
+								parentNode: 'bottom',
+								node: 'top'
+							}
+						},
+						{
+							index: 19,
+							part: 'stock.tank-5000-long',
+							parent: {
+								index: 18,
+								parentNode: 'bottom',
+								node: 'top'
+							}
+						},
+						{
+							index: 20,
+							part: 'stock.tank-5000-long',
+							parent: {
+								index: 19,
+								parentNode: 'bottom',
+								node: 'top'
+							}
+						},
+						{
+							index: 21,
+							part: 'stock.engine-plate-5',
+							parent: {
+								index: 20,
+								parentNode: 'bottom',
+								node: 'top'
+							}
+						},
+						{
+							index: 22,
+							part: 'stock.fin',
+							parent: {
+								index: 20,
+								parentNode: 'surface',
+								node: 'radial',
+								radial: {
+									angle: 0.785398163397,
+									y: -0.7
+								}
+							},
+							symmetry: 3
+						},
+						{
+							index: 23,
+							part: 'stock.fin',
+							parent: {
+								index: 20,
+								parentNode: 'surface',
+								node: 'radial',
+								radial: {
+									angle: 2.35619449019,
+									y: -0.7
+								}
+							},
+							symmetry: 3
+						},
+						{
+							index: 24,
+							part: 'stock.fin',
+							parent: {
+								index: 20,
+								parentNode: 'surface',
+								node: 'radial',
+								radial: {
+									angle: 3.92699081699,
+									y: -0.7
+								}
+							},
+							symmetry: 3
+						},
+						{
+							index: 25,
+							part: 'stock.fin',
+							parent: {
+								index: 20,
+								parentNode: 'surface',
+								node: 'radial',
+								radial: {
+									angle: 5.49778714378,
+									y: -0.7
+								}
+							},
+							symmetry: 3
+						}
+					],
+					stages: [[21], [16, 17], [11]]
+				}
+			}
+		]
 	},
 	{
 		id: 'stock.trailblazer-rover',
@@ -3840,7 +6718,15 @@ const DATA: unknown = [
 			],
 			stages: [],
 			aircraft: true
-		}
+		},
+		systems: [
+			{
+				system: 'stock'
+			},
+			{
+				system: 'sol'
+			}
+		]
 	}
 ];
 

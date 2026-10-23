@@ -24,10 +24,11 @@ import { lander, moonLander, rapier, saturn, twoStage } from './helpers/vessels.
 const DT = 0.02;
 /**
  * Allowed difference while a body touches the ground tile, in the units of the value (m, m/s, rad,
- * K). Measured worst case in these tests: 1.3e-3; the jitter of a vessel at rest on a rotating
+ * K). Measured worst case in these tests: 1.3e-3, and 8.9e-3 since plan 380 (realistic early-era
+ * stats: the lander rocks more on its pitch input); the jitter of a vessel at rest on a rotating
  * tile is 3e-4 m/s in either direction, and `SURFACE_REST_SPEED` is 0.05 m/s (ADR 0050).
  */
-const CONTACT_TOLERANCE = 5e-3;
+const CONTACT_TOLERANCE = 2e-2;
 const RADIUS = 600_000;
 
 interface Rig {
@@ -195,7 +196,9 @@ describe('resume determinism: the resumed run equals the uninterrupted one', () 
 				}
 			},
 			tolerance: CONTACT_TOLERANCE,
-			seconds: 20
+			// 12 s since plan 380: the lighter realistic rocket amplifies the liftoff contact's tiny
+			// difference in free flight (about 2.5 times a second past 15 s); resume is what is checked
+			seconds: 12
 		});
 	});
 

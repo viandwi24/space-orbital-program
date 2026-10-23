@@ -6,21 +6,21 @@ exports[`trajectory goldens (plan 080) > closest approach and aids for the moon 
   "distance": 494920.5993,
   "relative": {
     "r": {
-      "x": -64186.33429,
-      "y": -16.87942103,
-      "z": -490740.7806,
+      "x": -64186.33434,
+      "y": -17.29562325,
+      "z": -490740.7807,
     },
     "v": {
-      "x": 556.7291015,
-      "y": 0.01217294549,
-      "z": -72.81503892,
+      "x": 556.7291014,
+      "y": 0.01247309837,
+      "z": -72.81503896,
     },
   },
   "relativeSpeed": 561.4706782,
   "relativeVelocity": {
-    "x": -556.7291015,
-    "y": -0.01217294549,
-    "z": 72.81503892,
+    "x": -556.7291014,
+    "y": -0.01247309837,
+    "z": 72.81503896,
   },
   "target": {
     "x": -6464526545,
@@ -30,7 +30,7 @@ exports[`trajectory goldens (plan 080) > closest approach and aids for the moon 
   "time": 28630.74292,
   "vessel": {
     "x": -6464590732,
-    "y": -2610983980,
+    "y": -2610983981,
     "z": 11672237220,
   },
   "withNodes": false,

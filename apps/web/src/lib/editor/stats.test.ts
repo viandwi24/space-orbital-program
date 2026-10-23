@@ -58,10 +58,11 @@ describe('readouts equal the shared delta-v function (the flight HUD uses the sa
 		const first = report.stages[0]!;
 		expect(stats.liftoffTwr).toBe(twr(first.thrustSeaLevel, first.massStart, g));
 		expect(stats.liftoffTwr).toBeGreaterThan(1);
-		// Pod 840 + wheel 100 + 2 tanks (250 + 890 * 5 kg propellant each) + 2 engines 1250 + decoupler 50 + 50 EC * 1e-6.
-		const tank = 250 + (400 + 490) * 5;
-		expect(stats.wetMass).toBeCloseTo(840 + 100 + 2 * tank + 2 * 1250 + 50 + 50e-6 * 1, 3);
-		expect(stats.dryMass).toBe(840 + 100 + 2 * 250 + 2 * 1250 + 50);
+		// Pod 840 + wheel 100 + 2 tanks (1 160 + 890 * 5 kg propellant each) + 2 engines 275 +
+		// decoupler 50 + 50 EC * 1e-6 (realistic early-era stats, plan 380).
+		const tank = 1160 + (400 + 490) * 5;
+		expect(stats.wetMass).toBeCloseTo(840 + 100 + 2 * tank + 2 * 275 + 50 + 50e-6 * 1, 3);
+		expect(stats.dryMass).toBe(840 + 100 + 2 * 1160 + 2 * 275 + 50);
 		expect(stats.height).toBeCloseTo(1 + 0.4 + 2 + 1.2 + 0.2 + 2 + 1.2, 9);
 		expect(stats.partCount).toBe(7);
 		expect(first.massStart).toBeCloseTo(stats.wetMass, 3);

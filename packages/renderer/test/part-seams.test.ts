@@ -39,6 +39,9 @@ const NOT_A_FLAT_JOINT: Record<string, string> = {
 	'stock.engine-plate-5/bottom': 'bells: the shroud carries the joint (shrouds.test.ts)',
 	'stock.engine-plate-9/bottom': 'bells: the shroud carries the joint (shrouds.test.ts)',
 	'stock.engine-plate-8/bottom': 'bells: the shroud carries the joint (shrouds.test.ts)',
+	// plan 380: the Saturn V's own plates, drawn by the same generator
+	'stock.engine-plate-f1/bottom': 'bells: the shroud carries the joint (shrouds.test.ts)',
+	'stock.engine-plate-j2/bottom': 'bells: the shroud carries the joint (shrouds.test.ts)',
 	'stock.engine-vacuum-xl/bottom': 'a bell: the shroud carries the joint (shrouds.test.ts)',
 	'stock.coupler-2/bottom': 'an off-axis joint: its own collar has the node radius',
 	'stock.coupler-2/bottom2': 'an off-axis joint: its own collar has the node radius',

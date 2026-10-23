@@ -59,7 +59,9 @@ describe('Create World form', () => {
 		for (const v of sol.variants) {
 			const f = v.facts!;
 			expect(h).toContain(v.label);
-			expect(h).toContain(`Δv to orbit ≈ ${(f.dvToOrbit / 1000).toFixed(1)} km/s`);
+			// computed from the variant's own bodies (plan 380), not stated by the pack
+			expect(h).toContain(`Δv to orbit ≈ ${(v.computed!.dvToOrbit / 1000).toFixed(1)} km/s`);
+			expect(h).toContain(v.computed!.difficulty);
 			expect(h).toContain(`Moon in ${(f.moonTransfer! / 86_400).toFixed(1)} days`);
 		}
 		// the systems are cards with generated art (plan 317, ADR 0273)

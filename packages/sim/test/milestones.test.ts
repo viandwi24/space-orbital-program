@@ -43,7 +43,9 @@ describe('milestones', () => {
 		if (!loaded.ok) throw new Error(loaded.reason);
 		const id = loaded.vessel!;
 		const list = reached(sim);
-		const ascent = createAscent(sim, id, { ...defaultAscent, apoapsis: 95_000, periapsis: 85_000 });
+		// the default 80 x 76 km orbit since plan 380: the realistic early-era reference rocket has no
+		// Δv for a higher one
+		const ascent = createAscent(sim, id, defaultAscent);
 		let firstClear: number | undefined;
 		while (sim.time < 1_500 && ascent.phase !== 'done') {
 			sim.step(0.02);

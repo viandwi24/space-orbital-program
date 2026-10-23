@@ -309,6 +309,8 @@ The `wheel-throttle` command (`value` -1..1) sets `VesselControl.wheelThrottle`:
 
 
 Since API 0.1.112 (ADR 0316), stock registers the game's own blueprints, baked from the Hangar's builders (`apps/web/src/lib/editor/blueprint-sources.ts`, `apps/web/scripts/bake-stock-blueprints.ts`) into `mods/stock/src/blueprints.generated.ts`. `BlueprintDefinition.collection` (`learn` or `missions`) files a card in the Library, and `goal` includes `deep-space`. The web app reads every blueprint from the registry; `resolveBlueprintId` maps the ids from before ADR 0316.
+
+Since API 0.1.116 (plan 380, ADR 0317), `BlueprintDefinition.systems` lists the systems a blueprint is designed for, each with an optional design of its own (`blueprintFits`, `blueprintDesignFor`); the Hangar builds the design for the world's system. Parts carry one set of realistic stats in every system: a system variant patches bodies, never parts, and `SystemVariantDefinition.facts.dvToOrbit` is optional and ignored (the web app computes the Δv to orbit from the variant's bodies, `apps/web/src/lib/worlds/system-facts.ts`).
 ## Non-TypeScript mods
 
 JSON data files (`part.json`, `resource.json`) that reference module ids by string are accepted and validated with the same zod schemas. Same registry, no second system.

@@ -18,11 +18,10 @@ describe('Sol variants', () => {
 		test(`${v.variant} loads with every patch applied and only Sol's bodies`, () => {
 			const { registries, report } = load(v.variant);
 			const ours = report.patches.filter((p) => p.by === 'sol');
-			expect(ours.length).toBe(v.patches!.length);
+			expect(ours.length).toBe(v.patches?.length ?? 0);
 			expect(ours.filter((p) => p.disabled)).toEqual([]);
 			expect(ours.every((p) => p.applied.length === 1)).toBe(true);
 			expect(registries.bodies.list().map((b) => b.id)).toEqual(SOL_BODIES.map((b) => b.id));
-			expect(v.facts.dvToOrbit).toBeGreaterThan(1_000);
 			expect(v.facts.moonTransfer! / 86_400).toBeGreaterThan(3);
 			expect(v.facts.moonTransfer! / 86_400).toBeLessThan(7);
 		});
@@ -46,7 +45,17 @@ describe('Sol variants', () => {
 		expect(g(earth)).toBeCloseTo(9.82, 1);
 	});
 
-	test('a stock world loads no Sol body; the balance patches stay out of it', () => {
+	test('parts are the same in every system: no Sol patch targets a part (plan 380, ADR 0317)', () => {
+		for (const v of SOL_VARIANTS)
+			expect((v.patches ?? []).filter((p) => p.target !== 'body').map((p) => p.id)).toEqual([]);
+		const parts = (system: { id: string; variant?: string }) =>
+			JSON.stringify(loadPlugins([Stock, Sol], { system }).registries.parts.list());
+		const stock = parts({ id: 'stock' });
+		expect(parts({ id: 'sol', variant: '1:1' })).toBe(stock);
+		expect(parts({ id: 'sol', variant: 'rescaled' })).toBe(stock);
+	});
+
+	test('a stock world loads no Sol body and no Sol patch', () => {
 		const { registries, report } = loadPlugins([Stock, Sol], { system: { id: 'stock' } });
 		expect(registries.bodies.list().some((b) => b.id.startsWith('sol.'))).toBe(false);
 		expect(report.patches.some((p) => p.by === 'sol')).toBe(false);

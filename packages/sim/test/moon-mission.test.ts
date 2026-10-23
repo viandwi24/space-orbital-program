@@ -48,13 +48,16 @@ async function fly() {
 	// 1. Launch and orbit.
 	const ascent = createAscent(sim, vessel, {
 		...defaultAscent,
-		stageCount: 1,
-		jettisonAtCut: true,
-		apoapsis: 100_000,
+		// the boosters, then the core: the lander finishes the ascent (plan 380)
+		stageCount: 2,
+		jettisonAtCut: false,
+		// an 80 km parking orbit since plan 380 (it was 100): the early-era lander has no Δv to spare
+		apoapsis: 80_000,
 		periapsis: 76_000,
 		turnStart: 100,
-		turnEnd: 25_000,
-		turnPitch: 1.2
+		// flatter since plan 380: the early-era core lofted and left the lander short
+		turnEnd: 30_000,
+		turnPitch: 1.4
 	});
 	while (sim.time < 1_500 && ascent.phase !== 'done') {
 		sim.step(0.02);
@@ -111,7 +114,8 @@ async function fly() {
 	const landing = createLanding(sim, vessel, {
 		...defaultLanding,
 		body: s.moon.id,
-		rootToFoot: 7.2,
+		// the lander's 3.75 m tank since plan 380 (the medium tank was 4 m)
+		rootToFoot: 6.95,
 		margin: 0.5,
 		finalSpeed: 30,
 		leanGain: 0.3
@@ -174,8 +178,8 @@ test('the stock rocket goes to the moon and lands at rest on it', async () => {
 	expect(v.parts).toHaveLength(6);
 	expect(r.damaged).toEqual([]);
 	const standing = length(v.position) - s.moon.radius;
-	expect(standing).toBeGreaterThan(7);
-	expect(standing).toBeLessThan(8); // the root sits 7.2 m above the ground on the deployed legs
+	expect(standing).toBeGreaterThan(6.7);
+	expect(standing).toBeLessThan(7.8); // the root sits 6.95 m above the ground on the deployed legs
 	expect(sim.time).toBeLessThan(80_000);
 	expect(r.wall).toBeLessThan(60_000);
 	sim.dispose();

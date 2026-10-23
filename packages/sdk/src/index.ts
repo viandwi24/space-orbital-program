@@ -148,6 +148,8 @@ export {
 	STOCK_CATEGORY_NAMES
 } from '@orbital/core';
 export { homeBodyOf, positionFromStar, subSolarLatitude } from '@orbital/core';
+/** Which systems a blueprint is for and its design in each (plan 380, ADR 0317). */
+export { blueprintDesignFor, blueprintFits, blueprintSystems } from '@orbital/core';
 export { ABILITY_KEYS, abilitiesOf, PROFESSIONS } from '@orbital/core';
 export {
 	ABORT_SLOT,
@@ -312,6 +314,7 @@ export type {
 	ScenarioDefinition,
 	BlueprintDefinition,
 	BlueprintGoal,
+	BlueprintSystem,
 	ScenarioVessel,
 	AchievementDefinition,
 	FailureModeDefinition,

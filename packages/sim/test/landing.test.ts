@@ -1,9 +1,9 @@
 import { expect, test } from 'bun:test';
 import { length } from '@orbital/kepler';
 import { groundRelativeVelocity, tiltDegrees } from './helpers/ground.ts';
-import { createLanding } from './helpers/landing.ts';
+import { createLanding, defaultLanding } from './helpers/landing.ts';
 import { altitude, orbitState } from './helpers/measure.ts';
-import { lander, newSim } from './helpers/vessels.ts';
+import { orbitLander, ORBIT_LANDER_ROOT_TO_FOOT, newSim } from './helpers/vessels.ts';
 
 /** Plan 012 exit test: from a stable 100 km orbit to standing on the ground, headlessly. */
 async function land() {
@@ -13,14 +13,14 @@ async function land() {
 	sim.events.on('part:damaged', (e) => damaged.push(e));
 	const placed = sim.dispatch({
 		type: 'load-vessel',
-		design: lander(),
+		design: orbitLander(),
 		placement: { kind: 'state', ...orbitState(sim, 100_000) }
 	});
 	if (!placed.ok) throw new Error(placed.reason);
 	const id = placed.vessel!;
 	const start = sim.snapshot().vessels[0]!;
 	sim.dispatch({ type: 'stage', vessel: id }); // light the engine
-	const landing = createLanding(sim, id);
+	const landing = createLanding(sim, id, { ...defaultLanding, rootToFoot: ORBIT_LANDER_ROOT_TO_FOOT });
 	let peak = 0; // hottest part skin over the whole descent, K (plan 014)
 	for (let i = 0; sim.time < 3_000 && landing.phase !== 'done'; i++) {
 		sim.step(0.02);
@@ -48,11 +48,12 @@ test('a lander flown from a stable 100 km orbit ends at rest, upright, on its le
 	expect(v.mode).toBe('flight');
 	expect(length(groundRelativeVelocity(v))).toBeLessThan(0.1);
 	expect(tiltDegrees(v)).toBeLessThan(5);
-	expect(v.parts).toHaveLength(6);
+	expect(v.parts).toHaveLength(7);
 	expect(damaged).toEqual([]); // no impact and, since plan 014, no overheating
 	expect(peak).toBeLessThan(400); // far below every part limit: the braking burn keeps it slow
-	expect(altitude(v.position)).toBeGreaterThan(10); // the root sits about 10.8 m above the ground
-	expect(altitude(v.position)).toBeLessThan(11.5);
+	// the root sits its root-to-foot height above the ground (14.05 m on the orbit lander)
+	expect(altitude(v.position)).toBeGreaterThan(ORBIT_LANDER_ROOT_TO_FOOT - 0.8);
+	expect(altitude(v.position)).toBeLessThan(ORBIT_LANDER_ROOT_TO_FOOT + 0.7);
 	expect(sim.time).toBeLessThan(3_000);
 	expect(wall).toBeLessThan(60_000);
 	sim.dispose();

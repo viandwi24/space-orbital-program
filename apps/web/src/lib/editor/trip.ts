@@ -19,6 +19,11 @@ import { bodyMu } from '../orbit-info';
 
 /** Ascent acceleration of the reference rocket, in surface gravities of the home body (every body). */
 export const REFERENCE_ACCELERATION_G = 1.5;
+/**
+ * Stronger reference rockets, in home gravities, tried in order when the 1.5 g one cannot climb: the
+ * real Earth's 100 km of air at this drag (plan 380). A real rocket's acceleration grows as it burns.
+ */
+export const FALLBACK_ACCELERATION_G = [2, 2.5, 3] as const;
 /** Ballistic coefficient m / (Cd A) of the reference rocket, kg/m^2 (a 30 t stock stack, Cd A about 2). */
 export const BALLISTIC_COEFFICIENT = 15_000;
 /** Vertical speed at which the reference ascent starts to turn, m/s. */
@@ -183,6 +188,15 @@ export function ascentOf(body: BodyDefinition, accel: number, altitude: number):
 	return best;
 }
 
+/** `ascentOf` for the reference rocket, then the stronger ones of `FALLBACK_ACCELERATION_G`. */
+export function referenceAscent(body: BodyDefinition, g: number, altitude: number): Ascent | null {
+	for (const k of [REFERENCE_ACCELERATION_G, ...FALLBACK_ACCELERATION_G]) {
+		const a = ascentOf(body, k * g, altitude);
+		if (a) return a;
+	}
+	return null;
+}
+
 // --- conics ----------------------------------------------------------------------------------------------
 
 /** Vis-viva speed at radius `r` on a conic of semi-major axis `a`. */
@@ -224,15 +238,18 @@ const km = (m: number): string => `${Math.round(m / 1000)} km`;
  * the landing and the way back. A destination whose ascent the reference rocket cannot fly (gravity
  * above its acceleration) or whose orbit lies inside the home body's low orbit is left out.
  */
-export function destinationsOf(bodies: readonly BodyDefinition[]): Destination[] {
-	const home = homeBodyOf(bodies);
+export function destinationsOf(
+	bodies: readonly BodyDefinition[],
+	/** The home body, when the world names it (a Sol world's Earth, plan 380); else `homeBodyOf`. */
+	homeId?: string
+): Destination[] {
+	const home = (homeId && bodies.find((b) => b.id === homeId)) || homeBodyOf(bodies);
 	if (!home) return [];
 	const muH = bodyMu(home);
-	const accel = REFERENCE_ACCELERATION_G * surfaceGravity(home);
 	const altH = lowOrbitAltitude(home);
 	const r1 = home.radius + altH;
 	const homeName = bodyName(home);
-	const up = ascentOf(home, accel, altH);
+	const up = referenceAscent(home, surfaceGravity(home), altH);
 	if (!up) return [];
 	const launch: Leg = {
 		id: 'ascent',
@@ -259,7 +276,7 @@ export function destinationsOf(bodies: readonly BodyDefinition[]): Destination[]
 		const name = bodyName(moon);
 		const altM = lowOrbitAltitude(moon);
 		const rp = moon.radius + altM;
-		const climb = ascentOf(moon, accel, altM);
+		const climb = referenceAscent(moon, surfaceGravity(home), altM);
 		if (!climb) continue;
 
 		const vMoon = Math.sqrt(muH / r2);

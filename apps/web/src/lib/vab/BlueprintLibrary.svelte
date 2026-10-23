@@ -106,6 +106,14 @@
 							<span class="badges">
 								<span class="badge">{GOAL_LABELS[b.goal]}</span>
 								<span class="badge">{b.crew > 0 ? `${b.crew} crew` : 'Probe'}</span>
+								<span
+									class="badge"
+									class:off={!b.fits}
+									data-tip={b.fits
+										? 'Designed for this world’s system'
+										: 'Not designed for this world’s system: it may fall short'}
+									>{b.systems}</span
+								>
 							</span>
 							<p>{b.summary}</p>
 							{#if s}
@@ -226,6 +234,10 @@
 		padding: 0.05rem 0.45rem;
 		border-radius: 999px;
 		background: rgb(255 255 255 / 0.1);
+	}
+	.badge.off {
+		opacity: 0.55;
+		text-decoration: line-through;
 	}
 	.dim {
 		opacity: 0.7;
