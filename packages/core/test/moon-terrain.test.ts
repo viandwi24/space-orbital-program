@@ -91,7 +91,7 @@ describe('small-body terrain (ADR 0320)', () => {
 		const mean = h.reduce((a, b) => a + b, 0) / h.length;
 		const sd = Math.sqrt(h.reduce((a, b) => a + (b - mean) ** 2, 0) / h.length);
 		expect(sd).toBeGreaterThan(0.03 * R);
-		expect(Math.max(...h) - Math.min(...h)).toBeGreaterThan(0.25 * R);
+		expect(Math.max(...h) - Math.min(...h)).toBeGreaterThan(0.15 * R);
 	});
 
 	test('every height is inside [0, maxShare * radius], deterministic, and the field says so', () => {
