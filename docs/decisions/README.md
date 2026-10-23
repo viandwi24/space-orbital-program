@@ -314,3 +314,4 @@ An ADR records one decision, its context, and its consequences. ADRs are **appen
 | 0326 | [The Space Center's camera frames the whole site, then each building from its entrance](0326-space-center-camera.md) | accepted | 2026-10-23 |
 | 0327 | [What a branch is for](0327-what-a-branch-is-for.md) | accepted | 2026-10-23 |
 | 0328 | [One onboarding hand-off](0328-one-onboarding-hand-off.md) | accepted | 2026-10-23 |
+| 0329 | [Graphics that never hang the load, a branch's ground and buildings, a camera that turns with the site](0329-space-center-qa-leftovers.md) | accepted | 2026-10-23 |

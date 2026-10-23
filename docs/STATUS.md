@@ -316,7 +316,7 @@
 | 385 | [Wayfarer at Sol scale](plans/385-wayfarer-at-sol-scale.md) | draft | — | From plan 380: the Shuttle reaches orbit in stock only; a Sol-scale tank and boosters, and the ascent after booster separation. |
 | 386 | [Off-world bases: the player's flow](plans/386-off-world-bases-player-flow.md) | draft | — | The player-journey audit's Q5 (a): deploy a base kit from Flight, join a site, a route editor, refuel from site storage; the kit, drill and off-world buildings come back then (hidden by Q5 (b)) |
 | 387 | [Space Center camera and a visual QA pass](plans/387-space-center-camera-and-visual-qa.md) | done | ui-v3 session | ADR 0326. Owner request 2026-10-23. The whole site framed from its front on opening and back in Overview; a building flown to from its entrance side, round anything in the way; re-frame when the strip opens. QA findings listed in journal 387. |
-| 388 | [Space Center visual QA leftovers](plans/388-space-center-qa-leftovers.md) | in-progress | space-center QA fixes session | Journal 387's findings. Done so far: the TSL twin error (the plasma wake had no `uPeriod`). |
+| 388 | [Space Center visual QA leftovers](plans/388-space-center-qa-leftovers.md) | done | space-center QA fixes session | ADR 0329. Journal 387's findings: the TSL twin error (the plasma wake had no `uPeriod`); loading on software rendering (adapter timeout, WebGPU→WebGL reload, a graphics-unavailable message with tips); a branch's ground is a site's (no field grid); buildings under construction drawn as building sites; a compact, folding Build bar; the site camera turns with the ground under warp. |
 
 Statuses: `draft` (needs refinement before an agent takes it) · `ready` · `in-progress` · `done` · `blocked`.
 
@@ -409,6 +409,7 @@ The owner takes the remaining performance work on the M5; the M2 handles the fix
 
 ## Recent journal entries
 
+- [388 — Space Center visual QA leftovers](journal/388-space-center-qa-leftovers.md)
 - [387 — Space Center camera and a visual QA pass](journal/387-space-center-camera-and-visual-qa.md)
 - [380 — Realistic part stats in every system](journal/380-realistic-parts-in-every-system.md)
 - [382 — Small-body terrain and body names on the map](journal/382-small-body-terrain-and-map-body-labels.md)
