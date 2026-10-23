@@ -8,7 +8,8 @@ import { defineStrategy } from '@orbital/sdk';
 export const StrategyReuseFirst = defineStrategy({
 	id: 'stock.reuse-first',
 	label: 'Reuse first',
-	description: 'Recovered hardware is worth more; building for reuse costs a little at launch.',
+	description:
+		'Recovery far from a site loses a fifth less; building for reuse costs a little at launch.',
 	effects: [
 		{ key: 'recovery', factor: 1.25 },
 		{ key: 'launch-cost', factor: 1.05 }
