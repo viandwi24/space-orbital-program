@@ -377,10 +377,8 @@ export const STOCK_TECH = [
 		requires: ['stock.life-support'],
 		milestone: 'landing:moon',
 		description:
-			'A base kit to found a site on another body, a drill for its outposts (plan 128), and hinges, servos, rotors and pistons (plan 306).',
+			'A rover cab and its chassis and wheels (plan 307), and hinges, servos, rotors and pistons (plan 306). The base kit and drill wait for their flow (plan 386).',
 		unlocks: [
-			'stock.base-kit',
-			'stock.drill',
 			'stock.rover-cab',
 			// plan 307: rover
 			'stock.rover-chassis',

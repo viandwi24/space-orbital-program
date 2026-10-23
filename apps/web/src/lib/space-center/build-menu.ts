@@ -113,7 +113,10 @@ export function buildMenu(
 	ctx: BuildContext
 ): BuildCategory[] {
 	const scoped = sortCategories(categories.filter((c) => scopeOf(c) === 'buildings'));
-	const cards = defs.map((d) => buildCard(d, buildingCategoryOf(d.category, scoped), ctx));
+	// an off-world building is offered only at an off-world site: the game has no flow to found one
+	// yet (player-journey audit Q5, plan 386), so at home it is left out rather than shown refused
+	const offered = defs.filter((d) => d.placement !== 'off-world' || !ctx.home);
+	const cards = offered.map((d) => buildCard(d, buildingCategoryOf(d.category, scoped), ctx));
 	const out: BuildCategory[] = [];
 	for (const c of scoped) {
 		const mine = cards.filter((k) => k.category === c.id);

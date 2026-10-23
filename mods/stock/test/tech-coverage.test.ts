@@ -12,6 +12,9 @@ const nodes = registries.techNodes.list();
 /** Never built: the suit is the crew outside, the flag is planted, the panel is thrown-off debris. */
 // thrown-off pieces and EVA things are never built (plans 219, 345)
 const NOT_BUILT = [
+	// waiting for their flow (player-journey audit Q5, plan 386)
+	'stock.base-kit',
+	'stock.drill',
 	'stock.eva-suit',
 	'stock.fairing-panel',
 	'stock.flag',
