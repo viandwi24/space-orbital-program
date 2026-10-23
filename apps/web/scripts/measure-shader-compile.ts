@@ -15,6 +15,7 @@
  *   PROFILE   the Chrome profile directory (default a fresh temporary one)
  *   SHOTS     a directory for a screenshot after each load
  *   AFTER     ms to wait after the loading screen before reading (default 8000)
+ *   BOOT      low or off: `orbital.graphics.boot` (low draws the cheap preset first anywhere, plan 370)
  */
 import { chromium } from '@playwright/test';
 import { mkdirSync, mkdtempSync, writeFileSync } from 'node:fs';
@@ -88,6 +89,8 @@ await context.addInitScript(() => {
 		return device;
 	};
 });
+if (process.env.BOOT)
+	await context.addInitScript((b) => localStorage.setItem('orbital.graphics.boot', b), process.env.BOOT);
 if (dump) await context.addInitScript(() => localStorage.setItem('orbital.debug.shaderSources', '1'));
 
 {

@@ -1,0 +1,511 @@
+[
+ {
+  "id": "mvk7ljdt-cagfs",
+  "worldId": "26d1adcb-6a64-4eca-b11a-27fa75536573",
+  "outcome": "ready",
+  "step": "ready",
+  "lowered": false,
+  "error": null,
+  "report": {
+   "when": "2026-10-23T00:06:11.192Z",
+   "env": {
+    "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/154.0.0.0 Safari/537.36",
+    "platform": "Windows",
+    "cores": 12,
+    "memoryGB": 8,
+    "angle": "ANGLE (NVIDIA, NVIDIA GeForce RTX 3060 (0x00002504) Direct3D11 vs_5_0 ps_5_0, D3D11)",
+    "build": "CC1QDQQv.js",
+    "origin": "https://viandwi24.github.io"
+   },
+   "backend": "webgpu",
+   "gpu": "WebGPU: nvidia ampere",
+   "preset": "high",
+   "presetNow": "high",
+   "warmPresets": [
+    "medium"
+   ],
+   "steps": [
+    {
+     "step": "device",
+     "ms": 1859
+    },
+    {
+     "step": "programs",
+     "ms": 18166
+    },
+    {
+     "step": "views",
+     "ms": 21
+    },
+    {
+     "step": "frame",
+     "ms": 19
+    }
+   ],
+   "totalMs": 20065,
+   "cache": "first",
+   "seenBefore": null,
+   "changedModules": null,
+   "compile": {
+    "modules": 74,
+    "moduleBytes": 1845341,
+    "pipelines": 45,
+    "sync": 19,
+    "async": 26,
+    "pending": 0,
+    "failed": 0,
+    "timedMs": 41354,
+    "slowest": [
+     {
+      "label": "renderPipeline_planet-pass-tsl_152",
+      "mode": "async",
+      "bytes": 275382,
+      "ms": 14620,
+      "phase": "programs",
+      "at": 69965.6,
+      "pending": false
+     },
+     {
+      "label": "renderPipeline_MeshBasicNodeMaterial_153",
+      "mode": "async",
+      "bytes": 271902,
+      "ms": 9755.8,
+      "phase": "programs",
+      "at": 76655.1,
+      "pending": false
+     },
+     {
+      "label": "renderPipeline_MeshBasicNodeMaterial_156",
+      "mode": "async",
+      "bytes": 23119,
+      "ms": 5514.8,
+      "phase": "programs",
+      "at": 68651.70000000001,
+      "pending": false
+     },
+     {
+      "label": "renderPipeline_MeshLambertNodeMaterial_161",
+      "mode": "async",
+      "bytes": 56305,
+      "ms": 1221.7,
+      "phase": "programs",
+      "at": 74142.1,
+      "pending": false
+     },
+     {
+      "label": "renderPipeline_MeshStandardNodeMaterial_162",
+      "mode": "async",
+      "bytes": 79848,
+      "ms": 745.6,
+      "phase": "programs",
+      "at": 74241.20000000001,
+      "pending": false
+     },
+     {
+      "label": "renderPipeline_MeshStandardNodeMaterial_168",
+      "mode": "async",
+      "bytes": 66535,
+      "ms": 718.7,
+      "phase": "programs",
+      "at": 74335.90000000002,
+      "pending": false
+     },
+     {
+      "label": "renderPipeline_MeshStandardNodeMaterial_167",
+      "mode": "async",
+      "bytes": 66537,
+      "ms": 704.7,
+      "phase": "programs",
+      "at": 74282.20000000001,
+      "pending": false
+     },
+     {
+      "label": "renderPipeline_MeshStandardNodeMaterial_170",
+      "mode": "async",
+      "bytes": 66561,
+      "ms": 692.1,
+      "phase": "programs",
+      "at": 74363.90000000002,
+      "pending": false
+     },
+     {
+      "label": "renderPipeline_MeshStandardNodeMaterial_169",
+      "mode": "async",
+      "bytes": 66538,
+      "ms": 679.9,
+      "phase": "programs",
+      "at": 74307,
+      "pending": false
+     },
+     {
+      "label": "renderPipeline_MeshStandardNodeMaterial_171",
+      "mode": "async",
+      "bytes": 66551,
+      "ms": 652.2,
+      "phase": "programs",
+      "at": 74403.80000000002,
+      "pending": false
+     }
+    ],
+    "largest": [
+     {
+      "label": "fragment_planet-pass-tsl",
+      "stage": "fragment",
+      "bytes": 274736,
+      "hash": "da468882"
+     },
+     {
+      "label": "fragment",
+      "stage": "fragment",
+      "bytes": 271200,
+      "hash": "15225442"
+     },
+     {
+      "label": "fragment_planet-scaled-bake",
+      "stage": "fragment",
+      "bytes": 95791,
+      "hash": "03a36691"
+     },
+     {
+      "label": "fragment",
+      "stage": "fragment",
+      "bytes": 94258,
+      "hash": "507e88bc"
+     },
+     {
+      "label": "fragment",
+      "stage": "fragment",
+      "bytes": 91959,
+      "hash": "048bdbf8"
+     }
+    ],
+    "phases": [
+     {
+      "phase": "programs",
+      "pipelines": 45,
+      "timedMs": 41354,
+      "spanMs": 18008
+     }
+    ],
+    "setHash": "3514505b"
+   }
+  },
+  "pipelines": [
+   {
+    "label": "renderPipeline_planet-pass-tsl_152",
+    "mode": "async",
+    "bytes": 275382,
+    "ms": 14620,
+    "phase": "programs"
+   },
+   {
+    "label": "renderPipeline_MeshBasicNodeMaterial_153",
+    "mode": "async",
+    "bytes": 271902,
+    "ms": 9755.8,
+    "phase": "programs"
+   },
+   {
+    "label": "renderPipeline_MeshBasicNodeMaterial_156",
+    "mode": "async",
+    "bytes": 23119,
+    "ms": 5514.8,
+    "phase": "programs"
+   },
+   {
+    "label": "renderPipeline_MeshLambertNodeMaterial_161",
+    "mode": "async",
+    "bytes": 56305,
+    "ms": 1221.7,
+    "phase": "programs"
+   },
+   {
+    "label": "renderPipeline_MeshStandardNodeMaterial_162",
+    "mode": "async",
+    "bytes": 79848,
+    "ms": 745.6,
+    "phase": "programs"
+   },
+   {
+    "label": "renderPipeline_MeshStandardNodeMaterial_168",
+    "mode": "async",
+    "bytes": 66535,
+    "ms": 718.7,
+    "phase": "programs"
+   },
+   {
+    "label": "renderPipeline_MeshStandardNodeMaterial_167",
+    "mode": "async",
+    "bytes": 66537,
+    "ms": 704.7,
+    "phase": "programs"
+   },
+   {
+    "label": "renderPipeline_MeshStandardNodeMaterial_170",
+    "mode": "async",
+    "bytes": 66561,
+    "ms": 692.1,
+    "phase": "programs"
+   },
+   {
+    "label": "renderPipeline_MeshStandardNodeMaterial_169",
+    "mode": "async",
+    "bytes": 66538,
+    "ms": 679.9,
+    "phase": "programs"
+   },
+   {
+    "label": "renderPipeline_MeshStandardNodeMaterial_171",
+    "mode": "async",
+    "bytes": 66551,
+    "ms": 652.2,
+    "phase": "programs"
+   },
+   {
+    "label": "renderPipeline_MeshStandardNodeMaterial_172",
+    "mode": "async",
+    "bytes": 58012,
+    "ms": 618.8,
+    "phase": "programs"
+   },
+   {
+    "label": "renderPipeline_MeshStandardNodeMaterial_165",
+    "mode": "async",
+    "bytes": 77263,
+    "ms": 611.7,
+    "phase": "programs"
+   },
+   {
+    "label": "renderPipeline_MeshStandardNodeMaterial_162",
+    "mode": "async",
+    "bytes": 76149,
+    "ms": 589.9,
+    "phase": "programs"
+   },
+   {
+    "label": "renderPipeline_MeshStandardNodeMaterial_173",
+    "mode": "async",
+    "bytes": 58031,
+    "ms": 580.7,
+    "phase": "programs"
+   },
+   {
+    "label": "renderPipeline_MeshStandardNodeMaterial_163",
+    "mode": "async",
+    "bytes": 76710,
+    "ms": 552.1,
+    "phase": "programs"
+   },
+   {
+    "label": "renderPipeline_MeshStandardNodeMaterial_164",
+    "mode": "async",
+    "bytes": 77248,
+    "ms": 542.5,
+    "phase": "programs"
+   },
+   {
+    "label": "renderPipeline_crew_126",
+    "mode": "async",
+    "bytes": 56756,
+    "ms": 522.9,
+    "phase": "programs"
+   },
+   {
+    "label": "renderPipeline_MeshStandardNodeMaterial_175",
+    "mode": "async",
+    "bytes": 58012,
+    "ms": 513,
+    "phase": "programs"
+   },
+   {
+    "label": "renderPipeline_MeshStandardMaterial_119",
+    "mode": "async",
+    "bytes": 55084,
+    "ms": 439.5,
+    "phase": "programs"
+   },
+   {
+    "label": "renderPipeline_MeshStandardMaterial_124",
+    "mode": "async",
+    "bytes": 56060,
+    "ms": 401.8,
+    "phase": "programs"
+   },
+   {
+    "label": "renderPipeline_MeshStandardNodeMaterial_187",
+    "mode": "async",
+    "bytes": 58012,
+    "ms": 158.9,
+    "phase": "programs"
+   },
+   {
+    "label": "renderPipeline_MeshBasicMaterial_123",
+    "mode": "async",
+    "bytes": 5917,
+    "ms": 119.1,
+    "phase": "programs"
+   },
+   {
+    "label": "renderPipeline_MeshBasicNodeMaterial_166",
+    "mode": "async",
+    "bytes": 8944,
+    "ms": 108.2,
+    "phase": "programs"
+   },
+   {
+    "label": "renderPipeline_ShadowMaterial_195",
+    "mode": "async",
+    "bytes": 13983,
+    "ms": 107.6,
+    "phase": "programs"
+   },
+   {
+    "label": "renderPipeline_ShadowMaterial_195",
+    "mode": "async",
+    "bytes": 3800,
+    "ms": 106.3,
+    "phase": "programs"
+   },
+   {
+    "label": "renderPipeline_MeshStandardNodeMaterial_184",
+    "mode": "async",
+    "bytes": 58012,
+    "ms": 75.2,
+    "phase": "programs"
+   },
+   {
+    "label": "mipmap-rgba8unorm-2d-array",
+    "mode": "sync",
+    "bytes": 3654,
+    "ms": null,
+    "phase": "programs"
+   },
+   {
+    "label": "renderPipeline_MeshBasicNodeMaterial_149",
+    "mode": "sync",
+    "bytes": 94942,
+    "ms": null,
+    "phase": "programs"
+   },
+   {
+    "label": "renderPipeline_MeshBasicNodeMaterial_150",
+    "mode": "sync",
+    "bytes": 92643,
+    "ms": null,
+    "phase": "programs"
+   },
+   {
+    "label": "renderPipeline_MeshBasicNodeMaterial_151",
+    "mode": "sync",
+    "bytes": 8083,
+    "ms": null,
+    "phase": "programs"
+   },
+   {
+    "label": "renderPipeline_MeshBasicNodeMaterial_138",
+    "mode": "sync",
+    "bytes": 2841,
+    "ms": null,
+    "phase": "programs"
+   },
+   {
+    "label": "renderPipeline_MeshBasicNodeMaterial_139",
+    "mode": "sync",
+    "bytes": 8530,
+    "ms": null,
+    "phase": "programs"
+   },
+   {
+    "label": "renderPipeline_sky-map-bake_158",
+    "mode": "sync",
+    "bytes": 14832,
+    "ms": null,
+    "phase": "programs"
+   },
+   {
+    "label": "mipmap-rgba16float-2d-array",
+    "mode": "sync",
+    "bytes": 3654,
+    "ms": null,
+    "phase": "programs"
+   },
+   {
+    "label": "renderPipeline_planet-scaled-bake_157",
+    "mode": "sync",
+    "bytes": 96475,
+    "ms": null,
+    "phase": "programs"
+   },
+   {
+    "label": "renderPipeline_MeshBasicNodeMaterial_140",
+    "mode": "sync",
+    "bytes": 8623,
+    "ms": null,
+    "phase": "programs"
+   },
+   {
+    "label": "renderPipeline_Bloom_highPass_188",
+    "mode": "sync",
+    "bytes": 1609,
+    "ms": null,
+    "phase": "programs"
+   },
+   {
+    "label": "renderPipeline_Bloom_separable_189",
+    "mode": "sync",
+    "bytes": 2427,
+    "ms": null,
+    "phase": "programs"
+   },
+   {
+    "label": "renderPipeline_Bloom_separable_190",
+    "mode": "sync",
+    "bytes": 2513,
+    "ms": null,
+    "phase": "programs"
+   },
+   {
+    "label": "renderPipeline_Bloom_separable_191",
+    "mode": "sync",
+    "bytes": 2604,
+    "ms": null,
+    "phase": "programs"
+   },
+   {
+    "label": "renderPipeline_Bloom_separable_192",
+    "mode": "sync",
+    "bytes": 2685,
+    "ms": null,
+    "phase": "programs"
+   },
+   {
+    "label": "renderPipeline_Bloom_separable_193",
+    "mode": "sync",
+    "bytes": 2775,
+    "ms": null,
+    "phase": "programs"
+   },
+   {
+    "label": "renderPipeline_Bloom_comp_194",
+    "mode": "sync",
+    "bytes": 3785,
+    "ms": null,
+    "phase": "programs"
+   },
+   {
+    "label": "renderPipeline_RenderPipeline_148",
+    "mode": "sync",
+    "bytes": 3892,
+    "ms": null,
+    "phase": "programs"
+   },
+   {
+    "label": "mipmap-rgba8unorm-srgb-2d-array",
+    "mode": "sync",
+    "bytes": 3654,
+    "ms": null,
+    "phase": "programs"
+   }
+  ]
+ }
+]

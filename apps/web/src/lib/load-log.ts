@@ -127,3 +127,28 @@ export function clearLoadLogs(): void {
 		// nothing to do
 	}
 }
+
+/**
+ * The preset to draw first (plan 370, ADR 0308): `low` while the player's preset compiles in the
+ * background, when the browser compiles shaders slowly (Windows: HLSL through DXC or FXC) and this
+ * build has not finished a world load on this renderer here yet (Chrome's shader cache is cold).
+ * `override` is `orbital.graphics.boot`: `low` always, `off` never, else automatic. Pure.
+ */
+export function bootPresetFor(o: {
+	backend: string;
+	preset: string;
+	userAgent: string;
+	platform: string;
+	build: string;
+	logs: readonly LoadLogEntry[];
+	override: string | null;
+}): 'low' | undefined {
+	if (o.preset === 'low' || o.backend === 'webgl' || o.override === 'off') return undefined;
+	if (o.override === 'low') return 'low';
+	const windows = o.platform === 'Windows' || /Windows/.test(o.userAgent);
+	if (!windows) return undefined;
+	const loadedBefore = o.logs.some(
+		(e) => e.outcome === 'ready' && e.report.env.build === o.build && e.report.backend === o.backend
+	);
+	return loadedBefore ? undefined : 'low';
+}

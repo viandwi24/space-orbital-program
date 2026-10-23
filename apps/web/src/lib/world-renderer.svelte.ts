@@ -29,7 +29,7 @@ import type { Catalog } from './messages';
 import { modelProviders } from './mods/asset-models';
 import type { SimClient } from './sim-client';
 import { primePlanetMaps, storePlanetMaps } from './planet-map-cache';
-import { pipelineList, writeLoadLog, type LoadOutcome } from './load-log';
+import { bootPresetFor, pipelineList, readLoadLogs, writeLoadLog, type LoadOutcome } from './load-log';
 import { activeWorldId } from './worlds/worlds';
 import {
 	changedSince,
@@ -220,7 +220,20 @@ class WorldRenderer {
 			// the biome maps this world's renderer made last time (plan 364): no noise on this thread
 			const stored = await primePlanetMaps(key);
 			if (generation !== this.generation) throw new Error('the world ended');
-			const config = configOf(c, this.canvas, backend);
+			const base = configOf(c, this.canvas, backend);
+			const env = readEnvironment();
+			const bootPreset = bootPresetFor({
+				backend,
+				preset: base.preset ?? 'high',
+				userAgent: env.userAgent,
+				platform: env.platform,
+				build: env.build,
+				logs: readLoadLogs(),
+				override: readBootOverride()
+			});
+			const config: RendererConfig = bootPreset
+				? { ...base, bootPreset, onBootSwap: () => this.writeLog('ready') }
+				: base;
 			const r = createRenderer(config);
 			this.config = {
 				backend,
@@ -338,6 +351,7 @@ class WorldRenderer {
 			gpu: r.capabilities().gpu ?? '',
 			preset: cfg.preset,
 			presetNow: r.preset,
+			boot: r.debug.info().boot ?? null,
 			warmPresets: cfg.warmPresets,
 			steps,
 			totalMs,
@@ -497,6 +511,15 @@ class WorldRenderer {
 		if (!box || typeof ResizeObserver === 'undefined') return;
 		this.observer = new ResizeObserver(() => this.resize());
 		this.observer.observe(box);
+	}
+}
+
+/** `orbital.graphics.boot`: `low` boots on the cheap preset everywhere, `off` never (plan 370). */
+function readBootOverride(): string | null {
+	try {
+		return localStorage.getItem('orbital.graphics.boot');
+	} catch {
+		return null;
 	}
 }
 

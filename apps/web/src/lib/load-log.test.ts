@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { summarize } from '@orbital/renderer/compile-report';
 import {
 	LOAD_LOG_LIMIT,
+	bootPresetFor,
 	formatLoadLog,
 	pipelineList,
 	summaryLine,
@@ -74,5 +75,26 @@ describe('load log (plan 370)', () => {
 		const line = summaryLine(e);
 		expect(line.total).toBe('left while loading');
 		expect(line.slowest).toBe('planet 9.0 s');
+	});
+
+	it('boots on low on a first Windows load of this build, not after one finished', () => {
+		const base = {
+			backend: 'webgpu',
+			preset: 'high',
+			userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) Chrome/154',
+			platform: 'Windows',
+			build: 'b.js',
+			logs: [] as LoadLogEntry[],
+			override: null
+		};
+		expect(bootPresetFor(base)).toBe('low');
+		expect(bootPresetFor({ ...base, logs: [entry('a')] })).toBeUndefined();
+		expect(bootPresetFor({ ...base, logs: [entry('a', 'left')] })).toBe('low');
+		expect(bootPresetFor({ ...base, build: 'other.js', logs: [entry('a')] })).toBe('low');
+		expect(bootPresetFor({ ...base, preset: 'low' })).toBeUndefined();
+		expect(bootPresetFor({ ...base, backend: 'webgl' })).toBeUndefined();
+		expect(bootPresetFor({ ...base, platform: 'macOS', userAgent: 'Macintosh' })).toBeUndefined();
+		expect(bootPresetFor({ ...base, platform: 'macOS', userAgent: 'Macintosh', override: 'low' })).toBe('low');
+		expect(bootPresetFor({ ...base, override: 'off' })).toBeUndefined();
 	});
 });

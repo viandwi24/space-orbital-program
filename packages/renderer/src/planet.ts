@@ -216,8 +216,6 @@ interface PatchSlot {
 }
 
 export class PlanetPass {
-	/** The environment asks for the sun's shadow on the ground (the TSL pass waits for the map, plan 370). */
-	shadowWanted = false;
 	readonly mesh: Mesh;
 	readonly material: ShaderMaterial;
 	readonly atmosphere: AtmosphereUniforms;
@@ -1508,7 +1506,6 @@ export class PlanetPass {
 		un.uTime!.value = p.time % WAVE_PERIOD;
 		this.updateWaveAnchors(p.frame.anchorCell);
 		un.uStarBright!.value = p.starBrightness;
-		this.shadowWanted = p.shadow.on;
 		un.uShadowOn!.value = p.shadow.on && p.shadow.map ? 1 : 0;
 		un.uShadowMap!.value = p.shadow.map ?? this.dummyShadow;
 		set<Matrix4>('uShadowMatrix', (m) => m.copy(p.shadow.matrix));

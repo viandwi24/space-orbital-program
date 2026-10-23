@@ -63,8 +63,51 @@ To compare a first and a cached load on Windows:
 
 A first load can be repeated in a new Incognito window, which should start without the disk shader cache (not verified), but an Incognito window also keeps its own logs, so copy them from its Developer page before closing it.
 
+## The owner's Windows report (2026-10-23)
+
+Chrome 154, Windows 10, RTX 3060, WebGPU (the ANGLE string says D3D11 for WebGL), `high`, first load, build after plan 370's first push. The data is in `refs/graphics-performance/data/win10-rtx3060-plan370-first-load.json`.
+
+- **20.1 s** to the world (was more than a minute): device 1.9 s, compiling 18.2 s; 45 pipelines, 1.85 MB of WGSL.
+- The critical path is the planet pass: full 14.6 s (269 KB fragment), the then unnamed half-size pass 9.8 s (266 KB), the march prepass 5.5 s (23 KB, most of it waiting behind the two). Parts take 0.5–1.2 s each.
+
+The async times include queueing behind other compiles, so the half pass competed with the full one for the same workers.
+
+### A local proxy for Chrome's D3D12 path
+
+Dawn's `tint` (WGSL → HLSL, the translator Chrome uses) and Microsoft's `dxc` both build on macOS (`scratchpad` builds of Dawn and DirectXShaderCompiler at their main branches, 2026-10-23). For a planet fragment shader:
+
+- Tint emits its loops as `while (true)` without `[loop]`. Adding `[loop]` to every loop changes neither the DXIL size nor the DXC time, so DXC does not unroll them.
+- DXC itself takes about 1.6 s on the M2 for the `high` full pass (180 KB of DXIL). On Windows the rest of the 14.6 s is the NVIDIA driver compiling the DXIL to machine code, plus waiting for a worker. DXIL size is the best local proxy for that.
+- DXIL has no function calls, so the laid-out WGSL functions of plan 370 are inlined again. Fewer call sites, not smaller WGSL, is what shrinks it.
+
+The `high` full planet pass with features removed (`tint` + `dxc -T ps_6_0`):
+
+| Variant | WGSL | DXIL | DXC |
+|---|---|---|---|
+| `high` | 271 KB | ~180 KB | 1.66 s |
+| no shafts or no aurora | 260 KB | 175–178 KB | 1.7 s |
+| ground octaves 4 | 265 KB | 173 KB | 1.56 s |
+| `low`'s settings | 212 KB | 151 KB | 1.39 s |
+| no terrain march | 185 KB | 128 KB | 1.12 s |
+| minimal (no terrain, 1 cloud step, no shafts, aurora or shadows) | 156 KB | 111 KB | 1.10 s |
+
+The terrain march is the largest single piece (about 30 % of the DXIL). Everything else is spread over the surface shading, the sky and the clouds, so getting under 120 KB means splitting the pass, not trimming it.
+
+### What the follow-up changed (plan 370, second round)
+
+- Every material has a name in the logs: `planet-full·high`, `planet-half·high`, `planet-edge`, `planet-upsample`, `planet-prepass`, `planet-scaled-bake`, the terrain, moon, cloud and sky bakes, and the effect twins.
+- At load only the planet scale in use is compiled. The other scale (the governor's half-size rung) builds in the background after the loading screen.
+- A preset with shadows has its shadow taps from the first build (a cleared 1 × 1 depth target until the sun's map exists). Before, a load built the planet once without shadows (no vessel yet, map view) and again with them.
+- On a first load on Windows of a build this browser has not loaded before, the world shows with `low`. `low` has no post chain, no MSAA, and a planet pass about 16 % smaller in DXIL. The player's preset compiles in the background and is swapped in when ready. `localStorage` `orbital.graphics.boot` = `low` or `off` forces it either way. The log says "Boot: drew low first; high swapped in N s after the loading screen".
+
+Expected on the owner's PC:
+- the world in roughly 10–12 s on a first load instead of 20 s: one `low` planet variant (about 16 % less driver work) with nothing else of its size competing;
+- `high` some 15–20 s later in the background;
+- a second load should be much shorter if Chrome's shader cache holds, which needs the owner's second-load log to confirm.
+
 ## Next, if the Windows report still shows long compiles
 
 - The terrain samplers in the planet pass are still inlined. A 150-line block, most likely the root finding with its height reads, appears 4 times. Laying them out needs the r186 uniform-in-function issue worked around, with the textures passed in or read once outside.
-- `low` as a boot preset on a first load on Windows, then the player's preset compiled in the background and swapped in. The mechanism is there: the background preset warm-up of ADR 0308 point 4.
+- Split the planet pass: the terrain march and the sky/clouds as separate passes, so no single pipeline is the whole planet (the critical path on D3D).
+- A boot variant without the terrain march (128 KB DXIL instead of 151 KB), if the owner accepts the hills appearing a few seconds after load.
 - The scaled-space bake (92 KB) and the sky-map bake still compile sync at load.

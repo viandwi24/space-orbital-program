@@ -53,11 +53,18 @@ Nothing told us which pipeline cost what, on which backend, or whether Chrome's 
    - Each log has the report, the outcome, the step it reached, whether lower quality was chosen, any error, and the 200 slowest pipelines.
    - `/developer` (a small item on the main menu) lists the logs, opens one, copies one or all as text, downloads `.json` and clears them. The part and crew viewers moved there from the Mods page, which links to it. Debug → Info still copies the current load's report.
 
+8. **After the owner's Windows report** (2026-10-23: 20 s, of which the planet pass alone took 14.6 s):
+   - At load only the planet scale in use is compiled. The other one builds in the background.
+   - A preset with shadows always has the shadow taps (a 1 × 1 depth target stands in for the sun's map), so the planet is not built twice.
+   - Every material is named in the logs.
+   - **A boot preset**: on a first load on Windows (no finished load of this build in this browser's logs), the renderer draws `low` while `Renderer.preset` reports the requested preset. The requested preset's pipelines, parts and views build in the background, and the renderer swaps to it when they are done. `RendererConfig.bootPreset` carries it, and `orbital.graphics.boot` forces it on or off.
+
 ## Alternatives considered
 
 - **Always async in play (skip a draw until its pipeline is ready).** It removes every hitch, but a light toggle would make the vessel vanish for a frame or more. Kept as a debug switch, not the default.
 - **Ship precompiled HLSL or DXIL.** The web has no such path; Chrome's own disk cache is the only cache.
-- **A cheap boot preset on a first load on Windows.** Left until the owner's Windows report shows it is still needed after the size cut. The background warm-up of point 4 is the mechanism it would use.
+- **A boot variant without the terrain march** (point 8 boots on `low` instead): 128 KB of DXIL against `low`'s 151 KB, but the hills would appear a few seconds after the world shows.
+- **Splitting the planet pass into terrain and sky/cloud passes**: the real cure for the single-pipeline critical path on D3D, a rendering change of its own (a draft plan).
 - **Uniform loop bounds for all presets (one planet variant for all).** It removes the per-preset variants, but every preset then pays for the biggest shader, and the GPU cost of dynamic loops on the march is unmeasured. Revisit if the Windows report shows the variant count dominates.
 
 ## Consequences

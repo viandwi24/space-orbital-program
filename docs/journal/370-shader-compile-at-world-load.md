@@ -63,7 +63,19 @@ unthrottled:      before the build budget max 1369 ms (two over 1 s) · after ma
 
 ![The Developer page with a stored load log](assets/370-developer-page.jpg)
 
+## The Windows report and the follow-up (2026-10-23)
+
+- The owner's first Windows load took 20.1 s, down from more than a minute. The planet pass is the critical path: full 14.6 s, half 9.8 s.
+- Dawn's `tint` and `dxc` built on the Mac give a proxy: DXC does not unroll our loops, and the DXIL is about 180 KB for `high`. The time left on Windows is the driver's compile and the queue.
+- Changes:
+  - names on every material;
+  - one planet scale at load;
+  - shadow taps per preset, with a cleared depth target standing in. The GLSL pass's stand-in made three declare a multisampled depth texture with no sampler, an invalid shader that Tint caught.
+  - the `low` boot preset on first Windows loads.
+- On the M2 with boot forced on (`orbital.graphics.boot=low`), the world shows after 2.9 s instead of 4.5–6 s, and `high` is swapped in 5.5 s later.
+
 ## Open questions
 
 - The Windows numbers: they need the owner's report from the RTX 3060 machine (research doc, "how the owner sends it").
-- Whether a `low` boot preset on a first load on Windows is still needed after this. Decide from that report.
+- The owner's second-load log on the same PC (does Chrome's shader cache cut the 20 s?), and a first-load log with the boot preset.
+- Splitting the planet pass so no single pipeline is the whole planet (draft plan 374).

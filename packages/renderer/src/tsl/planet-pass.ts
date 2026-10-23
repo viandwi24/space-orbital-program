@@ -21,6 +21,8 @@
 import { NIGHT_SKY } from '../exposure.ts';
 import {
 	AlwaysDepth,
+	DepthTexture,
+	LessEqualCompare,
 	FloatType,
 	Mesh,
 	NearestFilter,
@@ -50,7 +52,7 @@ import {
 	LAKE_SHAPE
 } from '@orbital/core';
 import { TERRAIN_VEIL, type Atmosphere } from '../atmosphere-model.ts';
-import type { PresetSettings } from '../presets.ts';
+import { GRAPHICS_PRESETS, PRESETS, type PresetSettings } from '../presets.ts';
 import {
 	SLOPE_EXAGGERATION,
 	SLOPE_EXAGGERATION_RANGE,
@@ -295,8 +297,22 @@ export class PlanetPassTSL {
 	 * (another preset's size) is swapped into it instead of rebuilding every variant.
 	 */
 	private shadowNode: N = null;
-	/** Frames the first build has waited for the shadow map (plan 370). */
-	private shadowWait = 0;
+	/**
+	 * The shadow taps' texture before the sun's map exists, at night and without a vessel: a cleared
+	 * 1 × 1 depth target. The GLSL pass's stand-in has no render target, so three's WGSL builder took the
+	 * renderer's sample count for it and declared a multisampled depth texture, which has no sampler.
+	 */
+	private readonly shadowStandIn = (() => {
+		const depthTexture = new DepthTexture(1, 1);
+		depthTexture.compareFunction = LessEqualCompare;
+		return new RenderTarget(1, 1, { depthBuffer: true, depthTexture });
+	})();
+	private standInCleared = false;
+	/** The sun's shadow map, or the cleared stand-in while there is none (1 × 1). */
+	private shadowTexture(): unknown {
+		const t = this.planet.material.uniforms.uShadowMap!.value as { image?: { width?: number } } | null;
+		return t && (t.image?.width ?? 0) > 1 ? t : this.shadowStandIn.depthTexture;
+	}
 	private baked = false;
 	private terrain: TerrainTSL | null = null;
 	private cloudMap: CloudMapTSL | null = null;
@@ -382,7 +398,8 @@ export class PlanetPassTSL {
 			settings.auroraSteps !== s.auroraSteps ||
 			settings.cloudShadowMap !== s.cloudShadowMap ||
 			settings.terrainSize > 0 !== s.terrainSize > 0 ||
-			settings.terrainPatch > 0 !== s.terrainPatch > 0;
+			settings.terrainPatch > 0 !== s.terrainPatch > 0 ||
+			settings.shadowMapSize > 0 !== s.shadowMapSize > 0;
 		this.settings = settings;
 	}
 
@@ -401,13 +418,17 @@ export class PlanetPassTSL {
 		this.terrain.bake(renderer);
 		this.cloudMap ??= new CloudMapTSL(R);
 		this.cloudMap.update(renderer, u.uCloudCover!.value as number);
-		// the first build waits a few frames for the sun's shadow map (three makes it at the first shadow
-		// pass): built before it, every variant was built again once it came (plan 370)
-		if (this.builtMap === null && this.planet.shadowWanted && !this.shadowMap() && this.shadowWait++ < 8)
-			return;
-		if (this.needsBuild || this.builtMap === null || this.shadowChanged()) this.build();
-		const shadow = this.shadowMap();
-		if (shadow && this.shadowNode) this.shadowNode.value = shadow;
+		if (!this.standInCleared) {
+			// depth 1 everywhere: a tap on it reads lit
+			const prev = renderer.getRenderTarget();
+			renderer.setRenderTarget(this.shadowStandIn);
+			renderer.clear();
+			renderer.setRenderTarget(prev);
+			this.standInCleared = true;
+		}
+		if (this.needsBuild || this.builtMap === null) this.build();
+		// the sun's shadow map, or the stand-in before it exists and at night (`uShadowOn` is 0 then)
+		if (this.shadowNode) this.shadowNode.value = this.shadowTexture();
 		for (const s of this.syncs) s();
 		// the biome map is replaced at a preset change: the shader reads it through one node
 		if (this.mapNode) this.mapNode.value = u.uMap!.value;
@@ -480,32 +501,12 @@ export class PlanetPassTSL {
 		this.variants.clear();
 		this.halfTarget.dispose();
 		this.marchTarget.dispose();
+		this.shadowStandIn.dispose();
 		this.sky.dispose();
 		this.terrain?.dispose();
 		this.cloudMap?.dispose();
 		this.skyMap.dispose();
 		this.scaled.dispose();
-	}
-
-	/**
-	 * A new shadow map to build with. At night the environment hands the planet pass a 1×1 stand-in
-	 * and turns `uShadowOn` off: the pass keeps the map it was built with, so a sunrise in orbit does
-	 * not recompile every planet shader (a 1–2 s freeze while warping across the terminator).
-	 */
-	private shadowChanged(): boolean {
-		// a wanted map after none: the shaders gain the shadow taps; another map is swapped into `shadowNode`
-		return this.builtShadow === null && this.planet.shadowWanted && this.shadowMap() !== null;
-	}
-
-	/**
-	 * The depth texture of the sun's shadow (three's own on WebGPU, once the shadow pass has run), or
-	 * null while the planet pass holds its 1 × 1 stand-in.
-	 */
-	private shadowMap(): unknown {
-		const t = this.planet.material.uniforms.uShadowMap!.value as {
-			image?: { width?: number };
-		} | null;
-		return t && (t.image?.width ?? 0) > 1 ? t : null;
 	}
 
 	/** A TSL uniform that follows the WebGL pass's uniform of the same name each frame. */
@@ -541,7 +542,8 @@ export class PlanetPassTSL {
 			s.auroraSteps,
 			s.cloudShadowMap,
 			s.terrainSize > 0,
-			s.terrainPatch > 0
+			s.terrainPatch > 0,
+			s.shadowMapSize > 0
 		].join(',');
 	}
 
@@ -568,21 +570,28 @@ export class PlanetPassTSL {
 		this.builtMap = U.uMap!.value as DataTexture;
 		this.builtTerrain = this.terrain?.version ?? -1;
 		this.needsBuild = false;
-		// The map, the terrain targets and the shadow map are read through swapped nodes; only whether
-		// the shaders have the shadow taps is part of a variant (plan 370: a preset without shadows, or
-		// a new map's size, rebuilt every variant). Without the shadow wanted, a variant with the taps is
-		// as good (`uShadowOn` is 0): night or a preset without shadows keeps it, no rebuild.
-		const base = PlanetPassTSL.variantKey(this.settings);
-		const map = this.shadowMap();
-		const shadowed = this.planet.shadowWanted && map !== null;
-		const key = shadowed || this.variants.has(`${base}:s`) ? `${base}:s` : base;
-		this.builtShadow = key.endsWith(':s') ? (map ?? this.builtShadow) : null;
+		// The map, the terrain targets and the sun's shadow map are read through swapped nodes (plan 370).
+		// A preset with shadows has the shadow taps from its first build: before the map exists (no
+		// vessel yet, the map view, night) they read the 1 × 1 stand-in with `uShadowOn` at 0. Built
+		// on whether the map existed yet, a preset was built twice at every load, and on D3D a planet
+		// variant is 10 to 15 s.
+		const key = PlanetPassTSL.variantKey(this.settings);
+		this.builtShadow = this.settings.shadowMapSize > 0 ? this.shadowTexture() : null;
 		const hit = this.variants.get(key);
 		if (hit) {
 			this.use(hit);
 			return;
 		}
 		const v = newVariant();
+		// the load report names each pass and its preset (plan 370): planet-full·high, planet-half·high, …
+		const preset = GRAPHICS_PRESETS.find((p) => PRESETS[p] === this.settings) ?? 'custom';
+		const tag = `${preset}${this.builtShadow ? '' : '·noshadow'}`;
+		v.full.name = `planet-full·${tag}`;
+		v.half.name = `planet-half·${tag}`;
+		v.edge.name = `planet-edge·${tag}`;
+		v.up.name = `planet-upsample·${tag}`;
+		v.pre.name = `planet-prepass·${tag}`;
+		v.bake.name = `planet-scaled-bake·${tag}`;
 		this.variants.set(key, v);
 		this.use(v);
 		this.compose();

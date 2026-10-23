@@ -79,9 +79,26 @@ export function createWebGPURenderer(
 	config: RendererConfig,
 	backend: Exclude<RendererBackend, 'webgl'>
 ): Renderer {
-	const model = new SceneModel(config);
+	const model = new SceneModel(
+		config.bootPreset && config.bootPreset !== (config.preset ?? 'high')
+			? { ...config, preset: config.bootPreset }
+			: config
+	);
 	const env = model.environment;
-	let preset: GraphicsPreset = config.preset ?? 'high';
+	/** The preset the host asked for (`setPreset`, the governor); `preset` is the one drawn. */
+	let requested: GraphicsPreset = config.preset ?? 'high';
+	/**
+	 * Plan 370: a first load on a slow shader compiler (Windows) draws `config.bootPreset`'s small
+	 * pipelines first and swaps to the requested preset once its pipelines are built in the background.
+	 */
+	let booting = config.bootPreset !== undefined && config.bootPreset !== requested;
+	let preset: GraphicsPreset = booting ? config.bootPreset! : requested;
+	const bootInfo: { preset: GraphicsPreset | null; swappedAfterMs: number | null; lowered: boolean } = {
+		preset: booting ? preset : null,
+		swappedAfterMs: null,
+		lowered: false
+	};
+	const onBootSwap = config.onBootSwap;
 	// the moons' bakes and layers in TSL (Phase 4), one per moon pass of the scene
 	const moons = new Map<MoonPass, MoonTSL>();
 	const moonOf = (pass: MoonPass): MoonTSL => {
@@ -470,6 +487,46 @@ export function createWebGPURenderer(
 			planet.forceScale = null;
 		}
 	};
+	/**
+	 * Builds `name`'s pipelines for `frames` in the background while the world is shown (ADR 0308
+	 * point 4): each round draws `frames` at `name` with async pipelines (the parts of `name` in view
+	 * when given), then a frame of the preset drawn now in the same task, so the canvas never shows
+	 * the half-built one. Done when a round asks for nothing new; false when the drawn preset changed.
+	 */
+	const warmRounds = async (
+		name: GraphicsPreset,
+		frames: () => void,
+		parts?: Scene
+	): Promise<boolean> => {
+		const own = preset;
+		for (let round = 0; round < 30; round++) {
+			await idle();
+			if (!gpu || preset !== own) return false;
+			const before = compiles.pipelines.length;
+			deferredBuilds = 0;
+			asyncPipelines = true;
+			try {
+				if (name !== own) applyPreset(name);
+				if (parts) withParts(parts, frames);
+				else frames();
+			} finally {
+				asyncPipelines = false;
+				planet.forceScale = null;
+				if (name !== own) applyPreset(own);
+			}
+			drawFrame(0);
+			const pending = [...pendingCompiles];
+			if (pending.length === 0 && compiles.pipelines.length === before && deferredBuilds === 0)
+				return true;
+			await Promise.race([Promise.all(pending), presetChanged.promise]);
+		}
+		return false;
+	};
+	/** The planet at the scale it does not draw now (the governor's half rung, or back to full). */
+	const otherScaleFrame = (): void => {
+		planet.forceScale = planet.scale < 1 ? 1 : HALF_PLANET_SCALE;
+		drawFrame(0);
+	};
 	const precompile = (onProgress?: (p: PrecompileProgress) => void): Promise<void> => {
 		if (onProgress) tracker.subscribe(onProgress);
 		// until the world is ready, every new pipeline of the scene is built async: the holder's frames
@@ -480,11 +537,12 @@ export function createWebGPURenderer(
 			compiles.phase = 'programs';
 			tracker.expect(1);
 			for (let i = 0; i < 200 && !planet.built; i++) await idle();
-			// plan 261 / 340 / 370: the planet's full and half paths and one frame of each view the world
-			// moves between (flight with its effects, map in vessel and system scope, the site), drawn until
-			// every pipeline they need is built for the targets they draw into
+			// plan 261 / 340 / 370: the planet at the scale it draws now and one frame of each view the
+			// world moves between (flight with its effects, map in vessel and system scope, the site),
+			// drawn until every pipeline they need is built for the targets they draw into. The other
+			// planet scale waits until after the loading screen: on D3D each planet variant is 10 to 15 s.
 			await settle(() => {
-				planetFrames();
+				drawFrame(0);
 				model.warmViews(() => drawFrame(0));
 			});
 			tracker.finish();
@@ -495,43 +553,52 @@ export function createWebGPURenderer(
 			await idle();
 			asyncPipelines = false;
 			if (gpu) {
-				planetFrames();
+				drawFrame(0);
 				model.warmViews(() => drawFrame(0));
 			}
 			tracker.finish();
-			// After the loading screen (ADR 0308 point 4, amending 0304): the presets the host names
-			// (`warmPresets`, where the governor goes first) with their part models in view, asked for
-			// async while the world is shown. Each round ends with a frame of the player's own preset in
-			// the same task, so the canvas never shows the other preset's half-built frame.
+			// After the loading screen (ADR 0308 point 4, amending 0304), in the background:
 			tracker.setStage('presets');
 			compiles.phase = 'background';
+			// 1. booting on a cheap preset (plan 370): the player's preset, its parts and its views, then swapped in
+			for (let attempt = 0; booting && gpu; attempt++) {
+				const target = requested;
+				const t0 = performance.now();
+				tracker.expect(1);
+				const parts = model.warmPartScene(target);
+				variants.push(parts);
+				const done = await warmRounds(
+					target,
+					() => {
+						drawFrame(0);
+						model.warmViews(() => drawFrame(0));
+					},
+					parts
+				);
+				tracker.finish();
+				// after a few tries that never settle, swap anyway: what is left builds on first use
+				if ((done || attempt >= 3) && booting && target === requested) {
+					booting = false;
+					applyPreset(target);
+					bootInfo.swappedAfterMs = Math.round(performance.now() - t0);
+					onBootSwap?.(target);
+				}
+			}
+			// 2. the other planet scale of the preset drawn now
+			tracker.expect(1);
+			await warmRounds(preset, otherScaleFrame);
+			tracker.finish();
+			// 3. the presets the host names (`warmPresets`, where the governor goes first), both scales,
+			// with their part models in view; a preset the player changed while loading warms nothing more
 			const own = preset;
-			// a preset the player changed while loading (lower quality) warms nothing more
-			for (const name of own === (config.preset ?? 'high') ? (config.warmPresets ?? []) : []) {
+			const asked = own === (config.preset ?? 'high') && !bootInfo.lowered;
+			for (const name of asked ? (config.warmPresets ?? []) : []) {
 				if (name === own) continue;
 				const parts = model.warmPartScene(name);
 				variants.push(parts);
 				tracker.expect(1);
 				const t0 = performance.now();
-				for (let round = 0; round < 20; round++) {
-					await idle();
-					if (!gpu || preset !== own) break;
-					const before = compiles.pipelines.length;
-					deferredBuilds = 0;
-					asyncPipelines = true;
-					try {
-						applyPreset(name);
-						withParts(parts, planetFrames);
-					} finally {
-						asyncPipelines = false;
-						applyPreset(own);
-					}
-					drawFrame(0);
-					const pending = [...pendingCompiles];
-					if (pending.length === 0 && compiles.pipelines.length === before && deferredBuilds === 0)
-						break;
-					await Promise.all(pending);
-				}
+				await warmRounds(name, planetFrames, parts);
 				presetWarmMs[name] = Math.round(performance.now() - t0);
 				tracker.finish();
 			}
@@ -627,6 +694,8 @@ export function createWebGPURenderer(
 				size: [width, height] as [number, number],
 				gpu: gpuName(),
 				presetWarmMs: { ...presetWarmMs },
+				presetDrawn: preset,
+				boot: { ...bootInfo, booting },
 				renderScale
 			})
 		},
@@ -663,6 +732,18 @@ export function createWebGPURenderer(
 				);
 			},
 			setPreset: (next: GraphicsPreset) => {
+				requested = next;
+				if (booting) {
+					// still drawing the boot preset: the background builds the new one (or, asked for the
+					// boot preset itself, "lower quality", the boot is over)
+					if (next === preset) {
+						booting = false;
+						bootInfo.lowered = true;
+					}
+					presetChanged.resolve();
+					presetChanged = deferred();
+					return;
+				}
 				if (next === preset) return;
 				applyPreset(next);
 				pendingCompiles.clear();
@@ -670,7 +751,7 @@ export function createWebGPURenderer(
 				presetChanged = deferred();
 			},
 			get preset() {
-				return preset;
+				return requested;
 			},
 			precompile,
 			setRenderScale(scale: number) {

@@ -55,6 +55,14 @@ export interface RendererConfig extends SceneConfig {
 	 * names only where its governor goes first. Default none.
 	 */
 	warmPresets?: readonly GraphicsPreset[];
+	/**
+	 * WebGPU (plan 370, ADR 0308): draw this preset's small pipelines first and swap to `preset` once
+	 * its pipelines are built in the background, after the loading screen. The host sets it on a first
+	 * load where shaders compile slowly (Windows). `Renderer.preset` reports `preset` throughout.
+	 */
+	bootPreset?: GraphicsPreset;
+	/** Called when the boot preset is swapped for the requested one. */
+	onBootSwap?: (preset: GraphicsPreset) => void;
 	canvas: HTMLCanvasElement;
 	/** Defaults to `window.devicePixelRatio`, capped by the preset. */
 	pixelRatio?: number;
@@ -162,6 +170,15 @@ export interface RendererDebug {
 		presetWarmMs?: Partial<Record<GraphicsPreset, number>>;
 		/** The render scale drawn at (the governor's). */
 		renderScale?: number;
+		/** WebGPU: the preset drawn now, which differs from `preset` while booting (plan 370). */
+		presetDrawn?: GraphicsPreset;
+		/** WebGPU: the boot preset, whether it is still drawn, and when it was swapped (plan 370). */
+		boot?: {
+			preset: GraphicsPreset | null;
+			booting: boolean;
+			swappedAfterMs: number | null;
+			lowered: boolean;
+		};
 	};
 }
 

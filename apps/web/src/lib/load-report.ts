@@ -39,6 +39,8 @@ export interface LoadReportData {
 	/** The preset the world started with, and the one drawn now (the governor may have moved). */
 	preset: string;
 	presetNow: string;
+	/** Plan 370: the cheap preset drawn first while `preset` compiled in the background, and when it was swapped. */
+	boot?: { preset: string | null; booting: boolean; swappedAfterMs: number | null; lowered: boolean } | null;
 	warmPresets: string[];
 	/** Each step's time, ms, in order; `totalMs` from the world's start to the first frame. */
 	steps: { step: LoadStepName; ms: number }[];
@@ -123,6 +125,17 @@ export function formatLoadReport(r: LoadReportData): string {
 		`Renderer: ${r.backend} · ${r.gpu}`,
 		`WebGL: ${r.env.angle ?? 'not shown'}`,
 		`Preset: started ${r.preset}, now ${r.presetNow}${r.warmPresets.length ? ` (next, built after loading: ${r.warmPresets.join(', ')})` : ''}`,
+		...(r.boot?.preset
+			? [
+					`Boot: drew ${r.boot.preset} first; ${
+						r.boot.swappedAfterMs !== null
+							? `${r.preset} swapped in ${(r.boot.swappedAfterMs / 1000).toFixed(1)} s after the loading screen`
+							: r.boot.lowered
+								? 'the player stayed on it (lower quality)'
+								: `${r.preset} still compiling`
+					}`
+				]
+			: []),
 		`Load: ${
 			r.cache === 'first'
 				? 'first time these shaders were compiled in this browser'
