@@ -77,7 +77,9 @@ const interfaceSchema = z
 		/** The dock panel's width, px at 100 % (plan 250: 260 to 400); absent: 280. */
 		dockWidth: z.number().min(260).max(400).optional().catch(undefined),
 		/** The performance overlay (plan 294): absent = off, so format 4 holds it. */
-		perfOverlay: z.boolean().optional().catch(undefined)
+		perfOverlay: z.boolean().optional().catch(undefined),
+		/** The Flight navball module's size (plan 377): absent = compact. */
+		navball: z.enum(['compact', 'normal']).optional().catch(undefined)
 	})
 	.catch({ ...DEFAULT_INTERFACE });
 
@@ -179,6 +181,7 @@ export interface Settings {
 		panelWidth?: number;
 		dockWidth?: number;
 		perfOverlay?: boolean;
+		navball?: 'compact' | 'normal';
 	};
 	dock: DockChoice;
 	/** Debug mode: the debug tools in worlds that need it turned on (plan 203). */

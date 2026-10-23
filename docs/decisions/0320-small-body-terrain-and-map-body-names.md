@@ -1,4 +1,4 @@
-# 0319 — Small-body terrain and body names on the map
+# 0320 — Small-body terrain and body names on the map
 
 **Status:** accepted
 **Date:** 2026-10-23

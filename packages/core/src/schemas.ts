@@ -89,7 +89,7 @@ export const bodyTerrainSchema = z.discriminatedUnion('kind', [
 	z.object({
 		kind: z.literal('craters'),
 		seed: z.int().min(0).max(999).optional(),
-		/** A small body (ADR 0319): lumpy, craters scaled to the radius, no landing plain. For rocks of a few km. */
+		/** A small body (ADR 0320): lumpy, craters scaled to the radius, no landing plain. For rocks of a few km. */
 		small: z.boolean().optional()
 	})
 ]);

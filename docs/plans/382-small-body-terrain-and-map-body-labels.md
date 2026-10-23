@@ -20,7 +20,7 @@ Two follow-ups of plan 381 (the wider stock system):
 
 ## Context
 
-- ADR 0319 (this plan), ADR 0067 (terrain kind per body), ADR 0054 (the moon pass), ADR 0318 and plan 381 (the bodies).
+- ADR 0320 (this plan), ADR 0067 (terrain kind per body), ADR 0054 (the moon pass), ADR 0318 and plan 381 (the bodies).
 - `packages/core/src/moon-terrain.ts`, `body-terrain.ts`, `renderer/src/shaders/moon.glsl.ts`, `renderer/src/tsl/moon.ts`, `renderer/src/moon.ts`.
 - `apps/web/src/lib/hud-controller.ts` (`frame()`), `comms/network-model.ts`, `map/body-labels.ts`.
 
@@ -32,7 +32,7 @@ Two follow-ups of plan 381 (the wider stock system):
 
 ## Steps
 
-1. Plan, ADR 0319.
+1. Plan, ADR 0320.
 2. `SMALL_SHAPE` and `moonHeight(…, small)` in core, `createBodyTerrainField`, the schema.
 3. The GLSL twin by a uniform (`uSmall`, no new program) and the TSL twin; `MoonPass.small`; the scene passes it.
 4. Stock: Mote, Flick, Vagrant set `small: true`.

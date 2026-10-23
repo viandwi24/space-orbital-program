@@ -321,19 +321,20 @@
 		position: absolute;
 		left: calc(18 * var(--u));
 		top: calc(112 * var(--u));
-		width: calc(150 * var(--u));
+		/* up to the vertical-speed arc: the labels and chips do not shrink with the module (plan 377) */
+		width: calc(164 * var(--u));
 		display: grid;
 		gap: calc(14 * var(--u));
 	}
 	.row {
 		display: flex;
 		align-items: center;
-		gap: 0.3125rem;
+		gap: 0.25rem;
 		min-height: 1rem;
 		min-width: 0;
 	}
 	.lab {
-		width: 1.625rem;
+		width: 1.4375rem;
 		flex: none;
 		font-size: var(--t-label);
 		font-weight: 700;

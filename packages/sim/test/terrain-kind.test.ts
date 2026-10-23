@@ -36,7 +36,7 @@ const Pebbles = definePlugin({
 	setup(ctx) {
 		ctx.bodies.register(body('test.pebble', { terrain: { kind: 'craters', seed: 7 } }));
 		ctx.bodies.register(body('test.smooth', {}));
-		// ADR 0319: a rock of a few kilometres with the small-body relief
+		// ADR 0320: a rock of a few kilometres with the small-body relief
 		ctx.bodies.register(
 			defineBody({
 				id: 'test.rock',
@@ -108,7 +108,7 @@ describe('terrain kind per body in the sim', () => {
 		expect(r.altitude).toBeLessThan(own + 15);
 	}, 30_000);
 
-	test('a small body stands the lander on its lumpy, cratered ground, with no plain at the landing site (ADR 0319)', async () => {
+	test('a small body stands the lander on its lumpy, cratered ground, with no plain at the landing site (ADR 0320)', async () => {
 		const field = createBodyTerrainField({
 			radius: ROCK_RADIUS,
 			terrain: { kind: 'craters', seed: 9, small: true }

@@ -1,6 +1,6 @@
 # 382 — Small-body terrain and body names on the map
 
-**Plan:** [plans/382-small-body-terrain-and-map-body-labels.md](../plans/382-small-body-terrain-and-map-body-labels.md) · **Session:** small-bodies session (Claude) · **Date:** 2026-10-23 · **ADR:** 0319
+**Plan:** [plans/382-small-body-terrain-and-map-body-labels.md](../plans/382-small-body-terrain-and-map-body-labels.md) · **Session:** small-bodies session (Claude) · **Date:** 2026-10-23 · **ADR:** 0320
 
 ## What was done
 

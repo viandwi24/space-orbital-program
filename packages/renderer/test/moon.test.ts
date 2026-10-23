@@ -308,7 +308,7 @@ describe('the terrain kind decides the pass (plan 052, ADR 0067)', () => {
 		seeded.dispose();
 	});
 
-	test('a small body is its own relief: the pass follows the sim field and the shader reads uSmall (ADR 0319)', () => {
+	test('a small body is its own relief: the pass follows the sim field and the shader reads uSmall (ADR 0320)', () => {
 		const small = new MoonPass('d', 9_000, { seed: 41, small: true });
 		const plain = new MoonPass('e', 9_000, { seed: 41 });
 		const n = normalize({ x: -0.4, y: 0.5, z: 0.77 });

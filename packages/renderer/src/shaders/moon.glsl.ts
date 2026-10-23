@@ -36,7 +36,7 @@ float noiseT(vec3 q, float freq, int salt) {
 }
 `;
 
-// a small body (ADR 0319) runs the same layers with the cell edge a share of the radius: one program, `uSmall` picks
+// a small body (ADR 0320) runs the same layers with the cell edge a share of the radius: one program, `uSmall` picks
 const layers = S.scales
 	.map(
 		(s, i) =>

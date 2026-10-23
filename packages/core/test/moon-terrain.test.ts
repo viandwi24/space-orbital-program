@@ -78,7 +78,7 @@ describe('moon terrain', () => {
 	});
 });
 
-describe('small-body terrain (ADR 0319)', () => {
+describe('small-body terrain (ADR 0320)', () => {
 	const R = 9_000;
 	const rng = createRng(11);
 	const samples = Array.from({ length: 4_000 }, () => randomDirection(() => rng.next()));

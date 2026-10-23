@@ -226,7 +226,7 @@ export class MoonPass {
 	readonly radius: number;
 	/** The crater field seed of the body (ADR 0067). */
 	readonly seed: number;
-	/** A small body (ADR 0319): lumpy, craters scaled to the radius. */
+	/** A small body (ADR 0320): lumpy, craters scaled to the radius. */
 	readonly small: boolean;
 	/** The ground the pass draws (ADR 0090). */
 	readonly kind: GroundKind;
@@ -265,7 +265,7 @@ export class MoonPass {
 		options: {
 			tint?: [number, number, number];
 			seed?: number;
-			/** A small craters body (ADR 0319). */
+			/** A small craters body (ADR 0320). */
 			small?: boolean;
 			kind?: GroundKind;
 			/** A hills body's seed and flat zones (plan 071, ADR 0121 point 1); default the Legacy terrain. */

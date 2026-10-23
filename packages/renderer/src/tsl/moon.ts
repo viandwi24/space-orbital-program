@@ -419,7 +419,7 @@ export class MoonTSL {
 	}
 
 	/**
-	 * A small body's height (ADR 0319, the twin of core's `moonHeight` with `small`): the five crater layers at
+	 * A small body's height (ADR 0320, the twin of core's `moonHeight` with `small`): the five crater layers at
 	 * shares of the radius, two octaves of lumps, clamped. The radius is a build-time constant here, like the seed.
 	 */
 	private smallCratersHeight(

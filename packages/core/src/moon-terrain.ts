@@ -50,7 +50,7 @@ export const MOON_SHAPE = {
 } as const;
 
 /**
- * The shape of a small body (a rock of a few kilometres, `terrain.small`, ADR 0319): everything scales with the
+ * The shape of a small body (a rock of a few kilometres, `terrain.small`, ADR 0320): everything scales with the
  * radius instead of kilometres, because the moon's lattices (70 km down to 1.3 km) and its 10 to 42 km landing plain
  * are larger than the whole body: it would be one flat plain. Two octaves of lumps make it irregular, the same five
  * crater lattices as the moon run at shares of the radius, and nothing is flattened. Heights stay in
@@ -164,7 +164,7 @@ export interface MoonTerrainOptions {
 	radius: number;
 	/** Crater field seed, 0 to `CRATERS_MAX_SEED` (default 0: the stock moon). */
 	seed?: number;
-	/** A small body (ADR 0319): lumpy, with craters scaled to the radius. */
+	/** A small body (ADR 0320): lumpy, with craters scaled to the radius. */
 	small?: boolean;
 	/** Flat zones of the sites on this body (plan 128, ADR 0125 point 1); absent: none. */
 	zones?: readonly TerrainZone[];

@@ -38,7 +38,7 @@ export function hillsSeedOf(
 	return ((h ^ worldSeed) >>> 0) % 2_147_483_647;
 }
 
-/** Whether a craters body is a small one (ADR 0319): lumpy, craters scaled to the radius. */
+/** Whether a craters body is a small one (ADR 0320): lumpy, craters scaled to the radius. */
 export const cratersSmallOf = (body: Pick<BodyDefinition, 'terrain'>): boolean =>
 	body.terrain?.kind === 'craters' && body.terrain.small === true;
 
