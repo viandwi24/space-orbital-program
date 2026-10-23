@@ -131,5 +131,6 @@ export const STATUS_ZONES = {
 } as const;
 
 /** Pages that draw a 3D view under the bars; the others sit in the safe area. The Hangar joined them with plan 255. */
-export const IMMERSIVE = ['/flight', '/space-center', '/vab'] as const;
+/** The 3D pages: the view runs under the bars (the Mission Center too, system audit D7). */
+export const IMMERSIVE = ['/flight', '/space-center', '/vab', '/mission-center'] as const;
 export const isImmersive = (path: string): boolean => IMMERSIVE.some((p) => path.endsWith(p));

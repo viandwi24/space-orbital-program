@@ -672,6 +672,12 @@
 		position: absolute;
 		inset: 0;
 		pointer-events: none;
+		/* the page is immersive (system audit D7): the view runs under the bars, the panels keep the
+		   safe area the shell gives a flat page (BASE_LAYOUT §1) */
+		--mc-t: calc(5rem + var(--safe-top, 0px));
+		--mc-b: calc(3.5rem + var(--safe-bottom, 0px));
+		--mc-l: calc(1.5rem + var(--safe-left, 0px));
+		--mc-r: calc(1.5rem + var(--safe-right, 0px));
 		font-family: var(--font-ui);
 		color: var(--text);
 	}
@@ -708,8 +714,8 @@
 	}
 	.top {
 		position: absolute;
-		top: var(--space-4, 1rem);
-		left: var(--space-4, 1rem);
+		top: calc(var(--mc-t) + var(--space-4, 1rem));
+		left: calc(var(--mc-l) + var(--space-4, 1rem));
 		display: flex;
 		gap: var(--space-3, 0.75rem);
 		align-items: center;
@@ -727,7 +733,7 @@
 	}
 	.switch {
 		position: absolute;
-		top: var(--space-4, 1rem);
+		top: calc(var(--mc-t) + var(--space-4, 1rem));
 		left: 50%;
 		transform: translateX(-50%);
 		display: flex;
@@ -763,19 +769,19 @@
 	.left,
 	.right {
 		position: absolute;
-		top: 4.5rem;
+		top: calc(var(--mc-t) + 4.5rem);
 		display: flex;
 		flex-direction: column;
 		gap: var(--space-3, 0.75rem);
-		max-height: calc(100% - 9rem);
+		max-height: calc(100% - 9rem - var(--mc-t) - var(--mc-b));
 		overflow-y: auto;
 	}
 	.left {
-		left: var(--space-4, 1rem);
+		left: calc(var(--mc-l) + var(--space-4, 1rem));
 		width: 16.25rem;
 	}
 	.right {
-		right: var(--space-4, 1rem);
+		right: calc(var(--mc-r) + var(--space-4, 1rem));
 		width: 18.75rem;
 	}
 	.list {
@@ -885,10 +891,10 @@
 	}
 	.card {
 		position: absolute;
-		bottom: var(--space-4, 1rem);
+		bottom: calc(var(--mc-b) + var(--space-4, 1rem));
 		left: 50%;
 		transform: translateX(-50%);
-		width: min(35rem, calc(100% - 2rem));
+		width: min(35rem, calc(100% - 2rem - var(--mc-l) - var(--mc-r)));
 		padding: 0.75rem;
 		border-radius: var(--radius-card, 1rem);
 		background: var(--surface-glass, rgba(22, 23, 26, 0.6));
@@ -915,13 +921,13 @@
 	@media (max-width: 1100px) {
 		/* the card sits above the layer toggles when they would meet */
 		.card {
-			bottom: 4.25rem;
+			bottom: calc(var(--mc-b) + 4.25rem);
 		}
 	}
 	.layers {
 		position: absolute;
-		right: var(--space-4, 1rem);
-		bottom: var(--space-4, 1rem);
+		right: calc(var(--mc-r) + var(--space-4, 1rem));
+		bottom: calc(var(--mc-b) + var(--space-4, 1rem));
 		display: flex;
 		gap: 0.25rem;
 		padding: 0.25rem;
@@ -931,7 +937,7 @@
 	}
 	.note {
 		position: absolute;
-		top: 4.5rem;
+		top: calc(var(--mc-t) + 4.5rem);
 		left: 50%;
 		transform: translateX(-50%);
 		margin: 0;
