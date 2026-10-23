@@ -8,6 +8,7 @@ import {
 	contractCommand,
 	contractDetail,
 	contractRows,
+	emptyOffersText,
 	objectiveLabel
 } from './contracts-model';
 
@@ -182,5 +183,14 @@ describe('Administration contracts (plan 099)', () => {
 		expect(html).toContain('data-testid="contract-accept"');
 		expect(html).toContain('data-testid="contract-decline"');
 		expect(html).toContain('Expected value −14,000 funds');
+	});
+});
+
+describe('an empty board says why (player-journey audit Q4)', () => {
+	it('names the reputation when it is below the first tier, and what brings offers back', () => {
+		expect(emptyOffersText(-25)).toContain('reputation is -25');
+		expect(emptyOffersText(-25)).toContain('-20 or more');
+		expect(emptyOffersText(-3)).toBe('No offers right now; a new one can come each day.');
+		expect(emptyOffersText(undefined)).toBe('No offers right now; a new one can come each day.');
 	});
 });

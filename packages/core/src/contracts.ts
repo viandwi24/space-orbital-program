@@ -15,8 +15,11 @@ export const CONTRACT_OFFER_CAP = 5;
 export const CONTRACT_OFFER_DAYS = 10;
 /** Default days a declined offer's key stays out. */
 export const CONTRACT_COOLDOWN_DAYS = 15;
-/** Default reputation each prestige tier needs (tiers 1, 2, 3). */
-export const CONTRACT_TIER_REPUTATION = [0, 100, 300] as const;
+/**
+ * Default reputation each prestige tier needs (tiers 1, 2, 3), at least. Tier 1 is open down to −20 (player-journey audit Q4,
+ * ADR 0325): one failed or cancelled first contract no longer empties the board.
+ */
+export const CONTRACT_TIER_REPUTATION = [-20, 100, 300] as const;
 /** The smallest rocket's price in the launch-cost estimate: a stock tank and engine (about 8 300 funds). */
 export const CONTRACT_COST_BASE = 5_000;
 /**

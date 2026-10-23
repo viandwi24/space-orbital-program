@@ -3,7 +3,13 @@
  * agency strip, Offered / Active / Completed lists and a contract's detail, from `Snapshot.contracts`
  * and `Snapshot.objectives`. Pure: the page renders it and sends the commands.
  */
-import type { Command, ContractsSnapshot, ObjectiveNode, Snapshot } from '@orbital/core';
+import {
+	CONTRACT_TIER_REPUTATION,
+	type Command,
+	type ContractsSnapshot,
+	type ObjectiveNode,
+	type Snapshot
+} from '@orbital/core';
 import { formatFunds } from '../format';
 
 /** "12,000 funds". */
@@ -58,6 +64,17 @@ export function agencyStrip(snapshot: Pick<Snapshot, 'economy' | 'contracts'> | 
 				: `${c.used} of ${c.slots} active`
 			: '[—]'
 	};
+}
+
+/**
+ * What an empty Offered list says (player-journey audit Q4, ADR 0325): the reason when it is the
+ * agency's reputation, and what brings offers back.
+ */
+export function emptyOffersText(reputation: number | undefined): string {
+	const floor = CONTRACT_TIER_REPUTATION[0];
+	if (reputation !== undefined && reputation < floor)
+		return `No offers: reputation is ${Math.round(reputation)}, and the first contracts need ${floor} or more. It drifts back toward 0 every month; a mission done raises it.`;
+	return 'No offers right now; a new one can come each day.';
 }
 
 /** The rows of one tab; `day` is the world-tick day length, s. */

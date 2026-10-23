@@ -282,3 +282,20 @@ describe('accepted contracts', () => {
 		sim.dispose();
 	});
 });
+
+describe('a reputation below 0 (player-journey audit Q4, ADR 0325)', () => {
+	test('a cancelled first contract leaves the board offering; reputation settles back at 0', async () => {
+		const sim = await make(3);
+		const id = waitFor(sim, 'stock.contract-altitude');
+		expect(sim.dispatch({ type: 'contract-accept', offer: id }).ok).toBe(true);
+		expect(sim.dispatch({ type: 'contract-cancel', contract: id }).ok).toBe(true);
+		expect(sim.snapshot().economy!.reputation).toBeLessThan(0);
+		// the old offers expire; new ones still come (tier 1 is open down to −20)
+		warpDays(sim, 20);
+		expect(contracts(sim).offers.length).toBeGreaterThan(0);
+		// and it drifts back to exactly 0
+		warpDays(sim, 30 * 30);
+		expect(sim.snapshot().economy!.reputation).toBe(0);
+		sim.dispose();
+	}, 120_000);
+});

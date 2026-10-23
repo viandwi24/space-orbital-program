@@ -8,7 +8,12 @@
 	import Button from '../ui/Button.svelte';
 	import Panel from '../ui/Panel.svelte';
 	import Segmented from '../ui/Segmented.svelte';
-	import { contractDetail, contractRows, type ContractTab } from './contracts-model';
+	import {
+		contractDetail,
+		contractRows,
+		emptyOffersText,
+		type ContractTab
+	} from './contracts-model';
 
 	let {
 		snapshot,
@@ -34,11 +39,11 @@
 	const rows = $derived(contractRows(snapshot?.contracts, tab, snapshot?.t ?? 0, day));
 	const detail = $derived(contractDetail(snapshot, selected ?? rows[0]?.id ?? null, day));
 	const LABEL = { accept: 'Accept', decline: 'Decline', cancel: 'Cancel contract' } as const;
-	const EMPTY = {
-		offered: 'No offers right now; a new one can come each day.',
+	const EMPTY = $derived({
+		offered: emptyOffersText(snapshot?.economy?.reputation),
 		active: 'No active contract. Accept one from the offers.',
 		completed: 'Nothing completed or failed yet.'
-	} as const;
+	});
 </script>
 
 <div class="bar">

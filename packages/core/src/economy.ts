@@ -172,8 +172,15 @@ export function chargeOn(
 }
 
 /** Reputation after one decay step of `REPUTATION_DECAY_EVERY` days. */
-export const decayedReputation = (reputation: number): number =>
-	reputation * Math.exp(-REPUTATION_DECAY_EVERY / REPUTATION_TAU_DAYS);
+export const decayedReputation = (reputation: number): number => {
+	const next = reputation * Math.exp(-REPUTATION_DECAY_EVERY / REPUTATION_TAU_DAYS);
+	// it reaches 0 (player-journey audit Q4, ADR 0325): an exponential alone never does, and a
+	// world left at −0.4 kept a reputation it could not lose
+	return Math.abs(next) < REPUTATION_SETTLE ? 0 : next;
+};
+
+/** Below this, reputation settles at 0 on its next decay step (ADR 0325). */
+export const REPUTATION_SETTLE = 0.5;
 
 export const clampReputation = (r: number): number =>
 	Math.max(-REPUTATION_LIMIT, Math.min(REPUTATION_LIMIT, r));

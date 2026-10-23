@@ -310,3 +310,4 @@ An ADR records one decision, its context, and its consequences. ADRs are **appen
 | 0322 | [A new world's start: the core buildings and a Career crew](0322-a-new-worlds-start.md) | accepted | 2026-10-23 |
 | 0323 | [A pod's own rations](0323-a-pods-own-rations.md) | accepted | 2026-10-23 |
 | 0324 | [A company's way out of debt](0324-a-company-s-way-out-of-debt.md) | accepted | 2026-10-23 |
+| 0325 | [The first contracts open from reputation −20, and reputation settles at 0](0325-reputation-floor-for-first-contracts.md) | accepted | 2026-10-23 |
