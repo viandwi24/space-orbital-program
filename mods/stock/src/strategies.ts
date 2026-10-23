@@ -8,13 +8,11 @@ import { defineStrategy } from '@orbital/sdk';
 export const StrategyReuseFirst = defineStrategy({
 	id: 'stock.reuse-first',
 	label: 'Reuse first',
-	description:
-		'Recovery far from a site loses a fifth less; building for reuse costs a little at launch.',
-	effects: [
-		{ key: 'recovery', factor: 1.25 },
-		{ key: 'launch-cost', factor: 1.05 }
-	],
-	upkeep: 1_500
+	// system audit D1: it shrinks the loss for distance, never past the vessel's value; with no
+	// launch surcharge its upkeep is the price (the ten-year bot stays in its band)
+	description: 'Recovery far from a site loses a fifth less of the value.',
+	effects: [{ key: 'recovery', factor: 1.25 }],
+	upkeep: 1_000
 });
 export const StrategyScienceFirst = defineStrategy({
 	id: 'stock.science-first',
