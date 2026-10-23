@@ -7,8 +7,9 @@
 	 * It runs the world's sim from its newest save and saves after a change.
 	 */
 	import { onMount } from 'svelte';
-	import { calendarOf, homeBodyOf, type Snapshot } from '@orbital/core';
+	import { calendarOf, type Snapshot } from '@orbital/core';
 	import { loadContent, partLookup } from '../../../lib/catalog';
+	import { worldHomeRadius } from '../../../lib/save/home-radius';
 	import { parseDesign, referenceTwoStage } from '../../../lib/design';
 	import { loadDraft } from '../../../lib/storage';
 	import { GAME_NAME } from '../../../lib/public/about';
@@ -71,7 +72,7 @@
 				focus: loaded?.focus ?? null,
 				design: loaded?.design ?? hangarDesign() ?? referenceTwoStage(),
 				thumbnail: null,
-				bodyRadius: homeBodyOf(catalog.bodies)?.radius ?? 0
+				bodyRadius: await worldHomeRadius(client)
 			};
 		}
 	});

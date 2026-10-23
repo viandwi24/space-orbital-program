@@ -6,7 +6,6 @@
 	 * and a research is saved at once.
 	 */
 	import {
-		homeBodyOf,
 		loadPlugins,
 		techBodiesOf,
 		type Snapshot,
@@ -15,6 +14,7 @@
 	import Stock from '@orbital/mod-stock';
 	import { onMount } from 'svelte';
 	import { referenceTwoStage } from '../../../lib/design';
+	import { worldHomeRadius } from '../../../lib/save/home-radius';
 	import { activePlugins } from '../../../lib/mods/runtime';
 	import { GAME_NAME } from '../../../lib/public/about';
 	import type { GameSave } from '../../../lib/save/game-save';
@@ -54,7 +54,7 @@
 				focus: loaded?.focus ?? null,
 				design: loaded?.design ?? referenceTwoStage(),
 				thumbnail: null,
-				bodyRadius: homeBodyOf(registries.bodies.list())?.radius ?? 0
+				bodyRadius: await worldHomeRadius(client)
 			};
 		}
 	});

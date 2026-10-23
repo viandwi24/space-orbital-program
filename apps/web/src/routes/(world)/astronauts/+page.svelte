@@ -5,8 +5,9 @@
 	 * filter, a profile. It runs the world's sim from its newest save and saves after a hire.
 	 */
 	import { onMount } from 'svelte';
-	import { homeBodyOf, type Profession, type Snapshot } from '@orbital/core';
+	import { type Profession, type Snapshot } from '@orbital/core';
 	import { loadContent } from '../../../lib/catalog';
+	import { worldHomeRadius } from '../../../lib/save/home-radius';
 	import { parseDesign, referenceTwoStage } from '../../../lib/design';
 	import { loadDraft } from '../../../lib/storage';
 	import { partLookup } from '../../../lib/catalog';
@@ -64,7 +65,7 @@
 				// a save needs a readable design: the last one flown, the Hangar's, or the reference rocket
 				design: loaded?.design ?? hangarDesign() ?? referenceTwoStage(),
 				thumbnail: null,
-				bodyRadius: homeBodyOf(catalog.bodies)?.radius ?? 0
+				bodyRadius: await worldHomeRadius(client)
 			};
 		}
 	});

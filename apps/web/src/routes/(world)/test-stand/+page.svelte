@@ -7,7 +7,6 @@
 	 */
 	import {
 		GRADES,
-		homeBodyOf,
 		loadPlugins,
 		type Command,
 		type Grade,
@@ -16,6 +15,7 @@
 	import Stock from '@orbital/mod-stock';
 	import { onMount } from 'svelte';
 	import { referenceTwoStage } from '../../../lib/design';
+	import { worldHomeRadius } from '../../../lib/save/home-radius';
 	import { formatFunds } from '../../../lib/format';
 	import { activePlugins } from '../../../lib/mods/runtime';
 	import { GAME_NAME } from '../../../lib/public/about';
@@ -60,7 +60,7 @@
 				focus: loaded?.focus ?? null,
 				design: loaded?.design ?? referenceTwoStage(),
 				thumbnail: null,
-				bodyRadius: homeBodyOf(registries.bodies.list())?.radius ?? 0
+				bodyRadius: await worldHomeRadius(client)
 			};
 		}
 	});
