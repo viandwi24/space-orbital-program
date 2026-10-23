@@ -192,6 +192,20 @@ At most three workers (A, B, C), always watching CPU and RAM. Skip e2e. The only
 
 The graphics and performance drafts (342, 365, 367, 368, 369, 374) are on hold. The graphics v2 research (`refs/graphics-v2/`) will fold them into new plans. The content drafts (275, 276, 280, 282, 283, 284, 286, 287, 379, 385, 386) come after the queues above.
 
+## Graphics and performance v2 queues (CTO order, 2026-10-24; replaces the queues after the draft audit)
+
+Design: `refs/graphics-v2/README.md` and ADR 0330. Plans 390–406. At most three workers. No e2e; a quick browser look is allowed for visual work. One plan at a time, merge-first. Finish the plan you are on now, then follow your queue:
+
+| Worker | Queue |
+|---|---|
+| A (renderer core) | 392 → 393 → 395 → 394 → 397 → 398 |
+| B (physics, terrain, planets, mods) | **390** → 391 → 389 → 298 → 402 → 403 → 405 → 406 |
+| C (CPU, looks, settings) | fix main's red CI if still red → 396 → 399 → 400 → 401 → 404 |
+
+Measurements (392 and the later frame-time checks) are heavy jobs under `/tmp/orbital-heavy.lock` on a quiet, plugged-in M5. The M2 and Windows checks are `[manual]`.
+
+When a queue is empty, take the next free plan from this list, in order: 299, 322, 304, 358, 312, 367, 369, 365, 342, 374, 275, 276, 280, 283, 284, 282, 286, 287, 379, 385, 386.
+
 ## Doing a plan
 
 **UI fixes come first (owner's rule, ADR 0222):** when the coordinator reports that a screen you built is off the design package (`refs/space-orbital-program-ui-v2/`), finish and merge your current plan, then fix that screen (plan 233 and the like) before taking any other plan. Always compare UI work with the matching `.dc.html` source and `docs/BASE_LAYOUT.md`.

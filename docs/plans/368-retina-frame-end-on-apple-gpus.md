@@ -1,7 +1,7 @@
 ---
 id: 368
 title: "The Retina frame end on Apple GPUs: MSAA resolve, canvas format and pass count"
-status: draft
+status: dropped
 owner: ""
 depends: [363, 373]
 phase: 8
@@ -60,3 +60,4 @@ When this is done, the journal says what each full-size pass costs at Retina on 
 
 - 2026-10-22 — Drafted by plan 363.
 - 2026-10-24 — Rewritten by the coordinator after an audit against main @ 4c546c02: still valid; MSAA cap at ratio 2, scaled bloom and the TSL `RenderPipeline` already shipped; open trials are MSAA 2 → 0 + FXAA and the rest; re-baseline first; new variants warmed per ADR 0310; depends adds 373.
+- 2026-10-24 — Folded into plan 392 and 394 (graphics and performance v2, ADR 0330). Dropped by the coordinator.

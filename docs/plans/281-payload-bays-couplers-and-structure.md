@@ -1,7 +1,7 @@
 ---
 id: 281
 title: "Payload bays: no decoupling inside a closed bay; a sim test that a closed bay blocks drag and heat"
-status: draft
+status: dropped
 owner: ""
 depends: [302, 303]
 phase: 0
@@ -59,3 +59,4 @@ Decoupling a payload that sits inside a closed bay is refused with a message; wi
 - 2026-10-24 — Rewritten by the coordinator after an audit against main @ 4c546c02: parts (303), `ModuleBay` shielding (302) and payload release flights (356, 345) are done; this plan keeps the decouple refusal and a sim test of the bay's shielding; depends on 302 and 303.
 - 2026-10-21 — Parts delivered in plan 303: service bays, cargo bay, petals, couplers, truss, hub, lattice. Open: the decouple refusal inside a closed bay.
 - 2026-10-21 — Drafted from the part-visuals research and the owner's decisions of 2026-10-21 (CTO calls delegated by the owner). Not to be started until the owner releases the parts work: on 2026-10-21 main is busy with renderer fixes and a UI/UX agent.
+- 2026-10-24 — Folded into plan 390 (graphics and performance v2, ADR 0330). Dropped by the coordinator.
