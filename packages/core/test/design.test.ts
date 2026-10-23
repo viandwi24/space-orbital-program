@@ -114,7 +114,7 @@ describe('protocol schemas', () => {
 	test('a design survives a JSON round trip through the schema', () => {
 		const d = design();
 		expect(vesselDesignSchema.parse(JSON.parse(JSON.stringify(d)))).toEqual(d);
-		expect(vesselDesignSchema.safeParse({ ...d, formatVersion: 5 }).success).toBe(false);
+		expect(vesselDesignSchema.safeParse({ ...d, formatVersion: 6 }).success).toBe(false);
 		expect(vesselDesignSchema.safeParse({ ...d, stages: undefined }).success).toBe(false);
 		expect(vesselDesignSchema.safeParse({ ...d, parts: [] }).success).toBe(false);
 	});
@@ -293,7 +293,7 @@ describe('radial attachment (ADR 0034)', () => {
 	test('a version 1 design migrates unchanged and resolves identically', () => {
 		const v1 = design();
 		const v2 = migrateVesselDesign(v1);
-		expect(v2.formatVersion).toBe(4);
+		expect(v2.formatVersion).toBe(5);
 		expect({ ...v2, formatVersion: 1 }).toEqual(v1);
 		const a = resolveVesselDesign(v1, lookup);
 		const b = resolveVesselDesign(v2, lookup);

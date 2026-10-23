@@ -1,5 +1,5 @@
 /** Plan 029 / ADR 0041: the vessel library over an in-memory store. */
-import { loadPlugins, partId } from '@orbital/core';
+import { DESIGN_FORMAT_VERSION, loadPlugins, partId } from '@orbital/core';
 import Stock from '@orbital/mod-stock';
 import { describe, expect, it } from 'vitest';
 import { emptyDesign, referenceTwoStage } from '../design';
@@ -101,14 +101,14 @@ describe('library', () => {
 		expect((await store.list()).length).toBe(2);
 	});
 
-	it('imports a format-1 file upgraded to format 4', async () => {
+	it('imports a format-1 file upgraded to the newest format', async () => {
 		const store = memoryStore();
 		const v1 = { ...referenceTwoStage(), formatVersion: 1 };
 		const r = await importText(store, env(), JSON.stringify(v1), parts);
 		expect(r.ok).toBe(true);
-		if (r.ok) expect(r.design.formatVersion).toBe(4);
+		if (r.ok) expect(r.design.formatVersion).toBe(DESIGN_FORMAT_VERSION);
 		const [entry] = await listEntries(store, parts);
-		expect(entry!.ok && entry!.design.formatVersion).toBe(4);
+		expect(entry!.ok && entry!.design.formatVersion).toBe(DESIGN_FORMAT_VERSION);
 	});
 
 	it('exports a record to the text that imports back to the same design', async () => {
@@ -118,7 +118,10 @@ describe('library', () => {
 		const { text, fileName } = exportEntry(rec);
 		expect(fileName).toBe('Two-stage.json');
 		const back = await importText(memoryStore(), e, text, parts);
-		expect(back.ok && back.design).toEqual(referenceTwoStage());
+		expect(back.ok && back.design).toEqual({
+			...referenceTwoStage(),
+			formatVersion: DESIGN_FORMAT_VERSION
+		});
 	});
 
 	it('a damaged record is listed with its errors and is never returned as a design', async () => {

@@ -177,7 +177,7 @@ describe('migration 3 -> 4', () => {
 			const old = design(JSON.parse(JSON.stringify(parts)), version);
 			const migrated = migrateVesselDesign(old);
 			expect(migrated.formatVersion).toBe(DESIGN_FORMAT_VERSION);
-			expect(DESIGN_FORMAT_VERSION).toBe(4);
+			expect(DESIGN_FORMAT_VERSION).toBe(5);
 			expect(JSON.stringify(resolveVesselDesign(migrated, lookup))).toBe(
 				JSON.stringify(resolveVesselDesign(old, lookup))
 			);
@@ -186,7 +186,7 @@ describe('migration 3 -> 4', () => {
 	});
 
 	test('a format 4 design stays as it is', () => {
-		const d = design([pod, tank(1, 0)]);
+		const d = design([pod, tank(1, 0)], 5);
 		expect(migrateVesselDesign(d)).toBe(d);
 	});
 });

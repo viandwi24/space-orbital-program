@@ -29,10 +29,10 @@ export interface ResolvedPart {
 	link?: { index: number; point: Vec3 };
 }
 
-/** The newest design format (plan 279, ADR 0258: the part offset). */
-export const DESIGN_FORMAT_VERSION = 4;
+/** The newest design format (plan 358, ADR 0333: the inverse link; plan 279, ADR 0258: the part offset). */
+export const DESIGN_FORMAT_VERSION = 5;
 
-/** Older designs become version 4 unchanged (each version only adds optional fields, ADR 0034, 0071, 0258). */
+/** Older designs become version 5 unchanged (each version only adds optional fields, ADR 0034, 0071, 0258, 0333). */
 export function migrateVesselDesign(design: VesselDesign): VesselDesign {
 	return design.formatVersion === DESIGN_FORMAT_VERSION
 		? design
@@ -372,6 +372,31 @@ export function placeSurface(
 	};
 }
 
+/** An inverse link (plan 358, ADR 0333): a real parent node, the child's own surface (`node` "surface"). */
+export const isInverseLink = (l: DesignLink): boolean =>
+	l.surface !== undefined && l.node === SURFACE_NODE && l.parentNode !== SURFACE_NODE;
+
+/**
+ * A child on an inverse link (plan 358, ADR 0333): the child's own surface point `site.point`
+ * (child frame) lies on the parent's node `parentNode`, its outward `site.normal` (child frame)
+ * against the node's direction; `tilt` is the twist. The surface link the other way round: the
+ * same turn and fit, with the node and the surface exchanging roles. Undefined for a zero
+ * normal or a node without a direction.
+ */
+export function placeInverse(
+	parent: Placement,
+	parentNode: { pos: readonly [number, number, number]; dir: readonly [number, number, number] },
+	site: { point: readonly [number, number, number]; normal: readonly [number, number, number] },
+	tilt?: DesignTilt
+): Placement | undefined {
+	return placeSurface(
+		parent,
+		{ point: parentNode.pos, normal: parentNode.dir },
+		{ pos: site.point, dir: site.normal },
+		tilt
+	);
+}
+
 /** The point of a part's surface at (`angle`, `y`), relative to the root origin: the far end of a link or a radial contact. */
 export function surfacePoint(
 	at: Placement,
@@ -517,9 +542,33 @@ export function resolveVesselDesign(design: VesselDesign, parts: PartLookup): Re
 		const list = children.get(pi) ?? [];
 		list.push(p.index);
 		children.set(pi, list);
-		use(p.index, node);
 		const parentDef = defs.get(pi);
 		const def = defs.get(p.index);
+		if (isInverseLink(p.parent)) {
+			// an inverse link (plan 358, ADR 0333): the parent's node and a point of the child's own surface
+			use(pi, parentNode);
+			if (radial) errors.push(`part #${p.index}: an inverse link has no radial position`);
+			if (design.formatVersion < 5)
+				errors.push(`part #${p.index}: an inverse link needs formatVersion 5`);
+			const pn = parentDef?.attach?.[parentNode];
+			if (parentDef && !pn) {
+				errors.push(
+					`part #${p.index}: parent #${pi} ("${parentDef.id}") has no node "${parentNode}"`
+				);
+			} else if (pn && !(Math.hypot(...pn.dir) > 1e-9)) {
+				errors.push(`part #${p.index}: node "${parentNode}" has no direction to face the surface`);
+			}
+			const s = surface!;
+			if (![...s.point, ...s.normal].every(Number.isFinite) || !(Math.hypot(...s.normal) > 1e-9)) {
+				errors.push(`part #${p.index}: an inverse link needs a finite point and a normal`);
+			} else if (def && !pointNearShape(def.shape, s.point)) {
+				errors.push(
+					`part #${p.index}: inverse surface point (${s.point.join(', ')}) is not on "${def.id}"`
+				);
+			}
+			continue;
+		}
+		use(p.index, node);
 		const cn = def?.attach?.[node];
 		if (def && !cn) errors.push(`part #${p.index} ("${def.id}") has no node "${node}"`);
 		if (surface) {
@@ -648,15 +697,16 @@ export function resolveVesselDesign(design: VesselDesign, parts: PartLookup): Re
 				const entry = byIndex.get(c)!;
 				const link = entry.parent!;
 				const def = defs.get(c)!;
-				const cn = def.attach![link.node]!;
 				let at: Placement;
-				if (link.surface) {
-					at = placeSurface(here, link.surface, cn, entry.tilt)!;
+				if (isInverseLink(link)) {
+					at = placeInverse(here, hereDef.attach![link.parentNode]!, link.surface!, entry.tilt)!;
+				} else if (link.surface) {
+					at = placeSurface(here, link.surface, def.attach![link.node]!, entry.tilt)!;
 				} else if (link.radial) {
-					at = placeRadial(here, hereDef.shape, link.radial, cn, entry.tilt)!;
+					at = placeRadial(here, hereDef.shape, link.radial, def.attach![link.node]!, entry.tilt)!;
 				} else {
 					const pn = hereDef.attach![link.parentNode]!;
-					at = placeStack(here, pn.pos, cn.pos, entry.tilt);
+					at = placeStack(here, pn.pos, def.attach![link.node]!.pos, entry.tilt);
 				}
 				at = withOffset(at, here, entry.offset);
 				frames.set(c, at);

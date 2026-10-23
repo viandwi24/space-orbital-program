@@ -29,7 +29,7 @@ const index = z.int().nonnegative();
 const finite = z.number().finite();
 
 export const vesselDesignSchema: z.ZodType<VesselDesign> = z.object({
-	formatVersion: z.union([z.literal(1), z.literal(2), z.literal(3), z.literal(4)]),
+	formatVersion: z.union([z.literal(1), z.literal(2), z.literal(3), z.literal(4), z.literal(5)]),
 	name: z.string().min(1),
 	parts: z
 		.array(

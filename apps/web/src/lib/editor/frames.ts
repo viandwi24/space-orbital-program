@@ -180,6 +180,36 @@ export function surfaceLinkOnto(
 	};
 }
 
+/**
+ * The inverse link (plan 358, ADR 0333) that hangs `surfaceOwner` on node `node` of `nodeOwner`
+ * at its pose: the point is where the node lies in the surface owner's frame (it must be on its
+ * shape), the normal is against the node's direction, and the tilt is the twist left over
+ * (`placeInverse`). Null when the node has no direction or does not touch the shape.
+ */
+export function inverseLinkOnto(
+	nodeOwner: Pose,
+	node: Node,
+	surfaceOwner: Pose,
+	shape: PartShape | undefined
+): { surface: { point: V3; normal: V3 }; tilt?: DesignTilt } | null {
+	const d = unit(node.dir);
+	if (!d) return null;
+	const inv = transpose(surfaceOwner.rotation);
+	const contact = arr(
+		mat3Apply(
+			inv,
+			arr(sub(add(nodeOwner.position, mat3Apply(nodeOwner.rotation, node.pos)), surfaceOwner.position))
+		)
+	);
+	if (!pointNearShape(shape, contact)) return null;
+	const turn = mat3Mul(transpose(nodeOwner.rotation), surfaceOwner.rotation);
+	const against: V3 = [-d[0], -d[1], -d[2]];
+	const n = mat3Apply(transpose(turn), against);
+	const normal: V3 = [n.x, n.y, n.z];
+	const tilt = tiltOf(mat3Mul(turn, transpose(rotationBetween(normal, against))));
+	return { surface: { point: contact, normal }, ...(tilt ? { tilt } : {}) };
+}
+
 /** Distance from a point of a part's frame to the surface of its shape, from outside or inside. */
 export function gapTo(shape: PartShape | undefined, p: readonly [number, number, number]): number {
 	const q =

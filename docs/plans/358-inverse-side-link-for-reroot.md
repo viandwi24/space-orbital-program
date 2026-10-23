@@ -1,8 +1,8 @@
 ---
 id: 358
 title: "An inverse side link, so a booster on a radial decoupler can become the root"
-status: draft
-owner: ""
+status: done
+owner: "Worker C"
 depends: [357, 378]
 phase: 7
 created: 2026-10-22
@@ -38,16 +38,18 @@ When this is done, a design can store a link where the child touches the parent'
 
 ## Acceptance criteria
 
-- [ ] `bun test packages/core` passes a test placing a part on an inverse link at the pose a radial link gives the other way round, and a format 4 design still loads.
-- [ ] `bun test packages/sim` passes: the booster rocket re-rooted on a booster stages, and the core separates from the booster.
-- [ ] `cd apps/web && bunx vitest run src/lib/editor/reroot.test.ts` passes with a booster on a radial decoupler as the new root.
-- [ ] `bun run typecheck`, `bun run docs:check`, `bun run build` pass.
+- [x] `bun test packages/core` passes a test placing a part on an inverse link at the pose a radial link gives the other way round, and a format 4 design still loads.
+- [x] `bun test packages/sim` passes: the booster rocket re-rooted on a booster stages, and the core separates from the booster.
+- [x] `cd apps/web && bunx vitest run src/lib/editor/reroot.test.ts` passes with a booster on a radial decoupler as the new root.
+- [x] `bun run typecheck`, `bun run docs:check`, `bun run build` pass.
 
 ## Docs checklist
 
-- [ ] ADR, `docs/STATUS.md` row, journal, the design format notes in `docs/architecture/`.
+- [x] ADR, `docs/STATUS.md` row, journal, the design format notes in `docs/architecture/`.
 
 ## Log
+
+- 2026-10-24 — Done (Worker C). ADR 0333. Core `placeInverse`, `isInverseLink`, validation, format 5; sim test `packages/sim/test/inverse-link.test.ts`; `reroot` writes the link (`inverseLinkOnto` in `frames.ts`), also for a nose cone above the booster. Readers of the child's node skip `"surface"`. Journal 358.
 
 - 2026-10-22: drafted from plan 357.
 - 2026-10-24 — Rewritten by the coordinator after an audit against main @ 4c546c02: still valid; `reroot.ts` still refuses and writes surface links, no `placeInverse`; states the format bump 4 → 5; the reader step adds nested editing, placement and symmetry; depends adds 378.

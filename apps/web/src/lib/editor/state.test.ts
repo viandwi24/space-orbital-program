@@ -1,4 +1,4 @@
-import { loadPlugins } from '@orbital/core';
+import { DESIGN_FORMAT_VERSION, loadPlugins } from '@orbital/core';
 import Stock from '@orbital/mod-stock';
 import { describe, expect, it } from 'vitest';
 import { emptyDesign, parseDesign, referenceTwoStage, serialiseDesign } from '../design';
@@ -431,7 +431,12 @@ describe('save and load', () => {
 		expect(parsed.ok).toBe(true);
 		if (!parsed.ok) return;
 		const loaded = replaceDesign(createEditor(emptyDesign(), content), content, parsed.design);
-		expect(loaded.design).toEqual({ ...built.design, name: 'Round trip' });
+		// a load migrates to the newest format (plan 358)
+		expect(loaded.design).toEqual({
+			...built.design,
+			formatVersion: DESIGN_FORMAT_VERSION,
+			name: 'Round trip'
+		});
 		expect(loaded.autoStage).toBe(true);
 		// A hand-edited staging survives as manual staging.
 		const manual = moveToStage(built, content, 6, 3);

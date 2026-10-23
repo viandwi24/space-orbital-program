@@ -115,12 +115,30 @@ describe('reroot through side links (plan 357, ADR 0301)', () => {
 		});
 	});
 
-	it('refuses to turn round the side link of a radial decoupler: it would no longer let go', () => {
+	it('a booster on a radial decoupler becomes the root: the core hangs on the decoupler by an inverse link (plan 358, ADR 0333)', () => {
 		const d = boosterRocket(content);
 		const booster = d.parts.find((p) => p.part === 'stock.booster')!.index;
-		expect(reroot(d, booster, content)).toEqual({ ok: false, reason: 'separator' });
+		const r = reroot(d, booster, content);
+		expect(r.ok).toBe(true);
+		if (!r.ok) return;
+		expectSamePoses(d, r.design, booster);
+		expect(r.design.formatVersion).toBe(5);
+		const decoupler = d.parts.find((p) => p.part === 'stock.radial-decoupler')!;
+		const inverse = r.design.parts.find((p) => p.parent?.index === decoupler.index && p.parent.node === 'surface');
+		expect(inverse?.parent).toMatchObject({ parentNode: decoupler.parent!.node, node: 'surface' });
+		expect(inverse?.parent?.surface).toBeDefined();
+		// and the whole reversal round-trips through the stack of the original again
+		const back = reroot(r.design, d.parts.find((p) => p.parent === null)!.index, content);
+		expect(back.ok).toBe(true);
+		if (back.ok) expectSamePoses(r.design, back.design, d.parts.find((p) => p.parent === null)!.index);
+	});
+
+	it('a nose cone above the booster becomes the root the same way', () => {
+		const d = boosterRocket(content);
 		const cone = d.parts.find((p) => p.part === 'stock.nose-cone')!.index;
-		expect(reroot(d, cone, content)).toEqual({ ok: false, reason: 'separator' });
+		const r = reroot(d, cone, content);
+		expect(r.ok).toBe(true);
+		if (r.ok) expectSamePoses(d, r.design, cone);
 	});
 
 	it('refuses a side link when the old parent has no node left to hang by', () => {

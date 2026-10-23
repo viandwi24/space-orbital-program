@@ -642,7 +642,7 @@ export interface Snapshot {
 }
 
 /**
- * Vessel design (`formatVersion` 1 to 4, ADR 0016, 0034, 0071 and 0258): a flat list of part
+ * Vessel design (`formatVersion` 1 to 5, ADR 0016, 0034, 0071, 0258 and 0333): a flat list of part
  * instances with parent links, plus the staging sequence. Plain JSON, so the VAB can save/load it.
  * `resolveVesselDesign` (design.ts) validates it against the registries; `migrateVesselDesign`
  * turns older versions into version 4 (radial links and symmetry groups need 2; tilts, links and
@@ -660,6 +660,15 @@ export interface DesignLink {
 	 */
 	surface?: { point: [number, number, number]; normal: [number, number, number] };
 }
+
+/*
+ * An inverse link (plan 358, ADR 0333; version 5) is a `DesignLink` with a real `parentNode` and
+ * `node` `"surface"`, and `surface` in the CHILD's frame: the child touches the parent's node with
+ * its own surface at `point`, its outward `normal` against the node's direction (the twist is the
+ * part's `tilt`). It is the other way round of a surface link, for a part that hangs by a node of
+ * its parent but must lie on a surface of its own: the Root tool writes it when a booster on a
+ * radial decoupler becomes the root.
+ */
 
 /**
  * A part's turn about the axes of its parent part, rad (version 3, ADR 0071): the matrix is
@@ -691,7 +700,7 @@ export interface DesignEnd {
 }
 
 export interface VesselDesign {
-	formatVersion: 1 | 2 | 3 | 4;
+	formatVersion: 1 | 2 | 3 | 4 | 5;
 	name: string;
 	parts: Array<{
 		/** Index of this part within the design (unique, any non-negative integer); referenced by `parent` and `stages`. */

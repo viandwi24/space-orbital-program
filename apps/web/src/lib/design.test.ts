@@ -1,3 +1,4 @@
+import { DESIGN_FORMAT_VERSION } from '@orbital/core';
 import { describe, expect, it } from 'vitest';
 import { loadCatalog, partLookup } from './catalog';
 import {
@@ -55,7 +56,10 @@ describe('design serialisation', () => {
 	it('round trips the reference vessel through JSON and validates it against the registries', () => {
 		const original = referenceTwoStage();
 		const parsed = parseDesign(serialiseDesign(original), parts);
-		expect(parsed).toEqual({ ok: true, design: original });
+		expect(parsed).toEqual({
+			ok: true,
+			design: { ...original, formatVersion: DESIGN_FORMAT_VERSION }
+		});
 	});
 
 	it('rejects invalid JSON, wrong shapes and semantically bad designs with messages', () => {

@@ -256,7 +256,7 @@ describe('format 3 and older designs', () => {
 			const old = v3([pod, stackLink(1, 0), stackLink(2, 1)], version);
 			const a = resolveVesselDesign(old, lookup);
 			const migrated = migrateVesselDesign(old);
-			expect(migrated.formatVersion).toBe(4);
+			expect(migrated.formatVersion).toBe(5);
 			expect(JSON.stringify(resolveVesselDesign(migrated, lookup))).toBe(JSON.stringify(a));
 			expect(JSON.stringify({ ...migrated, formatVersion: version })).toBe(JSON.stringify(old));
 		}

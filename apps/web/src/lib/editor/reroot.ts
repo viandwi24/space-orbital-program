@@ -11,12 +11,14 @@
 import {
 	DESIGN_FORMAT_VERSION,
 	SURFACE_NODE,
+	isInverseLink,
 	describeModule,
 	type DesignLink,
 	type PartDefinition,
 	type VesselDesign
 } from '@orbital/core';
 import {
+	inverseLinkOnto,
 	poseOf,
 	relativePose,
 	samePose,
@@ -73,9 +75,10 @@ export function reroot(design: VesselDesign, index: number, content: StagingCont
 		const childDef = parts.get(child.part);
 		const parentDef = parts.get(parent.part);
 		if (!childDef || !parentDef) return { ok: false, reason: 'path' };
+		const inverse = isInverseLink(link);
 		const childNode = childDef.attach?.[link.node];
-		if (!childNode) return { ok: false, reason: 'path' };
-		if (!link.radial && !link.surface && link.parentNode !== SURFACE_NODE) {
+		if (!childNode && !inverse) return { ok: false, reason: 'path' };
+		if (!link.radial && !link.surface && link.parentNode !== SURFACE_NODE && childNode) {
 			// a stack link: the old parent now hangs on the old child by the same two nodes
 			const parentNode = parentDef.attach?.[link.parentNode];
 			if (!parentNode) return { ok: false, reason: 'path' };
@@ -86,18 +89,38 @@ export function reroot(design: VesselDesign, index: number, content: StagingCont
 			});
 			continue;
 		}
-		// a radial or surface link: the old parent goes on the old child's surface where they touched,
-		// by one of its own nodes that stays free. The sim separates by node name, so the old child
-		// must not separate at the node it touched with, nor either part at its side surface.
+		// a radial, surface or inverse link: the old parent goes on the old child's surface where they
+		// touched, by one of its own nodes that stays free. The sim separates by node name, so neither
+		// part may separate at its side surface. An old child that separates at the node it touched
+		// with (a radial decoupler) keeps that node: the old parent then hangs on it by an inverse link.
 		const childCuts = separatorNode(childDef, content.modules);
 		const parentCuts = separatorNode(parentDef, content.modules);
-		if (childCuts === link.node || childCuts === SURFACE_NODE || parentCuts === SURFACE_NODE) {
+		if (childCuts === SURFACE_NODE || parentCuts === SURFACE_NODE) {
 			return { ok: false, reason: 'separator' };
+		}
+		if (childCuts === link.node && childNode && !inverse) {
+			const onto = inverseLinkOnto(
+				pose(child.index),
+				childNode,
+				pose(parent.index),
+				parentDef.shape
+			);
+			if (!onto) return { ok: false, reason: 'path' };
+			relinked.set(parent.index, {
+				parent: {
+					index: child.index,
+					parentNode: link.node,
+					node: SURFACE_NODE,
+					surface: onto.surface
+				},
+				...(onto.tilt ? { tilt: onto.tilt } : {})
+			});
+			continue;
 		}
 		const above = path[k + 1];
 		const taken = new Set<string>([
 			// a separator's own node would start cutting the old child loose
-			...(parentCuts ? [parentCuts] : []),
+			...(parentCuts && !(inverse && parentCuts === link.parentNode) ? [parentCuts] : []),
 			// its stack children (other than this one, which now holds it) keep their nodes
 			...children(parent.index)
 				.filter((c) => c.index !== child.index && c.parent!.parentNode !== SURFACE_NODE)
@@ -113,7 +136,7 @@ export function reroot(design: VesselDesign, index: number, content: StagingCont
 				childDef.shape,
 				pose(parent.index),
 				node,
-				childNode.pos
+				inverse ? link.surface!.point : childNode!.pos
 			);
 			if (fit && (!best || cost(fit) < cost(best.fit))) best = { node: name, fit };
 		}
