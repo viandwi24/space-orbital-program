@@ -458,6 +458,92 @@ describe('mission flights (plans 307, 309)', () => {
 		}
 	}, 120_000);
 
+	// plan 388 (from 295): the orbiter alone glides at Mach 2 with a lift-to-drag ratio of 3 or more
+	for (const alpha of [8]) {
+		it(`the orbiter glides at Mach 2 and 30 km with a lift-to-drag ratio of 3 or more, nose ${alpha}° up on SAS hold`, async () => {
+			const sim = await newSim();
+			try {
+				const home = registries.bodies.get('stock.home')!;
+				const R = home.radius;
+				const mu = home.mass * 6.6743e-11;
+				const r = R + 30_000;
+				const ground = (2 * Math.PI * r) / DAY;
+				const east: Vec3 = { x: 0, y: 0, z: -1 };
+				const up: Vec3 = { x: 1, y: 0, z: 0 };
+				const a = (alpha * Math.PI) / 180;
+				const nose = unit3({
+					x: east.x * Math.cos(a) + up.x * Math.sin(a),
+					y: 0,
+					z: east.z * Math.cos(a) + up.z * Math.sin(a)
+				});
+				const top = unit3(cross3(cross3(nose, up), nose));
+				// Mach 2 in the 30 km air: 301 m/s sound, so 602 m/s relative to the ground
+				const id = place(
+					sim,
+					orbiterAlone(),
+					'stock.home',
+					{ x: r, y: 0, z: 0 },
+					{ x: 0, y: 0, z: -(ground + 602) },
+					quatOfBasis(cross3(nose, top), nose, top)
+				);
+				const at = () => sim.snapshot().vessels.find((v) => Number(v.id) === id)!;
+				expect(sim.dispatch({ type: 'sas', vessel: at().id, mode: 'hold' } as never).ok).toBe(true);
+				run(sim, 4);
+				// lift and drag from the velocity change over 1 s, less gravity (the specific force)
+				const ratios: number[] = [];
+				let lowAoa = 90;
+				let highAoa = 0;
+				for (let k = 0; k < 8; k++) {
+					const v0 = at();
+					run(sim, 1);
+					const v1 = at();
+					const pm = {
+						x: (v0.position.x + v1.position.x) / 2,
+						y: (v0.position.y + v1.position.y) / 2,
+						z: (v0.position.z + v1.position.z) / 2
+					};
+					const rr = len(pm);
+					const acc = {
+						x: v1.velocity.x - v0.velocity.x + (mu / rr ** 3) * pm.x,
+						y: v1.velocity.y - v0.velocity.y + (mu / rr ** 3) * pm.y,
+						z: v1.velocity.z - v0.velocity.z + (mu / rr ** 3) * pm.z
+					};
+					// the air's velocity: the vessel's, less the turning ground (about +Y)
+					const w = (2 * Math.PI) / DAY;
+					const air = {
+						x: (v0.velocity.x + v1.velocity.x) / 2 - w * pm.z,
+						y: (v0.velocity.y + v1.velocity.y) / 2,
+						z: (v0.velocity.z + v1.velocity.z) / 2 + w * pm.x
+					};
+					const d = unit3(air);
+					const drag = -(acc.x * d.x + acc.y * d.y + acc.z * d.z);
+					const lift = Math.hypot(acc.x + drag * d.x, acc.y + drag * d.y, acc.z + drag * d.z);
+					if (drag > 0) ratios.push(lift / drag);
+					const noseNow = rot(v1.orientation, { x: 0, y: 1, z: 0 });
+					const aoa = (Math.acos(Math.max(-1, Math.min(1, dot3(noseNow, d)))) * 180) / Math.PI;
+					// the first seconds are the nose settling onto the SAS hold
+					if (k >= 4) {
+						lowAoa = Math.min(lowAoa, aoa);
+						highAoa = Math.max(highAoa, aoa);
+					}
+				}
+				ratios.sort((x, y) => x - y);
+				console.log(`orbiter glide at ${alpha}°: L/D ${ratios.map((x) => x.toFixed(2)).join(' ')}`);
+				expect(ratios.length).toBeGreaterThan(5);
+				// steady by the middle of the run: the last four seconds, and it has not tumbled
+				const late = ratios.slice(-4);
+				expect(late.reduce((x, y) => x + y, 0) / late.length).toBeGreaterThanOrEqual(3);
+				expect(at().parts.length).toBe(orbiterAlone().parts.length);
+				// the attitude is held while the path curves down, so the angle of attack drifts up from 8°
+				// (to about 16° in this run): a glide, not a tumble
+				expect(lowAoa).toBeGreaterThan(3);
+				expect(highAoa).toBeLessThan(20);
+			} finally {
+				sim.dispose();
+			}
+		}, 120_000);
+	}
+
 	it('the orbiter comes home belly first on SAS Re-entry: 40° held, wings level, nothing overheats (plan 361)', async () => {
 		const sim = await newSim();
 		try {
@@ -642,6 +728,92 @@ describe('mission flights (plans 307, 309)', () => {
 		}
 	}, 240_000);
 
+	// plan 388 (from 300): each new pod comes home base first and lands under chutes
+	for (const pod of ['stock.descent-module', 'stock.capsule-sphere', 'stock.capsule-cone']) {
+		it(`${pod} re-enters base first on a heat shield and touches down under chutes below 8 m/s`, async () => {
+			const design: VesselDesign = {
+				formatVersion: 4,
+				name: 'Capsule',
+				parts: [
+					{ index: 0, part: pod as never, parent: null },
+					{
+						index: 1,
+						part: 'stock.parachute' as never,
+						parent: { index: 0, parentNode: 'top', node: 'bottom' }
+					},
+					{
+						index: 2,
+						part: 'stock.heat-shield-wide' as never,
+						parent: { index: 0, parentNode: 'bottom', node: 'top' }
+					},
+					// a ton and a half to two and a half tonnes under one main chute lands at 9 to 11 m/s:
+					// two radial chutes join it (these pods carry no chutes of their own, unlike the Kronos)
+					...[0, Math.PI].map((angle, k) => ({
+						index: 3 + k,
+						part: 'stock.radial-parachute' as never,
+						parent: {
+							index: 0,
+							parentNode: 'surface',
+							node: 'radial',
+							radial: { angle, y: 0 }
+						}
+					}))
+				],
+				stages: [[1, 3, 4]]
+			};
+			const sim = await newSim();
+			try {
+				const R = registries.bodies.get('stock.home')!.radius;
+				const id = place(
+					sim,
+					design,
+					'stock.home',
+					{ x: 0, y: R + 60_000, z: 0 },
+					{ x: 2_000, y: -150, z: 0 },
+					// nose up, tilted 45°: the shield is turned 40° off the flow, and has to come round itself
+					{ x: 0, y: 0, z: 0.38268343236, w: 0.92387953251 }
+				);
+				const at = () => sim.snapshot().vessels.find((v) => Number(v.id) === id);
+				expect(sim.dispatch({ type: 'stage', vessel: at()!.id }).ok).toBe(true);
+				let touchdown: number | null = null;
+				let held = 90;
+				for (let i = 0; i < 1_500 / 0.02 && touchdown === null; i++) {
+					const before = at();
+					sim.step(0.02);
+					const v = at();
+					if (!v || !before) break;
+					const r = len(before.position);
+					const down =
+						-(
+							before.velocity.x * before.position.x +
+							before.velocity.y * before.position.y +
+							before.velocity.z * before.position.z
+						) / r;
+					// the angle between the base (-Y) and the velocity, in the dense air only
+					if (len(v.position) - R < 45_000 && len(v.position) - R > 20_000) {
+						const q = v.orientation;
+						const ny = {
+							x: 2 * (q.x * q.y - q.w * q.z),
+							y: 1 - 2 * (q.x * q.x + q.z * q.z),
+							z: 2 * (q.y * q.z + q.w * q.x)
+						};
+						const sp = len(v.velocity);
+						const c = -(ny.x * v.velocity.x + ny.y * v.velocity.y + ny.z * v.velocity.z) / sp;
+						held = Math.min(held, (Math.acos(Math.max(-1, Math.min(1, c))) * 180) / Math.PI);
+					}
+					if (len(v.position) - R - (v.terrainHeight ?? 0) < 3) touchdown = down;
+				}
+				// it came round to the flow in the thick air
+				expect(held).toBeLessThan(15);
+				expect(touchdown).not.toBeNull();
+				expect(touchdown!).toBeLessThan(8);
+				expect(at()!.parts.some((p) => p.definition === pod)).toBe(true);
+			} finally {
+				sim.dispose();
+			}
+		}, 300_000);
+	}
+
 	it('the Selene lander sets down on the moon on its descent engine', async () => {
 		const design = blueprint('kronos-selene');
 		const descent = indexOf(design, 'stock.lander-descent');
@@ -690,6 +862,79 @@ describe('mission flights (plans 307, 309)', () => {
 			sim.dispose();
 		}
 	}, 240_000);
+
+	// plan 388 (from 296): the ascent stage leaves the descent stage on the surface and reaches orbit
+	it('the Selene ascent stage separates on the moon and flies to a 10 km lunar orbit', async () => {
+		const design = blueprint('kronos-selene');
+		const descent = indexOf(design, 'stock.lander-descent');
+		const ascent = indexOf(design, 'stock.lander-ascent');
+		const coupler = design.parts.find((p) => p.index === ascent)!.parent!.index;
+		const sim = await createSim({
+			plugins: [Stock, Guidance],
+			backendFactory: () => createRapierBackend({ solverIterations: 16 }),
+			maxFlightFrames: 1
+		});
+		try {
+			const moon = registries.bodies.get('stock.cinder')!;
+			const lander = piece(design, subtreeOf(design, descent), [[coupler], [ascent]]);
+			const r = sim.dispatch({
+				type: 'load-vessel',
+				design: lander,
+				placement: { kind: 'surface', body: 'stock.cinder', latitude: 0, longitude: 0.5 }
+			} as never);
+			if (!r.ok || r.vessel === undefined) throw new Error(r.ok ? 'no vessel' : r.reason);
+			run(sim, 3);
+			const before = sim.snapshot().vessels.length;
+			expect(sim.dispatch({ type: 'stage', vessel: r.vessel }).ok).toBe(true);
+			run(sim, 1);
+			const vessels = sim.snapshot().vessels;
+			expect(vessels).toHaveLength(before + 1);
+			const up = vessels.find((v) => v.parts.some((p) => p.definition === 'stock.lander-ascent'))!;
+			const down = vessels.find((v) => v.id !== up.id)!;
+			// the descent stage stays on the ground with its legs
+			expect(down.parts.some((p) => p.definition === 'stock.lander-descent')).toBe(true);
+			const id = up.id;
+			const at = () => sim.snapshot().vessels.find((v) => v.id === id)!;
+			expect(sim.dispatch({ type: 'stage', vessel: id }).ok).toBe(true);
+			// the cabin steers with its RCS blocks: no wheel, no gimbal
+			expect(sim.dispatch({ type: 'set-rcs', vessel: id, on: true }).ok).toBe(true);
+			const engaged = sim.dispatch({
+				type: 'autopilot-engage',
+				vessel: id,
+				autopilot: 'guidance.ascent',
+				params: { altitude: 10_000 }
+			});
+			expect(engaged.ok ? '' : engaged.reason).toBe('');
+			let ended = '';
+			const off = sim.events.on('autopilot:ended', (e) => {
+				if (e.vessel === id) ended = `${e.outcome}: ${e.reason}`;
+			});
+			for (let t = 0; !ended && t < 900; t += 0.1) sim.step(0.1);
+			off();
+			const v = at();
+			const rr = len(v.position);
+			const mu = moon.mass * 6.6743e-11;
+			const energy = len(v.velocity) ** 2 / 2 - mu / rr;
+			const a = -mu / (2 * energy);
+			const h = len({
+				x: v.position.y * v.velocity.z - v.position.z * v.velocity.y,
+				y: v.position.z * v.velocity.x - v.position.x * v.velocity.z,
+				z: v.position.x * v.velocity.y - v.position.y * v.velocity.x
+			});
+			const e = Math.sqrt(Math.max(0, 1 - (h * h) / (mu * a)));
+			const periapsis = a * (1 - e) - moon.radius;
+			const apoapsis = a * (1 + e) - moon.radius;
+			console.log(
+				`selene ascent: ${ended}, ${(periapsis / 1000).toFixed(1)} x ${(apoapsis / 1000).toFixed(1)} km`
+			);
+			// the insertion ends with the periapsis within 5 km of the target
+			expect(ended).toMatch(/^done/);
+			expect(periapsis).toBeGreaterThan(4_000);
+			expect(apoapsis).toBeLessThan(15_000);
+		} finally {
+			sim.dispose();
+		}
+	}, 600_000);
 
 	it('a capsule docks with Horizon Station on the hub top port', async () => {
 		const station = blueprint('horizon-station');
@@ -749,6 +994,120 @@ describe('mission flights (plans 307, 309)', () => {
 			sim.dispose();
 		}
 	}, 180_000);
+
+	// plan 388 (from 297): two crewed modules, launched on their own, dock; both keep their crew
+	it('two crewed station modules dock and the merged vessel has crew in both', async () => {
+		const port = 'stock.docking-port' as never;
+		const target: VesselDesign = {
+			formatVersion: 4,
+			name: 'Habitat',
+			parts: [
+				{ index: 0, part: 'stock.hab-module' as never, parent: null },
+				{ index: 1, part: port, parent: { index: 0, parentNode: 'top', node: 'bottom' } },
+				{
+					index: 2,
+					part: 'stock.probe-core' as never,
+					parent: { index: 0, parentNode: 'bottom', node: 'top' }
+				}
+			],
+			stages: []
+		};
+		const chaser: VesselDesign = {
+			formatVersion: 4,
+			name: 'Laboratory',
+			parts: [
+				{ index: 0, part: port, parent: null },
+				{
+					index: 1,
+					part: 'stock.lab-module' as never,
+					parent: { index: 0, parentNode: 'bottom', node: 'top' }
+				},
+				{
+					index: 2,
+					part: 'stock.probe-core' as never,
+					parent: { index: 1, parentNode: 'bottom', node: 'top' }
+				}
+			],
+			stages: []
+		};
+		const R = registries.bodies.get('stock.home')!.radius;
+		const far = { x: 0, y: R + 600_000, z: 0 };
+		const still = { x: 0, y: 0, z: 0 };
+		// upside down: its port faces -Y, down at the target's top port
+		const flipped = { x: 1, y: 0, z: 0, w: 0 };
+		const crewed = (
+			sim: Sim,
+			design: VesselDesign,
+			crewPart: number,
+			member: string,
+			at: Vec3,
+			q?: Quat
+		) => {
+			const r = sim.dispatch({
+				type: 'load-vessel',
+				design,
+				placement: {
+					kind: 'state',
+					body: 'stock.home',
+					position: at,
+					velocity: still,
+					...(q ? { orientation: q } : {})
+				},
+				crew: [{ member, part: crewPart }]
+			} as never);
+			if (!r.ok || r.vessel === undefined) throw new Error(r.ok ? 'no vessel' : r.reason);
+			return Number(r.vessel);
+		};
+		const hire = (sim: Sim) => {
+			expect(sim.dispatch({ type: 'crew-hire', profession: 'pilot' }).ok).toBe(true);
+			expect(sim.dispatch({ type: 'crew-hire', profession: 'engineer' }).ok).toBe(true);
+		};
+		// where the chaser's root sits from its centre of mass, measured in a scratch sim
+		const scratch = await newSim();
+		hire(scratch);
+		const c0 = crewed(scratch, chaser, 1, 'c2', far, flipped);
+		const s0 = scratch.snapshot().vessels.find((v) => Number(v.id) === c0)!;
+		const comToRoot = {
+			x: s0.position.x - far.x,
+			y: s0.position.y - far.y,
+			z: s0.position.z - far.z
+		};
+		scratch.dispose();
+		const sim = await newSim();
+		try {
+			hire(sim);
+			const t = crewed(sim, target, 0, 'c1', far);
+			const sv = sim.snapshot().vessels.find((v) => Number(v.id) === t)!;
+			const tport = sv.parts.find((p) => p.definition === 'stock.docking-port')!;
+			const goal = {
+				x: sv.position.x + tport.position.x,
+				y: sv.position.y + tport.position.y + 0.9,
+				z: sv.position.z + tport.position.z
+			};
+			crewed(
+				sim,
+				chaser,
+				1,
+				'c2',
+				{ x: goal.x - comToRoot.x, y: goal.y - comToRoot.y, z: goal.z - comToRoot.z },
+				flipped
+			);
+			// released 0.9 m above the port: the ports' magnets draw the pair together, as in the ferry test
+			const count = () => sim.snapshot().vessels.length;
+			const before = count();
+			expect(before).toBe(2);
+			for (let i = 0; i < 40 / 0.02 && count() === before; i++) sim.step(0.02);
+			expect(count()).toBe(before - 1);
+			const merged = sim.snapshot().vessels[0]!;
+			const partOf = (member: string) => merged.crew?.find((c) => c.member === member)?.part;
+			const hab = merged.parts.find((p) => p.definition === 'stock.hab-module')!;
+			const lab = merged.parts.find((p) => p.definition === 'stock.lab-module')!;
+			expect(partOf('c1')).toBe(hab.id);
+			expect(partOf('c2')).toBe(lab.id);
+		} finally {
+			sim.dispose();
+		}
+	}, 240_000);
 
 	// owner, 2026-10-21: opening the bay flung its payload; the petals are single use (plan 345)
 	it('the Kronos petals are thrown off: four panels leave, the lander stays, nothing is pushed', async () => {
