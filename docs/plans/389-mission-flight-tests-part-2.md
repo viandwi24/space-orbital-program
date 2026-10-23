@@ -56,7 +56,7 @@ The flight tests that plans 295, 296, 297 and 300 left open now run headless in 
 
 ## Acceptance criteria
 
-- [x] web vitest `mission-flights.test.ts`: the orbiter released at 30 km and Mach 2 glides with lift-to-drag of at least 3, without tumbling. It measured 2.8 at best, so the delta wing's aspect ratio went from 2.2 to 2.8 (3.1 to 3.2 now, at 8° of angle of attack).
+- [x] web vitest `mission-flights.test.ts`: the orbiter released at 30 km and Mach 2 glides with lift-to-drag of at least 3, without tumbling. It measured 2.8 at best, so the delta wing's aspect ratio went from 2.2 to 2.3 and its parasite drag coefficient from 0.02 to 0.002 (3.05 to 3.1 now, at 8° of angle of attack). A bigger aspect ratio alone (2.8) met the figure but threw the Wayfarer ascent test into the ground.
 - [ ] ~~the orbiter flies from re-entry to a stop on the runway~~ **moved to plan 407**: no approach guidance exists, and the controller is a plan of its own (the plan's own design note allows that).
 - [x] web vitest `mission-flights.test.ts`: the Selene ascent stage separates on the moon and reaches a lunar orbit (a periapsis of 5 km under a 10 km target: where the ascent autopilot's insertion ends, within its 5 km).
 - [x] web vitest `mission-flights.test.ts`: two crewed modules dock; the merged vessel has crew in both modules.
@@ -74,4 +74,4 @@ The flight tests that plans 295, 296, 297 and 300 left open now run headless in 
 ## Log
 
 - 2026-10-24 — Drafted by the coordinator after an audit against main @ 4c546c02: the leftover flight tests of plans 295, 296, 297 and 300, merged with the owner's approval.
-- 2026-10-24 — Worker B: capsule re-entries, orbiter glide (wing aspect ratio 2.2 → 2.8), Selene ascent (needs RCS on), two crewed modules docking. The runway landing is plan 407.
+- 2026-10-24 — Worker B: capsule re-entries, orbiter glide (wing aspect ratio 2.2 → 2.3, parasite drag 0.02 → 0.002), Selene ascent (needs RCS on), two crewed modules docking. The runway landing is plan 407.

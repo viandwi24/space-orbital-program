@@ -7,16 +7,17 @@
 | Test (`apps/web/src/lib/editor/mission-flights.test.ts`) | Result |
 |---|---|
 | descent module, sphere capsule, cone capsule re-enter and land | each a heat shield below and three chutes (one main on top, two radial), entry at 60 km and 2 km/s with the base 40° off the flow: base within 15° of the flow in the thick air, down under 8 m/s. With one chute they landed at 9.4 to 11.4 m/s: these pods carry none of their own |
-| orbiter glide, Mach 2 at 30 km, nose 8° up, SAS hold | lift and drag from the velocity change less gravity, over 1 s windows: 2.5 to 2.8 before, **3.1 to 3.2 after** the wing change below |
+| orbiter glide, Mach 2 at 30 km, nose 8° up, SAS hold | lift and drag from the velocity change less gravity, over 1 s windows: 2.5 to 2.8 before, **3.0 to 3.1 after** the wing change below |
 | Selene ascent stage on the moon | the descent stage keeps its legs, the ascent stage leaves on the decoupler; with **RCS on** the ascent autopilot flies it to a 5 × 11 km orbit (its insertion ends within 5 km of the 10 km target) |
 | two crewed modules dock | a habitat and a laboratory, each with a probe core and a port, released 0.9 m apart; the merged vessel has the first crew member in the hab and the second in the lab |
 
 ## Fixes the tests asked for
 
-- **Delta wing aspect ratio 2.2 → 2.8** (`stock.wing-delta`, area unchanged): the orbiter measured L/D 2.8 at best, the plan wants 3. The wing draws wider by about 13 % (the visual follows the aspect ratio); the other shuttle tests (361) and the glider pass.
+- **Delta wing: aspect ratio 2.2 → 2.3 and parasite drag 0.02 → 0.002** (`stock.wing-delta`, area unchanged): the orbiter measured L/D 2.8 at best, the plan wants 3. Drag alone tops out at 3.0 (the induced drag bounds it); the aspect ratio alone at 2.8 met 3.2 but made the Wayfarer ascent test (plans 356 and 360) fly into the ground at 577 m/s, so the two small changes together are used. The wing draws wider by 4 %. The 0.002 is low for a real wing: the game's shuttle is a compromise.
 
 ## What surprised me
 
+- **The shuttle ascent is on an edge.** A change of the wing's lift slope of 10 % turns the autopilot's ascent into a crash; the ascent tests are the guard for any later change to the orbiter's aerodynamics.
 - **Without RCS the ascent stage tumbles.** The cabin has no wheel and no gimbal; a few millimetres of thrust offset turn it slowly over until it flies back into the ground. The test switches RCS on, as a player must; the ascent autopilot does not.
 - **The pods have no chutes of their own** (only the Kronos capsule does), so a re-entry test needs them added: one main chute lands them at 9 to 11 m/s.
 - Plan 388 was renumbered 389 on main while this was in progress (388 is the Space Center QA leftovers).

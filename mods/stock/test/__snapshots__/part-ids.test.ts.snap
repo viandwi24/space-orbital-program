@@ -3642,12 +3642,13 @@ exports[`stock part ids, masses, costs and modules match the snapshot 1`] = `
         "stock.wing",
         {
           "area": 14,
-          "aspectRatio": 2.8,
+          "aspectRatio": 2.3,
           "centre": [
             0,
             -0.8,
             0,
           ],
+          "parasiteDrag": 0.002,
           "tiled": true,
         },
       ],

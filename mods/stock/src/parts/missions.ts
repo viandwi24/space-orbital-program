@@ -1376,7 +1376,12 @@ export const PartDeltaWing = definePart({
 	visual: { kind: 'delta-wing', palette: WHITE, paramsFrom: ModuleWing.id },
 	attach: radialAt(2),
 	crossfeed: false,
-	modules: [[ModuleWing, { area: 14, aspectRatio: 2.8, centre: [0, -0.8, 0], tiled: true }]],
+	modules: [
+		[
+			ModuleWing,
+			{ area: 14, aspectRatio: 2.3, parasiteDrag: 0.002, centre: [0, -0.8, 0], tiled: true }
+		]
+	],
 	stagingIcon: 'fin'
 });
 
