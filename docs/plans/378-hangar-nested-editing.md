@@ -1,7 +1,7 @@
 ---
 id: 378
 title: "Hangar nested editing: outline selection, inside mode, a section cut, pick-through"
-status: in-progress
+status: done
 owner: "hangar placement UX session (Claude, 2026-10-23)"
 depends: [315, 348, 356]
 phase: 7
@@ -37,17 +37,18 @@ Out: e2e (owner's instruction); Zen mode and the sandbox Hangar (plan 375's sess
 
 ## Acceptance criteria
 
-- [ ] `bun test packages/renderer` passes tests for the outline look (no fill inside the footprint: the outline material does not draw where the stencil is set) and the clipping plane's off position.
-- [ ] `cd apps/web && bunx vitest run src/lib/editor/inside-mode.test.ts src/lib/vab/pick-cycle.test.ts` passes tests for: enter by double click on a shell and on a held part; Esc and the breadcrumb leave; deleting the shell leaves; picks inside are limited to held parts; a repeated click goes to the next part behind and wraps; a click elsewhere starts over.
-- [ ] In the dev Hangar on the Wayfarer Shuttle and Kronos V: a selected shell shows an outline and the parts inside stay clear (screenshot); a part inside the bay can be selected by a click; inside mode shows the breadcrumb and Esc leaves it; Section cuts the near half.
-- [ ] `bun run typecheck`, `bun run docs:check`, `bun run build` pass.
+- [x] `bun test packages/renderer` passes tests for the outline look (no fill inside the footprint: the outline material does not draw where the stencil is set) and the clipping plane's off position.
+- [x] `cd apps/web && bunx vitest run src/lib/editor/inside-mode.test.ts src/lib/vab/pick-cycle.test.ts` passes tests for: enter by double click on a shell and on a held part; Esc and the breadcrumb leave; deleting the shell leaves; picks inside are limited to held parts; a repeated click goes to the next part behind and wraps; a click elsewhere starts over.
+- [x] In the dev Hangar on the Wayfarer Shuttle and Kronos V: a selected shell shows an outline and the parts inside stay clear (screenshot); a part inside the bay can be selected by a click; inside mode shows the breadcrumb and Esc leaves it; Section cuts the near half.
+- [x] `bun run typecheck`, `bun run docs:check`, `bun run build` pass.
 
 ## Docs checklist
 
-- [ ] ADR 0315, indexed.
-- [ ] `docs/STATUS.md` board row, journal `docs/journal/378-hangar-nested-editing.md`.
-- [ ] Keys: the Build sheet (double click, click again, Section).
+- [x] ADR 0315, indexed.
+- [x] `docs/STATUS.md` board row, journal `docs/journal/378-hangar-nested-editing.md`.
+- [x] Keys: the Build sheet (double click, click again, Section).
 
 ## Log
 
 - 2026-10-23: written.
+- 2026-10-23: done. Renderer tsc clean; `bun test packages/renderer` 802 pass, 0 fail (vab-outline 6); svelte-check 0 errors in 2277 files; web vitest (vab, editor, keybindings, hud) 417 pass in 54 files (inside-mode 9, pick-cycle 5); `bun run build` OK. Dev Hangar: on the Wayfarer Shuttle the selected keel shows an outline only; a click inside the bay selects the crew cabin, a click again the docking port behind, with the pick list; a double click enters the keel (breadcrumb, veil, rest dimmed); on Kronos V a double click enters the petals, Esc leaves, Section cuts the near half. Screenshots in the session notes folder `screens-378/`.
