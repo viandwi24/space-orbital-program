@@ -2,9 +2,45 @@
 import { describe, expect, it } from 'vitest';
 import { loadPlugins } from '@orbital/core';
 import Stock from '@orbital/mod-stock';
-import { homeSiteDraws, siteViews } from './site-views';
+import { constructionOf, homeSiteDraws, siteViews } from './site-views';
 
 const buildings = loadPlugins([Stock]).registries.buildings;
+
+describe('construction (plan 388)', () => {
+	const def = { levels: [{ buildDays: 20 }] } as never;
+	it('is the share built in twentieths while building, 0 when planned, absent when standing', () => {
+		expect(constructionOf({ state: 'building', readyDay: 30 }, def, 10)).toBe(0);
+		expect(constructionOf({ state: 'building', readyDay: 30 }, def, 25)).toBe(0.75);
+		expect(constructionOf({ state: 'building', readyDay: 30 }, def, 40)).toBe(1);
+		expect(constructionOf({ state: 'planned' }, def, 25)).toBe(0);
+		expect(constructionOf({ state: 'active' }, def, 25)).toBeUndefined();
+		// an upgrade keeps the building standing
+		expect(constructionOf({ state: 'upgrading', readyDay: 30 }, def, 25)).toBeUndefined();
+	});
+	it('reaches the renderer with the site', () => {
+		const views = siteViews(
+			{
+				id: 'east',
+				buildings: [
+					{
+						id: 'hq',
+						kind: 'stock.branch-hq',
+						cell: { i: 0, j: 0 },
+						rotation: 0,
+						level: 0,
+						state: 'building',
+						readyDay: 20
+					}
+				],
+				roads: []
+			} as never,
+			buildings,
+			10
+		);
+		expect(views[0]?.construction).toBeGreaterThanOrEqual(0);
+		expect(views[0]?.construction).toBeLessThan(1);
+	});
+});
 
 describe('siteViews', () => {
 	it('lists every placed building with its generator, including a deep-space dish built later', () => {

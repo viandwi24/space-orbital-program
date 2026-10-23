@@ -1747,7 +1747,7 @@ export function startFlight(options: FlightOptions): Flight {
 		if (draws.length === 0) {
 			// no world sites given (tests, the Legacy world): the first site at the primary place
 			const site = s.sites?.find((x) => x.body === homeBody) ?? s.sites?.[0];
-			renderer.setSiteBuildings(siteViews(site, options.buildings), site?.roads ?? []);
+			renderer.setSiteBuildings(siteViews(site, options.buildings, s.day), site?.roads ?? []);
 			return;
 		}
 		for (const d of draws) renderer.setSiteBuildings(d.views, d.roads, d.place);

@@ -12,6 +12,51 @@ const snapshot = (): Snapshot => ({
 	bodies: [{ id: BODY, position: { x: 0, y: 0, z: 0 }, rotation: { x: 0, y: 0, z: 0, w: 1 } }]
 });
 
+describe('a building under construction (plan 388)', () => {
+	const top = (gs: { computeBoundingBox(): void; boundingBox: { max: { y: number } } | null }[]) =>
+		Math.max(
+			...gs.map((g) => {
+				g.computeBoundingBox();
+				return g.boundingBox?.max.y ?? 0;
+			})
+		);
+	const office = (construction?: number) =>
+		buildSiteList(
+			[
+				{
+					id: 'b',
+					generator: 'office',
+					size: { w: 3, d: 2 },
+					cell: { i: 0, j: 0 },
+					rotation: 0,
+					...(construction !== undefined ? { construction } : {})
+				}
+			],
+			[]
+		);
+	test('a standing building has no planned shape and no scaffold', () => {
+		const p = office();
+		expect(p.planned).toHaveLength(0);
+		expect(p.glass.length).toBeGreaterThan(0);
+	});
+	test('is its finished shape faint, a scaffold to its height, and a core rising with progress', () => {
+		const standing = office();
+		const height = top([...standing.structure, ...standing.painted, ...standing.siding]);
+		const early = office(0.1);
+		const late = office(0.8);
+		// the finished shape is all in `planned`; no windows or doors of the real building yet
+		expect(early.planned.length).toBeGreaterThan(0);
+		expect(early.glass).toHaveLength(0);
+		expect(early.door).toHaveLength(0);
+		expect(top(early.planned)).toBeCloseTo(height, 1);
+		// the scaffold reaches the finished height
+		expect(top(early.thin)).toBeGreaterThanOrEqual(height - 0.5);
+		// the core: a tenth, then eight tenths, of the height
+		expect(top(early.structure)).toBeLessThan(height * 0.25);
+		expect(top(late.structure)).toBeGreaterThan(height * 0.7);
+	});
+});
+
 describe('the building list', () => {
 	test('a footprint centre is in site metres (x east, z south) and turns with the rotation', () => {
 		expect(footprintCentre({ size: { w: 3, d: 3 }, cell: { i: -1, j: -1 }, rotation: 0 })).toEqual({
