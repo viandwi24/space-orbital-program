@@ -96,12 +96,20 @@ export function chargeLaunch(core: SimCore, design: VesselDesign): void {
 	if (cost > 0) record(core, 'funds', -cost, ECONOMY_CAUSES.launch, design.name);
 }
 
-/** Value of a live vessel: every part's cost plus its current contents (ADR 0113 point 2). */
+/**
+ * Value of a live vessel: every part's cost plus its current contents (ADR 0113 point 2). An EVA
+ * suit (a `walk` part) and a planted flag (hidden, with a `keep` module) were never bought, so
+ * they are worth nothing: recovering them paid funds from nothing (system audit).
+ */
 export function vesselValue(core: SimCore, vesselId: EntityId): number {
 	let value = 0;
 	for (const id of vesselOf(core, vesselId).parts) {
 		const part = partOf(core, id);
-		value += partDefOf(core, part).cost ?? 0;
+		const def = partDefOf(core, part);
+		const planted =
+			def.catalog?.hidden === true && part.modules.some((m) => moduleDefOf(core, m.id).keep);
+		if (def.walk !== undefined || planted) continue;
+		value += def.cost ?? 0;
 		const stores: Array<{ module: ModuleDefinition; config: unknown; state: unknown }> = [];
 		for (const m of part.modules) {
 			const module = moduleDefOf(core, m.id);

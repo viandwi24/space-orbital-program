@@ -7,7 +7,7 @@ import type { SimCore } from './core.ts';
 
 /** Resources the electricity and monopropellant cheats cover; every other resource is "fuel". */
 const ELECTRICITY = new Set(['stock.electric-charge']);
-const MONOPROPELLANT = new Set(['stock.monopropellant', 'stock.eva-propellant']);
+const MONOPROPELLANT = new Set(['stock.monopropellant', 'stock.cold-gas']);
 
 /** True when `cheat` is on. Cheap: the other files call it every step. */
 export const cheatOn = (core: SimCore, cheat: DebugCheat): boolean =>
