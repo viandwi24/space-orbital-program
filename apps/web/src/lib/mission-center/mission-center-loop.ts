@@ -4,7 +4,13 @@
  * each frame a projection for the overlay's labels and network lines. A click is handed to the page,
  * which picks with `map-pick.ts`.
  */
-import { onGraphicsChange, probeCapabilities, startPreset } from '../graphics';
+import {
+	frameCapFps,
+	loadFrameCap,
+	onGraphicsChange,
+	probeCapabilities,
+	startPreset
+} from '../graphics';
 import type {
 	Command,
 	CommandResult,
@@ -14,7 +20,7 @@ import type {
 	Vec3,
 	WorldInfo
 } from '@orbital/core';
-import type { Renderer } from '@orbital/renderer';
+import { FramePacer, type Renderer } from '@orbital/renderer';
 import type { Catalog } from '../messages';
 import { worldRenderer } from '../world-renderer.svelte';
 import { startSimWorker } from '../sim-client';
@@ -82,10 +88,14 @@ export function startMissionCenter(options: MissionCenterOptions): MissionCenter
 		return s ? { x: s.x, y: s.y, hidden: s.hidden === true } : null;
 	};
 
+	// the frame-rate limit (Settings → Graphics) holds on this page too (system audit: Flight only)
+	const pacer = new FramePacer();
+	pacer.setCap(frameCapFps(loadFrameCap()));
+
 	function frame(now: number): void {
 		if (disposed) return;
 		raf = requestAnimationFrame(frame);
-		if (!renderer) return;
+		if (!renderer || !pacer.due(now)) return;
 		if (snap && dirty) {
 			renderer.update(snap);
 			dirty = false;
@@ -138,6 +148,7 @@ export function startMissionCenter(options: MissionCenterOptions): MissionCenter
 	const acquired = worldRenderer.acquire(options.host, client);
 	// a preset chosen in Settings applies at once on this page too (owner, 2026-10-22)
 	const offGraphics = onGraphicsChange((change) => {
+		if (change.kind === 'frameCap') pacer.setCap(frameCapFps(change.choice));
 		if (change.kind !== 'preset' || !renderer) return;
 		renderer.setPreset(
 			change.choice === 'auto' ? startPreset(null, null, probeCapabilities()) : change.choice

@@ -81,6 +81,16 @@ export const ICONS = {
 	comms: 'M4 6a11 11 0 0 0 12 12ZM10 12l7-7M12 21h8M16 18v3',
 	ellipse: 'M12 9.5a2.5 2.5 0 1 0 0 5a2.5 2.5 0 0 0 0-5ZM3 12a9 4.5 0 1 0 18 0a9 4.5 0 1 0-18 0Z',
 	drop: 'M12 3c-3 5-5 7.5-5 10.5a5 5 0 0 0 10 0c0-3-2-5.5-5-10.5Z',
+	// names stock and guidance use (system audit): panels, staging icons and action groups
+	target: 'M12 4a8 8 0 1 0 0 16a8 8 0 0 0 0-16ZM12 8a4 4 0 1 0 0 8a4 4 0 0 0 0-8ZM12 11.9v.2',
+	science: 'M9.5 3.5h5M10.5 3.5v6L5 19.5h14l-5.5-10v-6M7.5 15h9',
+	rcs: 'M12 9.5a2.5 2.5 0 1 0 0 5a2.5 2.5 0 0 0 0-5ZM12 3.5v3M12 17.5v3M3.5 12h3M17.5 12h3',
+	docking: 'M4 4h16v16H4ZM9 4v16',
+	battery: 'M4 7.5h14v9H4ZM18 10.5h2v3h-2M7.5 12h3M9 10.5v3',
+	solar: 'M3.5 6.5h17l-2 11h-13ZM9 6.5l-1 11M15 6.5l1 11M4.5 12h15',
+	light: 'M12 3.5a5.5 5.5 0 0 0-3 10.1V16h6v-2.4a5.5 5.5 0 0 0-3-10.1ZM9.5 19h5M10.5 21.5h3',
+	antenna: 'M12 10v11M8.5 21h7M8 6.5a5.5 5.5 0 0 1 8 0M5.5 4a9 9 0 0 1 13 0M12 9.5v.1',
+	wing: 'M3 15.5L21 8.5v3.5l-14 5.5Z',
 	// the map's spheres of influence switch (plan 293): a body inside a dashed sphere
 	soi: 'M12 10a2 2 0 1 0 0 4a2 2 0 0 0 0-4ZM5.6 5.6A9 9 0 0 1 10 3.2M14 3.2a9 9 0 0 1 4.4 2.4M20.8 10a9 9 0 0 1 0 4M18.4 18.4A9 9 0 0 1 14 20.8M10 20.8a9 9 0 0 1-4.4-2.4M3.2 14a9 9 0 0 1 0-4'
 } as const;

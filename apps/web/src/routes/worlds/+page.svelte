@@ -22,7 +22,7 @@
 	import { historyJson, historyMarkdown, historyOf } from '../../lib/worlds/history';
 	import { milestoneIcon } from '../../lib/worlds/milestone-icons';
 	import { worldHue } from '../../lib/worlds/system-art';
-	import { formatLatLon } from '../../lib/worlds/world-model';
+	import { formatLatLon, usesMissingMod } from '../../lib/worlds/world-model';
 	import { downloadText, fileNameOf } from '../../lib/download';
 	import type { Profile } from '../../lib/achievements/profile';
 	import AchievementsPanel from '../../lib/achievements/AchievementsPanel.svelte';
@@ -108,7 +108,7 @@
 			catalog?.presets.find((p) => p.id === `stock.${preset}`);
 		return found?.label ?? preset;
 	};
-	const missingMod = (r: WorldRecord): boolean => r.mods.some((m) => !loaded.has(m.id));
+	const missingMod = (r: WorldRecord): boolean => usesMissingMod(r.mods, loaded);
 	const days = (simTime: number): string =>
 		simTime < 86_400 ? `${Math.round(simTime / 3600)} h` : `${Math.round(simTime / 86_400)} days`;
 

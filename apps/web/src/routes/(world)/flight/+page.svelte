@@ -26,7 +26,11 @@
 	import { loadPlugins } from '@orbital/core';
 	import Stock from '@orbital/mod-stock';
 	import { activePlugins } from '../../../lib/mods/runtime';
-	import { scenarioStart, type ScenarioStart } from '../../../lib/missions/scenario-start';
+	import {
+		scenarioSiteOf,
+		scenarioStart,
+		type ScenarioStart
+	} from '../../../lib/missions/scenario-start';
 	import {
 		sortPanels,
 		type EntityId,
@@ -45,6 +49,7 @@
 	import { loadEphemeris, needsEphemeris } from '../../../lib/ephemeris-asset';
 	import type { WorldInfo } from '@orbital/core';
 	import {
+		defaultLaunchSpot,
 		sitesOf,
 		type Command,
 		type CommandResult,
@@ -354,7 +359,12 @@
 		dispatch: (command: Command) => Promise<CommandResult>
 	): Promise<true | string> {
 		if (!snap || at?.kind !== 'site') return true;
-		const spot = at.at ?? launchSites.find((x) => x.id === at.site)?.pads[at.pad ?? 0];
+		const site = launchSites.find((x) => x.id === at.site);
+		const spot =
+			at.at ??
+			(at.pad === undefined
+				? site && siteBuildings && defaultLaunchSpot(site, siteBuildings)
+				: site?.pads[at.pad]);
 		if (!spot) return true;
 		const prompt = occupiedPrompt(spotOccupants(snap, at.site, spot));
 		if (!prompt) return true;
@@ -781,9 +791,16 @@
 		const w = await saves.worldsService();
 		const record = await w.get(activeWorldId());
 		if (!record?.scenario || record.summary.saves > 0) return null;
-		const { registries } = loadPlugins([Stock, ...activePlugins()]);
+		const { registries } = loadPlugins(
+			[Stock, ...activePlugins()],
+			record.world
+				? { system: { id: record.world.systemId, variant: record.world.variant } }
+				: undefined
+		);
 		const scenario = registries.scenarios.get(record.scenario);
-		return scenario ? scenarioStart(scenario, registries.bodies) : null;
+		return scenario
+			? scenarioStart(scenario, registries.bodies, scenarioSiteOf(record.world))
+			: null;
 	}
 
 	onMount(() => {

@@ -3,6 +3,8 @@
  * it a declarative `VabScene` and pointer positions, it owns the WebGL renderer, the hangar, the
  * part models, the orbit camera, picking, node markers and the rendering of catalogue icons.
  */
+import { brightnessFactor } from '../exposure.ts';
+import { FramePacer } from '../frame-pacer.ts';
 import {
 	ACESFilmicToneMapping,
 	Box3,
@@ -1320,11 +1322,18 @@ export class VabView {
 		this.updateCameraGoal();
 	}
 
+	/** The frame-rate limit (Settings): frames per second, or null for the display's rate. */
+	private readonly pacer = new FramePacer();
+	setFrameCap(fps: number | null): void {
+		this.pacer.setCap(fps);
+	}
+
 	start(): void {
 		if (this.raf) return;
 		this.last = performance.now();
 		const loop = (now: number): void => {
 			this.raf = requestAnimationFrame(loop);
+			if (!this.pacer.due(now)) return;
 			const dt = Math.min(0.1, (now - this.last) / 1000);
 			this.last = now;
 			if (dt > 0) this.stats.fps = this.stats.fps * 0.9 + (1 / dt) * 0.1;
@@ -1401,6 +1410,11 @@ export class VabView {
 	/** Multiply tone-mapping exposure (settings, screenshots). */
 	setExposure(value: number): void {
 		this.gl.toneMappingExposure = value;
+	}
+
+	/** The player's Brightness (Settings, a level in stops), as Flight and the Space Center take it. */
+	setBrightness(level: number): void {
+		this.setExposure(brightnessFactor(level));
 	}
 
 	/** Handles for tuning and captures from the console, like `Renderer.debug`. */

@@ -146,3 +146,40 @@ describe('the ledger in the save', () => {
 		resumed.dispose();
 	});
 });
+
+describe('nothing from nothing (system audit)', () => {
+	test('recovering an EVA suit pays nothing; the crew round trip costs what the pod lost', async () => {
+		const sim = await createSim({
+			plugins: [Stock],
+			backendFactory: rapier(16),
+			world: {
+				...legacyWorldInfo(1),
+				id: '2b7c9e10-4d3a-4f6b-8e21-9a0c5d7f3e48',
+				preset: 'stock.career'
+			}
+		});
+		const funds = () => sim.snapshot().economy!.funds;
+		expect(sim.dispatch({ type: 'crew-hire', profession: 'pilot' }).ok).toBe(true);
+		const member = sim.snapshot().crew![0]!.id;
+		const before = funds();
+		const r = sim.dispatch({
+			type: 'load-vessel',
+			design: stack('Pod', ['stock.command-pod'], []),
+			placement: { kind: 'surface', latitude: 0, longitude: 0 },
+			crew: [{ member, part: 0 }]
+		});
+		if (!r.ok) throw new Error(r.reason);
+		const pod = r.vessel!;
+		for (let i = 0; i < 300; i++) sim.step(0.02);
+		const out = sim.dispatch({ type: 'crew-eva', vessel: pod, member });
+		expect(out.ok).toBe(true);
+		for (let i = 0; i < 300; i++) sim.step(0.02);
+		const suit = (out as { vessel?: number }).vessel!;
+		const atSuit = funds();
+		expect(sim.dispatch({ type: 'recover-vessel', vessel: suit as never }).ok).toBe(true);
+		expect(funds()).toBe(atSuit);
+		expect(sim.dispatch({ type: 'recover-vessel', vessel: pod }).ok).toBe(true);
+		expect(funds()).toBeLessThanOrEqual(before);
+		sim.dispose();
+	}, 120_000);
+});

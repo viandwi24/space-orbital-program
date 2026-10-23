@@ -5,7 +5,13 @@
 	 * a node's detail, and Research. Its sim runs from the world's newest save (or its start info),
 	 * and a research is saved at once.
 	 */
-	import { homeBodyOf, loadPlugins, type Snapshot } from '@orbital/core';
+	import {
+		homeBodyOf,
+		loadPlugins,
+		techBodiesOf,
+		type Snapshot,
+		type TechBodies
+	} from '@orbital/core';
 	import Stock from '@orbital/mod-stock';
 	import { onMount } from 'svelte';
 	import { referenceTwoStage } from '../../../lib/design';
@@ -53,7 +59,8 @@
 		}
 	});
 
-	const columns = $derived(techColumns(nodes, snapshot, partTitle));
+	let techBodies = $state.raw<TechBodies>({});
+	const columns = $derived(techColumns(nodes, snapshot, partTitle, techBodies));
 	const on = $derived(snapshot?.tech?.enabled === true);
 	const detail = $derived(
 		columns.flatMap((c) => c.nodes).find((n) => n.id === selected) ?? columns[0]?.nodes[0] ?? null
@@ -82,7 +89,11 @@
 			offs.push(shared.onSnapshot((s) => (snapshot = s)));
 			offs.push(shared.onError((m) => (note = m)));
 			shared.ready.then(
-				() => (ready = true),
+				(c) => {
+					// `home` and `moon` in a node's milestone are this world's (a Sol world's Earth and Moon)
+					techBodies = techBodiesOf(c.bodies, c.home);
+					ready = true;
+				},
 				(e: unknown) => (note = e instanceof Error ? e.message : String(e))
 			);
 		})();

@@ -1,12 +1,12 @@
 /** A mission pack from examples/ (plan 100, ADR 0151 point 4): its world starts with a vessel in orbit. */
-import { calendarOf, loadPlugins } from '@orbital/core';
+import { calendarOf, LEGACY_SITE, loadPlugins } from '@orbital/core';
 import Stock from '@orbital/mod-stock';
 import { createRapierBackend } from '@orbital/physics';
 import { createSim } from '@orbital/sim';
 import { describe, expect, it } from 'vitest';
 import Sample from '../../../../../examples/mod-sample/src/index';
 import { createWorldInfo } from '../worlds/world-model';
-import { scenarioStart } from './scenario-start';
+import { scenarioSiteOf, scenarioStart } from './scenario-start';
 
 const plugins = [Stock, Sample];
 const { registries } = loadPlugins(plugins);
@@ -63,5 +63,20 @@ describe('the sample mission pack', () => {
 		expect(sim.snapshot().objectives?.find((x) => x.source.id === 'sample.to-cinder')?.status).toBe(
 			'active'
 		);
+	});
+});
+
+describe('a scenario in a world with its own site (system audit)', () => {
+	it("a `site` vessel stands at the world's primary site, not at `legacy`", () => {
+		const hq = { ...structuredClone(LEGACY_SITE), id: 'space-center', latitude: 0.3, longitude: 1.1 };
+		expect(scenarioSiteOf({ sites: [hq] })).toBe('space-center');
+		expect(scenarioSiteOf(undefined)).toBe('legacy');
+		const { registries } = loadPlugins([Stock]);
+		const start = scenarioStart(
+			{ id: 'x.s', label: 'S', description: 'S', vessels: [{ site: true, design: { formatVersion: 1, name: 'P', parts: [], stages: [] } }] } as never,
+			registries.bodies,
+			scenarioSiteOf({ sites: [hq] })
+		);
+		expect(start.placement).toEqual({ kind: 'site', site: 'space-center' });
 	});
 });

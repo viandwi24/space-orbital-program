@@ -42,7 +42,7 @@ The renderer had no per-body look. A body without terrain was a flat Lambert bal
 7. **Gameplay follows the data.**
    - Generic contracts already offer flybys of every planet.
    - The main line goes on after the Moon: to Ochre (flyby, landing), then a Tempest flyby.
-   - The Nuclear power node asks for an Ochre flyby.
+   - The tech tree keeps its system-neutral milestones (`home`, `moon`, from the system audit), so it works in Sol worlds too: no node asks for a stock planet.
    - The Cinder transfer lesson's debrief and hint point at Ochre's window.
    - Discovery facts already roll for every body that is not a star, so the new bodies have theirs with no change.
    - The system art reads `appearance` (colours, bands and rings), so stock gets the right picture with no per-id hint.

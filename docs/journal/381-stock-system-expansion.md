@@ -18,7 +18,7 @@
 - **Web:** the scene config carries `appearance`. The system art reads it: palette, cloud colour, sky halo, bands and rings.
 - **Gameplay:**
   - The main line goes on after the Moon: `stock.ochre-flyby`, then `stock.ochre-landing`, then `stock.tempest-flyby`.
-  - The Nuclear power node asks for an Ochre flyby.
+  - The tech tree is unchanged: the system audit made its milestones system-neutral (`home`, `moon`) the same day, and a node asking for Ochre would never open in a Sol world.
   - The Cinder transfer lesson's debrief and hint point at Ochre.
   - Contracts already offer planet flybys.
 - **Tests:**

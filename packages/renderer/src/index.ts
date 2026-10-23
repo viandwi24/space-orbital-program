@@ -17,6 +17,7 @@ export * from './overlay-layer.ts';
 export * from './renderer.ts';
 export * from './presets.ts';
 export * from './quality-governor.ts';
+export * from './frame-pacer.ts';
 export * from './precompile-progress.ts';
 export * from './compile-report.ts';
 export * from './sun.ts';

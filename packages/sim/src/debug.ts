@@ -5,6 +5,7 @@
  */
 import {
 	bodyId,
+	defaultLaunchSpot,
 	padLatLon,
 	resolveVesselDesign,
 	sitesOf,
@@ -243,7 +244,9 @@ export function setLocation(
 	if (at.kind === 'site') {
 		const site = sitesOf(core.info).find((s) => s.id === at.site);
 		if (!site) return refuse(`unknown site "${at.site}"`);
-		const pad = site.pads[at.pad ?? 0];
+		// no pad named: where a launch stands, the first working pad (the site centre may be a building)
+		const pad =
+			at.pad === undefined ? defaultLaunchSpot(site, core.registries.buildings) : site.pads[at.pad];
 		if (!pad) return refuse(`site "${site.id}" has no pad ${at.pad}`);
 		body = bodyNamed(core, bodyId(site.body), core.root.def.id);
 		if (typeof body === 'string') return refuse(body);

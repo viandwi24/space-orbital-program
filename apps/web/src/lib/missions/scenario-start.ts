@@ -4,6 +4,8 @@
  */
 import {
 	scenarioPlacement,
+	sitesOf,
+	type WorldInfo,
 	type ScenarioDefinition,
 	type VesselDesign,
 	type VesselPlacement
@@ -32,3 +34,10 @@ export function scenarioStart(
 		missions: [...(scenario.missions ?? [])]
 	};
 }
+
+/**
+ * The site a scenario's `site` vessels stand at: the world's primary site. A world made from a
+ * site template (or any Sol world) has `space-center`, not `legacy` (system audit).
+ */
+export const scenarioSiteOf = (world: Pick<WorldInfo, 'sites'> | undefined): string =>
+	sitesOf(world ?? { sites: [] })[0]!.id;

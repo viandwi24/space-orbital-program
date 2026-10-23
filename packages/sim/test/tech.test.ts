@@ -1,6 +1,7 @@
 /** The tech tree in the sim (plan 105, ADR 0154): research gates, the lock at launch, the save. */
 import { describe, expect, test } from 'bun:test';
-import { legacyWorldInfo, type Plugin } from '@orbital/core';
+import { legacyWorldInfo, type Plugin, type WorldInfo } from '@orbital/core';
+import Sol from '@orbital/mod-sol';
 import Stock from '@orbital/mod-stock';
 import { defineTechNode, definePlugin } from '@orbital/sdk';
 import { createSim } from '../src/index.ts';
@@ -91,5 +92,64 @@ describe('tech tree', () => {
 		const r = sandbox.dispatch({ type: 'research', node: 'stock.instruments' });
 		expect(r.ok).toBe(false);
 		if (!r.ok) expect(r.reason).toBe('this world has no tech tree');
+	});
+});
+
+describe('tech milestones in every system (system audit)', () => {
+	const aliased: Plugin = definePlugin({
+		meta: { id: 'fix2', version: '1.0.0', api: '^0.1' },
+		depends: ['stock'],
+		setup(ctx) {
+			ctx.techNodes.register(
+				defineTechNode({
+					id: 'fix2.moon',
+					label: 'Moon',
+					tier: 2,
+					cost: 0,
+					requires: ['stock.basics'],
+					milestone: 'flyby:moon'
+				})
+			);
+		}
+	});
+
+	test('the stock tree names `home` and `moon`, never a stock body: a Sol career can finish it', async () => {
+		const sim = await newSim();
+		const named = sim.registries.techNodes
+			.list()
+			.filter((n) => n.id.startsWith('stock.'))
+			.map((n) => n.milestone)
+			.filter((m) => m !== undefined && /stock\./.test(m));
+		expect(named).toEqual([]);
+		sim.dispose();
+	});
+
+	test("`home` and `moon` are the world's own: Home and Cinder in stock, the Earth and the Moon in Sol", async () => {
+		const stock = await createSim({
+			plugins: [Stock, aliased],
+			backendFactory: rapier(),
+			seed: 5,
+			world: career()
+		});
+		const a = stock.dispatch({ type: 'research', node: 'fix2.moon' });
+		expect(a.ok ? '' : a.reason).toContain('"flyby:stock.cinder"');
+		stock.dispose();
+		const solWorld: WorldInfo = {
+			...career(),
+			id: 'tech-sol',
+			systemId: 'sol',
+			systemVersion: '0.1.0',
+			variant: 'rescaled',
+			sites: []
+		};
+		const sol = await createSim({
+			plugins: [Stock, Sol, aliased],
+			backendFactory: rapier(),
+			seed: 5,
+			world: solWorld
+		});
+		const b = sol.dispatch({ type: 'research', node: 'fix2.moon' });
+		expect(b.ok ? '' : b.reason).toContain('"flyby:sol.moon"');
+		sol.dispose();
 	});
 });

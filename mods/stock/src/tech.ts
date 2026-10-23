@@ -110,7 +110,7 @@ export const STOCK_TECH = [
 		tier: 2,
 		cost: 15,
 		requires: ['stock.structures'],
-		milestone: 'orbit:stock.home',
+		milestone: 'orbit:home',
 		description: 'More thrust: the cluster engine and the bigger boosters.',
 		unlocks: ['stock.engine-cluster', 'stock.booster', 'stock.srb-large', 'stock.booster-liquid']
 	}),
@@ -120,7 +120,7 @@ export const STOCK_TECH = [
 		tier: 2,
 		cost: 10,
 		requires: ['stock.structures'],
-		milestone: 'orbit:stock.home',
+		milestone: 'orbit:home',
 		description: 'A light engine made for vacuum, for transfers and landings.',
 		unlocks: ['stock.engine-vacuum']
 	}),
@@ -130,7 +130,7 @@ export const STOCK_TECH = [
 		tier: 2,
 		cost: 12,
 		requires: ['stock.instruments'],
-		milestone: 'orbit:stock.home',
+		milestone: 'orbit:home',
 		description: 'Fly without crew: a probe core and a whip antenna.',
 		unlocks: [
 			'stock.probe-core',
@@ -145,7 +145,7 @@ export const STOCK_TECH = [
 		tier: 2,
 		cost: 10,
 		requires: ['stock.instruments'],
-		milestone: 'orbit:stock.home',
+		milestone: 'orbit:home',
 		description: 'Solar panels, batteries and lights to keep a probe alive.',
 		unlocks: [
 			'stock.solar-panel',
@@ -171,7 +171,7 @@ export const STOCK_TECH = [
 		tier: 2,
 		cost: 8,
 		requires: ['stock.shapes'],
-		milestone: 'orbit:stock.home',
+		milestone: 'orbit:home',
 		description: 'Wings, control surfaces and wheels.',
 		unlocks: ['stock.wing', 'stock.control-surface', 'stock.wheel', 'stock.wheel-steer']
 	}),
@@ -181,7 +181,7 @@ export const STOCK_TECH = [
 		tier: 2,
 		cost: 5,
 		requires: ['stock.basics'],
-		milestone: 'orbit:stock.home',
+		milestone: 'orbit:home',
 		description:
 			'More parachutes: a radial one, a drogue for fast descents, and a ring of mains that leaves the apex free for a docking port.',
 		unlocks: [
@@ -199,7 +199,7 @@ export const STOCK_TECH = [
 		tier: 3,
 		cost: 120,
 		requires: ['stock.orbital-engines'],
-		milestone: 'flyby:stock.cinder',
+		milestone: 'flyby:moon',
 		description: 'Legs and a ladder for the ground of another world.',
 		unlocks: [
 			'stock.landing-legs',
@@ -216,7 +216,7 @@ export const STOCK_TECH = [
 		tier: 3,
 		cost: 100,
 		requires: ['stock.experiments'],
-		milestone: 'flyby:stock.cinder',
+		milestone: 'flyby:moon',
 		description: 'The instruments that need solid ground.',
 		unlocks: [
 			'stock.seismometer',
@@ -231,7 +231,7 @@ export const STOCK_TECH = [
 		tier: 3,
 		cost: 110,
 		requires: ['stock.probes'],
-		milestone: 'flyby:stock.cinder',
+		milestone: 'flyby:moon',
 		description: 'A dish for long links and an air sampler.',
 		unlocks: [
 			'stock.dish-antenna',
@@ -248,7 +248,7 @@ export const STOCK_TECH = [
 		tier: 3,
 		cost: 80,
 		requires: ['stock.probes'],
-		milestone: 'flyby:stock.cinder',
+		milestone: 'flyby:moon',
 		description: 'Thrusters that push without turning, and their monopropellant.',
 		unlocks: [
 			'stock.rcs-block',
@@ -266,7 +266,7 @@ export const STOCK_TECH = [
 		tier: 3,
 		cost: 80,
 		requires: ['stock.propulsion'],
-		milestone: 'flyby:stock.cinder',
+		milestone: 'flyby:moon',
 		description:
 			'The 1.875 m and 2.5 m classes: wide tanks, the wide engine, their decouplers, shields and adapters.',
 		unlocks: [
@@ -299,7 +299,7 @@ export const STOCK_TECH = [
 		tier: 4,
 		cost: 100,
 		requires: ['stock.rcs'],
-		milestone: 'landing:stock.cinder',
+		milestone: 'landing:moon',
 		description: 'Ports in three sizes to join vessels in orbit.',
 		unlocks: [
 			'stock.docking-port-small',
@@ -317,7 +317,7 @@ export const STOCK_TECH = [
 		tier: 4,
 		cost: 60,
 		requires: ['stock.heavy-lift'],
-		milestone: 'landing:stock.cinder',
+		milestone: 'landing:moon',
 		description: 'Shells that keep a payload out of the air on the way up.',
 		unlocks: [
 			'stock.fairing-base-small',
@@ -336,7 +336,7 @@ export const STOCK_TECH = [
 		tier: 4,
 		cost: 100,
 		requires: ['stock.landing'],
-		milestone: 'landing:stock.cinder',
+		milestone: 'landing:moon',
 		description: 'Long flights with crew, and a collar to float.',
 		unlocks: [
 			'stock.life-support-pack',
@@ -356,7 +356,7 @@ export const STOCK_TECH = [
 		tier: 4,
 		cost: 40,
 		requires: ['stock.power'],
-		milestone: 'landing:stock.cinder',
+		milestone: 'landing:moon',
 		description: 'A large solar array and a large battery.',
 		unlocks: [
 			'stock.solar-array-large',
@@ -374,7 +374,7 @@ export const STOCK_TECH = [
 		tier: 5,
 		cost: 320,
 		requires: ['stock.life-support'],
-		milestone: 'landing:stock.cinder',
+		milestone: 'landing:moon',
 		description:
 			'A base kit to found a site on another body, a drill for its outposts (plan 128), and hinges, servos, rotors and pistons (plan 306).',
 		unlocks: [
@@ -407,8 +407,7 @@ export const STOCK_TECH = [
 		tier: 5,
 		cost: 250,
 		requires: ['stock.advanced-power'],
-		// power for the outer planets, after the first flight to one (plan 381)
-		milestone: 'flyby:stock.ochre',
+		milestone: 'landing:moon',
 		description: 'A radioisotope generator: power far from the star, day and night.',
 		unlocks: ['stock.rtg', 'stock.rtg-radial']
 	}),
@@ -418,7 +417,7 @@ export const STOCK_TECH = [
 		tier: 5,
 		cost: 300,
 		requires: ['stock.heavy-lift'],
-		milestone: 'landing:stock.cinder',
+		milestone: 'landing:moon',
 		description:
 			'The 3.75, 5 and 7.5 m classes: tanks, decouplers, adapters, nose cones, shields and fairing bases (plan 289).',
 		unlocks: [

@@ -10,6 +10,7 @@ import {
 	isIdentityRule,
 	presetRules,
 	ruleGroups,
+	usesMissingMod,
 	type CreateWorldInput,
 	type RuleCatalog
 } from './world-model';
@@ -156,5 +157,13 @@ describe('catch-up offer', () => {
 		expect(catchUpOffer(epoch, UTC, { ...onRails, t: 40 * 86_400 }, NOW).kind).toBe('none');
 		expect(catchUpOffer(epoch, UTC, { ...onRails, t: 50 * 86_400 }, NOW).kind).toBe('none');
 		expect(catchUpOffer({ day: 0, fraction: 0 }, FICTIONAL, onRails, NOW).kind).toBe('none');
+	});
+});
+
+describe('missing mods (system audit)', () => {
+	it('a retired built-in mod (Trajectories, now in Guidance) is not reported missing', () => {
+		const loaded = new Map([['stock', '1.0.0'], ['guidance', '1.0.0']]);
+		expect(usesMissingMod([{ id: 'stock' }, { id: 'trajectories' }], loaded)).toBe(false);
+		expect(usesMissingMod([{ id: 'stock' }, { id: 'someone.rovers' }], loaded)).toBe(true);
 	});
 });
