@@ -6,7 +6,7 @@ import Stock from '@orbital/mod-stock';
 import { defineTechNode, definePlugin } from '@orbital/sdk';
 import { createSim } from '../src/index.ts';
 import { orbitState } from './helpers/measure.ts';
-import { probe, rapier, twoStage } from './helpers/vessels.ts';
+import { probe, rapier, stack, twoStage } from './helpers/vessels.ts';
 
 const fixture: Plugin = definePlugin({
 	meta: { id: 'fix', version: '1.0.0', api: '^0.1' },
@@ -151,5 +151,23 @@ describe('tech milestones in every system (system audit)', () => {
 		const b = sol.dispatch({ type: 'research', node: 'fix2.moon' });
 		expect(b.ok ? '' : b.reason).toContain('"flyby:sol.moon"');
 		sol.dispose();
+	});
+});
+
+describe('the first science from the start (player-journey audit Q6)', () => {
+	test('a new Career world launches a pod with a thermometer: Basics has it', async () => {
+		const sim = await createSim({
+			plugins: [Stock],
+			backendFactory: rapier(),
+			seed: 5,
+			world: career()
+		});
+		const r = sim.dispatch({
+			type: 'load-vessel',
+			design: stack('Pod and thermometer', ['stock.command-pod', 'stock.thermometer'], []),
+			crew: []
+		});
+		expect(r.ok ? '' : r.reason).toBe('');
+		sim.dispose();
 	});
 });

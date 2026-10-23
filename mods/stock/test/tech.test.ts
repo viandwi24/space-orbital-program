@@ -27,7 +27,8 @@ function yieldOf(body: string, situations: readonly string[], only?: readonly st
 }
 
 const ascent = ['stock.landed', 'stock.flying-low', 'stock.flying-high', 'stock.space-low'];
-const starter = ['stock.temperature', 'stock.pressure'];
+// what Basics measures (player-journey audit Q6): the thermometer alone
+const starter = ['stock.temperature'];
 const tierCost = (t: number) =>
 	registries.techNodes
 		.list()
@@ -48,9 +49,13 @@ describe('stock tech tree pacing', () => {
 		expect(tierCost(1)).toBeLessThanOrEqual(home.first);
 	});
 
-	test('tiers 1 and 2 need between one and two first ascents', () => {
+	test('tiers 1 and 2 need between one and two ascents', () => {
+		// the second ascent carries what tier 1 bought (pressure, goo, materials, the air sample)
+		// beside the thermometer's repeat, at half its first value (player-journey audit Q6)
+		const tier1 = ['stock.pressure', 'stock.goo', 'stock.materials', 'stock.atmosphere-sample'];
+		const second = yieldOf('stock.home', ascent, tier1).first + home.first / 2;
 		expect(upTo(2)).toBeGreaterThan(home.first);
-		expect(upTo(2)).toBeLessThanOrEqual(2 * home.first);
+		expect(upTo(2)).toBeLessThanOrEqual(home.first + second);
 	});
 
 	test('tier 3 cannot be bought with Home alone, and can with a Cinder flyby', () => {

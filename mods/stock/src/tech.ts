@@ -14,7 +14,8 @@ export const STOCK_TECH = [
 		label: 'Basics',
 		tier: 0,
 		cost: 0,
-		description: 'A pod, a tank, an engine, a small solid booster and the parts to stage them.',
+		description:
+			'A pod, a tank, an engine, a small solid booster, the parts to stage them, and a thermometer for the first science.',
 		unlocks: [
 			'stock.command-pod',
 			'stock.reaction-wheel',
@@ -29,7 +30,10 @@ export const STOCK_TECH = [
 			// launch clamps from the start, as in KSP (plan 210)
 			'stock.launch-clamp',
 			// a first hop on a solid motor (plan 231)
-			'stock.srb-small'
+			'stock.srb-small',
+			// the first science from the start (player-journey audit Q6): a thermometer on the pod
+			'stock.thermometer',
+			'stock.thermometer-radial'
 		]
 	}),
 	// ---- tier 1: 25 science, one first ascent ----
@@ -39,12 +43,10 @@ export const STOCK_TECH = [
 		tier: 1,
 		cost: 10,
 		requires: ['stock.basics'],
-		description: 'Measure temperature and pressure on the way up, and keep the data.',
+		description: 'Measure pressure on the way up, and keep the data.',
 		unlocks: [
-			'stock.thermometer',
 			'stock.barometer',
 			'stock.data-drive',
-			'stock.thermometer-radial',
 			'stock.barometer-radial',
 			'stock.data-drive-radial'
 		]
