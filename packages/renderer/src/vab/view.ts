@@ -80,7 +80,11 @@ import {
 	GIZMO_AXES,
 	GizmoKit,
 	RING_RADIUS,
-	nearestGizmoAxis,
+	nearestGizmoHandle,
+	planeCoordinates,
+	planeCorners,
+	GIZMO_PLANES,
+	PLANE_AXES,
 	ringPoints,
 	type ScreenXY
 } from './gizmo.ts';
@@ -119,6 +123,8 @@ import {
 	repeatedDefinitions,
 	sameMarkers,
 	type GizmoAxis,
+	type GizmoHandle,
+	type GizmoPlane,
 	type VabGizmo,
 	type VabMarker,
 	type VabNode,
@@ -651,14 +657,19 @@ export class VabView {
 		return { centre, tips, facing };
 	}
 
-	/** The gizmo axis (arrow or ring) within `px` CSS pixels of the pointer, or null (plan 279). */
-	gizmoAxisNear(clientX: number, clientY: number, px: number): GizmoAxis | null {
+	/**
+	 * The gizmo handle under the pointer: a plane square it is inside (Move), else the axis (arrow
+	 * or ring) within `px` CSS pixels, or null (plans 279 and 304).
+	 */
+	gizmoHandleNear(clientX: number, clientY: number, px: number): GizmoHandle | null {
 		const g = this.gizmoKit.current;
 		const root = this.gizmoKit.root;
 		if (!g || !root.parent || !root.visible) return null;
 		const rect = this.config.canvas.getBoundingClientRect();
 		const pointer = { x: clientX - rect.left, y: clientY - rect.top };
 		this.layer.root.updateMatrixWorld(true);
+		const toScreen = (p: readonly number[]): ScreenXY | null =>
+			this.toScreen(root.localToWorld(new Vector3(p[0], p[1], p[2])));
 		const shapes: Partial<Record<GizmoAxis, ScreenXY[]>> = {};
 		g.axes.forEach((a, i) => {
 			const axis = GIZMO_AXES[i]!;
@@ -669,12 +680,44 @@ export class VabView {
 							[a[0] * ARROW_LENGTH, a[1] * ARROW_LENGTH, a[2] * ARROW_LENGTH]
 						]
 					: ringPoints([0, 0, 0], a, RING_RADIUS);
-			const pts = local
-				.map((p) => this.toScreen(root.localToWorld(new Vector3(p[0], p[1], p[2]))))
-				.filter((p): p is ScreenXY => p !== null);
-			shapes[axis] = pts;
+			shapes[axis] = local.map(toScreen).filter((p): p is ScreenXY => p !== null);
 		});
-		return nearestGizmoAxis(pointer, shapes, g.mode, px);
+		const planes: Partial<Record<GizmoPlane, ScreenXY[]>> = {};
+		if (g.mode === 'move') {
+			for (const plane of GIZMO_PLANES) {
+				const quad = planeCorners(g.axes, plane)
+					.map(toScreen)
+					.filter((p): p is ScreenXY => p !== null);
+				if (quad.length === 4) planes[plane] = quad;
+			}
+		}
+		return nearestGizmoHandle(pointer, shapes, planes, g.mode, px);
+	}
+
+	/**
+	 * Where the pointer is on the plane handle `plane`'s plane, as metres along its two axes from the
+	 * gizmo's centre (a drag of the handle, plan 304); null when the ray misses it.
+	 */
+	gizmoPlaneCoordinates(
+		clientX: number,
+		clientY: number,
+		plane: GizmoPlane
+	): { u: number; v: number } | null {
+		const g = this.gizmoKit.current;
+		const root = this.gizmoKit.root;
+		if (!g || !root.parent) return null;
+		this.layer.root.updateMatrixWorld(true);
+		const q = root.parent.getWorldQuaternion(new Quaternion());
+		const { u, v } = PLANE_AXES[plane];
+		const au = new Vector3(...g.axes[u]).applyQuaternion(q);
+		const av = new Vector3(...g.axes[v]).applyQuaternion(q);
+		const c = root.getWorldPosition(new Vector3());
+		return planeCoordinates(
+			this.rayAt(clientX, clientY),
+			[c.x, c.y, c.z],
+			[au.x, au.y, au.z],
+			[av.x, av.y, av.z]
+		);
 	}
 
 	/** Stability glyphs (centre of mass and pressure) are re-created only when the list changes. */

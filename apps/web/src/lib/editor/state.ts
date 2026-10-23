@@ -118,9 +118,26 @@ const snapshotOf = (s: Doc): Doc => ({
 	nextIndex: s.nextIndex
 });
 
+/**
+ * The design without a tilt or an offset on its root (plan 304, ADR 0258's "As built"): the root
+ * stands where the design frame is and the resolver ignores both, so a design the editor holds
+ * never carries a value that does nothing. The same value is kept when there is none to drop.
+ */
+export function withoutRootPlacement(design: VesselDesign): VesselDesign {
+	if (!design.parts.some((p) => p.parent === null && (p.tilt || p.offset))) return design;
+	return {
+		...design,
+		parts: design.parts.map((p) => {
+			if (p.parent !== null) return p;
+			const { tilt: _tilt, offset: _offset, ...rest } = p;
+			return rest;
+		})
+	};
+}
+
 /** Applies auto-staging when it is on, then pushes the previous document onto the history. */
 function commit(state: EditorState, next: Doc, content: Content): EditorState {
-	const pruned = pruneGroups(next.design);
+	const pruned = pruneGroups(withoutRootPlacement(next.design));
 	const design = next.autoStage
 		? {
 				...pruned,
@@ -310,6 +327,14 @@ const turnedTarget = (t: AttachTarget, a: number): AttachTarget =>
 const mirrorTilt = (t: DesignTilt | undefined): DesignTilt | undefined =>
 	t && (t.x !== 0 || t.y !== 0) ? { x: -t.x, y: -t.y, z: t.z } : t;
 
+/**
+ * An inner part's offset reflected with its copy (plan 304): inside a mirrored sub-assembly the
+ * parts hang on parts that were reflected too, so the reflection is across each parent's XY plane
+ * (the plane `mirrorTilt` uses) and the offset's z flips (`memberTransform`'s inherited case).
+ */
+const mirrorOffset = (o: DesignOffset | undefined): DesignOffset | undefined =>
+	o && o.z !== 0 ? { x: o.x, y: o.y, z: -o.z } : o;
+
 /** Copy of `assembly` with its indices renumbered to `base`, `base + 1`, ... in ascending order of the old ones. */
 export function reindex(assembly: VesselDesign, base: number): VesselDesign {
 	const order = [...assembly.parts].sort((a, b) => a.index - b.index);
@@ -419,15 +444,18 @@ export function planAttachAssembly(
 			} else {
 				group = shared.get(old.index);
 			}
-			const { symmetry: _drop, mirror: _was, tilt, ...rest } = p;
+			const { symmetry: _drop, mirror: _was, tilt, offset, ...rest } = p;
 			const turned =
 				rootTilt !== undefined && p.index === copyRoot
 					? (rootTilt ?? undefined)
 					: mirrored
 						? mirrorTilt(tilt)
 						: tilt;
+			// a mirrored copy's inner parts take their offsets reflected; its root keeps the target's (plan 304)
+			const moved = mirrored && p.index !== copyRoot ? mirrorOffset(offset) : offset;
 			return {
 				...rest,
+				...(moved ? { offset: moved } : {}),
 				...(turned ? { tilt: turned } : {}),
 				...(group === undefined ? {} : { symmetry: group }),
 				...(mirrored && group !== undefined ? { mirror: true as const } : {})

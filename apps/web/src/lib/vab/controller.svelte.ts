@@ -39,6 +39,9 @@ import {
 	readLook,
 	saveLook,
 	type GizmoAxis,
+	type GizmoHandle,
+	type GizmoPlane,
+	PLANE_AXES,
 	type HangarLook,
 	type VabGizmo,
 	type VabMarker
@@ -200,6 +203,7 @@ const HANDLE_PX = 28;
 const TURN_STEP = Math.PI / 2;
 const TURN_FINE = (5 * Math.PI) / 180;
 
+const isPlane = (h: GizmoHandle): h is GizmoPlane => h.length === 2;
 /** How close (CSS pixels) a press must be to grab a gizmo arrow or ring. */
 const GIZMO_PX = 14;
 
@@ -370,7 +374,7 @@ export class VabController {
 	/** Snap to nodes (plan 279): off, a held part goes on any surface at the cursor and rings are ignored. */
 	snapNodes = $state(true);
 	/** The gizmo axis being dragged (drawn highlighted). */
-	gizmoActive = $state<GizmoAxis | null>(null);
+	gizmoActive = $state<GizmoHandle | null>(null);
 
 	// library
 	libraryOpen = $state(false);
@@ -958,6 +962,19 @@ export class VabController {
 			targets: () =>
 				this.targets.map((t, i) => ({ i, parent: t.parent, node: t.node, radial: t.radial })),
 			active: () => this.active,
+			// the move gizmo on the page (plan 304): its centre, the tip of an axis arrow (one metre out) and a part's offset
+			gizmo: () => {
+				const s = this.view?.gizmoScreen();
+				return s
+					? {
+							centre: this.pageOf(s.centre),
+							tips: Object.fromEntries(
+								Object.entries(s.tips).map(([axis, tip]) => [axis, tip ? this.pageOf(tip) : null])
+							)
+						}
+					: null;
+			},
+			offsetOf: (index: number) => offsetOf(this.editor.design, index),
 			// inside mode (plan 378): the entered shell and what each shell holds
 			inside: () => this.entered,
 			shells: () => [...this.shells].map(([shell, holds]) => ({ shell, holds: [...holds] })),
@@ -1748,7 +1765,10 @@ export class VabController {
 
 	/** A gizmo drag (plan 279): the axis, where it started on screen and the state it started from. */
 	private gizmoDrag: {
-		axis: GizmoAxis;
+		/** An axis, or in Move a plane handle (plan 304). */
+		axis: GizmoHandle;
+		/** A plane handle: where the pointer first met its plane, m along its two axes. */
+		from: { u: number; v: number } | null;
 		x: number;
 		y: number;
 		start: EditorState;
@@ -1762,10 +1782,15 @@ export class VabController {
 	private grabGizmo(e: PointerEvent): boolean {
 		const sel = this.toolTarget;
 		if (sel === null || e.button !== 0) return false;
-		const axis = this.view?.gizmoAxisNear(e.clientX, e.clientY, GIZMO_PX) ?? null;
+		const axis = this.view?.gizmoHandleNear(e.clientX, e.clientY, GIZMO_PX) ?? null;
 		if (!axis) return false;
+		const from = isPlane(axis)
+			? (this.view?.gizmoPlaneCoordinates(e.clientX, e.clientY, axis) ?? null)
+			: null;
+		if (isPlane(axis) && !from) return false;
 		this.gizmoDrag = {
 			axis,
+			from,
 			x: e.clientX,
 			y: e.clientY,
 			start: this.editor,
@@ -1790,7 +1815,26 @@ export class VabController {
 		if (!d || !s) return;
 		const snap = (v: number, step: number) => snapTo(v, step, e.altKey);
 		try {
-			if (this.tool === 'move') {
+			if (this.tool === 'move' && isPlane(d.axis)) {
+				// a plane handle: the pointer's travel on the plane, along its two axes at once (plan 304)
+				const now = this.view?.gizmoPlaneCoordinates(e.clientX, e.clientY, d.axis);
+				if (!now || !d.from) return;
+				const step = e.shiftKey ? MOVE_FINE : MOVE_STEP;
+				const { u, v } = PLANE_AXES[d.axis];
+				const delta: [number, number, number] = [0, 0, 0];
+				delta[u] = snap(now.u - d.from.u, step);
+				delta[v] = snap(now.v - d.from.v, step);
+				const offset = nudgedOffset(d.start.design, this.lookup, d.index, delta, this.toolFrame);
+				if (!offset) return;
+				this.preview = setPlacement(
+					d.start,
+					this.editorContent,
+					d.index,
+					{ offset },
+					{ single: this.onlyThis }
+				);
+			} else if (this.tool === 'move') {
+				if (isPlane(d.axis)) return;
 				const tip = s.tips[d.axis];
 				if (!tip) return;
 				const tx = tip.x - s.centre.x;
@@ -1818,6 +1862,7 @@ export class VabController {
 					}
 				);
 			} else {
+				if (isPlane(d.axis)) return;
 				const now = this.screenAngle(e);
 				let step = now - d.last;
 				step = Math.atan2(Math.sin(step), Math.cos(step));
@@ -2420,7 +2465,7 @@ export class VabController {
 			return;
 		}
 		if (this.toolTarget !== null && !this.drag && this.canvas) {
-			const over = this.view?.gizmoAxisNear(e.clientX, e.clientY, GIZMO_PX) ?? null;
+			const over = this.view?.gizmoHandleNear(e.clientX, e.clientY, GIZMO_PX) ?? null;
 			this.canvas.style.cursor = over ? 'grab' : '';
 		}
 		const d = this.drag;

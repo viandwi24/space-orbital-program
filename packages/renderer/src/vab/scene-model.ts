@@ -93,6 +93,10 @@ export interface VabMarker {
 
 /** An axis of the Hangar's gizmo (plan 279). */
 export type GizmoAxis = 'x' | 'y' | 'z';
+/** A plane handle of the move gizmo (plan 304): the plane of two axes. */
+export type GizmoPlane = 'xy' | 'yz' | 'zx';
+/** What a gizmo press can grab: an axis, or in Move a plane. */
+export type GizmoHandle = GizmoAxis | GizmoPlane;
 
 /**
  * The move (three arrows) or rotate (three rings) gizmo at the selected part (plan 279, ADR 0258
@@ -106,7 +110,7 @@ export interface VabGizmo {
 	/** The x, y and z axes of the tool's frame (unit vectors in the group's frame). */
 	axes: readonly [V3, V3, V3];
 	/** The axis being dragged: drawn highlighted. */
-	active?: GizmoAxis | null;
+	active?: GizmoHandle | null;
 }
 
 export interface VabScene {

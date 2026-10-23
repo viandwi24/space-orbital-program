@@ -1,8 +1,8 @@
 ---
 id: 304
 title: "Hangar free placement follow-ups: plane handles, mirrored inner offsets, the root's own tilt and offset, e2e"
-status: draft
-owner: ""
+status: done
+owner: "Worker A"
 depends: [279, 348, 357]
 phase: 0
 created: 2026-10-21
@@ -41,20 +41,21 @@ Finish what plan 279 left out of ADR 0258: the move gizmo has plane handles, the
 
 ## Acceptance criteria
 
-- [ ] `bun test packages/renderer`: a plane handle is picked by screen distance, and a drag on it moves a part in two axes at once.
-- [ ] web vitest: a mirrored sub-assembly copy has its inner parts' offsets reflected.
-- [ ] `bun test packages/core` or web vitest: a design whose root has a tilt or an offset either resolves with it applied and launches upright, or cannot be made in the editor.
-- [ ] e2e: moving a part 0.5 m with the gizmo and saving reloads it at the same place (run when the owner allows e2e).
-- [ ] `bun test`, `bun run typecheck`, `bun run build` and `bun run docs:check` pass.
+- [x] `bun test packages/renderer`: a plane handle is picked by screen distance, and a drag on it moves a part in two axes at once.
+- [x] web vitest: a mirrored sub-assembly copy has its inner parts' offsets reflected.
+- [x] `bun test packages/core` or web vitest: a design whose root has a tilt or an offset either resolves with it applied and launches upright, or cannot be made in the editor.
+- [ ] e2e (written, not run: e2e is paused): moving a part 0.5 m with the gizmo and saving reloads it at the same place (run when the owner allows e2e).
+- [x] `bun test`, `bun run typecheck`, `bun run build` and `bun run docs:check` pass.
 
 ## Docs checklist
 
-- [ ] `docs/STATUS.md` updated (board row, next plan, open issues).
-- [ ] `docs/journal/304-hangar-free-placement-follow-ups.md` written.
-- [ ] ADR 0258's "As built" note updated.
-- [ ] New ADRs written for any decision made here, linked above.
+- [x] `docs/STATUS.md` updated (board row, next plan, open issues).
+- [x] `docs/journal/304-hangar-free-placement-follow-ups.md` written.
+- [x] ADR 0258's "As built" note updated.
+- [x] New ADRs: none (no format change; the choices are in ADR 0258's note).
 
 ## Log
 
 - 2026-10-24 — Rewritten by the coordinator after an audit against main @ 4c546c02: re-root is done by plan 348 (ADR 0297, `editor/reroot.ts`) and extended by 357, so the ADR step is removed; plane handles, mirrored inner offsets, the root's own tilt and offset, and the e2e test (e2e paused by the owner) remain; depends add 348 and 357 (not 378: nested editing does not touch the gizmo).
 - 2026-10-21 — Drafted from plan 279's leftovers.
+- 2026-10-24 — Worker A: plane handles; mirrored inner offsets (the bug was real: a mirrored copy's inner offsets were copied unreflected, 0.4 m off for a 0.2 m z offset); the root's tilt and offset are refused by dropping them in the editor (the resolver ignores them, so nothing changes in the design's geometry). e2e written, not run.
