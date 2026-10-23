@@ -1,0 +1,23 @@
+{
+	"name": "@orbital/example-mod-crew-sample",
+	"version": "0.0.0",
+	"license": "Apache-2.0",
+	"private": true,
+	"description": "Sample mod for the crew content API (plan 375, ADR 0313): an outfit, a walk and a wave, an expression, a portrait image and an outfit patch. Built into a package with tools/mod-build/build-mod.ts.",
+	"type": "module",
+	"scripts": {
+		"typecheck": "tsc --noEmit -p tsconfig.json",
+		"build": "bun run ../../tools/mod-build/build-mod.ts .",
+		"test": "bun test"
+	},
+	"peerDependencies": {
+		"@orbital/sdk": "workspace:*"
+	},
+	"devDependencies": {
+		"@orbital/core": "workspace:*",
+		"@orbital/mod-stock": "workspace:*",
+		"@orbital/sdk": "workspace:*",
+		"typescript": "catalog:",
+		"@types/bun": "latest"
+	}
+}

@@ -273,7 +273,7 @@ export class LaunchSite {
 	private readonly pad = newPadTracker();
 	private readonly steam = new SiteSteam(VENTS);
 	/** Staff walking about the pad (plan 341): one skinned mesh each, always drawn. */
-	private readonly people = createWalkers(SITE_PEOPLE);
+	private readonly people = createWalkers(SITE_PEOPLE, 'space-center');
 	private detailStructures = true;
 	private lastLamps = 0;
 

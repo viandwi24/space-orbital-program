@@ -104,59 +104,49 @@ export const TUG_LENGTH = 3.6;
 
 // --- crew ------------------------------------------------------------------------------------------------------
 
-/** The Hangar's people: engineers, scientists, mechanics and researchers at work (owner, 2026-10-22). */
+/** The Hangar's people at work (owner, 2026-10-22), in the outfits registered for `hangar` (ADR 0313). */
 export const CREW: readonly CrewSpec[] = [
 	{
-		outfit: 'engineer',
 		id: 'hangar-1',
 		path: { kind: 'circle', radius: 8.3, start: 0.9, direction: 1 }
 	},
 	{
-		outfit: 'scientist',
 		id: 'hangar-2',
 		path: { kind: 'circle', radius: 8.9, start: 4.1, direction: -1 }
 	},
 	{
-		outfit: 'mechanic',
 		id: 'hangar-3',
 		path: { kind: 'line', from: [-19.5, -8.6], to: [-12.8, -9.4], pause: 3 }
 	},
 	{
-		outfit: 'researcher',
 		id: 'hangar-9',
 		path: { kind: 'line', from: [8.5, 13.5], to: [19, 8.5], pause: 4 }
 	},
 	{
-		outfit: 'engineer',
 		id: 'hangar-10',
 		path: { kind: 'line', from: [-13.5, 10.5], to: [-21, 4.5], pause: 2.5 }
 	},
 	{
-		outfit: 'engineer',
 		id: 'hangar-4',
 		action: 'work',
 		path: { kind: 'stand', x: -18.6, z: -16.4, facing: -0.6 }
 	},
 	{
-		outfit: 'scientist',
 		id: 'hangar-5',
 		action: 'work',
 		path: { kind: 'stand', x: -17.4, z: -17.2, facing: Math.PI - 0.7 }
 	},
 	{
-		outfit: 'mechanic',
 		id: 'hangar-6',
 		action: 'idle',
 		path: { kind: 'stand', x: 13.2, z: -9.6, facing: Math.PI + 0.5 }
 	},
 	{
-		outfit: 'researcher',
 		id: 'hangar-7',
 		action: 'wave',
 		path: { kind: 'stand', x: 4.4, z: 7.6, facing: -2.2 }
 	},
 	{
-		outfit: 'scientist',
 		id: 'hangar-8',
 		action: 'idle',
 		path: { kind: 'stand', x: -6.1, z: -5.8, facing: 0.9 }
@@ -478,5 +468,5 @@ export function poseTug(tug: Tug, t: number, motion: boolean): void {
 
 /** The Hangar's crew (plan 341): the shared walkers. */
 export function createCrew(_m: MoverMaterials, specs: readonly CrewSpec[] = CREW): Crew {
-	return createWalkers(specs);
+	return createWalkers(specs, 'hangar');
 }

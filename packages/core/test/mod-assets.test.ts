@@ -181,7 +181,7 @@ describe('packages with assets', () => {
 	});
 
 	test('a newer format is refused with a message to update', async () => {
-		const r = await parseModPackage(JSON.stringify({ format: 'orbital-mod', formatVersion: 3 }));
+		const r = await parseModPackage(JSON.stringify({ format: 'orbital-mod', formatVersion: 4 }));
 		expect(r.ok === false && r.errors[0]).toContain('newer game');
 	});
 
@@ -207,7 +207,7 @@ describe('resolveMods with assets', () => {
 		const r = await run(source(part('models/a.glb')), { 'models/a.glb': model() });
 		expect(r.rejected).toEqual([]);
 		expect(r.partAssets).toEqual([{ part: 'm.shiny', mod: 'm', path: 'models/a.glb' }]);
-		expect(r.assets.get('m')!.get('models/a.glb')!.info.triangles).toBe(24);
+		expect(r.assets.get('m')!.get('models/a.glb')!.info!.triangles).toBe(24);
 	});
 
 	test('a part naming an asset the package lacks rejects the mod, naming both', async () => {
@@ -316,5 +316,30 @@ describe('richer models (plan 065, ADR 0160)', () => {
 			{ 'models/a.glb': model() }
 		);
 		expect(order.rejected).toHaveLength(1);
+	});
+});
+
+describe('image assets (format 3, plan 375, ADR 0313 point 4)', () => {
+	const png = encodePng(2, 2, new Uint8Array(16).fill(200));
+
+	test('a PNG makes a format 3 package that parses', async () => {
+		const pkg = await createModPackage({ id: 'm', version: '1.0.0', api: '^0.1' }, 'x', {
+			'faces/a.png': png
+		});
+		expect(pkg.formatVersion).toBe(3);
+		expect(pkg.assets?.['faces/a.png']?.type).toBe('image/png');
+		expect((await parseModPackage(JSON.stringify(pkg))).ok).toBe(true);
+	});
+
+	test('a file that is not the image it says, or an image in a format 2 package, is refused', async () => {
+		const bad = await createModPackage({ id: 'm', version: '1.0.0', api: '^0.1' }, 'x', {
+			'faces/a.png': new TextEncoder().encode('not a png at all')
+		}).catch((e: Error) => e.message);
+		expect(String(bad)).toContain('not a PNG file');
+		const pkg = await createModPackage({ id: 'm', version: '1.0.0', api: '^0.1' }, 'x', {
+			'faces/a.png': png
+		});
+		const two = await parseModPackage(JSON.stringify({ ...pkg, formatVersion: 2 }));
+		expect(two.ok === false && two.errors[0]).toContain('format 3');
 	});
 });

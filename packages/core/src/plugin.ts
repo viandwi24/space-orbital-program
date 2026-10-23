@@ -68,6 +68,13 @@ import {
 	type ObjectiveDefinition
 } from './objectives.ts';
 import type { CrewNamesDefinition, CrewTraitDefinition } from './crew.ts';
+import type {
+	CrewAnimationDefinition,
+	CrewExpressionDefinition,
+	CrewLookDefinition,
+	CrewOutfitDefinition,
+	CrewPortraitDefinition
+} from './crew-look.ts';
 import { parseVersion, satisfies } from './semver.ts';
 
 export class PluginError extends Error {
@@ -176,6 +183,12 @@ export interface BasePluginContext {
 	readonly overlays: Registrar<OverlayDefinition>;
 	/** Crew traits and name syllables (plan 106, ADR 0176). */
 	readonly crewTraits: Registrar<CrewTraitDefinition>;
+	/** Crew content (plan 375, ADR 0313). */
+	readonly crewOutfits: Registrar<CrewOutfitDefinition>;
+	readonly crewLooks: Registrar<CrewLookDefinition>;
+	readonly crewExpressions: Registrar<CrewExpressionDefinition>;
+	readonly crewAnimations: Registrar<CrewAnimationDefinition>;
+	readonly crewPortraits: Registrar<CrewPortraitDefinition>;
 	readonly crewNames: Registrar<CrewNamesDefinition>;
 	/**
 	 * Typed data patches over other plugins' parts, resources and bodies (ADR 0170), applied once
@@ -240,6 +253,11 @@ export const REGISTRY_KINDS = [
 	'panel',
 	'crew-trait',
 	'crew-names',
+	'crew-outfit',
+	'crew-look',
+	'crew-expression',
+	'crew-animation',
+	'crew-portrait',
 	'store',
 	'keybinding',
 	'overlay'
@@ -324,6 +342,11 @@ const RESERVED_KEYS: ReadonlySet<string> = new Set([
 	'overlays',
 	'crewTraits',
 	'crewNames',
+	'crewOutfits',
+	'crewLooks',
+	'crewExpressions',
+	'crewAnimations',
+	'crewPortraits',
 	'patches',
 	'optional',
 	'provide'
@@ -531,6 +554,11 @@ export function loadPlugins(plugins: readonly Plugin[], options: LoadOptions = {
 			keybindings: registrar(registries.keybindings),
 			overlays: registrar(registries.overlays),
 			crewTraits: registrar(registries.crewTraits),
+			crewOutfits: registrar(registries.crewOutfits),
+			crewLooks: registrar(registries.crewLooks),
+			crewExpressions: registrar(registries.crewExpressions),
+			crewAnimations: registrar(registries.crewAnimations),
+			crewPortraits: registrar(registries.crewPortraits),
 			crewNames: registrar(registries.crewNames),
 			patches: {
 				register(def) {
@@ -605,7 +633,8 @@ export function loadPlugins(plugins: readonly Plugin[], options: LoadOptions = {
 			resource: registries.resources,
 			body: registries.bodies,
 			building: registries.buildings,
-			category: registries.categories
+			category: registries.categories,
+			'crew-outfit': registries.crewOutfits
 		},
 		checkEntry: (target, entry) => {
 			if (target !== 'part') return undefined;
@@ -720,6 +749,11 @@ export function loadPlugins(plugins: readonly Plugin[], options: LoadOptions = {
 				blueprint: section(registries.blueprints),
 				panel: section(registries.panels),
 				'crew-trait': section(registries.crewTraits),
+				'crew-outfit': section(registries.crewOutfits),
+				'crew-look': section(registries.crewLooks),
+				'crew-expression': section(registries.crewExpressions),
+				'crew-animation': section(registries.crewAnimations),
+				'crew-portrait': section(registries.crewPortraits),
 				'crew-names': section(registries.crewNames),
 				store: section(registries.stores),
 				keybinding: section(registries.keybindings),

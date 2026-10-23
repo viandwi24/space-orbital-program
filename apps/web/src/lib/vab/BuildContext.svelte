@@ -14,6 +14,17 @@
 </script>
 
 <div class="context" aria-live="polite">
+	{#if vab.entered !== null}
+		<!-- inside mode's breadcrumb (plan 378, ADR 0315 point 3): a click on the vessel steps out -->
+		<span class="chip live crumbs" data-testid="vab-inside">
+			<button type="button" class="crumb" onclick={() => vab.exitInside()}
+				>{vab.current.design.name || 'Vessel'}</button
+			>
+			<span class="dim" aria-hidden="true">›</span>
+			<strong>{vab.titleOfPart(vab.entered)}</strong>
+			<span class="dim">(<Kbd>Esc</Kbd> to step out)</span>
+		</span>
+	{/if}
 	{#if vab.armed}
 		{@const armed = vab.armed}
 		<span class="chip live">
@@ -119,6 +130,19 @@
 		border-radius: var(--radius-pill);
 		-webkit-backdrop-filter: var(--glass-filter);
 		backdrop-filter: var(--glass-filter);
+	}
+	.crumb {
+		padding: 0;
+		font: inherit;
+		color: var(--text-muted);
+		background: none;
+		border: 0;
+		cursor: pointer;
+		text-decoration: underline;
+		text-underline-offset: 3px;
+	}
+	.crumb:hover {
+		color: var(--text-body);
 	}
 	.chip.warn {
 		color: var(--warn);

@@ -46,7 +46,9 @@ export const SHELL_ICONS = {
 	save: 'M5 3 H17 L20 6 V21 H4 V3 Z M8 3 V8 H15 V3 M8 21 V14 H16 V21',
 	launch:
 		'M12 2 C15 5 16 8 16 12 L18 15 H6 L8 12 C8 8 9 5 12 2 Z M12 8.5 A1.5 1.5 0 1 1 11.99 8.5 Z M9.5 18 C10 20 11 21 12 22 C13 21 14 20 14.5 18',
-	mods: 'M4 4 H10 V10 H4 Z M14 4 H20 V10 H14 Z M4 14 H10 V20 H4 Z M17 14 V20 M14 17 H20'
+	mods: 'M4 4 H10 V10 H4 Z M14 4 H20 V10 H14 Z M4 14 H10 V20 H4 Z M17 14 V20 M14 17 H20',
+	// the Hangar's studio look (plan 375): a cube on a ground line
+	studio: 'M12 3 L19 7 V14 L12 18 L5 14 V7 Z M5 7 L12 11 L19 7 M12 11 V18 M3 21 H21'
 } as const;
 
 /** The multiple as the time bar writes it: `1×`, `50×`, `1k×`; `—` while paused. */

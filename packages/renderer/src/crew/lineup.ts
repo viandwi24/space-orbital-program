@@ -22,25 +22,27 @@ import {
 } from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
-import {
-	CREW_HEIGHT,
-	EXPRESSIONS,
-	OUTFIT_IDS,
-	OUTFITS,
-	SKIN_NAMES,
-	appearanceOf,
-	type Skin
-} from './outfits.ts';
+import type { CrewAnimationDefinition } from '@orbital/core';
+import { animationFor, poseFor } from './content.ts';
+import { CREW_HEIGHT, appearanceOf, crewContent, withSkin } from './outfits.ts';
 import { createCrewMaterial, createPerson, type Person } from './person.ts';
-import { personPose, type Action } from './poses.ts';
+import type { Action } from './poses.ts';
 
 export type LineupView = 'all' | 'outfits' | 'faces' | 'close';
 
 export interface CrewLineup {
+	/** Plays the animation the game uses for a role. */
 	setAction(action: Action): void;
+	/** Plays one registered animation by id (any of a role's, not only the one in use). */
+	setAnimation(id: string): void;
+	/** Shows only what one plugin registered (null: everything). */
+	setFilter(mod: string | null): void;
+	/** Builds the figures again from the crew content (after `setCrewContent`). */
+	rebuild(): void;
 	/** Frames the whole line-up, the outfit row, the expression row or four faces close up. */
 	setView(view: LineupView): void;
-	setSkin(skin: Skin | 'by-id'): void;
+	/** A skin look id, or each figure's own look. */
+	setSkin(skin: string | 'by-id'): void;
 	/** Where each figure's label goes, in canvas pixels. */
 	labels(): { text: string; x: number; y: number }[];
 	readonly triangles: number;
@@ -89,7 +91,8 @@ export function createCrewLineup(canvas: HTMLCanvasElement): CrewLineup {
 		row: 'outfits' | 'faces';
 	}[] = [];
 	let view: LineupView = 'all';
-	let skin: Skin | 'by-id' = 'by-id';
+	let skin: string | 'by-id' = 'by-id';
+	let filter: string | null = null;
 	const build = (): void => {
 		for (const p of people) {
 			scene.remove(p.person.mesh);
@@ -97,19 +100,30 @@ export function createCrewLineup(canvas: HTMLCanvasElement): CrewLineup {
 		}
 		people.length = 0;
 		const gap = 1.05;
-		OUTFIT_IDS.forEach((outfit, i) => {
-			const look = appearanceOf(`lineup-${i}`);
-			const appearance = skin === 'by-id' ? look : { ...look, skin };
-			const person = createPerson({ outfit, appearance }, material);
-			const x = (i - (OUTFIT_IDS.length - 1) / 2) * gap;
-			people.push({ person, label: OUTFITS[outfit].title, x, z: -1.2, seed: i, row: 'outfits' });
+		const content = crewContent();
+		const mine = (id: string): boolean => filter === null || content.by.get(id) === filter;
+		const outfits = content.outfits.filter((o) => mine(o.id));
+		const faces = content.expressions.filter((e) => mine(e.id));
+		const podOutfit = content.outfits.find((o) => o.uses?.includes('pod'))?.id ?? 'crew.fallback';
+		const lookOf = (id: string) => {
+			const look = appearanceOf(id);
+			return skin === 'by-id' ? look : withSkin(look, skin);
+		};
+		outfits.forEach((outfit, i) => {
+			const person = createPerson(
+				{ outfit: outfit.id, appearance: lookOf(`lineup-${i}`) },
+				material
+			);
+			const x = (i - (outfits.length - 1) / 2) * gap;
+			people.push({ person, label: outfit.title, x, z: -1.2, seed: i, row: 'outfits' });
 		});
-		EXPRESSIONS.forEach((expression, i) => {
-			const look = appearanceOf(`face-${i}`);
-			const appearance = skin === 'by-id' ? look : { ...look, skin };
-			const person = createPerson({ outfit: 'flight', appearance, expression }, material);
-			const x = (i - (EXPRESSIONS.length - 1) / 2) * gap;
-			people.push({ person, label: expression, x, z: 1.2, seed: 20 + i, row: 'faces' });
+		faces.forEach((expression, i) => {
+			const person = createPerson(
+				{ outfit: podOutfit, appearance: lookOf(`face-${i}`), expression: expression.id },
+				material
+			);
+			const x = (i - (faces.length - 1) / 2) * gap;
+			people.push({ person, label: expression.title, x, z: 1.2, seed: 20 + i, row: 'faces' });
 		});
 		for (const p of people) {
 			p.person.mesh.position.set(p.x, 0, p.z);
@@ -138,6 +152,7 @@ export function createCrewLineup(canvas: HTMLCanvasElement): CrewLineup {
 	scene.add(drum, pole);
 
 	let action: Action = 'idle';
+	let animation: CrewAnimationDefinition | undefined = animationFor('idle');
 	let frame = 0;
 	let width = 0;
 	let height = 0;
@@ -155,7 +170,8 @@ export function createCrewLineup(canvas: HTMLCanvasElement): CrewLineup {
 			camera.updateProjectionMatrix();
 		}
 		const t = (performance.now() - t0) / 1000;
-		for (const p of people) p.person.pose(personPose(action, t, t * 1.15, p.seed));
+		for (const p of people)
+			p.person.pose(poseFor(animation?.role ?? action, t, t * 1.15, p.seed, animation));
 		controls.update();
 		gl.render(scene, camera);
 	};
@@ -164,6 +180,22 @@ export function createCrewLineup(canvas: HTMLCanvasElement): CrewLineup {
 	return {
 		setAction(a) {
 			action = a;
+			animation = animationFor(a);
+		},
+		setAnimation(id) {
+			const found = crewContent().animations.find((x) => x.id === id);
+			if (found) {
+				animation = found;
+				action = found.role;
+			}
+		},
+		setFilter(mod) {
+			filter = mod;
+			build();
+		},
+		rebuild() {
+			animation = animationFor(action);
+			build();
 		},
 		setView(v) {
 			const views: Record<LineupView, [number, number, number, number, number, number]> = {
@@ -210,4 +242,3 @@ export function createCrewLineup(canvas: HTMLCanvasElement): CrewLineup {
 	};
 }
 
-export { SKIN_NAMES };

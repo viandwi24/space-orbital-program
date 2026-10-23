@@ -88,7 +88,7 @@ When this plan is done:
   - Stock moves `outfits.ts` and `poses.ts` data into `mods/stock/src/crew-look.ts` and registers it.
   - The renderer keeps the geometry and painting, and reads a `CrewContent` table set once per page by the web app (`setCrewContent`). It has a neutral fallback outfit, so nothing throws before the table is set.
   - The animation for a role is the one registered last in boot order, so a mod's `walk` replaces stock's.
-  - The API version goes to 0.1.110.
+  - The API version goes to 0.1.111.
 - **Zen Hangar.**
   - `VabView.setLook('normal' | 'zen')` hides the hangar root, the props and the walkers; shows a studio group (gradient backdrop sphere, ground grid, shadow-catching floor); and changes only the light intensities and colours, the background colour and the fog density.
   - Before the first frame, everything is made visible for one `renderer.compile`, so both looks' programs exist and a switch rebuilds nothing.

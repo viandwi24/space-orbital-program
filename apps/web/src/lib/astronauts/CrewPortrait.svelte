@@ -7,7 +7,7 @@
 	import { portraitSpec, type PortraitMember } from './portrait-model';
 
 	let { member, size = 40 }: { member: PortraitMember; size?: number } = $props();
-	const src = $derived(portraitUrl(portraitSpec(member), size));
+	const src = $derived(portraitUrl(portraitSpec(member), size, member.id));
 </script>
 
 {#if src}

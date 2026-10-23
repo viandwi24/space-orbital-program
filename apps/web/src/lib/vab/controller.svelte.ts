@@ -18,10 +18,20 @@ import {
 	surfaceSite,
 	type DesignTilt,
 	type PartDefinition,
+	type Plugin,
 	type PlacedBuilding,
 	type VesselDesign
 } from '@orbital/core';
-import { VabView, type GizmoAxis, type VabGizmo, type VabMarker } from '@orbital/renderer';
+import {
+	LOOK_KEYS,
+	VabView,
+	readLook,
+	saveLook,
+	type GizmoAxis,
+	type HangarLook,
+	type VabGizmo,
+	type VabMarker
+} from '@orbital/renderer';
 import { goto } from '$app/navigation';
 import { loadContent, partLookup, partShapesOf } from '../catalog';
 import { categoriesOf } from '../editor/categories';
@@ -153,6 +163,8 @@ import {
 import { indexedDbStore, requestPersistence } from './library-idb';
 import { MOVE_FINE, MOVE_STEP, ROTATE_FINE, ROTATE_STEP, snapTo, toolKeyEffect } from './tool-keys';
 import { nextPlacement, SNAP_PX } from './placement-pick';
+import { frontFirst, nextPick, type PickCycle } from './pick-cycle';
+import { insideStep, pickableInside, type InsideEvent } from '../editor/inside-mode';
 import { reroot } from '../editor/reroot';
 
 export type Armed =
@@ -202,9 +214,22 @@ function saveMarkerSetting(kind: 'com' | 'cot', on: boolean): void {
 	}
 }
 
+/** The plugin list the next controller loads (the developer sandbox's own set, plan 375). */
+let contentPlugins: readonly Plugin[] | undefined;
+
+/** Makes a controller whose content is `plugins` (undefined: the page's mod runtime, as a world). */
+export function withPlugins<T>(plugins: readonly Plugin[] | undefined, make: () => T): T {
+	contentPlugins = plugins;
+	try {
+		return make();
+	} finally {
+		contentPlugins = undefined;
+	}
+}
+
 export class VabController {
 	// --- content ---------------------------------------------------------------------------------------------
-	readonly loaded = loadContent();
+	readonly loaded = loadContent(undefined, contentPlugins);
 	readonly catalog = this.loaded.catalog;
 	readonly content = this.loaded.content;
 	readonly lookup = partLookup(this.catalog);
@@ -360,6 +385,16 @@ export class VabController {
 	showPayload = $state(false);
 	/** Every enclosing part of the design and what it holds. */
 	readonly shells = $derived(shellsOf(this.current.design, this.lookup, this.content));
+	/** Inside mode (plan 378, ADR 0315 point 3): the shell being edited inside, as asked. */
+	insideShell = $state<number | null>(null);
+	/** The entered shell, left when the design no longer has it. */
+	readonly entered = $derived(insideStep(this.insideShell, { kind: 'design' }, this.shells));
+	/** The pick list of a click again at the same spot (plan 378): the parts under it, the chosen one. */
+	pickList = $state.raw<{ x: number; y: number; parts: number[]; i: number } | null>(null);
+	private pickCycle: PickCycle | null = null;
+	private lastClick: { x: number; y: number; at: number } | null = null;
+	/** The section cut (plan 378, ADR 0315 point 4). */
+	section = $state(false);
 	/** The tip for the part under the pointer: its name, mass and what it holds. */
 	readonly hoverInfo = $derived.by(() => {
 		const i = this.hoverIndex;
@@ -429,9 +464,16 @@ export class VabController {
 	readonly copies = $derived(
 		this.armed?.kind === 'carry' ? this.shown.followers.length + 1 : this.mirror ? 2 : this.symmetry
 	);
-	readonly targets = $derived(
-		this.held ? attachTargets(this.shown.design, this.held, this.lookup, this.radialAngle) : []
-	);
+	readonly targets = $derived.by(() => {
+		const all = this.held
+			? attachTargets(this.shown.design, this.held, this.lookup, this.radialAngle)
+			: [];
+		const e = this.entered;
+		if (e === null) return all;
+		// inside a shell, only its own nodes and those of what it holds (plan 378)
+		const inside = new Set([e, ...(this.shells.get(e) ?? [])]);
+		return all.filter((t) => t.parent !== null && inside.has(t.parent.index));
+	});
 	readonly active = $derived(
 		this.targets.length === 0
 			? null
@@ -551,13 +593,15 @@ export class VabController {
 			preview: this.connectPreview,
 			modules: this.content.modules,
 			inside: {
+				// a carried part over a shell shows its inside too (plan 378)
 				seeThrough: seeThroughOf(this.shells, {
-					hover: this.armed ? null : this.hoverIndex,
+					hover: this.hoverIndex,
 					open: this.openParts,
 					showPayload: this.showPayload
 				}),
 				open: this.openParts,
-				holds: this.shells
+				holds: this.shells,
+				entered: this.entered
 			}
 		})
 	);
@@ -719,14 +763,31 @@ export class VabController {
 	readonly canUndo = $derived(canUndo(this.editor));
 	readonly canRedo = $derived(canRedo(this.editor));
 
-	constructor() {
-		const text = loadDraft();
+	/**
+	 * The developer sandbox (plan 375): no world, its own draft and library (database
+	 * `orbital-dev`), no launch, and the studio look by default.
+	 */
+	readonly sandbox: boolean;
+	private readonly keys: { draft: string | undefined; library: string | undefined; look: string };
+	/** The Hangar's look (plan 375): the realistic hangar or the studio, remembered per player. */
+	look = $state<HangarLook>('normal');
+
+	constructor(options: { sandbox?: boolean } = {}) {
+		this.sandbox = options.sandbox === true;
+		this.keys = this.sandbox
+			? { draft: 'orbital.dev.design', library: 'orbital.dev.library.current', look: LOOK_KEYS.sandbox }
+			: { draft: undefined, library: undefined, look: LOOK_KEYS.world };
+		this.look = readLook(this.keys.look, this.sandbox ? 'zen' : 'normal');
+		const text = loadDraft(this.keys.draft);
 		if (text !== null) {
 			const parsed = parseDesign(text, this.lookup);
 			if (parsed.ok) this.editor = createEditor(parsed.design, this.editorContent);
 		}
-		this.libraryId = loadLibraryId();
-		const primary = typeof indexedDB === 'undefined' ? memoryStore() : indexedDbStore();
+		this.libraryId = loadLibraryId(this.keys.library);
+		const primary =
+			typeof indexedDB === 'undefined'
+				? memoryStore()
+				: indexedDbStore(this.sandbox ? 'orbital-dev' : undefined);
 		this.store = withFallback(primary);
 
 		$effect(() => {
@@ -755,7 +816,7 @@ export class VabController {
 		$effect(() => {
 			const json = serialiseDesign(this.editor.design);
 			untrack(() => {
-				saveDraft(json);
+				saveDraft(json, this.keys.draft);
 				this.scheduleAutosave();
 			});
 		});
@@ -822,6 +883,7 @@ export class VabController {
 				providers: modelProviders(),
 				props: ['stock.tank-medium', 'stock.engine-lv'],
 				quality: initialGraphicsPreset() === 'low' ? 'low' : 'high',
+				look: this.look,
 				reducedMotion: matchMedia('(prefers-reduced-motion: reduce)').matches
 			});
 		} catch (error) {
@@ -847,6 +909,9 @@ export class VabController {
 			targets: () =>
 				this.targets.map((t, i) => ({ i, parent: t.parent, node: t.node, radial: t.radial })),
 			active: () => this.active,
+			// inside mode (plan 378): the entered shell and what each shell holds
+			inside: () => this.entered,
+			shells: () => [...this.shells].map(([shell, holds]) => ({ shell, holds: [...holds] })),
 			parts: () => this.editor.design.parts.map((p) => ({ index: p.index, part: p.part })),
 			looseParts: () => this.editor.loose.reduce((n, a) => n + a.parts.length, 0),
 			armed: () => this.armed?.kind ?? null,
@@ -901,6 +966,16 @@ export class VabController {
 		return p && r ? { x: r.left + p.x, y: r.top + p.y } : null;
 	}
 
+	/** Switches between the realistic hangar and the studio (plan 375); the tools stay the same. */
+	toggleLook(): void {
+		this.setLook(this.look === 'zen' ? 'normal' : 'zen');
+	}
+	setLook(look: HangarLook): void {
+		this.look = look;
+		saveLook(this.keys.look, look);
+		this.view?.setLook(look);
+	}
+
 	resize(): void {
 		if (!this.stageEl) return;
 		const r = this.stageEl.getBoundingClientRect();
@@ -930,7 +1005,7 @@ export class VabController {
 		this.libraryVolatile = this.store.degraded;
 		if (this.libraryId && !this.vesselEntries.some((e) => e.record.id === this.libraryId)) {
 			this.libraryId = null;
-			saveLibraryId(null);
+			saveLibraryId(null, this.keys.library);
 		}
 	}
 
@@ -963,7 +1038,7 @@ export class VabController {
 				thumbnail: design.parts.length > 0 ? this.thumbnail() : null
 			});
 			this.libraryId = record.id;
-			saveLibraryId(record.id);
+			saveLibraryId(record.id, this.keys.library);
 			this.libraryVolatile = this.store.degraded;
 			this.saveState = 'saved';
 			if (!this.libraryAsked) {
@@ -990,7 +1065,7 @@ export class VabController {
 		this.disarm();
 		this.selected = null;
 		this.libraryId = id;
-		saveLibraryId(id);
+		saveLibraryId(id, this.keys.library);
 		this.editor = replaceDesign(this.editor, this.editorContent, entry.design);
 		this.saveState = 'idle';
 		this.libraryOpen = false;
@@ -1023,7 +1098,7 @@ export class VabController {
 		await deleteEntry(this.store, id);
 		if (id === this.libraryId) {
 			this.libraryId = null;
-			saveLibraryId(null);
+			saveLibraryId(null, this.keys.library);
 			this.saveState = 'idle';
 		}
 		await this.refreshLibrary();
@@ -1754,7 +1829,7 @@ export class VabController {
 		this.disarm();
 		this.selected = null;
 		this.libraryId = null;
-		saveLibraryId(null);
+		saveLibraryId(null, this.keys.library);
 		this.saveState = 'idle';
 		this.editor = replaceDesign(this.editor, this.editorContent, emptyDesign());
 		this.say('Started a new vessel.');
@@ -1763,7 +1838,7 @@ export class VabController {
 		this.disarm();
 		this.selected = null;
 		this.libraryId = null;
-		saveLibraryId(null);
+		saveLibraryId(null, this.keys.library);
 		this.editor = replaceDesign(this.editor, this.editorContent, starterRocket());
 		this.view?.frame();
 		this.say('Loaded the two-stage example, with a parachute for the way home.');
@@ -1772,7 +1847,7 @@ export class VabController {
 		this.disarm();
 		this.selected = null;
 		this.libraryId = null;
-		saveLibraryId(null);
+		saveLibraryId(null, this.keys.library);
 		this.editor = replaceDesign(this.editor, this.editorContent, boosterRocket(this.editorContent));
 		this.view?.frame();
 		this.say('Loaded the booster rocket: 23 parts with four boosters and four fins.');
@@ -1781,7 +1856,7 @@ export class VabController {
 		this.disarm();
 		this.selected = null;
 		this.libraryId = null;
-		saveLibraryId(null);
+		saveLibraryId(null, this.keys.library);
 		this.editor = replaceDesign(this.editor, this.editorContent, moonShot());
 		this.view?.frame();
 		this.say('Loaded the moon shot: a core with four boosters under a lander. Pick a trip below.');
@@ -1790,7 +1865,7 @@ export class VabController {
 		this.disarm();
 		this.selected = null;
 		this.libraryId = null;
-		saveLibraryId(null);
+		saveLibraryId(null, this.keys.library);
 		this.editor = replaceDesign(
 			this.editor,
 			this.editorContent,
@@ -1803,7 +1878,7 @@ export class VabController {
 		this.disarm();
 		this.selected = null;
 		this.libraryId = null;
-		saveLibraryId(null);
+		saveLibraryId(null, this.keys.library);
 		this.editor = replaceDesign(this.editor, this.editorContent, glider(this.editorContent));
 		this.view?.frame();
 		this.say('Loaded the glider: a pod and tank with two wings and a tail.');
@@ -1815,7 +1890,7 @@ export class VabController {
 		this.disarm();
 		this.selected = null;
 		this.libraryId = null;
-		saveLibraryId(null);
+		saveLibraryId(null, this.keys.library);
 		this.editor = replaceDesign(this.editor, this.editorContent, card.build(this.editorContent));
 		this.blueprintsOpen = false;
 		this.view?.frame();
@@ -1842,7 +1917,7 @@ export class VabController {
 		this.disarm();
 		this.selected = null;
 		this.libraryId = null;
-		saveLibraryId(null);
+		saveLibraryId(null, this.keys.library);
 		this.editor = replaceDesign(this.editor, this.editorContent, mission.build(this.editorContent));
 		this.view?.frame();
 		this.say(`Loaded ${mission.title}, inspired by ${mission.inspiredBy}.`);
@@ -2155,12 +2230,109 @@ export class VabController {
 	// --- pointer ---------------------------------------------------------------------------------------------
 
 	private pick(e: PointerEvent): ReturnType<VabView['pick']> {
-		return (
+		const hit =
 			this.view?.pick(e.clientX, e.clientY, {
 				// the pointer reaches through the ghost to the surface it slides on (plan 348)
 				ignoreGhost: this.armed !== null,
 				ignoreNodes: this.armed !== null && !this.snapNodes
-			}) ?? null
+			}) ?? null;
+		// inside a shell only what it holds is picked (plan 378, ADR 0315 point 3)
+		if (hit?.kind === 'part' && !this.insidePickable(hit.key)) return null;
+		return hit;
+	}
+
+	private insidePickable(key: string): boolean {
+		return !/^\d+$/.test(key) || pickableInside(this.entered, Number(key), this.shells);
+	}
+
+	// --- inside mode and pick-through (plan 378, ADR 0315) -------------------------------------------------
+
+	private stepInside(event: InsideEvent): void {
+		const before = this.entered;
+		const next = insideStep(before, event, this.shells);
+		this.insideShell = next;
+		if (next === before) return;
+		this.pickList = null;
+		this.pickCycle = null;
+		if (next === null) {
+			this.say('Out of the shell: the whole vessel again.');
+			return;
+		}
+		// the camera frames the shell's inside
+		this.view?.frameOn(String(next));
+		this.say(
+			`Inside ${this.titleOfPart(next)}: only what it holds can be picked. Esc or the bar's chip to step out.`
+		);
+	}
+	/** "Edit inside" on a shell's card. */
+	editInside(index: number): void {
+		this.stepInside({ kind: 'edit', index });
+	}
+	exitInside(): void {
+		this.stepInside({ kind: 'exit' });
+	}
+	/** A part picked in the Parts list: a held part enters its shell (plan 378). */
+	selectFromList(index: number): void {
+		this.selected = index;
+		this.stepInside({ kind: 'list', index });
+	}
+	/** A part chosen in the pick list. */
+	pickFromList(index: number): void {
+		this.selected = index;
+		this.pickList = this.pickList ? { ...this.pickList, i: this.pickList.parts.indexOf(index) } : null;
+		this.say(`Selected ${this.titleOfPart(index)}.`);
+	}
+	toggleSection(): void {
+		this.section = !this.section;
+		this.view?.setSection(this.section);
+		this.say(
+			this.section ? 'Section: the near half is cut away.' : 'Section off: the whole vessel.'
+		);
+	}
+
+	/**
+	 * A plain click on part `key`: a double click enters the shell; a click again at the same spot
+	 * steps to the part behind and shows the list of parts under the pointer.
+	 */
+	private clickPart(e: PointerEvent, key: string): void {
+		const now = performance.now();
+		const last = this.lastClick;
+		this.lastClick = { x: e.clientX, y: e.clientY, at: now };
+		const index = Number(key);
+		const double =
+			last !== null && now - last.at < 350 && Math.hypot(e.clientX - last.x, e.clientY - last.y) < 6;
+		if (double) {
+			const before = this.entered;
+			this.stepInside({ kind: 'double', index });
+			if (this.entered !== before) {
+				this.selected = index;
+				return;
+			}
+		}
+		const under = (this.view?.pickAll(e.clientX, e.clientY) ?? []).filter(
+			(k) => /^\d+$/.test(k) && this.insidePickable(k)
+		);
+		const prevCycle = this.pickCycle;
+		this.pickCycle = nextPick(
+			this.pickCycle,
+			{ x: e.clientX, y: e.clientY, at: now },
+			frontFirst(under, key)
+		);
+		const c = this.pickCycle;
+		const chosen = c ? Number(c.keys[c.i]) : index;
+		this.selected = chosen;
+		const rect = this.canvas?.getBoundingClientRect();
+		// the list shows from the second click at the spot and stays while it cycles
+		// (nextPick keeps the same key list when the click is again at the spot)
+		const cycling = c !== null && prevCycle !== null && c.keys === prevCycle.keys && c.keys.length > 1;
+		this.pickList =
+			c && cycling && rect
+				? { x: e.clientX - rect.left, y: e.clientY - rect.top, parts: c.keys.map(Number), i: c.i }
+				: null;
+		this.say(
+			c && c.keys.length > 1 && c.i > 0
+				? `Selected ${this.titleOfPart(chosen)} (${c.i + 1} of ${c.keys.length} under the pointer).`
+				: `Selected ${this.titleOfPart(chosen)}.`
 		);
 	}
 
@@ -2377,11 +2549,15 @@ export class VabController {
 			);
 			this.selected = whole ? rootOf(whole) : at;
 			this.carrySelected();
+		} else if (hit?.kind === 'part' && /^\d+$/.test(hit.key)) {
+			this.clickPart(e, hit.key);
 		} else if (hit?.kind === 'part') {
 			this.selected = Number(hit.key);
 			this.say(`Selected ${this.titleOfPart(this.selected)}.`);
 		} else {
 			this.selected = null;
+			this.pickList = null;
+			this.pickCycle = null;
 		}
 	};
 	pointerCancel = (e: PointerEvent): void => {
@@ -2579,6 +2755,8 @@ export class VabController {
 			case 'escape':
 				if (this.keysOpen) this.keysOpen = false;
 				else if (this.armed) this.disarm();
+				else if (this.pickList) this.pickList = null;
+				else if (this.entered !== null) this.exitInside();
 				else if (this.selected !== null) this.selected = null;
 				else if (this.drawer) this.drawer = null;
 				else return;

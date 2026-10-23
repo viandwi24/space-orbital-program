@@ -47,7 +47,8 @@ function run(r: Registries, patches: PatchSource[]) {
 			resource: r.resources,
 			body: r.bodies,
 			building: r.buildings,
-			category: r.categories
+			category: r.categories,
+			'crew-outfit': r.crewOutfits
 		},
 		checkEntry: (target, entry) => {
 			if (target !== 'part') return undefined;
@@ -324,7 +325,8 @@ describe('applyPatches: select', () => {
 				resource: r.resources,
 				body: reg as never,
 				building: r.buildings,
-				category: r.categories
+				category: r.categories,
+				'crew-outfit': r.crewOutfits
 			}
 		});
 		return patches[0]!.applied;
@@ -503,7 +505,8 @@ describe('loadPlugins with patches', () => {
 			resource: {},
 			body: {},
 			building: {},
-			category: {}
+			category: {},
+			'crew-outfit': {}
 		});
 	});
 

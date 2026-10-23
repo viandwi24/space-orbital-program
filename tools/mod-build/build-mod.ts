@@ -4,8 +4,8 @@
  *   bun run tools/mod-build/build-mod.ts <mod folder>      ->  <mod folder>/dist/<id>-<version>.orbital-mod.json
  *
  * The folder holds `mod.json` (the manifest) and `src/index.ts` (default-exports the plugin).
- * Models are optional (plan 051, ADR 0076): every `*.glb` under `assets/` is packed at its path
- * relative to that folder, and an `assets.ts` whose default export is a function returning
+ * Models are optional (plan 051, ADR 0076): every `*.glb` (and since plan 375, every `*.png` and
+ * `*.webp` image) under `assets/` is packed at its path relative to that folder, and an `assets.ts` whose default export is a function returning
  * `{ "models/x.glb": bytes }` (sync or async) generates more at build time, so a mod needs no
  * binary art in its repository.
  * `@orbital/sdk` is not bundled: it is replaced by a shim that reads the SDK the game puts on
@@ -43,7 +43,7 @@ async function assetFiles(dir: string): Promise<Record<string, Uint8Array>> {
 		for (const entry of await readdir(folder, { withFileTypes: true })) {
 			const path = join(folder, entry.name);
 			if (entry.isDirectory()) await walk(path);
-			else if (entry.name.endsWith('.glb')) {
+			else if (/\.(glb|png|webp)$/.test(entry.name)) {
 				out[relative(root, path).split(sep).join('/')] = new Uint8Array(await readFile(path));
 			}
 		}

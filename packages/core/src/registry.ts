@@ -2,6 +2,18 @@
  * Typed registry of definitions. Duplicate ids are errors that name both plugins; definitions are
  * frozen on registration so a plugin cannot mutate another plugin's data afterwards.
  */
+import {
+	crewAnimationDefinitionSchema,
+	crewExpressionDefinitionSchema,
+	crewLookDefinitionSchema,
+	crewOutfitDefinitionSchema,
+	crewPortraitDefinitionSchema,
+	type CrewAnimationDefinition,
+	type CrewExpressionDefinition,
+	type CrewLookDefinition,
+	type CrewOutfitDefinition,
+	type CrewPortraitDefinition
+} from './crew-look.ts';
 import { techNodeDefinitionSchema, type TechNodeDefinition } from './tech-tree.ts';
 import {
 	commodityDefinitionSchema,
@@ -317,6 +329,12 @@ export interface Registries {
 	/** Crew traits and name syllables (plan 106, ADR 0176). */
 	crewTraits: Registry<CrewTraitDefinition>;
 	crewNames: Registry<CrewNamesDefinition>;
+	/** Crew content (plan 375, ADR 0313). */
+	crewOutfits: Registry<CrewOutfitDefinition>;
+	crewLooks: Registry<CrewLookDefinition>;
+	crewExpressions: Registry<CrewExpressionDefinition>;
+	crewAnimations: Registry<CrewAnimationDefinition>;
+	crewPortraits: Registry<CrewPortraitDefinition>;
 }
 
 export function createRegistries(): Registries {
@@ -408,6 +426,21 @@ export function createRegistries(): Registries {
 		}),
 		crewNames: createRegistry<CrewNamesDefinition>('crew-names', {
 			schema: crewNamesDefinitionSchema
+		}),
+		crewOutfits: createRegistry<CrewOutfitDefinition>('crew-outfit', {
+			schema: crewOutfitDefinitionSchema
+		}),
+		crewLooks: createRegistry<CrewLookDefinition>('crew-look', {
+			schema: crewLookDefinitionSchema
+		}),
+		crewExpressions: createRegistry<CrewExpressionDefinition>('crew-expression', {
+			schema: crewExpressionDefinitionSchema
+		}),
+		crewAnimations: createRegistry<CrewAnimationDefinition>('crew-animation', {
+			schema: crewAnimationDefinitionSchema
+		}),
+		crewPortraits: createRegistry<CrewPortraitDefinition>('crew-portrait', {
+			schema: crewPortraitDefinitionSchema
 		})
 	};
 }

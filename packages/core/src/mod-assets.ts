@@ -7,8 +7,21 @@
  */
 import * as z from 'zod';
 
-/** Media type of the only asset kind in format 2: a self-contained binary glTF (`.glb`). */
+/** Media type of a model asset (format 2): a self-contained binary glTF (`.glb`). */
 export const MOD_ASSET_TYPE = 'model/gltf-binary';
+/** Image assets (format 3, plan 375, ADR 0313 point 4): crew portraits and later textures. */
+export const MOD_IMAGE_TYPES = ['image/png', 'image/webp'] as const;
+export type ModImageType = (typeof MOD_IMAGE_TYPES)[number];
+export type ModAssetType = typeof MOD_ASSET_TYPE | ModImageType;
+/** Largest image asset, decoded bytes. */
+export const MAX_MOD_IMAGE_BYTES = 512 * 1024;
+/** The media type a path's extension says. */
+export function assetTypeOfPath(path: string): ModAssetType | undefined {
+	if (path.endsWith('.glb')) return MOD_ASSET_TYPE;
+	if (path.endsWith('.png')) return 'image/png';
+	if (path.endsWith('.webp')) return 'image/webp';
+	return undefined;
+}
 /** Largest single asset, decoded bytes. */
 export const MAX_MOD_ASSET_BYTES = 2 * 1024 * 1024;
 /** Largest sum of all assets in one package, decoded bytes. */
@@ -25,7 +38,7 @@ export const MAX_ASSET_ANIMATIONS = 4;
 /** Keyframe samples over every channel of every clip. */
 export const MAX_ASSET_KEYFRAMES = 20_000;
 
-/** Where an asset lives in a package and how a part names it: lower-case segments, `.glb`. */
+/** Where a model lives in a package and how a part names it: lower-case segments, `.glb`. */
 export const assetPathSchema = z
 	.string()
 	.max(128)
@@ -33,11 +46,21 @@ export const assetPathSchema = z
 		/^[a-z0-9][a-z0-9._-]*(\/[a-z0-9][a-z0-9._-]*)*\.glb$/,
 		'expected a relative path of lower-case letters, digits, "." "_" "-" and "/", ending in ".glb"'
 	);
+/** Where an image lives in a package (format 3): lower-case segments, `.png` or `.webp`. */
+export const imageAssetPathSchema = z
+	.string()
+	.max(128)
+	.regex(
+		/^[a-z0-9][a-z0-9._-]*(\/[a-z0-9][a-z0-9._-]*)*\.(png|webp)$/,
+		'expected a relative path of lower-case letters, digits, "." "_" "-" and "/", ending in ".png" or ".webp"'
+	);
+/** Any asset path of a package: a model or an image. */
+export const anyAssetPathSchema = z.union([assetPathSchema, imageAssetPathSchema]);
 
 const hex64 = z.string().regex(/^[0-9a-f]{64}$/, 'expected 64 lower-case hex digits');
 
 export const modAssetSchema = z.strictObject({
-	type: z.literal(MOD_ASSET_TYPE),
+	type: z.enum([MOD_ASSET_TYPE, ...MOD_IMAGE_TYPES]),
 	/** Decoded size in bytes. */
 	size: z.number().int().positive().max(MAX_MOD_ASSET_BYTES),
 	/** Hex SHA-256 of the decoded bytes. */
@@ -251,8 +274,27 @@ export function inspectGlb(bytes: Uint8Array): GlbInspection {
 			};
 }
 
-/** A package's assets after the checks, with decoded bytes. Key: asset path. */
-export type DecodedAssets = Map<string, { bytes: Uint8Array; info: GlbInfo; sha256: string }>;
+/** Checks an image asset's container by its magic bytes (no decoding: the browser does that). */
+export function inspectImage(bytes: Uint8Array, type: ModImageType): string | undefined {
+	const at = (i: number, text: string): boolean =>
+		[...text].every((c, k) => bytes[i + k] === c.charCodeAt(0));
+	if (type === 'image/png') {
+		const sig = [0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a];
+		return sig.every((b, i) => bytes[i] === b) ? undefined : 'not a PNG file (bad signature)';
+	}
+	return bytes.byteLength >= 12 && at(0, 'RIFF') && at(8, 'WEBP')
+		? undefined
+		: 'not a WebP file (bad RIFF/WEBP header)';
+}
+
+/**
+ * A package's assets after the checks, with decoded bytes. Key: asset path. Models carry their
+ * glb `info`; images (format 3) carry none.
+ */
+export type DecodedAssets = Map<
+	string,
+	{ bytes: Uint8Array; type: ModAssetType; info?: GlbInfo; sha256: string }
+>;
 
 /**
  * Validates the `assets` of a parsed package: count, sizes, base64, hash of every asset, and the
@@ -271,9 +313,15 @@ export async function decodeAssets(
 	for (const path of paths) {
 		const asset = assets[path]!;
 		const where = `assets["${path}"]`;
-		const pathCheck = assetPathSchema.safeParse(path);
+		const pathCheck = anyAssetPathSchema.safeParse(path);
 		if (!pathCheck.success) {
-			errors.push(`${where}: ${pathCheck.error.issues[0]?.message ?? 'bad path'}`);
+			errors.push(
+				`${where}: expected a relative path of lower-case letters, digits, "." "_" "-" and "/", ending in ".glb", ".png" or ".webp"`
+			);
+			continue;
+		}
+		if (assetTypeOfPath(path) !== asset.type) {
+			errors.push(`${where}: the type ${asset.type} does not match the file's extension`);
 			continue;
 		}
 		const bytes = base64ToBytes(asset.data);
@@ -296,12 +344,27 @@ export async function decodeAssets(
 			errors.push(`${where}: the data does not match its fingerprint (edited or damaged)`);
 			continue;
 		}
+		if (asset.type !== MOD_ASSET_TYPE) {
+			if (bytes.byteLength > MAX_MOD_IMAGE_BYTES) {
+				errors.push(
+					`${where}: ${bytes.byteLength} bytes is over the ${MAX_MOD_IMAGE_BYTES} byte limit for an image`
+				);
+				continue;
+			}
+			const bad = inspectImage(bytes, asset.type);
+			if (bad) {
+				errors.push(`${where}: ${bad}`);
+				continue;
+			}
+			out.set(path, { bytes, type: asset.type, sha256: asset.sha256 });
+			continue;
+		}
 		const glb = inspectGlb(bytes);
 		if (!glb.ok) {
 			for (const e of glb.errors) errors.push(`${where}: ${e}`);
 			continue;
 		}
-		out.set(path, { bytes, info: glb.info, sha256: asset.sha256 });
+		out.set(path, { bytes, type: MOD_ASSET_TYPE, info: glb.info, sha256: asset.sha256 });
 	}
 	if (total > MAX_MOD_ASSETS_TOTAL_BYTES) {
 		errors.push(

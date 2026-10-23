@@ -24,7 +24,7 @@ import {
 	addOverlay,
 	makeGhost,
 	removeOverlay,
-	type HighlightKind,
+	sectionPlanes,
 	type HighlightMaterials
 } from './highlight.ts';
 import {
@@ -44,13 +44,20 @@ export interface PartEntry {
 	group: string;
 	/** `repeated` models were built with `repeatedDetail`. */
 	lod: 'full' | 'repeated';
-	overlays: Map<HighlightKind, ReturnType<typeof addOverlay>>;
+	/** Overlay meshes by look: ghost, xray, select, hover, flag, veil, dim. */
+	overlays: Map<string, ReturnType<typeof addOverlay>>;
 	/** The module states the model was last posed with, as JSON (plan 315). */
 	modules: string;
 	/** Drawn see-through: its own materials hidden, an x-ray overlay shown (plan 315). */
 	seeThrough: boolean;
 	/** What a see-through shell holds: the pointer reaches these through it (plan 315). */
 	holds: ReadonlySet<string>;
+	/** The pointer reaches what it holds through it (see-through, open or entered; plan 378). */
+	reach: boolean;
+	/** The entered shell of inside mode: a faint veil, never picked (plan 378). */
+	veil: boolean;
+	/** Dimmed around the entered shell (plan 378). */
+	dim: boolean;
 }
 
 export interface GroupEntry {
@@ -129,6 +136,11 @@ export class PartLayer {
 	private readonly instances = new Map<string, InstancedMesh>();
 	private cost: DrawCost = { drawCalls: 0, triangles: 0, shadowDrawCalls: 0, shadowTriangles: 0 };
 	private instancedParts = 0;
+	/**
+	 * The section cut's plane (plan 378, ADR 0315 point 4): every part material clips by it from the
+	 * moment the part is built; the view moves it, off is far away.
+	 */
+	readonly section = sectionPlanes();
 
 	constructor(
 		private readonly factory: PartModelFactory,
@@ -136,6 +148,9 @@ export class PartLayer {
 		private readonly visuals: ReadonlyMap<string, PartVisual> = new Map()
 	) {
 		this.root.name = 'vessels';
+		highlights.clipping = this.section;
+		for (const m of [highlights.ghost, highlights.veil, highlights.dim])
+			m.clippingPlanes = this.section;
 	}
 
 	/** Draw cost of the vessels as of the last change (cheap to read every frame). */
@@ -196,8 +211,12 @@ export class PartLayer {
 					ambientPressure: 101_325
 				});
 			}
-			setSeeThrough(e, p.seeThrough === true && p.role === 'solid');
+			const solid = p.role === 'solid';
+			setSeeThrough(e, (p.seeThrough === true || p.veil === true) && solid);
 			e.holds = new Set(p.holds ?? []);
+			e.veil = p.veil === true && solid;
+			e.reach = solid && (p.seeThrough === true || p.reach === true || e.veil);
+			e.dim = p.dim === true && solid;
 		}
 		// Auto shrouds (plan 207): per group, from where the parts' nodes meet.
 		for (const id of this.groups.keys()) {
@@ -253,6 +272,7 @@ export class PartLayer {
 		model.setState({ modules: {}, temperature: 0, ambientPressure: 101_325 });
 		model.root.userData.key = key;
 		if (part.role !== 'solid') makeGhost(model.root, this.highlights.ghost);
+		clipBy(model.root, this.section);
 		this.groups.get(part.group)?.object.add(model.root);
 		this.parts.set(key, {
 			slot: {
@@ -266,7 +286,10 @@ export class PartLayer {
 			overlays: new Map(),
 			modules: '{}',
 			seeThrough: false,
-			holds: new Set()
+			holds: new Set(),
+			reach: false,
+			veil: false,
+			dim: false
 		});
 	}
 
@@ -285,16 +308,22 @@ export class PartLayer {
 		flagged: ReadonlySet<string>
 	): void {
 		for (const [key, e] of this.parts) {
-			const wanted: HighlightKind[] = [];
-			if (e.slot.role !== 'solid') wanted.push('ghost', 'xray');
-			else if (e.seeThrough) {
-				wanted.push('xray');
+			const wanted: string[] = [];
+			// selection, hover and flags are outlines around the part, never a fill over it (plan 378)
+			const outlines = (): void => {
 				if (selected.has(key)) wanted.push('select');
 				else if (hover === key) wanted.push('hover');
+			};
+			if (e.slot.role !== 'solid') wanted.push('ghost', 'xray');
+			else if (e.veil || e.seeThrough) {
+				// a see-through shell is a faint veil, not the bright x-ray of a ghost: the bright fill
+				// covered what it holds (owner, 2026-10-23; plan 378)
+				wanted.push('veil');
+				outlines();
 			} else {
 				if (flagged.has(key)) wanted.push('flag');
-				if (selected.has(key)) wanted.push('select');
-				else if (hover === key) wanted.push('hover');
+				outlines();
+				if (e.dim) wanted.push('dim');
 			}
 			for (const kind of [...e.overlays.keys()]) {
 				if (!wanted.includes(kind)) {
@@ -304,7 +333,7 @@ export class PartLayer {
 			}
 			for (const kind of wanted) {
 				if (!e.overlays.has(kind)) {
-					const overlay = addOverlay(e.model.root, this.highlights.get(kind));
+					const overlay = addOverlay(e.model.root, this.lookOf(kind));
 					// The x-ray pass draws after the translucent ghost and the other outlines.
 					if (kind === 'xray') for (const m of overlay) m.renderOrder = 6;
 					e.overlays.set(kind, overlay);
@@ -312,6 +341,14 @@ export class PartLayer {
 			}
 		}
 		this.refreshInstances();
+	}
+
+	/** The materials of an overlay look. */
+	private lookOf(kind: string): Material | Material[] {
+		if (kind === 'select' || kind === 'hover' || kind === 'flag') return this.highlights.outline(kind);
+		if (kind === 'veil') return this.highlights.veil;
+		if (kind === 'dim') return this.highlights.dim;
+		return this.highlights.get(kind as 'ghost' | 'xray');
 	}
 
 	/**
@@ -402,6 +439,16 @@ function setSeeThrough(e: PartEntry, on: boolean): void {
 		} else if (o.userData.ownMaterial) {
 			o.material = o.userData.ownMaterial as Mesh['material'];
 			delete o.userData.ownMaterial;
+		}
+	});
+}
+
+/** Every material of a part model clips by the section plane (plan 378): set once, when built. */
+function clipBy(root: Object3D, planes: MeshBasicMaterial['clippingPlanes']): void {
+	root.traverse((o) => {
+		if (!(o instanceof Mesh)) return;
+		for (const m of Array.isArray(o.material) ? o.material : [o.material]) {
+			if (m.clippingPlanes !== planes) m.clippingPlanes = planes;
 		}
 	});
 }

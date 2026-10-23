@@ -306,6 +306,7 @@
 | 358 | [An inverse side link, so a booster on a radial decoupler can become the root](plans/358-inverse-side-link-for-reroot.md) | draft | | From plan 357: a core link where the child touches the parent's node with its own surface. |
 | 361 | [Shuttle landing and re-entry: retractable gear, a drag chute, SAS Re-entry, roll held](plans/361-shuttle-landing-and-reentry.md) | done | part visuals session | Owner's Shuttle report. ADR 0303: pointing modes keep roll, prograde/retrograde level the wings in the air, a Re-entry mode holds 40° belly first. Retractable `stock.wheel` gear (orbiter main and nose gear), `stock.drag-chute`; Wayfarer carries both. Journal 371. |
 | 366 | [Trajectories rework](plans/366-trajectories-rework.md) | done | mod world API session | ADR 0307. The path shows when it helps: never on the ground, the pad or a stable orbit, fading in past 1 km in Flight, in the map whenever it comes down; a thin heat-coloured arc clear of the vessel; panel settings and a landing target picked on the map (`pick` node, `mod-key` data). API 0.1.108. Journal 366. |
+| 378 | [Hangar nested editing](plans/378-hangar-nested-editing.md) | done | hangar placement UX session | ADR 0315. Selection and hover as a stencil silhouette outline (no fill over what a shell holds); see-through shells a faint veil; open shells reached through; inside mode (double click, Inside on the card, the Parts list) with a breadcrumb and Esc; Section cut; click again for the part behind with a pick list |
 
 Statuses: `draft` (needs refinement before an agent takes it) · `ready` · `in-progress` · `done` · `blocked`.
 
@@ -389,6 +390,7 @@ The owner takes the remaining performance work on the M5; the M2 handles the fix
 ## Recent journal entries
 
 - [377 — Space Center tour](journal/377-space-center-tour.md)
+- [378 — Hangar nested editing](journal/378-hangar-nested-editing.md)
 - [373 — No shader builds at sunrise or on a governor step](journal/373-no-shader-builds-at-sunrise.md)
 - [376 — The Mods page as a mod manager](journal/376-mods-page-mod-manager.md)
 - [372 — Trajectories into the Guidance Landing tab](journal/372-trajectories-into-guidance-landing.md)

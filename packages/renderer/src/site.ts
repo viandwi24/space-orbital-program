@@ -130,35 +130,29 @@ export const ROADS: readonly RoadSpec[] = [
  */
 export const SITE_PEOPLE: readonly CrewSpec[] = [
 	{
-		outfit: 'engineer',
 		id: 'site-1',
 		path: { kind: 'line', from: [2.6, -16], to: [2.6, -46], pause: 5 }
 	},
 	{
-		outfit: 'scientist',
 		id: 'site-2',
 		path: { kind: 'line', from: [-46, 2.2], to: [-17, 2.2], pause: 6 }
 	},
 	{
-		outfit: 'flight-control',
 		id: 'site-3',
 		action: 'wave',
 		path: { kind: 'stand', x: -18.5, z: -14.5, facing: -0.7 }
 	},
 	{
-		outfit: 'doctor',
 		id: 'site-4',
 		action: 'idle',
 		path: { kind: 'stand', x: -19.6, z: -15.6, facing: 2.2 }
 	},
 	{
-		outfit: 'field-worker',
 		id: 'site-5',
 		action: 'work',
 		path: { kind: 'stand', x: 16.5, z: -15.5, facing: 2.4 }
 	},
 	{
-		outfit: 'engineer',
 		id: 'site-6',
 		action: 'work',
 		path: { kind: 'stand', x: 17.4, z: -14.6, facing: -2.6 }

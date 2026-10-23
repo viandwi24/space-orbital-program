@@ -48,7 +48,12 @@ import {
 } from '../parts/types.ts';
 import type { PartVisual } from '@orbital/core';
 import { HANGAR, createHangar, type Hangar } from './hangar.ts';
-import { HighlightMaterials, NodeMarkerKit, pulseMarkers } from './highlight.ts';
+import {
+	HighlightMaterials,
+	NodeMarkerKit,
+	pulseMarkers,
+	SECTION_OFF_CONSTANT
+} from './highlight.ts';
 import { PartLayer } from './part-layer.ts';
 import {
 	BAY_SIGN,
@@ -58,6 +63,16 @@ import {
 	type SignContext
 } from './hangar-signs.ts';
 import { StabilityMarkerKit } from './stability-markers.ts';
+import {
+	ZEN_BACKGROUND,
+	ZEN_LIGHTS,
+	applyLook,
+	createStudio,
+	lightLook,
+	type HangarLook,
+	type LookTargets,
+	type Studio
+} from './studio.ts';
 import {
 	ARROW_LENGTH,
 	GIZMO_AXES,
@@ -123,6 +138,8 @@ export interface VabViewConfig {
 	reducedMotion?: boolean;
 	/** Daylight of the hangar, 0 = dawn to 1 = dusk (`high` only); default a fixed afternoon. */
 	timeOfDay?: number;
+	/** The realistic hangar or the studio (plan 375); default normal. */
+	look?: HangarLook;
 }
 
 export type VabHit =
@@ -182,12 +199,19 @@ export class VabView {
 	private readonly hangar: Hangar;
 	private readonly factory: PartModelFactory;
 	private readonly highlights = new HighlightMaterials();
+	private sectionOn = false;
 	private readonly markerKit = new NodeMarkerKit();
 	private readonly raycaster = new Raycaster();
 	private readonly key: DirectionalLight;
 	private readonly rimLight: DirectionalLight;
 	private readonly fill: HemisphereLight;
 	private readonly glowLight: PointLight;
+	/** The studio's fill (plan 375): dark in the normal look, so the light set never changes. */
+	private readonly studioFill: DirectionalLight;
+	private readonly spot: SpotLight;
+	private readonly studio: Studio;
+	private readonly lookTargets: LookTargets;
+	private look: HangarLook;
 	private readonly layer: PartLayer;
 	private readonly glyphKit = new StabilityMarkerKit();
 	/** The move and rotate gizmo (plan 279). */
@@ -240,8 +264,12 @@ export class VabView {
 			canvas: config.canvas,
 			antialias: true,
 			alpha: true,
+			// the selection outline is a stencil silhouette (plan 378, ADR 0315 point 1)
+			stencil: true,
 			powerPreference: 'high-performance'
 		});
+		// the section cut clips part materials by one shared plane (plan 378, ADR 0315 point 4)
+		this.gl.localClippingEnabled = true;
 		this.gl.info.autoReset = false;
 		this.gl.toneMapping = ACESFilmicToneMapping;
 		this.gl.toneMappingExposure = 1.0;
@@ -299,15 +327,99 @@ export class VabView {
 		const spot = new SpotLight(0xfff4e6, 900, 70, 0.34, 0.7, 1.6);
 		spot.position.set(0.5, 40, 1.5);
 		spot.target.position.set(0, 3, 0);
+		this.spot = spot;
 		this.scene.add(spot, spot.target);
+		// The studio's fill from the front left (plan 375); off in the normal look.
+		this.studioFill = new DirectionalLight(0xffffff, 0);
+		this.studioFill.position.set(-18, 12, 20);
+		this.studioFill.target.position.set(0, 6, 0);
+		this.scene.add(this.studioFill, this.studioFill.target);
 		this.scene.add(this.layer.root);
 		for (const light of this.hangar.workLights) this.scene.add(light);
 		this.scene.add(this.props);
 		this.buildProps(config.props ?? []);
 		this.bakeEnvironment();
 
+		// The studio look (plan 375): one light set and one scene for both looks, so a switch only
+		// changes intensities and visibility of objects compiled in advance (`warmLooks`).
+		this.studio = createStudio(PLATFORM_TOP);
+		this.scene.add(this.studio.root);
+		this.lookTargets = {
+			hangar: [this.hangar.root, this.props],
+			studio: this.studio.root,
+			lights: [
+				lightLook(this.key, ZEN_LIGHTS.key),
+				lightLook(this.rimLight, ZEN_LIGHTS.rim),
+				lightLook(this.fill, ZEN_LIGHTS.sky),
+				lightLook(this.glowLight, ZEN_LIGHTS.off),
+				lightLook(this.spot, ZEN_LIGHTS.off),
+				lightLook(this.studioFill, ZEN_LIGHTS.fill),
+				...this.hangar.workLights.map((l) => lightLook(l, ZEN_LIGHTS.off))
+			],
+			fog: this.scene.fog as FogExp2,
+			fogDensity: { normal: (this.scene.fog as FogExp2).density, zen: 0 },
+			background: this.scene.background as Color,
+			backgroundColour: { normal: 0x0b1118, zen: ZEN_BACKGROUND }
+		};
+		this.look = config.look ?? 'normal';
+		this.warmLooks();
+
 		if (this.quality === 'high') this.buildComposer();
-		this.ready = this.drawSign();
+		// the signs get their textures once the fonts load: warm both looks again then (plan 375)
+		this.ready = this.drawSign().then(() => {
+			if (!this.disposed) this.warmLooks();
+		});
+	}
+
+	// --- looks (plan 375) ------------------------------------------------------------------------------------
+
+	/**
+	 * Compiles both looks' programs before the first frame: everything visible for one compile and
+	 * one draw (the shadow pass), then the chosen look. A later switch then meets no new shader.
+	 */
+	private warmLooks(): void {
+		for (const o of this.lookTargets.hangar) o.visible = true;
+		this.studio.root.visible = true;
+		try {
+			this.gl.compile(this.scene, this.camera);
+			// one draw too, off screen: `compile` skips the shadow pass's depth programs
+			// (every object, culling off for this draw: the light's frustum is fitted to the vessel later)
+			if (this.gl.shadowMap.enabled) {
+				const culled: Object3D[] = [];
+				this.scene.traverse((o) => {
+					if (o.frustumCulled) {
+						culled.push(o);
+						o.frustumCulled = false;
+					}
+				});
+				const target = new WebGLRenderTarget(4, 4);
+				const before = this.gl.getRenderTarget();
+				this.gl.setRenderTarget(target);
+				this.gl.render(this.scene, this.camera);
+				this.gl.setRenderTarget(before);
+				target.dispose();
+				for (const o of culled) o.frustumCulled = true;
+			}
+		} catch {
+			// a context that cannot compile now compiles on first use instead
+		}
+		this.applyLook();
+	}
+
+	private applyLook(): void {
+		applyLook(this.lookTargets, this.look);
+		this.gl.setClearColor(this.lookTargets.backgroundColour[this.look], 1);
+	}
+
+	/** The realistic hangar or the studio; the tools are the same in both. */
+	setLook(look: HangarLook): void {
+		if (look === this.look) return;
+		this.look = look;
+		this.applyLook();
+	}
+
+	get currentLook(): HangarLook {
+		return this.look;
 	}
 
 	// --- environment and decoration -------------------------------------------------------------------------
@@ -431,7 +543,11 @@ export class VabView {
 	}
 
 	private buildComposer(): void {
-		const target = new WebGLRenderTarget(1, 1, { type: HalfFloatType, samples: 4 });
+		const target = new WebGLRenderTarget(1, 1, {
+			type: HalfFloatType,
+			samples: 4,
+			stencilBuffer: true
+		});
 		this.composer = new EffectComposer(this.gl, target);
 		this.composer.addPass(new RenderPass(this.scene, this.camera));
 		this.bloom = new UnrealBloomPass(new Vector2(1, 1), 0.2, 0.5, 1.3);
@@ -697,6 +813,27 @@ export class VabView {
 		return true;
 	}
 
+	/**
+	 * The camera on part `key` close enough that it fills the view (plan 378: inside mode frames the
+	 * shell it enters). False when the part is unknown.
+	 */
+	frameOn(key: string): boolean {
+		const e = this.layer.parts.get(key);
+		if (!e || !this.focusOn(key)) return false;
+		const size = new Box3().setFromObject(e.model.root).getSize(new Vector3());
+		const freeW = Math.max(100, this.width - this.insets.left - this.insets.right);
+		const freeH = Math.max(100, this.height - this.insets.top - this.insets.bottom);
+		const tanEff = Math.tan((FOV * Math.PI) / 360) * (freeH / this.height);
+		const fovEff = (2 * Math.atan(tanEff) * 180) / Math.PI;
+		const need = frameDistance(Math.max(size.x, size.z), size.y, fovEff, freeW / freeH, 1.4);
+		this.goal = focus(
+			{ ...this.goal, distance: Math.max(this.limits.minDistance, need) },
+			this.goal.target,
+			this.limits
+		);
+		return true;
+	}
+
 	/** Back to following the vessel with a framing that fits it. */
 	frame(): void {
 		this.follow = true;
@@ -831,6 +968,8 @@ export class VabView {
 		let throughShell: VabHit | null = null;
 		let holds: ReadonlySet<string> | null = null;
 		for (const h of hits) {
+			// the half the section cut hides is not there to click (plan 378)
+			if (this.cutAway(h.point)) continue;
 			let o: Object3D | null = h.object;
 			while (o && o.userData.key === undefined) o = o.parent;
 			if (!o) continue;
@@ -839,9 +978,11 @@ export class VabView {
 			if (!entry) continue;
 			// the cursor ghost is never in the way of a pick (plan 244)
 			if (entry.slot.role === 'free') continue;
-			// a see-through shell lets the pointer reach what it encloses (plan 315); with nothing
-			// behind, the shell itself is the pick
-			if (entry.seeThrough) {
+			// the entered shell of inside mode is never the pick (plan 378)
+			if (entry.veil) continue;
+			// a see-through or open shell lets the pointer reach what it encloses (plans 315, 378); with
+			// nothing behind, the shell itself is the pick
+			if (entry.seeThrough || entry.reach) {
 				if (!throughShell) {
 					throughShell = partHit(h, o.userData.key as string, entry.group);
 					holds = entry.holds;
@@ -857,6 +998,61 @@ export class VabView {
 			return partHit(h, o.userData.key as string, entry.group);
 		}
 		return throughShell;
+	}
+
+	/**
+	 * Every solid part under the pointer, nearest first, once each (plan 378): what a click again at
+	 * the same spot steps through, and the pick list shows. The entered shell's veil is left out.
+	 */
+	pickAll(clientX: number, clientY: number): string[] {
+		this.rayAt(clientX, clientY);
+		this.layer.root.updateMatrixWorld(true);
+		const roots: Object3D[] = [];
+		for (const e of this.layer.parts.values()) roots.push(e.model.root);
+		const out: string[] = [];
+		for (const h of this.raycaster.intersectObjects(roots, true)) {
+			if (this.cutAway(h.point)) continue;
+			let o: Object3D | null = h.object;
+			while (o && o.userData.key === undefined) o = o.parent;
+			const key = o?.userData.key as string | undefined;
+			const entry = key === undefined ? undefined : this.layer.parts.get(key);
+			if (!entry || entry.slot.role !== 'solid' || entry.veil || out.includes(key!)) continue;
+			out.push(key!);
+		}
+		return out;
+	}
+
+	/** The section cut (plan 378, ADR 0315 point 4): on, the half of the vessel facing the camera is cut away. */
+	setSection(on: boolean): void {
+		this.sectionOn = on;
+		this.placeSection();
+	}
+
+	get section(): boolean {
+		return this.sectionOn;
+	}
+
+	/** A world point the section cut hides. */
+	private cutAway(point: Vector3): boolean {
+		return this.sectionOn && this.layer.section[0]!.distanceToPoint(point) < 0;
+	}
+
+	/** Moves the cut plane: vertical through the vessel axis, its normal away from the camera; off, far away. */
+	private placeSection(): void {
+		const plane = this.layer.section[0]!;
+		const main = this.layer.groups.get('main');
+		if (!this.sectionOn || !main) {
+			plane.normal.set(0, 0, -1);
+			plane.constant = SECTION_OFF_CONSTANT;
+			return;
+		}
+		const axis = main.object.getWorldPosition(new Vector3());
+		const away = new Vector3(axis.x - this.camera.position.x, 0, axis.z - this.camera.position.z);
+		if (away.lengthSq() < 1e-9) away.set(0, 0, -1);
+		away.normalize();
+		// three keeps what is on the plane's positive side: the far half
+		plane.normal.copy(away);
+		plane.constant = -away.dot(axis);
 	}
 
 	/**
@@ -1033,7 +1229,7 @@ export class VabView {
 			);
 		gl.setScissorTest(false);
 		gl.shadowMap.enabled = prevShadow;
-		gl.setClearColor(0x0b1118, 1);
+		gl.setClearColor(this.lookTargets.backgroundColour[this.look], 1);
 		gl.setPixelRatio(prevRatio);
 		gl.setSize(prevSize.x, prevSize.y, false);
 		this.resize(this.width, this.height, true);
@@ -1119,6 +1315,7 @@ export class VabView {
 		this.composer?.setPixelRatio(pr);
 		this.composer?.setSize(this.width, this.height);
 		this.bloom?.setSize(this.width * pr * 0.5, this.height * pr * 0.5);
+		this.highlights.setViewport(this.width, this.height);
 		this.applyViewOffset();
 		this.updateCameraGoal();
 	}
@@ -1168,13 +1365,14 @@ export class VabView {
 		this.camera.lookAt(...this.cam.target);
 		this.highlights.setTime(this.reduced ? 0 : this.time);
 		if (!this.reduced) pulseMarkers(this.markers.values(), this.time);
-		this.hangar.update(dt, this.time);
+		if (this.look === 'normal') this.hangar.update(dt, this.time);
 		this.glyphKit.orient(this.glyphs.values(), this.camera, this.fov, this.height);
 		if (this.gizmoKit.root.visible && this.gizmoKit.root.parent) {
 			const at = this.gizmoKit.root.getWorldPosition(new Vector3());
 			this.gizmoKit.fit(at.distanceTo(this.camera.position));
 		}
 		this.fitShadow();
+		this.placeSection();
 		for (const e of this.layer.parts.values()) e.model.tick(dt);
 		if (this.composer) this.composer.render(dt);
 		else this.gl.render(this.scene, this.camera);
@@ -1262,6 +1460,7 @@ export class VabView {
 		this.markerKit.dispose();
 		this.highlights.dispose();
 		this.hangar.dispose();
+		this.studio.dispose();
 		for (const t of this.signTextures) t.dispose();
 		this.trestleGeometry.dispose();
 		this.trestleMaterial.dispose();
