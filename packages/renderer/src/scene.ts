@@ -347,7 +347,8 @@ export class SceneModel {
 	constructor(config: SceneConfig) {
 		this.config = config;
 		const settings = PRESETS[config.preset ?? 'high'];
-		this.factory = this.makeFactory(config.preset ?? 'high');
+		this.partsPreset = config.preset ?? 'high';
+		this.factory = this.makeFactory(this.partsPreset);
 		this.threshold = config.originThreshold ?? DEFAULT_ORIGIN_THRESHOLD;
 		const primary = config.bodies.find((b) => b.id === config.home) ?? config.bodies[0];
 		config.bodies.forEach((b, i) => {
@@ -527,8 +528,19 @@ export class SceneModel {
 	}
 
 	/** Switch the graphics preset: environment, part detail (models are rebuilt), effect budgets. */
-	setPreset(preset: GraphicsPreset): void {
-		this.environment.setPreset(preset);
+	/**
+	 * `keepParts` (WebGPU's governor steps): the vessels stay at the resource preset's part detail. WebGL
+	 * compiles each preset's own part materials at load, so it rebuilds them at the step's detail.
+	 */
+	setPreset(preset: GraphicsPreset, resources?: GraphicsPreset, keepParts = false): void {
+		this.environment.setPreset(preset, resources);
+		this.effects.setPreset(PRESETS[preset]);
+		for (const moon of this.moons.values()) moon.setShadowSteps(SHADOW_STEPS[preset]);
+		// a governor step keeps the part detail of the resource preset (plan 373, ADR 0310): rebuilding
+		// the models made new materials and their shadow pipelines in flight, 0.1 to 0.2 s on the M2
+		const parts = keepParts ? (resources ?? preset) : preset;
+		if (parts === this.partsPreset) return;
+		this.partsPreset = parts;
 		// Their models belong to the factory being replaced.
 		for (const r of this.remnants) this.dropRemnant(r);
 		this.remnants = [];
@@ -543,13 +555,14 @@ export class SceneModel {
 		}
 		this.factory.dispose();
 		this.shardSources.clear();
-		this.factory = this.makeFactory(preset);
+		this.factory = this.makeFactory(parts);
 		for (const entry of this.vessels.values()) {
 			entry.bars = this.makeBars(entry.group);
 		}
-		this.effects.setPreset(PRESETS[preset]);
-		for (const moon of this.moons.values()) moon.setShadowSteps(SHADOW_STEPS[preset]);
 	}
+
+	/** The preset whose part detail the vessels are built at. */
+	private partsPreset: GraphicsPreset;
 
 	/** Factories of the models `warmPartScene` built; kept so the programs of their materials stay alive. */
 	private readonly warmFactories: PartModelFactory[] = [];

@@ -62,10 +62,11 @@ describe('Automatic by measured headroom (plan 362, ADR 0304)', () => {
 		expect(frameCapFps('display')).toBeNull();
 		expect(frameCapFps('30')).toBe(30);
 	});
-	it('warms the preset the governor moves to first, none when it may not adjust', () => {
-		expect(warmPresetsFor('high', true, 'high')).toEqual(['medium']);
-		expect(warmPresetsFor('medium', true, 'high')).toEqual(['low']);
-		expect(warmPresetsFor('low', true, 'high')).toEqual(['medium']);
+	it('warms every preset the governor can reach up to the ceiling, nearest first, none when it may not adjust', () => {
+		expect(warmPresetsFor('high', true, 'high')).toEqual(['medium', 'low']);
+		expect(warmPresetsFor('medium', true, 'high')).toEqual(['low', 'high']);
+		expect(warmPresetsFor('medium', true, 'medium')).toEqual(['low']);
+		expect(warmPresetsFor('low', true, 'high')).toEqual(['medium', 'high']);
 		expect(warmPresetsFor('low', true, 'low')).toEqual([]);
 		expect(warmPresetsFor('medium', false, 'high')).toEqual([]);
 	});

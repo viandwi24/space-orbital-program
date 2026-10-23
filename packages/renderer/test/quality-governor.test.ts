@@ -529,3 +529,15 @@ describe('plan 362 (ADR 0304): presets before deep resolution, a learned start, 
 		expect(g.history.some((h) => h.reason.includes('not the graphics'))).toBe(false);
 	});
 });
+
+describe('plan 373 (ADR 0310): held while the reachable presets warm', () => {
+	test('held: paced, no level change however slow; released: it judges again', () => {
+		const g = new QualityGovernor('high');
+		g.setHeld(true);
+		const run = play(g, 20, () => 60);
+		expect(run.changes).toEqual([]);
+		expect(g.level).toEqual(governorLadder('high')[0]!);
+		g.setHeld(false);
+		expect(play(g, 20, () => 60).changes.length).toBeGreaterThan(0);
+	});
+});

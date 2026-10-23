@@ -236,6 +236,22 @@ export function selectPreset(caps: DeviceCapabilities): GraphicsPreset {
 }
 
 /** Parses a persisted value; anything else is `null` so the caller falls back to `selectPreset`. */
+/**
+ * The settings that size the world's baked resources: the biome map, the terrain cube and its patches,
+ * and through them the scaled-space bake (plan 364). A governor step keeps the resource preset's values
+ * (plan 373, ADR 0310): a step that resized them rebuilt the terrain and re-ran the scaled-space bake,
+ * up to 1.5 s at a sunrise on the M2. Only a player's preset change resizes them.
+ */
+export const RESOURCE_SETTINGS = ['mapWidth', 'terrainSize', 'terrainPatch'] as const;
+
+/** `preset`'s settings with the resource sizes of `resources` (none: the preset's own). Pure (tested). */
+export function settingsFor(preset: GraphicsPreset, resources?: GraphicsPreset): PresetSettings {
+	const s = PRESETS[preset];
+	if (!resources || resources === preset) return s;
+	const r = PRESETS[resources];
+	return { ...s, mapWidth: r.mapWidth, terrainSize: r.terrainSize, terrainPatch: r.terrainPatch };
+}
+
 export function parsePreset(value: unknown): GraphicsPreset | null {
 	return typeof value === 'string' && (GRAPHICS_PRESETS as readonly string[]).includes(value)
 		? (value as GraphicsPreset)

@@ -222,9 +222,11 @@ export function governorCeiling(
 }
 
 /**
- * The preset the governor would move to first, drawn at load so the move builds no shader in flight
- * (plan 362, ADR 0304): none while it may not adjust; else the one below the start, or, at the bottom,
- * the one above it when the ceiling allows. Pure (tested).
+ * The presets the governor can reach from the start, drawn after load so a move builds no shader in
+ * flight (plan 362, ADR 0304; every reachable one since plan 373, ADR 0310: low, then medium, then
+ * high reached an unwarmed `high` mid-orbit, 1.4 s on the M2; plan 370 warms them in the background,
+ * not on the loading screen, and the governor waits for them): none while it may not adjust, else every
+ * other preset up to the ceiling, nearest first. Pure (tested).
  */
 export function warmPresetsFor(
 	start: GraphicsPreset,
@@ -234,9 +236,12 @@ export function warmPresetsFor(
 	if (!adjust) return [];
 	const order: readonly GraphicsPreset[] = ['low', 'medium', 'high'];
 	const at = order.indexOf(start);
-	if (at > 0) return [order[at - 1]!];
-	const above = order[at + 1];
-	return above && order.indexOf(above) <= order.indexOf(ceiling) ? [above] : [];
+	const top = order.indexOf(ceiling);
+	return order
+		.map((p, i) => ({ p, i }))
+		.filter(({ i }) => i !== at && i <= top)
+		.sort((a, b) => Math.abs(a.i - at) - Math.abs(b.i - at) || a.i - b.i)
+		.map(({ p }) => p);
 }
 
 /** What a view's renderer starts with: the preset and the presets to warm at load (plan 362). */

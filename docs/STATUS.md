@@ -275,6 +275,7 @@
 | 371 | [Rendezvous Fast mode](plans/371-rendezvous-fast-mode.md) | done | rendezvous session | Efficient or Fast: a direct intercept under a delta-v cap, quicker close; ETA and delta-v for both in the tab. Journal 371. |
 | 372 | [Trajectories into the Guidance Landing tab](plans/372-trajectories-into-guidance-landing.md) | done | rendezvous session | ADR 0309. The predicted landing path, impact and target in the Guidance Landing tab (heat, error); Land flies to the target (1.2 km from 497 km on the moon); `mods/trajectories` removed; `PilotBody.rotation` (API 0.1.109). Journal 372. |
 | 362 | [Automatic quality: preset steps on WebGPU, a resolution floor per preset, a learned start, a frame-rate limit](plans/362-auto-quality-fix.md) | done | perf session | ADR 0304. Owner report 2026-10-22: Automatic fell to 25 fps in orbit where Medium held 100. M2: high+adjust 39 fps locked to 30 → medium 60 fps; switch stalls 1.5 s → 0.08 s. Journal 362. |
+| 373 | [No shader builds at sunrise or on a governor step](plans/373-no-shader-builds-at-sunrise.md) | in-progress | perf session | ADR 0310. Owner report 2026-10-23: freezes at sunrise and sunset in orbit. WebGPU: 4 stalls up to 1.5 s → 0 over 100 ms in the last runs; WebGL night start still 106/147 ms (open). Journal 373. |
 | 363 | [Frame budget research and the first cuts](plans/363-frame-budget-research-and-first-cuts.md) | done | perf session | Owner request 2026-10-22: deep research on efficient rendering. `profile-frame.ts`, research doc; allocation 1143 → 951 KB a frame (navball, config parses). Journal 363. |
 | 365 | [Snapshot transport: fewer bytes and less parsing per frame](plans/365-snapshot-transport.md) | draft | — | From plan 363's ranking. |
 | 367 | [Vessel parts merged per material](plans/367-vessel-parts-merged-per-material.md) | draft | — | From plan 363's ranking: ~350 draw calls for Kronos V. |
@@ -386,6 +387,7 @@ The owner takes the remaining performance work on the M5; the M2 handles the fix
 
 ## Recent journal entries
 
+- [373 — No shader builds at sunrise or on a governor step](journal/373-no-shader-builds-at-sunrise.md)
 - [376 — The Mods page as a mod manager](journal/376-mods-page-mod-manager.md)
 - [372 — Trajectories into the Guidance Landing tab](journal/372-trajectories-into-guidance-landing.md)
 - [370 — Shader compile at world load](journal/370-shader-compile-at-world-load.md)

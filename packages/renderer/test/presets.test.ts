@@ -5,8 +5,10 @@ import {
 	PRESETS,
 	detailOf,
 	hangarDetail,
+	RESOURCE_SETTINGS,
 	parsePreset,
-	selectPreset
+	selectPreset,
+	settingsFor
 } from '../src/presets.ts';
 import {
 	DAY_EXPOSURE,
@@ -183,5 +185,20 @@ describe('Hangar detail (plan 220)', () => {
 		expect(hangarDetail('low')).toEqual(detailOf(PRESETS.high));
 		expect(hangarDetail('high')).toEqual(detailOf(PRESETS.high));
 		expect(detailOf(PRESETS.low).segments).toBeLessThan(hangarDetail('low').segments);
+	});
+});
+
+describe('settingsFor (plan 371, ADR 0309)', () => {
+	test("a governor step keeps the resource preset's map and terrain sizes, everything else is the step's", () => {
+		const s = settingsFor('low', 'high');
+		expect(s.mapWidth).toBe(PRESETS.high.mapWidth);
+		expect(s.terrainSize).toBe(PRESETS.high.terrainSize);
+		expect(s.terrainPatch).toBe(PRESETS.high.terrainPatch);
+		expect(s.cloudSteps).toBe(PRESETS.low.cloudSteps);
+		expect(s.msaa).toBe(PRESETS.low.msaa);
+		expect(s.shadowMapSize).toBe(PRESETS.low.shadowMapSize);
+		expect(settingsFor('medium')).toBe(PRESETS.medium);
+		expect(settingsFor('medium', 'medium')).toBe(PRESETS.medium);
+		expect(RESOURCE_SETTINGS).toEqual(['mapWidth', 'terrainSize', 'terrainPatch']);
 	});
 });

@@ -41,7 +41,7 @@ import {
 } from './exposure.ts';
 import { planetFrame } from './planet-frame.ts';
 import { PlanetPass } from './planet.ts';
-import { PRESETS, shadowSizeAt, type GraphicsPreset } from './presets.ts';
+import { PRESETS, settingsFor, shadowSizeAt, type GraphicsPreset } from './presets.ts';
 import { fitShadow } from './shadow-fit.ts';
 import { liftAboveTerrain } from './terrain-patch.ts';
 import { LaunchSite } from './site-meshes.ts';
@@ -218,10 +218,14 @@ export class Environment {
 		return this.preset;
 	}
 
-	setPreset(preset: GraphicsPreset): void {
+	/** `resources`: the preset whose map and terrain sizes stay (a governor step, `settingsFor`). */
+	setPreset(preset: GraphicsPreset, resources?: GraphicsPreset): void {
 		this.preset = preset;
+		this.resources = resources;
 		this.applyPreset();
 	}
+
+	private resources: GraphicsPreset | undefined;
 
 	/** The vessel really launched from here (see `SceneModel.sync`); moves the site meshes and the painted pad. */
 	setSite(latitude: number, longitude: number): void {
@@ -243,18 +247,37 @@ export class Environment {
 		this.planet.setTerrain(terrain);
 	}
 
+	/**
+	 * Warm-up frames only (plan 373, ADR 0310): the sun's shadow is fitted and handed to the planet pass
+	 * as if the sun were up. A world loaded at night or in orbit over the dark side otherwise built its
+	 * shadow pipelines, and on WebGPU every planet-pass variant again, at the first sunrise (0.6 to 1.9 s).
+	 */
+	forceShadow = false;
+
 	/** Dev/screenshot override of the sun (elevation, azimuth clockwise from north at the launch site); null restores the real sun. */
 	setSunOverride(value: { elevation: number; azimuth: number } | null): void {
 		this.sunOverride = value;
 	}
 
+	/**
+	 * The shadow map's side before the view ratio: the preset's, or on a governor step the resource
+	 * preset's (plan 373, ADR 0310). A step to `high` grew the map to 4096 a few frames later, three
+	 * made a new depth texture, and the planet pass rebuilt every variant for it in flight.
+	 */
+	private shadowMapSide(): number {
+		const own = PRESETS[this.preset].shadowMapSize;
+		if (own === 0) return 0;
+		const kept = this.resources ? PRESETS[this.resources].shadowMapSize : 0;
+		return kept > 0 ? kept : own;
+	}
+
 	private applyPreset(): void {
-		const s = PRESETS[this.preset];
+		const s = settingsFor(this.preset, this.resources);
 		this.planet.setQuality(s);
 		this.site.setTrees(s.trees, s.tufts);
 		const shadows = s.shadowMapSize > 0;
 		this.sunLight.castShadow = shadows;
-		const wanted = shadowSizeAt(s.shadowMapSize, this.viewRatio);
+		const wanted = shadowSizeAt(this.shadowMapSide(), this.viewRatio);
 		if (shadows && this.shadowSize === 0) {
 			// no map is allocated yet: the first render allocates it at this size
 			this.shadowSize = wanted;
@@ -274,9 +297,8 @@ export class Environment {
 	setViewRatio(ratio: number): void {
 		if (ratio === this.viewRatio) return;
 		this.viewRatio = ratio;
-		const s = PRESETS[this.preset];
-		if (s.shadowMapSize === 0) return;
-		const wanted = shadowSizeAt(s.shadowMapSize, ratio);
+		if (this.shadowMapSide() === 0) return;
+		const wanted = shadowSizeAt(this.shadowMapSide(), ratio);
 		const shadow = this.sunLight.shadow;
 		if (wanted < this.shadowSize || !shadow.map) {
 			this.shadowSize = wanted;
@@ -290,7 +312,7 @@ export class Environment {
 	/** Grows the shadow map to the preset's size once the frames after a switch have passed. */
 	private settleShadowMap(): void {
 		if (this.shadowDelay === 0 || --this.shadowDelay > 0) return;
-		const size = shadowSizeAt(PRESETS[this.preset].shadowMapSize, this.viewRatio);
+		const size = shadowSizeAt(this.shadowMapSide(), this.viewRatio);
 		if (size <= this.shadowSize) return; // the preset went back down meanwhile
 		this.shadowSize = size;
 		const shadow = this.sunLight.shadow;
@@ -421,7 +443,7 @@ export class Environment {
 		// Shadow camera around the casters.
 		this.settleShadowMap();
 		const mapSize = PRESETS[this.preset].shadowMapSize > 0 ? this.shadowSize : 0;
-		const sunUp = sunT[0] + sunT[1] + sunT[2] > 0.01;
+		const sunUp = this.forceShadow || sunT[0] + sunT[1] + sunT[2] > 0.01;
 		let shadowActive = false;
 		let shadowMap: DepthTexture | null = null;
 		if (mapSize > 0 && sunUp && input.vesselRender && !input.mapView) {

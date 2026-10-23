@@ -301,8 +301,13 @@ export interface Renderer {
 	pickSite(x: number, y: number): { east: number; north: number } | null;
 	/** CSS pixel of a site point (m east, north, up), or null behind the camera. */
 	projectSite(p: { east: number; north: number; up?: number }): ScreenPoint | null;
-	/** Switch the graphics preset at runtime (shadows, post chain, sample counts, vegetation). */
-	setPreset(preset: GraphicsPreset): void;
+	/**
+	 * Switch the graphics preset at runtime (shadows, post chain, sample counts, vegetation).
+	 * `governed`: the quality governor's step. On WebGPU it keeps the world's map, terrain, shadow and
+	 * part sizes of the last preset set without it (plan 373, ADR 0310), so it rebuilds no terrain and
+	 * re-runs no bake; WebGL ignores it (it compiles each preset's own programs at load).
+	 */
+	setPreset(preset: GraphicsPreset, options?: { governed?: boolean }): void;
 	readonly preset: GraphicsPreset;
 	/** Drop the bright flashes of explosions and separations (plan 246: prefers-reduced-motion). */
 	setReducedMotion(on: boolean): void;
@@ -380,6 +385,8 @@ export function createRenderer(config: RendererConfig): Renderer {
 	const model = new SceneModel(config);
 	const env = model.environment;
 	let preset: GraphicsPreset = config.preset ?? 'high';
+	/** The preset whose map and terrain sizes the world keeps (`setPreset`'s `governed`). */
+	let resources: GraphicsPreset = preset;
 	let width = 1;
 	let height = 1;
 	let pixelRatio = 1;
@@ -561,6 +568,13 @@ export function createRenderer(config: RendererConfig): Renderer {
 			tracker.setStage('warm');
 			tracker.expect(1);
 			await idle();
+			// sunlit too (plan 373, ADR 0310): the shadow-casting programs a night load never drew
+			env.forceShadow = true;
+			try {
+				model.warmViews(() => drawFrame(0));
+			} finally {
+				env.forceShadow = false;
+			}
 			model.warmViews(() => drawFrame(0));
 			tracker.finish();
 			// the biome maps of the other presets, one per idle period: each takes up to a second to build
@@ -607,7 +621,7 @@ export function createRenderer(config: RendererConfig): Renderer {
 	const switches = new FeatureSwitches(
 		PRESETS as unknown as Record<GraphicsPreset, PresetSettings>,
 		() => {
-			model.setPreset(preset);
+			model.setPreset(preset, resources);
 			post.setSettings(PRESETS[preset]);
 			applySize();
 		}
@@ -683,9 +697,13 @@ export function createRenderer(config: RendererConfig): Renderer {
 					)
 				);
 			},
-			setPreset(next: GraphicsPreset) {
+			setPreset(next: GraphicsPreset, _options?: { governed?: boolean }) {
+				// WebGL compiles every preset's own programs at load and has no step stalls to avoid: a
+				// governed step that kept another preset's sizes made a planet program it never compiled
+				// (plan 373), so the step's preset is the resource preset here
+				resources = next;
 				preset = next;
-				model.setPreset(next);
+				model.setPreset(next, resources);
 				post.setSettings(PRESETS[next]);
 				applySize();
 			},

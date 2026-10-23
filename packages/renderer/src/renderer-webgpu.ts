@@ -25,6 +25,7 @@ import {
 	GRAPHICS_PRESETS,
 	PRESETS,
 	msaaSamples,
+	settingsFor,
 	type GraphicsPreset,
 	type PresetSettings
 } from './presets.ts';
@@ -93,6 +94,8 @@ export function createWebGPURenderer(
 	 */
 	let booting = config.bootPreset !== undefined && config.bootPreset !== requested;
 	let preset: GraphicsPreset = booting ? config.bootPreset! : requested;
+	/** The preset whose map, terrain, part detail and shadow sizes the world keeps (`setPreset`'s `governed`, ADR 0310). */
+	let resources: GraphicsPreset = preset;
 	const bootInfo: { preset: GraphicsPreset | null; swappedAfterMs: number | null; lowered: boolean } = {
 		preset: booting ? preset : null,
 		swappedAfterMs: null,
@@ -215,10 +218,12 @@ export function createWebGPURenderer(
 		ready();
 	};
 
-	function applyPreset(next: GraphicsPreset): void {
+	/** `governed`: a governor step or a warm-up frame keeps the world's resource sizes (plan 373, ADR 0310). */
+	function applyPreset(next: GraphicsPreset, governed = false): void {
+		if (!governed) resources = next;
 		preset = next;
-		model.setPreset(next);
-		planet.setSettings(PRESETS[next]);
+		model.setPreset(next, resources, governed);
+		planet.setSettings(settingsFor(next, resources));
 		applySize();
 	}
 
@@ -476,16 +481,39 @@ export function createWebGPURenderer(
 			await Promise.race([Promise.all(pending), presetChanged.promise]);
 		}
 	};
-	/** The planet on its full and its half path (a governor rung or the pixel budget finds both built). */
+	/**
+	 * Draws as if the sun were up (plan 373, ADR 0310): the shadow is fitted around the vessel, so the
+	 * casters' shadow pipelines are built whatever the time of day at load. Without it a world loaded at
+	 * night or over the dark side built them at the first sunrise.
+	 */
+	const sunlit = (draw: () => void): void => {
+		env.forceShadow = true;
+		try {
+			draw();
+		} finally {
+			env.forceShadow = false;
+		}
+	};
+	/** The planet on its full and its half path (a governor rung or the pixel budget finds both built), sunlit and as it is. */
 	const planetFrames = (): void => {
 		try {
 			for (const s of [1, HALF_PLANET_SCALE]) {
 				planet.forceScale = s;
+				sunlit(() => drawFrame(0));
 				drawFrame(0);
 			}
 		} finally {
 			planet.forceScale = null;
 		}
+	};
+	/** A frame and every view, sunlit and as they are (plan 373). */
+	const viewFrames = (): void => {
+		sunlit(() => {
+			drawFrame(0);
+			model.warmViews(() => drawFrame(0));
+		});
+		drawFrame(0);
+		model.warmViews(() => drawFrame(0));
 	};
 	/**
 	 * Builds `name`'s pipelines for `frames` in the background while the world is shown (ADR 0308
@@ -506,13 +534,13 @@ export function createWebGPURenderer(
 			deferredBuilds = 0;
 			asyncPipelines = true;
 			try {
-				if (name !== own) applyPreset(name);
+				if (name !== own) applyPreset(name, true);
 				if (parts) withParts(parts, frames);
 				else frames();
 			} finally {
 				asyncPipelines = false;
 				planet.forceScale = null;
-				if (name !== own) applyPreset(own);
+				if (name !== own) applyPreset(own, true);
 			}
 			drawFrame(0);
 			const pending = [...pendingCompiles];
@@ -525,6 +553,7 @@ export function createWebGPURenderer(
 	/** The planet at the scale it does not draw now (the governor's half rung, or back to full). */
 	const otherScaleFrame = (): void => {
 		planet.forceScale = planet.scale < 1 ? 1 : HALF_PLANET_SCALE;
+		sunlit(() => drawFrame(0));
 		drawFrame(0);
 	};
 	const precompile = (onProgress?: (p: PrecompileProgress) => void): Promise<void> => {
@@ -541,10 +570,7 @@ export function createWebGPURenderer(
 			// world moves between (flight with its effects, map in vessel and system scope, the site),
 			// drawn until every pipeline they need is built for the targets they draw into. The other
 			// planet scale waits until after the loading screen: on D3D each planet variant is 10 to 15 s.
-			await settle(() => {
-				drawFrame(0);
-				model.warmViews(() => drawFrame(0));
-			});
+			await settle(viewFrames);
 			tracker.finish();
 			// the same frames on the sync path: everything is built, and what only draws once draws now
 			tracker.setStage('warm');
@@ -552,10 +578,7 @@ export function createWebGPURenderer(
 			tracker.expect(1);
 			await idle();
 			asyncPipelines = false;
-			if (gpu) {
-				drawFrame(0);
-				model.warmViews(() => drawFrame(0));
-			}
+			if (gpu) viewFrames();
 			tracker.finish();
 			// After the loading screen (ADR 0308 point 4, amending 0304), in the background:
 			tracker.setStage('presets');
@@ -567,14 +590,7 @@ export function createWebGPURenderer(
 				tracker.expect(1);
 				const parts = model.warmPartScene(target);
 				variants.push(parts);
-				const done = await warmRounds(
-					target,
-					() => {
-						drawFrame(0);
-						model.warmViews(() => drawFrame(0));
-					},
-					parts
-				);
+				const done = await warmRounds(target, viewFrames, parts);
 				tracker.finish();
 				// after a few tries that never settle, swap anyway: what is left builds on first use
 				if ((done || attempt >= 3) && booting && target === requested) {
@@ -598,7 +614,10 @@ export function createWebGPURenderer(
 				variants.push(parts);
 				tracker.expect(1);
 				const t0 = performance.now();
-				await warmRounds(name, planetFrames, parts);
+				// the planet's paths alone, then the part models in their own frames: drawn together, the
+				// parts used up each task's build budget and the half path was never built (plan 373)
+				await warmRounds(name, planetFrames);
+				await warmRounds(name, () => sunlit(() => drawFrame(0)), parts);
 				presetWarmMs[name] = Math.round(performance.now() - t0);
 				tracker.finish();
 			}
@@ -627,7 +646,7 @@ export function createWebGPURenderer(
 	const switches = new FeatureSwitches(
 		PRESETS as unknown as Record<GraphicsPreset, PresetSettings>,
 		() => {
-			model.setPreset(preset);
+			model.setPreset(preset, resources);
 			pipelineKey = '';
 			applySize();
 		}
@@ -731,7 +750,7 @@ export function createWebGPURenderer(
 					)
 				);
 			},
-			setPreset: (next: GraphicsPreset) => {
+			setPreset: (next: GraphicsPreset, options?: { governed?: boolean }) => {
 				requested = next;
 				if (booting) {
 					// still drawing the boot preset: the background builds the new one (or, asked for the
@@ -744,8 +763,8 @@ export function createWebGPURenderer(
 					presetChanged = deferred();
 					return;
 				}
-				if (next === preset) return;
-				applyPreset(next);
+				if (next === preset && (options?.governed || resources === next)) return;
+				applyPreset(next, options?.governed);
 				pendingCompiles.clear();
 				presetChanged.resolve();
 				presetChanged = deferred();

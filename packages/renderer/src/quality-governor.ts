@@ -424,7 +424,30 @@ export class QualityGovernor {
 		}
 		const interval = this.sinceRender;
 		this.sinceRender = 0;
-		return { render: true, level: this.enabled ? this.frame(interval, workMs) : null };
+		return {
+			render: true,
+			level: this.enabled && !this.held ? this.frame(interval, workMs) : null
+		};
+	}
+
+	private held = false;
+
+	/**
+	 * Held: the drawing is paced but no level changes (plan 373, ADR 0310), while the renderer still
+	 * warms the presets the governor can reach. A move before that built the preset's half path and
+	 * shadow pipelines in flight (0.6 s at the next sunrise on the M2). Released, it starts judging
+	 * afresh after the preset settle time.
+	 */
+	setHeld(held: boolean): void {
+		if (this.held && !held) {
+			this.samples = [];
+			this.settle = this.config.presetSettleSeconds;
+		}
+		this.held = held;
+	}
+
+	get isHeld(): boolean {
+		return this.held;
 	}
 
 	/**

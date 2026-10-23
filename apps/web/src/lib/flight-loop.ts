@@ -1570,7 +1570,8 @@ export function startFlight(options: FlightOptions): Flight {
 	/** Draws at the governor's level and, when it moved by itself, tells the player once (plan 039). */
 	function applyLevel(level: GovernorLevel, announce: boolean, reason?: string): void {
 		if (!renderer) return;
-		if (level.preset !== renderer.preset) renderer.setPreset(level.preset);
+		// a governor level keeps the world's map and terrain sizes (plan 373, ADR 0310)
+		if (level.preset !== renderer.preset) renderer.setPreset(level.preset, { governed: true });
 		syncGlass();
 		renderer.setRenderScale(level.scale);
 		renderer.setPlanetScale(level.planetScale);
@@ -1929,8 +1930,13 @@ export function startFlight(options: FlightOptions): Flight {
 					// no storage: no switches
 				}
 			}
-			// compile this preset's programs and the other presets' planet pass off the main thread
-			void renderer.precompile(options.onGraphics);
+			// compile this preset's programs and the other presets' planet pass off the main thread; the
+			// governor moves only once the presets it can reach are warm (plan 373, ADR 0310)
+			governor?.setHeld(true);
+			void renderer
+				.precompile(options.onGraphics)
+				.catch(() => undefined)
+				.finally(() => governor?.setHeld(false));
 			resize();
 			if (resumed && options.resume) {
 				// The sim already holds the flight; the page only takes up the controls where they were.
@@ -2274,8 +2280,12 @@ export function startFlight(options: FlightOptions): Flight {
 			if (choice === 'auto') clearGraphicsPreset();
 			else saveGraphicsPreset(choice);
 			// the player's choice is the governor's ceiling and starts it again at full resolution;
-			// Automatic starts where it settled last time (plan 362)
-			if (governor) applyLevel(startGovernor(governor), false);
+			// Automatic starts where it settled last time (plan 362); the player's choice sizes the
+			// world's map and terrain (plan 373), the governor's steps then keep them
+			if (governor && renderer) {
+				renderer.setPreset(governorPlan().start);
+				applyLevel(startGovernor(governor), false);
+			} else if (governor) applyLevel(startGovernor(governor), false);
 			else {
 				renderer?.setPreset(choice === 'auto' ? initialGraphicsPreset() : choice);
 				syncGlass();
