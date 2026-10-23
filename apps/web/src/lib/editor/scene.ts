@@ -3,6 +3,7 @@
  * loose assembly as its own group on the floor, the translucent ghost of whatever is being placed,
  * and a marker on every place it can go. Pure; the page feeds the result to `VabView.setScene`.
  */
+import { insideLook } from './inside-mode';
 import {
 	effectiveDef,
 	mat3Apply,
@@ -134,6 +135,8 @@ export interface SceneInput {
 		open: ReadonlySet<number>;
 		/** What each shell holds (design indices). */
 		holds?: ReadonlyMap<number, readonly number[]>;
+		/** The shell inside mode entered (plan 378): a veil, what it holds as usual, the rest dimmed. */
+		entered?: number | null;
 	};
 	/** A strut or fuel line being placed: the bar from the first end to the pointer (ADR 0071). */
 	preview?: {
@@ -206,10 +209,15 @@ export function buildScene(input: SceneInput): BuiltScene {
 		const shown = Object.keys(modules).length > 0 ? { modules } : {};
 		if (!inside) return shown;
 		const holds = inside.holds?.get(index);
+		const entered = inside.entered ?? null;
+		const look = inside.holds ? insideLook(entered, index, inside.holds) : null;
+		// an open shell lets the pointer reach what it holds (plan 378, ADR 0315 point 2)
+		const reach = holds !== undefined && holds.length > 0 && inside.open.has(index);
+		const held = holds ? { holds: holds.map(partKey) } : {};
 		return {
-			...(inside.seeThrough.has(index)
-				? { seeThrough: true, ...(holds ? { holds: holds.map(partKey) } : {}) }
-				: {}),
+			...(inside.seeThrough.has(index) ? { seeThrough: true, ...held } : {}),
+			...(reach ? { reach: true, ...held } : {}),
+			...(look === 'veil' ? { veil: true, ...held } : look === 'dim' ? { dim: true } : {}),
 			...shown
 		};
 	};

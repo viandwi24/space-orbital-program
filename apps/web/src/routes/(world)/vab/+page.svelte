@@ -24,6 +24,7 @@
 	import BuildContext from '../../../lib/vab/BuildContext.svelte';
 	import { pageShell } from '../../../lib/layout/page-actions.svelte';
 	import ToolPill from '../../../lib/vab/ToolPill.svelte';
+	import PickList from '../../../lib/vab/PickList.svelte';
 	import HelpOverlay from '../../../lib/hud/HelpOverlay.svelte';
 	import { VabController } from '../../../lib/vab/controller.svelte';
 	import { SaveController } from '../../../lib/save/save-controller.svelte';
@@ -274,6 +275,7 @@
 		<div class="context-slot">
 			<BuildContext {vab} />
 		</div>
+		<PickList {vab} />
 		{#if vab.shells.size > 0}
 			<button
 				type="button"

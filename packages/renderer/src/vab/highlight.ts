@@ -5,6 +5,12 @@
  */
 import {
 	AdditiveBlending,
+	AlwaysStencilFunc,
+	KeepStencilOp,
+	NotEqualStencilFunc,
+	ReplaceStencilOp,
+	Plane,
+	Vector2,
 	BufferGeometry,
 	Color,
 	ConeGeometry,
@@ -98,6 +104,89 @@ void main() {
 	gl_FragColor = vec4(uColor * (uBase + uRim * f) * p, 1.0);
 }`;
 
+/**
+ * The Hangar's selection, hover and flag looks (plan 378, ADR 0315 point 1): a silhouette outline,
+ * never a fill. The part's footprint goes into the stencil buffer (`mask`); a hull pushed out by a
+ * fixed number of screen pixels along the normals is drawn only outside that footprint, bright
+ * where it is in front (`front`) and dim where something stands before it (`behind`). Nothing is
+ * drawn over the part itself, so what it encloses stays clear.
+ */
+export type OutlineKind = 'select' | 'hover' | 'flag';
+
+export interface OutlineLook {
+	colour: number;
+	/** Width of the outline on screen, CSS pixels. */
+	width: number;
+	/** Opacity of the part of the outline that something stands in front of. */
+	behind: number;
+	/** Stencil value of the footprint: one per kind, so two kinds do not hide each other's ring. */
+	ref: number;
+}
+
+export const OUTLINES: Record<OutlineKind, OutlineLook> = {
+	hover: { colour: HIGHLIGHT_COLOURS.accent, width: 1.5, behind: 0.3, ref: 2 },
+	select: { colour: HIGHLIGHT_COLOURS.accent, width: 3, behind: 0.4, ref: 1 },
+	flag: { colour: HIGHLIGHT_COLOURS.danger, width: 4.5, behind: 0.45, ref: 3 }
+};
+const OUTLINES_HC: Record<OutlineKind, OutlineLook> = {
+	hover: { colour: 0xcff6ff, width: 2.5, behind: 0.5, ref: 2 },
+	select: { colour: 0xffffff, width: 4, behind: 0.6, ref: 1 },
+	flag: { colour: 0xff8a8a, width: 5.5, behind: 0.6, ref: 3 }
+};
+
+export const OUTLINE_VERT = `
+#include <common>
+#include <clipping_planes_pars_vertex>
+uniform vec2 uViewport;
+uniform float uWidth;
+void main() {
+	// three's clipping chunk reads \`mvPosition\`
+	vec4 mvPosition = modelViewMatrix * vec4(position, 1.0);
+	vec4 clip = projectionMatrix * mvPosition;
+	vec3 n = normalize(normalMatrix * normal);
+	vec2 d = (projectionMatrix * vec4(n, 0.0)).xy;
+	float l = length(d);
+	if (l > 1e-6) clip.xy += d / l * uWidth * 2.0 / uViewport * clip.w;
+	gl_Position = clip;
+	#include <clipping_planes_vertex>
+}`;
+
+export const OUTLINE_FRAG = `
+#include <common>
+#include <clipping_planes_pars_fragment>
+uniform vec3 uColor;
+uniform float uOpacity;
+void main() {
+	#include <clipping_planes_fragment>
+	gl_FragColor = vec4(uColor, uOpacity);
+}`;
+
+/** The footprint pass: writes the kind's stencil value, draws no colour. */
+export const MASK_VERT = `
+#include <common>
+#include <clipping_planes_pars_vertex>
+void main() {
+	vec4 mvPosition = modelViewMatrix * vec4(position, 1.0);
+	gl_Position = projectionMatrix * mvPosition;
+	#include <clipping_planes_vertex>
+}`;
+export const MASK_FRAG = `
+#include <common>
+#include <clipping_planes_pars_fragment>
+void main() {
+	#include <clipping_planes_fragment>
+	gl_FragColor = vec4(0.0);
+}`;
+
+/**
+ * The section cut (plan 378, ADR 0315 point 4): one plane every part material clips by. Off, it
+ * lies far away and cuts nothing, so turning the cut on never changes a shader.
+ */
+export const SECTION_OFF_CONSTANT = 1e9;
+export function sectionPlanes(): Plane[] {
+	return [new Plane(new Vector3(0, 0, -1), SECTION_OFF_CONSTANT)];
+}
+
 /** One shared material per kind; the view updates `uTime` on all of them. */
 export class HighlightMaterials {
 	private readonly materials = new Map<HighlightKind, ShaderMaterial>();
@@ -112,6 +201,87 @@ export class HighlightMaterials {
 		emissiveIntensity: 0.6,
 		depthWrite: false
 	});
+
+	private readonly outlineSets = new Map<OutlineKind, ShaderMaterial[]>();
+	/** The part layer's section plane, given to every outline material. */
+	clipping: Plane[] = [];
+	private viewport = new Vector2(1, 1);
+	/** The inside-mode shell's veil and the dimmed parts around it (plan 378, ADR 0315 point 3). */
+	readonly veil = new MeshBasicMaterial({
+		color: 0x9fe4ff,
+		transparent: true,
+		opacity: 0.12,
+		depthWrite: false,
+		polygonOffset: true,
+		polygonOffsetFactor: -1,
+		polygonOffsetUnits: -1
+	});
+	readonly dim = new MeshBasicMaterial({
+		color: 0x05080c,
+		transparent: true,
+		opacity: 0.6,
+		depthWrite: false,
+		polygonOffset: true,
+		polygonOffsetFactor: -1,
+		polygonOffsetUnits: -1
+	});
+
+	/** The three passes of an outline kind: footprint, the part behind others, the part in front. */
+	outline(kind: OutlineKind): ShaderMaterial[] {
+		let set = this.outlineSets.get(kind);
+		if (set) return set;
+		const look = this.outlineLook(kind);
+		const stencil = (fn: number, op: number) => ({
+			stencilWrite: true,
+			stencilRef: look.ref,
+			stencilFunc: fn as typeof AlwaysStencilFunc,
+			stencilZPass: op as typeof ReplaceStencilOp,
+			stencilZFail: op as typeof ReplaceStencilOp,
+			stencilFail: KeepStencilOp
+		});
+		const mask = new ShaderMaterial({
+			vertexShader: MASK_VERT,
+			fragmentShader: MASK_FRAG,
+			transparent: true,
+			colorWrite: false,
+			depthWrite: false,
+			depthTest: false,
+			clipping: true,
+			...stencil(AlwaysStencilFunc, ReplaceStencilOp)
+		});
+		const ring = (behind: boolean): ShaderMaterial =>
+			new ShaderMaterial({
+				vertexShader: OUTLINE_VERT,
+				fragmentShader: OUTLINE_FRAG,
+				transparent: true,
+				depthWrite: false,
+				depthTest: !behind,
+				clipping: true,
+				toneMapped: false,
+				...stencil(NotEqualStencilFunc, KeepStencilOp),
+				uniforms: {
+					uColor: { value: new Color(look.colour) },
+					uOpacity: { value: behind ? look.behind : 1 },
+					uWidth: { value: look.width },
+					uViewport: { value: this.viewport }
+				}
+			});
+		set = [mask, ring(true), ring(false)];
+		// the footprint first, then the dim ring, then the bright one (ADR 0315 point 1)
+		set.forEach((m, i) => (m.userData.renderOrder = 7 + i));
+		for (const m of set) m.clippingPlanes = this.clipping;
+		this.outlineSets.set(kind, set);
+		return set;
+	}
+
+	outlineLook(kind: OutlineKind): Readonly<OutlineLook> {
+		return (this.highContrast ? OUTLINES_HC : OUTLINES)[kind];
+	}
+
+	/** The drawing size the outline widths are measured against, CSS pixels. */
+	setViewport(width: number, height: number): void {
+		this.viewport.set(Math.max(1, width), Math.max(1, height));
+	}
 
 	get(kind: HighlightKind): ShaderMaterial {
 		let m = this.materials.get(kind);
@@ -157,6 +327,14 @@ export class HighlightMaterials {
 			m.uniforms.uPulse!.value = look.pulse;
 			m.uniforms.uPower!.value = look.power;
 		}
+		for (const [kind, set] of this.outlineSets) {
+			const look = this.outlineLook(kind);
+			for (const m of set.slice(1)) {
+				(m.uniforms.uColor!.value as Color).set(look.colour);
+				m.uniforms.uWidth!.value = look.width;
+			}
+			set[1]!.uniforms.uOpacity!.value = look.behind;
+		}
 		this.ghost.opacity = on ? 0.62 : 0.5;
 		this.ghost.color.set(on ? 0xd6f6ff : 0x9fe4ff);
 		this.ghost.emissive.set(on ? 0x46b4dc : 0x2a8fb8);
@@ -174,23 +352,33 @@ export class HighlightMaterials {
 
 	dispose(): void {
 		for (const m of this.materials.values()) m.dispose();
+		for (const set of this.outlineSets.values()) for (const m of set) m.dispose();
 		this.ghost.dispose();
+		this.veil.dispose();
+		this.dim.dispose();
 		this.materials.clear();
+		this.outlineSets.clear();
 	}
 }
 
 /** Adds an overlay mesh to every mesh under `root`; returns them for removal. */
-export function addOverlay(root: Object3D, material: Material): Mesh[] {
+export function addOverlay(root: Object3D, material: Material | readonly Material[]): Mesh[] {
 	const added: Mesh[] = [];
+	const list = Array.isArray(material) ? material : [material as Material];
+	const meshes: Mesh[] = [];
 	root.traverse((o) => {
-		if (!(o instanceof Mesh) || o.userData.overlay) return;
-		const overlay = new Mesh(o.geometry as BufferGeometry, material);
-		overlay.userData.overlay = true;
-		overlay.raycast = () => {};
-		overlay.renderOrder = 5;
-		o.add(overlay);
-		added.push(overlay);
+		if (o instanceof Mesh && !o.userData.overlay) meshes.push(o);
 	});
+	for (const o of meshes) {
+		for (const m of list) {
+			const overlay = new Mesh(o.geometry as BufferGeometry, m);
+			overlay.userData.overlay = true;
+			overlay.raycast = () => {};
+			overlay.renderOrder = (m.userData.renderOrder as number | undefined) ?? 5;
+			o.add(overlay);
+			added.push(overlay);
+		}
+	}
 	return added;
 }
 

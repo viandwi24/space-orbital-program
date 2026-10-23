@@ -145,7 +145,17 @@
 		onclick={() => vab.toggleContrast()}
 		>Contrast<span class="dot" aria-hidden="true"></span></button
 	>
-	<!-- the Hangar's keys (plan 348) -->
+	<!-- the section cut (plan 378, ADR 0315 point 4): the near half of the vessel cut away -->
+	<button
+		type="button"
+		class="toggle"
+		aria-pressed={vab.section}
+		data-tip="Section: cut away the half of the vessel facing you, to see and click inside"
+		data-testid="tool-section"
+		onclick={() => vab.toggleSection()}
+		>Section<span class="dot" aria-hidden="true"></span></button
+	>
+		<!-- the Hangar's keys (plan 348) -->
 	<button
 		type="button"
 		class="toggle"

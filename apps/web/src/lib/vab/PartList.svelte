@@ -30,7 +30,7 @@
 						class:sel={vab.selected === r.index}
 						class:inside={r.inside !== undefined}
 						style:padding-left="{6 + Math.min(r.depth, 12) * 10}px"
-						onclick={() => (vab.selected = r.index)}
+						onclick={() => vab.selectFromList(r.index)}
 						onpointerenter={() => vab.hoverFromList(r.index)}
 						onfocus={() => vab.hoverFromList(r.index)}
 					>

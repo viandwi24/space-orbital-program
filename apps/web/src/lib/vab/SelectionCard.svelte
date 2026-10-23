@@ -97,6 +97,17 @@
 				false,
 				() => vab.removeSelected(vab.onlyThis)
 			)}
+			{#if vab.shells.has(sel) && vab.entered !== sel}
+				<!-- inside mode (plan 378, ADR 0315 point 3); a double click on the part does the same -->
+				{@render act(
+					'eye',
+					'Edit what it holds: the shell turns faint and only the parts inside are picked',
+					'Inside',
+					'double click',
+					false,
+					() => vab.editInside(sel)
+				)}
+			{/if}
 			{#if vab.canOpen(sel)}
 				{@render act(
 					'eye',

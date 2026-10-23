@@ -781,6 +781,16 @@ export const BINDING_GROUPS: readonly BindingGroup[] = [
 			{ actions: [], fixed: ['Alt+Click'], text: 'Copy a part and what hangs on it' },
 			{ actions: [], fixed: ['Wheel'], text: 'Move the view up and down (Shift or Ctrl: zoom)' },
 			{ actions: [], fixed: ['Middle click'], text: 'Centre the view on a part' },
+			{
+				actions: [],
+				fixed: ['Double click'],
+				text: 'Edit inside a bay, fairing or capsule (Esc steps out)'
+			},
+			{
+				actions: [],
+				fixed: ['Click again'],
+				text: 'Select the part behind, with a list of the parts under the pointer'
+			},
 			{ actions: ['symmetry'], text: 'Symmetry: 1 to 8 copies (Shift: fewer)' },
 			{ actions: ['mirror'], text: 'Mirror symmetry on or off' },
 			{ actions: ['turnPlus', 'turnMinus'], text: 'Turn radial sites, or a selected radial part' },

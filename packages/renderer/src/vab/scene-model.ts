@@ -33,6 +33,15 @@ export interface VabPart {
 	seeThrough?: boolean;
 	/** The keys of the parts a see-through shell holds: only these are reached through it. */
 	holds?: readonly string[];
+	/**
+	 * Plan 378 (ADR 0315): the pointer reaches the parts it `holds` through it (an open shell); it is
+	 * picked only with nothing it holds behind.
+	 */
+	reach?: boolean;
+	/** The entered shell of inside mode: a faint veil, never picked (plan 378). */
+	veil?: boolean;
+	/** Dimmed: outside the entered shell (plan 378). */
+	dim?: boolean;
 }
 
 /** A bar from a connector part (strut, fuel line) to the far end of its link, relative to the group's root origin (ADR 0071). */

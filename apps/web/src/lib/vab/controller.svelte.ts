@@ -153,6 +153,8 @@ import {
 import { indexedDbStore, requestPersistence } from './library-idb';
 import { MOVE_FINE, MOVE_STEP, ROTATE_FINE, ROTATE_STEP, snapTo, toolKeyEffect } from './tool-keys';
 import { nextPlacement, SNAP_PX } from './placement-pick';
+import { frontFirst, nextPick, type PickCycle } from './pick-cycle';
+import { insideStep, pickableInside, type InsideEvent } from '../editor/inside-mode';
 import { reroot } from '../editor/reroot';
 
 export type Armed =
@@ -360,6 +362,16 @@ export class VabController {
 	showPayload = $state(false);
 	/** Every enclosing part of the design and what it holds. */
 	readonly shells = $derived(shellsOf(this.current.design, this.lookup, this.content));
+	/** Inside mode (plan 378, ADR 0315 point 3): the shell being edited inside, as asked. */
+	insideShell = $state<number | null>(null);
+	/** The entered shell, left when the design no longer has it. */
+	readonly entered = $derived(insideStep(this.insideShell, { kind: 'design' }, this.shells));
+	/** The pick list of a click again at the same spot (plan 378): the parts under it, the chosen one. */
+	pickList = $state.raw<{ x: number; y: number; parts: number[]; i: number } | null>(null);
+	private pickCycle: PickCycle | null = null;
+	private lastClick: { x: number; y: number; at: number } | null = null;
+	/** The section cut (plan 378, ADR 0315 point 4). */
+	section = $state(false);
 	/** The tip for the part under the pointer: its name, mass and what it holds. */
 	readonly hoverInfo = $derived.by(() => {
 		const i = this.hoverIndex;
@@ -429,9 +441,16 @@ export class VabController {
 	readonly copies = $derived(
 		this.armed?.kind === 'carry' ? this.shown.followers.length + 1 : this.mirror ? 2 : this.symmetry
 	);
-	readonly targets = $derived(
-		this.held ? attachTargets(this.shown.design, this.held, this.lookup, this.radialAngle) : []
-	);
+	readonly targets = $derived.by(() => {
+		const all = this.held
+			? attachTargets(this.shown.design, this.held, this.lookup, this.radialAngle)
+			: [];
+		const e = this.entered;
+		if (e === null) return all;
+		// inside a shell, only its own nodes and those of what it holds (plan 378)
+		const inside = new Set([e, ...(this.shells.get(e) ?? [])]);
+		return all.filter((t) => t.parent !== null && inside.has(t.parent.index));
+	});
 	readonly active = $derived(
 		this.targets.length === 0
 			? null
@@ -551,13 +570,15 @@ export class VabController {
 			preview: this.connectPreview,
 			modules: this.content.modules,
 			inside: {
+				// a carried part over a shell shows its inside too (plan 378)
 				seeThrough: seeThroughOf(this.shells, {
-					hover: this.armed ? null : this.hoverIndex,
+					hover: this.hoverIndex,
 					open: this.openParts,
 					showPayload: this.showPayload
 				}),
 				open: this.openParts,
-				holds: this.shells
+				holds: this.shells,
+				entered: this.entered
 			}
 		})
 	);
@@ -847,6 +868,9 @@ export class VabController {
 			targets: () =>
 				this.targets.map((t, i) => ({ i, parent: t.parent, node: t.node, radial: t.radial })),
 			active: () => this.active,
+			// inside mode (plan 378): the entered shell and what each shell holds
+			inside: () => this.entered,
+			shells: () => [...this.shells].map(([shell, holds]) => ({ shell, holds: [...holds] })),
 			parts: () => this.editor.design.parts.map((p) => ({ index: p.index, part: p.part })),
 			looseParts: () => this.editor.loose.reduce((n, a) => n + a.parts.length, 0),
 			armed: () => this.armed?.kind ?? null,
@@ -2155,12 +2179,109 @@ export class VabController {
 	// --- pointer ---------------------------------------------------------------------------------------------
 
 	private pick(e: PointerEvent): ReturnType<VabView['pick']> {
-		return (
+		const hit =
 			this.view?.pick(e.clientX, e.clientY, {
 				// the pointer reaches through the ghost to the surface it slides on (plan 348)
 				ignoreGhost: this.armed !== null,
 				ignoreNodes: this.armed !== null && !this.snapNodes
-			}) ?? null
+			}) ?? null;
+		// inside a shell only what it holds is picked (plan 378, ADR 0315 point 3)
+		if (hit?.kind === 'part' && !this.insidePickable(hit.key)) return null;
+		return hit;
+	}
+
+	private insidePickable(key: string): boolean {
+		return !/^\d+$/.test(key) || pickableInside(this.entered, Number(key), this.shells);
+	}
+
+	// --- inside mode and pick-through (plan 378, ADR 0315) -------------------------------------------------
+
+	private stepInside(event: InsideEvent): void {
+		const before = this.entered;
+		const next = insideStep(before, event, this.shells);
+		this.insideShell = next;
+		if (next === before) return;
+		this.pickList = null;
+		this.pickCycle = null;
+		if (next === null) {
+			this.say('Out of the shell: the whole vessel again.');
+			return;
+		}
+		// the camera frames the shell's inside
+		this.view?.frameOn(String(next));
+		this.say(
+			`Inside ${this.titleOfPart(next)}: only what it holds can be picked. Esc or the bar's chip to step out.`
+		);
+	}
+	/** "Edit inside" on a shell's card. */
+	editInside(index: number): void {
+		this.stepInside({ kind: 'edit', index });
+	}
+	exitInside(): void {
+		this.stepInside({ kind: 'exit' });
+	}
+	/** A part picked in the Parts list: a held part enters its shell (plan 378). */
+	selectFromList(index: number): void {
+		this.selected = index;
+		this.stepInside({ kind: 'list', index });
+	}
+	/** A part chosen in the pick list. */
+	pickFromList(index: number): void {
+		this.selected = index;
+		this.pickList = this.pickList ? { ...this.pickList, i: this.pickList.parts.indexOf(index) } : null;
+		this.say(`Selected ${this.titleOfPart(index)}.`);
+	}
+	toggleSection(): void {
+		this.section = !this.section;
+		this.view?.setSection(this.section);
+		this.say(
+			this.section ? 'Section: the near half is cut away.' : 'Section off: the whole vessel.'
+		);
+	}
+
+	/**
+	 * A plain click on part `key`: a double click enters the shell; a click again at the same spot
+	 * steps to the part behind and shows the list of parts under the pointer.
+	 */
+	private clickPart(e: PointerEvent, key: string): void {
+		const now = performance.now();
+		const last = this.lastClick;
+		this.lastClick = { x: e.clientX, y: e.clientY, at: now };
+		const index = Number(key);
+		const double =
+			last !== null && now - last.at < 350 && Math.hypot(e.clientX - last.x, e.clientY - last.y) < 6;
+		if (double) {
+			const before = this.entered;
+			this.stepInside({ kind: 'double', index });
+			if (this.entered !== before) {
+				this.selected = index;
+				return;
+			}
+		}
+		const under = (this.view?.pickAll(e.clientX, e.clientY) ?? []).filter(
+			(k) => /^\d+$/.test(k) && this.insidePickable(k)
+		);
+		const prevCycle = this.pickCycle;
+		this.pickCycle = nextPick(
+			this.pickCycle,
+			{ x: e.clientX, y: e.clientY, at: now },
+			frontFirst(under, key)
+		);
+		const c = this.pickCycle;
+		const chosen = c ? Number(c.keys[c.i]) : index;
+		this.selected = chosen;
+		const rect = this.canvas?.getBoundingClientRect();
+		// the list shows from the second click at the spot and stays while it cycles
+		// (nextPick keeps the same key list when the click is again at the spot)
+		const cycling = c !== null && prevCycle !== null && c.keys === prevCycle.keys && c.keys.length > 1;
+		this.pickList =
+			c && cycling && rect
+				? { x: e.clientX - rect.left, y: e.clientY - rect.top, parts: c.keys.map(Number), i: c.i }
+				: null;
+		this.say(
+			c && c.keys.length > 1 && c.i > 0
+				? `Selected ${this.titleOfPart(chosen)} (${c.i + 1} of ${c.keys.length} under the pointer).`
+				: `Selected ${this.titleOfPart(chosen)}.`
 		);
 	}
 
@@ -2377,11 +2498,15 @@ export class VabController {
 			);
 			this.selected = whole ? rootOf(whole) : at;
 			this.carrySelected();
+		} else if (hit?.kind === 'part' && /^\d+$/.test(hit.key)) {
+			this.clickPart(e, hit.key);
 		} else if (hit?.kind === 'part') {
 			this.selected = Number(hit.key);
 			this.say(`Selected ${this.titleOfPart(this.selected)}.`);
 		} else {
 			this.selected = null;
+			this.pickList = null;
+			this.pickCycle = null;
 		}
 	};
 	pointerCancel = (e: PointerEvent): void => {
@@ -2579,6 +2704,8 @@ export class VabController {
 			case 'escape':
 				if (this.keysOpen) this.keysOpen = false;
 				else if (this.armed) this.disarm();
+				else if (this.pickList) this.pickList = null;
+				else if (this.entered !== null) this.exitInside();
 				else if (this.selected !== null) this.selected = null;
 				else if (this.drawer) this.drawer = null;
 				else return;

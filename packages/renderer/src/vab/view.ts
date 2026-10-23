@@ -48,7 +48,12 @@ import {
 } from '../parts/types.ts';
 import type { PartVisual } from '@orbital/core';
 import { HANGAR, createHangar, type Hangar } from './hangar.ts';
-import { HighlightMaterials, NodeMarkerKit, pulseMarkers } from './highlight.ts';
+import {
+	HighlightMaterials,
+	NodeMarkerKit,
+	pulseMarkers,
+	SECTION_OFF_CONSTANT
+} from './highlight.ts';
 import { PartLayer } from './part-layer.ts';
 import {
 	BAY_SIGN,
@@ -182,6 +187,7 @@ export class VabView {
 	private readonly hangar: Hangar;
 	private readonly factory: PartModelFactory;
 	private readonly highlights = new HighlightMaterials();
+	private sectionOn = false;
 	private readonly markerKit = new NodeMarkerKit();
 	private readonly raycaster = new Raycaster();
 	private readonly key: DirectionalLight;
@@ -240,8 +246,12 @@ export class VabView {
 			canvas: config.canvas,
 			antialias: true,
 			alpha: true,
+			// the selection outline is a stencil silhouette (plan 378, ADR 0315 point 1)
+			stencil: true,
 			powerPreference: 'high-performance'
 		});
+		// the section cut clips part materials by one shared plane (plan 378, ADR 0315 point 4)
+		this.gl.localClippingEnabled = true;
 		this.gl.info.autoReset = false;
 		this.gl.toneMapping = ACESFilmicToneMapping;
 		this.gl.toneMappingExposure = 1.0;
@@ -431,7 +441,11 @@ export class VabView {
 	}
 
 	private buildComposer(): void {
-		const target = new WebGLRenderTarget(1, 1, { type: HalfFloatType, samples: 4 });
+		const target = new WebGLRenderTarget(1, 1, {
+			type: HalfFloatType,
+			samples: 4,
+			stencilBuffer: true
+		});
 		this.composer = new EffectComposer(this.gl, target);
 		this.composer.addPass(new RenderPass(this.scene, this.camera));
 		this.bloom = new UnrealBloomPass(new Vector2(1, 1), 0.2, 0.5, 1.3);
@@ -697,6 +711,27 @@ export class VabView {
 		return true;
 	}
 
+	/**
+	 * The camera on part `key` close enough that it fills the view (plan 378: inside mode frames the
+	 * shell it enters). False when the part is unknown.
+	 */
+	frameOn(key: string): boolean {
+		const e = this.layer.parts.get(key);
+		if (!e || !this.focusOn(key)) return false;
+		const size = new Box3().setFromObject(e.model.root).getSize(new Vector3());
+		const freeW = Math.max(100, this.width - this.insets.left - this.insets.right);
+		const freeH = Math.max(100, this.height - this.insets.top - this.insets.bottom);
+		const tanEff = Math.tan((FOV * Math.PI) / 360) * (freeH / this.height);
+		const fovEff = (2 * Math.atan(tanEff) * 180) / Math.PI;
+		const need = frameDistance(Math.max(size.x, size.z), size.y, fovEff, freeW / freeH, 1.4);
+		this.goal = focus(
+			{ ...this.goal, distance: Math.max(this.limits.minDistance, need) },
+			this.goal.target,
+			this.limits
+		);
+		return true;
+	}
+
 	/** Back to following the vessel with a framing that fits it. */
 	frame(): void {
 		this.follow = true;
@@ -831,6 +866,8 @@ export class VabView {
 		let throughShell: VabHit | null = null;
 		let holds: ReadonlySet<string> | null = null;
 		for (const h of hits) {
+			// the half the section cut hides is not there to click (plan 378)
+			if (this.cutAway(h.point)) continue;
 			let o: Object3D | null = h.object;
 			while (o && o.userData.key === undefined) o = o.parent;
 			if (!o) continue;
@@ -839,9 +876,11 @@ export class VabView {
 			if (!entry) continue;
 			// the cursor ghost is never in the way of a pick (plan 244)
 			if (entry.slot.role === 'free') continue;
-			// a see-through shell lets the pointer reach what it encloses (plan 315); with nothing
-			// behind, the shell itself is the pick
-			if (entry.seeThrough) {
+			// the entered shell of inside mode is never the pick (plan 378)
+			if (entry.veil) continue;
+			// a see-through or open shell lets the pointer reach what it encloses (plans 315, 378); with
+			// nothing behind, the shell itself is the pick
+			if (entry.seeThrough || entry.reach) {
 				if (!throughShell) {
 					throughShell = partHit(h, o.userData.key as string, entry.group);
 					holds = entry.holds;
@@ -857,6 +896,61 @@ export class VabView {
 			return partHit(h, o.userData.key as string, entry.group);
 		}
 		return throughShell;
+	}
+
+	/**
+	 * Every solid part under the pointer, nearest first, once each (plan 378): what a click again at
+	 * the same spot steps through, and the pick list shows. The entered shell's veil is left out.
+	 */
+	pickAll(clientX: number, clientY: number): string[] {
+		this.rayAt(clientX, clientY);
+		this.layer.root.updateMatrixWorld(true);
+		const roots: Object3D[] = [];
+		for (const e of this.layer.parts.values()) roots.push(e.model.root);
+		const out: string[] = [];
+		for (const h of this.raycaster.intersectObjects(roots, true)) {
+			if (this.cutAway(h.point)) continue;
+			let o: Object3D | null = h.object;
+			while (o && o.userData.key === undefined) o = o.parent;
+			const key = o?.userData.key as string | undefined;
+			const entry = key === undefined ? undefined : this.layer.parts.get(key);
+			if (!entry || entry.slot.role !== 'solid' || entry.veil || out.includes(key!)) continue;
+			out.push(key!);
+		}
+		return out;
+	}
+
+	/** The section cut (plan 378, ADR 0315 point 4): on, the half of the vessel facing the camera is cut away. */
+	setSection(on: boolean): void {
+		this.sectionOn = on;
+		this.placeSection();
+	}
+
+	get section(): boolean {
+		return this.sectionOn;
+	}
+
+	/** A world point the section cut hides. */
+	private cutAway(point: Vector3): boolean {
+		return this.sectionOn && this.layer.section[0]!.distanceToPoint(point) < 0;
+	}
+
+	/** Moves the cut plane: vertical through the vessel axis, its normal away from the camera; off, far away. */
+	private placeSection(): void {
+		const plane = this.layer.section[0]!;
+		const main = this.layer.groups.get('main');
+		if (!this.sectionOn || !main) {
+			plane.normal.set(0, 0, -1);
+			plane.constant = SECTION_OFF_CONSTANT;
+			return;
+		}
+		const axis = main.object.getWorldPosition(new Vector3());
+		const away = new Vector3(axis.x - this.camera.position.x, 0, axis.z - this.camera.position.z);
+		if (away.lengthSq() < 1e-9) away.set(0, 0, -1);
+		away.normalize();
+		// three keeps what is on the plane's positive side: the far half
+		plane.normal.copy(away);
+		plane.constant = -away.dot(axis);
 	}
 
 	/**
@@ -1119,6 +1213,7 @@ export class VabView {
 		this.composer?.setPixelRatio(pr);
 		this.composer?.setSize(this.width, this.height);
 		this.bloom?.setSize(this.width * pr * 0.5, this.height * pr * 0.5);
+		this.highlights.setViewport(this.width, this.height);
 		this.applyViewOffset();
 		this.updateCameraGoal();
 	}
@@ -1175,6 +1270,7 @@ export class VabView {
 			this.gizmoKit.fit(at.distanceTo(this.camera.position));
 		}
 		this.fitShadow();
+		this.placeSection();
 		for (const e of this.layer.parts.values()) e.model.tick(dt);
 		if (this.composer) this.composer.render(dt);
 		else this.gl.render(this.scene, this.camera);
