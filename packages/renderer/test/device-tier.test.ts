@@ -10,6 +10,7 @@ import {
 	percentile
 } from '../src/frame-report.ts';
 import { PassTag, parseTimestampUid, passTimes } from '../src/pass-timing.ts';
+import { selectPreset } from '../src/presets.ts';
 
 describe('device tiers', () => {
 	const id = (gpu: string) => tierOf(gpu).id;
@@ -158,5 +159,26 @@ describe('pass timing', () => {
 			})
 		).toThrow('boom');
 		expect(tag.current).toBe('');
+	});
+});
+
+describe('the start preset and the lock target per tier (plan 395)', () => {
+	const cases: Array<[string, string, 'high' | 'medium' | 'low', 120 | 60]> = [
+		['ANGLE (Apple, ANGLE Metal Renderer: Apple M5, Unspecified Version)', 'M5', 'high', 120],
+		['ANGLE (Apple, ANGLE Metal Renderer: Apple M2, Unspecified Version)', 'M2', 'low', 60],
+		['Intel(R) Iris(R) Xe Graphics', 'Iris Xe', 'low', 60],
+		['AMD Radeon 680M', '680M', 'low', 60],
+		['NVIDIA GeForce GTX 1650', 'GTX 1650', 'medium', 60],
+		['NVIDIA GeForce RTX 3050', 'RTX 3050', 'medium', 60]
+	];
+	for (const [gpu, name, preset, hz] of cases) {
+		test(`${name}: starts on ${preset}, locks at ${hz} on a 120 Hz Chrome`, () => {
+			expect(selectPreset({ gpu, maxTextureSize: 16384 })).toBe(preset);
+			expect(deviceTier({ gpu, refreshHz: 120 }).hz).toBe(hz);
+		});
+	}
+	test('a 60 Hz screen locks at 60 even on the M5', () => {
+		const gpu = 'ANGLE (Apple, ANGLE Metal Renderer: Apple M5, Unspecified Version)';
+		expect(deviceTier({ gpu, refreshHz: 60 }).hz).toBe(60);
 	});
 });

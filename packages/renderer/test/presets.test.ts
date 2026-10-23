@@ -43,8 +43,9 @@ describe('presets', () => {
 			})
 		).toBe('medium');
 		expect(selectPreset({ gpu: 'NVIDIA GeForce RTX 3060', maxTextureSize: 32768 })).toBe('high');
+		// an integrated Iris Xe starts below `high`, on its tier's preset (plan 395)
 		expect(selectPreset({ gpu: 'Intel(R) Iris(R) Xe Graphics', maxTextureSize: 16384 })).toBe(
-			'medium'
+			'low'
 		);
 		expect(selectPreset({ maxTextureSize: 16384 })).toBe('medium');
 	});

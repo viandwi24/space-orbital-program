@@ -1,6 +1,7 @@
 /**
- * Automatic quality governor (plan 039, ADR 0053; rules of plan 253, ADR 0233): keeps the flight
- * view on a locked 60 fps (30 where 60 is out of reach). Pure state machine; the host feeds it the
+ * Automatic quality governor (plan 039, ADR 0053; rules of plan 253, ADR 0233; 120 Hz: plan 395, ADR
+ * 0338): keeps the flight view on a locked 120 fps where the tier and the display have it, else 60
+ * (30 where 60 is out of reach). Pure state machine; the host feeds it the
  * rAF interval (`tick`) and applies the level it returns (`Renderer.setPreset`,
  * `Renderer.setRenderScale`).
  *
@@ -11,7 +12,7 @@
  * repeating stutter of timed retries.
  */
 import { HALF_PLANET_SCALE } from './half-res.ts';
-import { GRAPHICS_PRESETS, type GraphicsPreset } from './presets.ts';
+import { GRAPHICS_PRESETS, PRESETS, type GraphicsPreset } from './presets.ts';
 
 /**
  * One rung of the ladder: a preset, the fraction of the drawing buffer's side it renders at, and the
@@ -21,6 +22,11 @@ export interface GovernorLevel {
 	preset: GraphicsPreset;
 	scale: number;
 	planetScale: number;
+	/**
+	 * The TAAU input scale this rung draws the 3D image at (plan 395): 0 is native, none follows the
+	 * preset. Changing it builds no pipeline.
+	 */
+	taau?: number;
 }
 
 /**
@@ -48,6 +54,29 @@ export const GOVERNOR_FLOOR_STEPS: readonly { scale: number; planetScale: number
 export const PRESET_FLOOR_SCALE = 0.85;
 
 /**
+ * The TAAU input scales the 120 Hz ladder walks inside a preset, from native down (plan 395, ADR 0338),
+ * the lowest inside a preset above the last and the lowest of the last. Measured on the M5 (plan 393),
+ * `high` gains little under 0.6 (its cost is not the pixels), so the next preset comes first there.
+ */
+export const TAAU_SCALES: readonly number[] = [0, 0.75, 0.6, 0.5];
+export const TAAU_PRESET_FLOOR = 0.6;
+export const TAAU_FLOOR = 0.5;
+
+/** The rungs of one preset on the TAAU axis, best first; a preset without the post pipeline has none. */
+export function taauRungs(preset: GraphicsPreset, last: boolean): number[] {
+	if (!PRESETS[preset].post) return [];
+	const own = PRESETS[preset].taau;
+	const res = (t: number): number => (t > 0 ? t : 1);
+	const floor = last ? TAAU_FLOOR : TAAU_PRESET_FLOOR;
+	const out = TAAU_SCALES.filter((t) => res(t) <= res(own) + 1e-6 && res(t) >= floor - 1e-6);
+	return out.length > 0 ? out : [own];
+}
+
+/** The size of the 3D image relative to the drawing buffer's side at a rung. */
+export const rungResolution = (level: Pick<GovernorLevel, 'scale' | 'taau'>): number =>
+	level.scale * (level.taau !== undefined && level.taau > 0 ? level.taau : 1);
+
+/**
  * The rungs from the player's preset down: resolution first down to `PRESET_FLOOR_SCALE` (cheap, no
  * recompile), then the next preset at full resolution; only the last preset goes lower. The player's
  * choice is the ceiling; the governor never goes above it. `halfPlanet: false` (no float render
@@ -61,7 +90,9 @@ export function governorLadder(
 	 * false: resolution only, never a lower preset (plan 261's WebGPU, before its presets were warmed
 	 * at load; plan 362 turned preset steps back on there). Kept for tests and a backend that cannot warm.
 	 */
-	presetSteps = true
+	presetSteps = true,
+	/** true: WebGPU's TAAU scale is the fast axis inside each preset that has the post pipeline (plan 395) */
+	taau = false
 ): GovernorLevel[] {
 	// plan 253: when the pixel budget already draws the planet pass near half size (a Retina screen,
 	// plan 252), the half rung would save almost nothing: the steps are resolution only
@@ -71,6 +102,11 @@ export function governorLadder(
 	const out: GovernorLevel[] = [];
 	presets.forEach((preset, i) => {
 		const last = i === presets.length - 1;
+		const rungs = taau ? taauRungs(preset, last) : [];
+		if (rungs.length > 0) {
+			for (const t of rungs) out.push({ preset, scale: 1, planetScale: 1, taau: t });
+			return;
+		}
 		for (const step of last ? GOVERNOR_FLOOR_STEPS : GOVERNOR_STEPS) {
 			if (!last && step.scale < PRESET_FLOOR_SCALE) continue;
 			if (halfPlanet || step.planetScale === 1) out.push({ preset, ...step });
@@ -88,10 +124,14 @@ const DISPLAY_RATES = [30, 60, 90, 120, 144] as const;
 /** A coarse relative cost of drawing a level, by pixels (resolution squared, the planet pass half the work). */
 const PRESET_COST: Record<GraphicsPreset, number> = { high: 1, medium: 0.7, low: 0.5 };
 export function levelCost(level: GovernorLevel): number {
+	const own = level.taau ?? 0;
+	const r = own > 0 ? own : 1;
 	return (
 		PRESET_COST[level.preset] *
 		level.scale *
 		level.scale *
+		r *
+		r *
 		(0.3 + 0.7 * level.planetScale * level.planetScale)
 	);
 }
@@ -131,6 +171,8 @@ export interface GovernorConfig {
 	 * half-of-a-second rule never saw (the M2 sat at `high` drawing 50 to 54 fps where `medium` held 60).
 	 */
 	sustainedShare: number;
+	/** The same at a 120 Hz lock, where the wave target is p95 within one slot (5 % over), plan 395. */
+	sustainedShare120: number;
 	sustainedSeconds: number;
 	/** A p95 interval above this many budgets drops two rungs. */
 	heavyFactor: number;
@@ -153,6 +195,8 @@ export interface GovernorConfig {
 	presetDwellSeconds: number;
 	/** At the floor and still slow this long locks the target to 30, s. */
 	lockSeconds: number;
+	/** Locked to 60 from a 120 target: no look at 120 again sooner than this, s (plan 395). */
+	unlockSeconds: number;
 	/** The display rate is estimated over this many seconds of rAF intervals. */
 	cadenceSeconds: number;
 }
@@ -162,6 +206,7 @@ export const DEFAULT_GOVERNOR: GovernorConfig = {
 	dropWindowSeconds: 1,
 	dropShare: 0.5,
 	sustainedShare: 0.1,
+	sustainedShare120: 0.06,
 	sustainedSeconds: 5,
 	heavyFactor: 2,
 	settleSeconds: 1,
@@ -174,7 +219,8 @@ export const DEFAULT_GOVERNOR: GovernorConfig = {
 	ignoreOverMs: 250,
 	presetDwellSeconds: 30,
 	lockSeconds: 5,
-	cadenceSeconds: 5
+	cadenceSeconds: 5,
+	unlockSeconds: 60
 };
 
 /** One change the governor made, for Debug (plan 253). */
@@ -223,9 +269,26 @@ export class QualityGovernor {
 	/** The rung a step up is on trial at, and when it began (s). */
 	private trial: { rung: number; since: number } | null = null;
 	private locked30 = false;
+	/** 120 was out of reach at the lowest rung: the target is 60 until evidence says otherwise (plan 395). */
+	private locked60 = false;
+	private lock60At = 0;
+	private lock60Scene = '';
+	/** A step back to 120 on trial, and the scene a failed one is banned in. */
+	private trial120: { since: number; scene: string } | null = null;
+	private ban120: string | null = null;
 	private slowAtFloor = 0;
 	private displayRaf: number[] = [];
-	private displayHz = 60;
+	private measuredHz = 60;
+	/**
+	 * The highest display rate the cadence estimate ever showed, 100 or more (plan 395): frames that take
+	 * longer than a slot of a 120 Hz screen stretch the rAF intervals, and a 12 ms frame on that screen
+	 * reads as a 60 Hz one, and a 60 lock drawing every second rAF reads it the same. The peak holds for the
+	 * session (a display found to run at 30 Hz resets it).
+	 */
+	private displayPeak = 0;
+	private get displayHz(): number {
+		return this.throttled30 ? this.measuredHz : Math.max(this.measuredHz, this.displayPeak);
+	}
 	/** The display was found to run at 30 Hz (a throttle): the target follows it and quality stays. */
 	private throttled30 = false;
 	/** Consecutive drops that left the interval at about 33 ms: four, across a preset, say the display is the limit. */
@@ -239,10 +302,15 @@ export class QualityGovernor {
 		private readonly config: GovernorConfig = DEFAULT_GOVERNOR,
 		private readonly halfPlanet = true,
 		/** false: the governor changes resolution only, never the preset (`governorLadder`). */
-		private readonly presetSteps = true
+		private readonly presetSteps = true,
+		/**
+		 * `taau`: the TAAU scale is the fast axis (WebGPU; only worth it where the tier locks at 120).
+		 * `maxHz`: the most the device tier and the browser are asked to lock at (Safari: 60).
+		 */
+		private readonly options: { taau?: boolean; maxHz?: 120 | 60 | 30 } = {}
 	) {
 		this.ceiling = ceiling;
-		this.ladder = governorLadder(ceiling, halfPlanet, 1, presetSteps);
+		this.ladder = governorLadder(ceiling, halfPlanet, 1, presetSteps, options.taau === true);
 		this.settle = config.presetSettleSeconds;
 	}
 
@@ -260,7 +328,13 @@ export class QualityGovernor {
 		}
 		this.budgetedPlanet = scale;
 		if (this.index !== 0) return;
-		this.ladder = governorLadder(this.ceiling, this.halfPlanet, scale, this.presetSteps);
+		this.ladder = governorLadder(
+			this.ceiling,
+			this.halfPlanet,
+			scale,
+			this.presetSteps,
+			this.options.taau === true
+		);
 	}
 
 	/** How many rungs the ladder has (tests, Debug). */
@@ -292,17 +366,29 @@ export class QualityGovernor {
 		return this.cap;
 	}
 
-	/** The frame rate held: 60 (or the cap below it), or 30 when locked. */
+	/** What the tier and the display allow before the player's cap: 120 on a 120 Hz screen of a 120 tier, else 60. */
+	private get baseHz(): 120 | 60 {
+		return (this.options.maxHz ?? 60) >= 120 && !this.locked60 && this.displayHz >= 100 ? 120 : 60;
+	}
+
+	/** The frame rate held: 120 or 60 (or the cap below it), or 30 when locked. */
 	get targetFps(): number {
 		if (this.locked30 || this.throttled30) return 30;
-		return this.cap !== null && this.cap < 60 ? this.cap : 60;
+		const base = this.baseHz;
+		return this.cap !== null && this.cap < base ? this.cap : base;
 	}
 
 	/** The rate frames are drawn at: the cap (the display's rate when none), or the target when locked below it. */
 	get paceFps(): number {
 		const target = this.targetFps;
 		if (target < 60) return target;
+		if (this.locked60) return Math.min(60, this.cap ?? 60);
 		return Math.min(this.cap ?? this.displayHz, this.displayHz);
+	}
+
+	/** 120 was out of reach and the target fell to 60 (plan 395). */
+	get isLockedTo60(): boolean {
+		return this.locked60;
 	}
 
 	/** The estimated display rate, Hz. */
@@ -332,7 +418,13 @@ export class QualityGovernor {
 	/** The player picked a preset: it is the new ceiling and the governor starts again from it. Returns the level to draw. */
 	setCeiling(ceiling: GraphicsPreset): GovernorLevel {
 		this.ceiling = ceiling;
-		this.ladder = governorLadder(ceiling, this.halfPlanet, this.budgetedPlanet, this.presetSteps);
+		this.ladder = governorLadder(
+			ceiling,
+			this.halfPlanet,
+			this.budgetedPlanet,
+			this.presetSteps,
+			this.options.taau === true
+		);
 		this.restart();
 		return this.level;
 	}
@@ -349,15 +441,25 @@ export class QualityGovernor {
 	 * device settled at last time, so a session does not begin with drops. Above it, the rungs are
 	 * tried again only with evidence, as after any drop. Returns the level to draw.
 	 */
-	startAt(level: Pick<GovernorLevel, 'preset' | 'scale'>): GovernorLevel {
+	startAt(level: Pick<GovernorLevel, 'preset' | 'scale' | 'taau'>): GovernorLevel {
 		if (!this.enabled) return this.level;
+		const want = rungResolution({ scale: level.scale, taau: level.taau });
 		const at = this.ladder.findIndex(
-			(l) => l.preset === level.preset && l.scale <= level.scale + 1e-6
+			(l) => l.preset === level.preset && rungResolution(l) <= want + 1e-6
 		);
 		if (at <= 0) return this.level;
 		for (let i = 0; i < at; i++) this.leftIn.set(i, this.scene);
 		this.index = at;
 		return this.level;
+	}
+
+	/**
+	 * The display's refresh rate as the host measured it at load (`refreshOf`, plan 392), before the
+	 * game loaded the machine: a screen of 100 Hz or more is not forgotten when slow frames stretch the
+	 * rAF intervals (plan 395).
+	 */
+	setDisplayHint(hz: number): void {
+		if (Number.isFinite(hz) && hz >= 100) this.displayPeak = Math.max(this.displayPeak, hz);
 	}
 
 	/** The scene changed or not (altitude band, view, body): see `sceneKeyOf`. */
@@ -375,6 +477,9 @@ export class QualityGovernor {
 		this.bans.clear();
 		this.trial = null;
 		this.locked30 = false;
+		this.locked60 = false;
+		this.trial120 = null;
+		this.ban120 = null;
 		this.throttled30 = false;
 		this.noEffect = null;
 		this.slowAtFloor = 0;
@@ -405,7 +510,8 @@ export class QualityGovernor {
 			if (rate < 60) continue;
 			if (Math.abs(Math.log(hz / rate)) < Math.abs(Math.log(hz / best))) best = rate;
 		}
-		this.displayHz = this.throttled30 ? 30 : best;
+		this.measuredHz = this.throttled30 ? 30 : best;
+		if (best >= 100) this.displayPeak = Math.max(this.displayPeak, best);
 	}
 
 	/**
@@ -478,6 +584,8 @@ export class QualityGovernor {
 			// a failed trial bans its rung for this scene (below, in `drop`); a held one is over
 			if (this.clock - this.trial.since >= this.config.probeSeconds) this.trial = null;
 		}
+		if (this.trial120 && this.clock - this.trial120.since >= this.config.probeSeconds * 2)
+			this.trial120 = null;
 		const recent = this.window(this.config.dropWindowSeconds);
 		if (recent.span >= this.config.dropWindowSeconds * 0.9) {
 			const over = recent.samples.filter((x) => x.ms > overMs);
@@ -495,7 +603,9 @@ export class QualityGovernor {
 		const steady = this.window(this.config.sustainedSeconds);
 		if (steady.span >= this.config.sustainedSeconds * 0.9 && this.judderFutile !== this.scene) {
 			const share = steady.samples.filter((x) => x.ms > overMs).length / steady.samples.length;
-			if (share >= this.config.sustainedShare) {
+			const needed =
+				this.targetFps >= 120 ? this.config.sustainedShare120 : this.config.sustainedShare;
+			if (share >= needed) {
 				const text = `${Math.round(share * 100)}% of frames over ${overMs.toFixed(1)} ms for ${this.config.sustainedSeconds} s`;
 				// the last judder drop did not cut the missed frames by a quarter (plan 362): after a
 				// resolution step, the preset's own costs are the suspects, so the next preset comes
@@ -560,6 +670,10 @@ export class QualityGovernor {
 
 	/** Evidence for a step up, or the reason there is none yet. */
 	private consider(budget: number): GovernorLevel | null {
+		if (this.locked60) {
+			const back = this.considerUnlock120();
+			if (back) return back;
+		}
 		if (this.index === 0) {
 			this.slowAtFloor = 0;
 			return null;
@@ -594,6 +708,39 @@ export class QualityGovernor {
 	}
 
 	/**
+	 * Back to a 120 target (plan 395): from the 60 lock, after the dwell, on evidence only. The measured
+	 * work at the lowest rung, scaled by what the timestamps under-read, fits the 120 slot's headroom;
+	 * or the scene changed since the lock (one look per scene, as for any rung). The step is to the
+	 * lowest rung, where 120 is likeliest, and from there the usual evidence climbs; a trial that
+	 * misses goes straight back to 60 and is banned in this scene.
+	 */
+	private considerUnlock120(): GovernorLevel | null {
+		if ((this.options.maxHz ?? 60) < 120 || this.displayHz < 100) return null;
+		if (this.locked30 || this.throttled30) return null;
+		if (this.clock - this.lock60At < this.config.unlockSeconds) return null;
+		if (this.ban120 === this.scene) return null;
+		const clean = this.window(this.config.headroomSeconds);
+		if (clean.span < this.config.headroomSeconds * 0.95) return null;
+		const overMs = 1.15 * this.budgetMs;
+		if (clean.samples.some((x) => x.ms > overMs)) return null;
+		const floor = this.ladder.length - 1;
+		const works = clean.samples.map((x) => x.work);
+		let evidence = this.scene !== this.lock60Scene;
+		if (works.every((w): w is number => w !== null)) {
+			const ratio = levelCost(this.ladder[floor]!) / levelCost(this.level);
+			evidence ||=
+				quantile(works, 0.95) * this.workScale * ratio <= this.config.upFraction * (1000 / 120);
+		}
+		if (!evidence) return null;
+		const from = this.level.preset;
+		this.locked60 = false;
+		this.trial120 = { since: this.clock, scene: this.scene };
+		this.index = floor;
+		this.trial = null;
+		return this.changed(from, 'headroom for 120 again: one trial at the lowest rung');
+	}
+
+	/**
 	 * Four drops in a row, across a preset change, that left the interval at about 33 ms did nothing: the
 	 * display is running at 30 Hz (iOS Low Power Mode), not the machine. Quality goes back where it was
 	 * and 30 is the target.
@@ -618,7 +765,8 @@ export class QualityGovernor {
 		if (this.noEffect.drops < 4 || !crossed) return null;
 		const from = this.level.preset;
 		this.throttled30 = true;
-		this.displayHz = 30;
+		this.measuredHz = 30;
+		this.displayPeak = 0;
 		this.index = this.noEffect.from;
 		this.noEffect = null;
 		this.trial = null;
@@ -654,6 +802,12 @@ export class QualityGovernor {
 
 	private drop(rungs: number, reason: string): GovernorLevel | null {
 		this.calibrateWork();
+		if (this.trial120) {
+			// the step back to 120 missed: 60 again, and no new look in this scene
+			this.ban120 = this.trial120.scene;
+			this.trial120 = null;
+			return this.lockTo60(`the trial at 120 missed (${reason}): back to 60`);
+		}
 		if (!this.throttled30 && !this.locked30 && this.index < this.ladder.length - 1) {
 			const restored = this.throttleCheck();
 			if (restored) return restored;
@@ -668,6 +822,9 @@ export class QualityGovernor {
 		if (this.index >= this.ladder.length - 1) {
 			// the floor: still slow for a while locks the target to 30 where the display can
 			this.slowAtFloor += this.config.dropWindowSeconds;
+			if (this.baseHz === 120 && this.slowAtFloor >= this.config.lockSeconds) {
+				return this.lockTo60('locked to 60 fps: 120 is out of reach at the lowest rung');
+			}
 			if (!this.locked30 && this.slowAtFloor >= this.config.lockSeconds && this.displayHz >= 60) {
 				this.locked30 = true;
 				this.samples = [];
@@ -701,6 +858,23 @@ export class QualityGovernor {
 			return null;
 		}
 		return this.changed(from, moved === 2 && rungs === 2 ? `${reason}: dropped two rungs` : reason);
+	}
+
+	/** The target falls from 120 to 60 at the rung it is on; the rungs above are tried again on evidence. */
+	private lockTo60(reason: string): GovernorLevel {
+		this.locked60 = true;
+		this.lock60At = this.clock;
+		this.lock60Scene = this.scene;
+		this.samples = [];
+		this.settle = this.config.settleSeconds;
+		this.slowAtFloor = 0;
+		this.leftIn.clear();
+		this.bans.clear();
+		this.trial = null;
+		this.judder = null;
+		for (let i = 0; i < this.index; i++) this.leftIn.set(i, `${this.scene}|120`);
+		this.record(this.level, reason);
+		return this.level;
 	}
 
 	/** Down to rung `to` at once (another preset), within the preset dwell; null when the dwell holds it. */

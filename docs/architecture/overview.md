@@ -39,7 +39,7 @@ Since plan 027 the same pass also draws terrain heights (ADR 0036): `terrain-mod
 - **The planet pass** is `tsl/planet-pass.ts`. It reads the GLSL pass's uniforms (that pass stays in the scene for its CPU side, hidden). It uses the Hillaire LUT sky (`tsl/lut-sky.ts`) and the terrain bakes as render passes into a six-face atlas (`tsl/terrain.ts`, `tsl/cube-atlas.ts`; ADR 0247). Its half rung sharpens with RCAS before the upsample.
 - **The moons** are `tsl/moon.ts`, with bakes run from `MoonPass.bakeJobs`.
 - **Every other GLSL or patched material** has a twin in `tsl/twins.ts`. The twin is swapped in for the draw and back after it (`webgpu-compat.ts`), so the scene code is unchanged.
-- **The governor** takes the GPU time from timestamp queries as evidence for stepping up (`Renderer.gpuFrameMs`). Those queries leave out the frame's end on Apple GPUs (ADR 0248).
+- **The governor** takes the GPU time from timestamp queries as evidence for stepping up (`Renderer.gpuFrameMs`). Those queries leave out the frame's end on Apple GPUs (ADR 0248). Since plan 395 (ADR 0338) its target is a lock of 120 where the device tier, the browser and the screen allow it (the budget is the 8.33 ms slot), falling to 60 at the lowest rung and back only on evidence; the TAAU input scale is its fast axis on a 120 tier (no pipeline, ADR 0336), the rungs go preset by preset, and the frame-rate setting offers 120.
 
 **Silhouettes of the planet pass** (plan 133, ADR 0195) have three parts:
 

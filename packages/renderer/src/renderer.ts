@@ -356,6 +356,8 @@ export interface Renderer {
 	/** TAAU at this share of the canvas's side (0.4 to 1), 0 for off, or null for the preset's own; WebGPU only (plan 393). */
 	setTaau?(scale: number | null): void;
 	readonly taau?: number;
+	/** Whether this context can draw with TAAU: the governor's fast axis at 120 Hz (plan 395). */
+	readonly taauAvailable?: boolean;
 	readonly planetScale: number;
 	/** Whether this context can draw the half-resolution planet pass (the governor skips the rung when not). */
 	readonly halfPlanetAvailable: boolean;

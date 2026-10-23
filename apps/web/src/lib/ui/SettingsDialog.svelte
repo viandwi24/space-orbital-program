@@ -133,6 +133,7 @@
 	] as const;
 	const frameCapOptions = [
 		{ value: 'display', label: 'Display', hint: 'As fast as the screen refreshes' },
+		{ value: '120', label: '120', hint: 'Steady 120 frames per second on a 120 Hz screen' },
 		{ value: '60', label: '60', hint: 'Steady 60 frames per second' },
 		{ value: '30', label: '30', hint: 'Saves the most battery' }
 	] as const;

@@ -1,6 +1,7 @@
 /** Graphics presets (ADR 0027): one table, one pure selector. The host persists the choice. */
 
 import type { PartDetail } from './parts/types.ts';
+import { tierOf } from './device-tier.ts';
 
 export type GraphicsPreset = 'low' | 'medium' | 'high';
 export const GRAPHICS_PRESETS: readonly GraphicsPreset[] = ['low', 'medium', 'high'];
@@ -241,7 +242,8 @@ export interface DeviceCapabilities {
 /**
  * Default preset for a device. Conservative on purpose: software rasterisers, phones and old
  * integrated GPUs get `low`; Apple silicon from M3, discrete and recent integrated GPUs with enough memory
- * get `high` (Apple M1/M2 `medium` until measured); anything unknown gets `medium`.
+ * get `high` (Apple M1/M2 `medium` until measured); other GPUs start at their tier's preset
+ * (`device-tier.ts`: a GTX 1650 / RTX 3050 `medium`, integrated Iris Xe / 680M `low`); anything unknown gets `medium`.
  */
 export function selectPreset(caps: DeviceCapabilities): GraphicsPreset {
 	const gpu = (caps.gpu ?? '').toLowerCase();
@@ -255,7 +257,10 @@ export function selectPreset(caps: DeviceCapabilities): GraphicsPreset {
 	// and Ultra GPUs are two to four times larger and not measured: `medium` until they are.
 	if (/apple m[12] (pro|max|ultra)\b/.test(gpu)) return 'medium';
 	if (/apple m[12]\b/.test(gpu)) return 'low';
-	if (/apple m\d|nvidia|geforce|rtx|radeon rx|radeon pro|arc/.test(gpu)) return 'high';
+	// the other GPUs start where their tier does (plan 395, ADR 0338): a GTX 1650 / RTX 3050, an Iris Xe
+	// or a 680M start below `high`; the governor climbs on evidence
+	if (/apple m\d/.test(gpu)) return 'high';
+	if (/nvidia|geforce|rtx|gtx|radeon|arc|iris/.test(gpu)) return tierOf(gpu).preset;
 	return 'medium';
 }
 

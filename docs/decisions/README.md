@@ -323,3 +323,4 @@ An ADR records one decision, its context, and its consequences. ADRs are **appen
 | 0335 | [Engine plume templates: a propellant base and the engine's scales](0335-engine-plume-templates.md) | accepted | 2026-10-24 |
 | 0336 | [TAAU: the 3D image at half the side, rebuilt temporally](0336-taau-temporal-upscaling.md) | accepted | 2026-10-24 |
 | 0337 | [Collisions that never miss: a load range, merged physics frames, a ground plane that clears the footprint](0337-collisions-that-never-miss.md) | accepted | 2026-10-24 |
+| 0338 | [A governor for 120 Hz: a lock of 120 or 60, TAAU as the fast axis](0338-governor-for-120hz.md) | accepted | 2026-10-24 |

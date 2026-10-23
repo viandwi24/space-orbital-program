@@ -910,6 +910,9 @@ export function createWebGPURenderer(
 			},
 			// every preset's frames are drawn at load (plan 362, ADR 0304): a step costs no shader build
 			governorPresetSteps: true,
+			get taauAvailable() {
+				return backend === 'webgpu';
+			},
 			get gpuFrameMs() {
 				return gpuMs;
 			},

@@ -13,6 +13,7 @@ import {
 	type GraphicsPreset
 } from '@orbital/renderer/presets';
 
+import { refreshOf, tierOf } from '@orbital/renderer/device-tier';
 import {
 	parseRendererChoice,
 	rendererBackendFrom,
@@ -79,17 +80,63 @@ export function saveAutoQuality(on: boolean): void {
 
 /**
  * The frame-rate limit (plan 362, ADR 0304): `display` draws at the display's rate (the default, as a
- * fixed preset always did), `60` and `30` pace the drawing down to save battery and heat.
+ * fixed preset always did), `120`, `60` and `30` pace the drawing down to save battery and heat. The
+ * governor aims at 120 on a 120 Hz screen of a tier that holds it (plan 395, ADR 0338); on battery,
+ * with no choice saved, the limit is 60.
  */
-export type FrameCapChoice = 'display' | '60' | '30';
+export type FrameCapChoice = 'display' | '120' | '60' | '30';
 const FPS_KEY = 'orbital.graphics.fps';
 
 export const parseFrameCap = (value: unknown): FrameCapChoice =>
-	value === '60' || value === '30' ? value : 'display';
+	value === '120' || value === '60' || value === '30' ? value : 'display';
 
 /** The cap as the governor takes it: null for the display's rate. */
 export const frameCapFps = (choice: FrameCapChoice): number | null =>
 	choice === 'display' ? null : Number(choice);
+
+/** Whether the player ever chose a frame-rate limit (the battery default applies only when not). */
+export function hasSavedFrameCap(): boolean {
+	try {
+		return localStorage.getItem(FPS_KEY) !== null;
+	} catch {
+		return false;
+	}
+}
+
+/**
+ * The limit a battery imposes (plan 395, 02 §1): 60 while unplugged and the player chose none, else
+ * none. `charging` is null where the browser does not say (Safari, Firefox): no limit.
+ */
+export const batteryFrameCap = (saved: boolean, charging: boolean | null): number | null =>
+	!saved && charging === false ? 60 : null;
+
+/** Safari's user agent: it holds 60 whatever the screen does (no 120 Hz requestAnimationFrame there). */
+export const isSafari = (userAgent: string): boolean =>
+	/safari/i.test(userAgent) && !/chrome|chromium|crios|fxios|edg|opr|android/i.test(userAgent);
+
+/** The most the governor is asked to lock at here, Hz: the GPU's tier, 60 in Safari (plan 395). */
+export function lockCeiling(caps: DeviceCapabilities, userAgent = ''): 120 | 60 | 30 {
+	const tier = tierOf(caps.gpu ?? '', caps.mobile === true);
+	return isSafari(userAgent) ? (Math.min(tier.maxHz, 60) as 60 | 30) : tier.maxHz;
+}
+
+/** The display's refresh rate from rAF periods at load, before the game loads the machine; 0 until known. */
+let refreshHz = 0;
+let refreshProbing = false;
+export const measuredRefreshHz = (): number => refreshHz;
+export function probeRefreshHz(frames = 45): void {
+	if (refreshProbing || typeof requestAnimationFrame !== 'function') return;
+	refreshProbing = true;
+	const periods: number[] = [];
+	let last = 0;
+	const step = (now: number): void => {
+		if (last > 0) periods.push(now - last);
+		last = now;
+		if (periods.length < frames) requestAnimationFrame(step);
+		else refreshHz = refreshOf(periods);
+	};
+	requestAnimationFrame(step);
+}
 
 export function loadFrameCap(): FrameCapChoice {
 	try {
@@ -157,18 +204,27 @@ const LEARNED_KEY = 'orbital.graphics.learned';
 export interface LearnedLevel {
 	preset: GraphicsPreset;
 	scale: number;
+	/** The TAAU input scale of the rung (plan 395); absent: the preset's own. */
+	taau?: number;
 }
+
+/** The learned-level key: per backend, and per lock target where it is 120 (plan 395). */
+export const learnedKey = (backend: string, targetHz: number): string =>
+	targetHz >= 120 ? `${backend}@120` : backend;
 
 /** A stored learned level for `backend`, or null when absent or not valid. Pure (tested). */
 export function parseLearnedLevel(value: unknown, backend: string): LearnedLevel | null {
 	if (typeof value !== 'string') return null;
 	try {
-		const all = JSON.parse(value) as Record<string, { preset?: unknown; scale?: unknown }>;
+		const all = JSON.parse(value) as Record<string, { preset?: unknown; scale?: unknown; taau?: unknown }>;
 		const entry = all?.[backend];
 		const preset = parsePreset(entry?.preset);
 		const scale = Number(entry?.scale);
 		if (!preset || !Number.isFinite(scale) || scale <= 0 || scale > 1) return null;
-		return { preset, scale };
+		const taau = Number(entry?.taau);
+		return Number.isFinite(taau) && taau >= 0 && taau <= 1 && entry?.taau !== undefined
+			? { preset, scale, taau }
+			: { preset, scale };
 	} catch {
 		return null;
 	}
@@ -190,7 +246,11 @@ export function saveLearnedLevel(backend: string, level: LearnedLevel): void {
 		} catch {
 			all = {};
 		}
-		all[backend] = { preset: level.preset, scale: Math.round(level.scale * 100) / 100 };
+		all[backend] = {
+			preset: level.preset,
+			scale: Math.round(level.scale * 100) / 100,
+			...(level.taau !== undefined ? { taau: Math.round(level.taau * 100) / 100 } : {})
+		};
 		localStorage.setItem(LEARNED_KEY, JSON.stringify(all));
 	} catch {
 		// private mode or quota: the next session guesses again

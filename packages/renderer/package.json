@@ -9,6 +9,7 @@
 		".": "./src/index.ts",
 		"./presets": "./src/presets.ts",
 		"./backend": "./src/backend.ts",
+		"./device-tier": "./src/device-tier.ts",
 		"./precompile-progress": "./src/precompile-progress.ts",
 		"./compile-report": "./src/compile-report.ts",
 		"./reentry": "./src/effects/reentry.ts",

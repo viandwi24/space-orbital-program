@@ -542,3 +542,114 @@ describe('plan 373 (ADR 0310): held while the reachable presets warm', () => {
 		expect(play(g, 20, () => 60).changes.length).toBeGreaterThan(0);
 	});
 });
+
+/** Plan 395 (ADR 0338): the 120 Hz lock, the TAAU scale as the fast axis, the fall to 60 and the way back. */
+describe('QualityGovernor: the 120 Hz lock (plan 395)', () => {
+	/** A frame that costs `ms` at high and native size, shrinking with the level the way `levelCost` says. */
+	const costOf =
+		(ms: number) =>
+		(l: GovernorLevel): number =>
+			ms * levelCost(l);
+	const make = (maxHz: 120 | 60 = 120, hint = true) => {
+		const g = new QualityGovernor('high', undefined, true, true, { taau: true, maxHz });
+		g.setFrameCap(null);
+		if (hint) g.setDisplayHint(120);
+		return g;
+	};
+
+	test('the ladder walks the TAAU scale inside a preset before the next preset', () => {
+		const ladder = governorLadder('high', true, 1, true, true);
+		const names = ladder.map((l) => `${l.preset}:${l.taau ?? '-'}`);
+		expect(names.slice(0, 5)).toEqual(['high:0', 'high:0.75', 'high:0.6', 'medium:0.5', 'low:-']);
+		// no step changes a resource size: the drawing buffer and the planet pass stay put on the TAAU rungs
+		for (const l of ladder.filter((x) => x.taau !== undefined)) {
+			expect(l.scale).toBe(1);
+			expect(l.planetScale).toBe(1);
+		}
+		// without TAAU (WebGL) the ladder is the old one
+		expect(governorLadder('high', true, 1, true, false).every((l) => l.taau === undefined)).toBe(
+			true
+		);
+	});
+
+	test('a 120 Hz tier aims at 120 on a 120 Hz screen, and at 60 on a 60 Hz one or when capped', () => {
+		const g = make();
+		play(g, 3, () => 4, { hz: 120 });
+		expect(g.targetFps).toBe(120);
+		expect(g.budgetMs).toBeCloseTo(8.33, 1);
+		g.setFrameCap(60);
+		expect(g.targetFps).toBe(60);
+		g.setFrameCap(120);
+		expect(g.targetFps).toBe(120);
+		const slow = make(120, false);
+		play(slow, 3, () => 4, { hz: 60 });
+		expect(slow.targetFps).toBe(60);
+		// a 60 tier (Safari, an M2) never asks for 120
+		const tier60 = make(60, false);
+		play(tier60, 3, () => 4, { hz: 120 });
+		expect(tier60.targetFps).toBe(60);
+	});
+
+	test('a steady 9 ms series steps the TAAU scale down before any preset step', () => {
+		const g = make();
+		const run = play(g, 40, costOf(9), { hz: 120 });
+		const first = run.changes[0]!;
+		expect(first.level.preset).toBe('high');
+		expect(first.level.taau).toBe(0.75);
+		const firstPreset = run.changes.findIndex((c) => c.level.preset !== 'high');
+		for (const c of run.changes.slice(0, firstPreset < 0 ? undefined : firstPreset))
+			expect(c.level.preset).toBe('high');
+		expect(g.isLockedTo60).toBe(false);
+		expect(over(run, 10, 20)).toBeLessThan(0.02);
+	});
+
+	test('a series that misses at the lowest scale on the floor preset locks to 60', () => {
+		const g = make();
+		const run = play(g, 300, (l) => 160 * levelCost(l), { hz: 120 });
+		expect(g.isLockedTo60).toBe(true);
+		expect(g.targetFps).toBe(60);
+		expect(g.renderEvery).toBe(2);
+		expect(run.changes.some((c) => c.reason.includes('locked to 60'))).toBe(true);
+		// 12 ms holds 60: it did not fall further
+		expect(g.isLockedTo30).toBe(false);
+	});
+
+	test('a recovered series climbs back to 120 only after the dwell, and on evidence', () => {
+		const g = make();
+		const heavy = 150;
+		const cost = (l: GovernorLevel, t: number): number =>
+			(t / 1000 < heavy ? 160 : 20) * levelCost(l);
+		const work = (l: GovernorLevel, t: number): number => cost(l, t) * 0.8;
+		const run = play(g, 400, cost, { hz: 120, work });
+		const lock = run.changes.find((c) => c.reason.includes('locked to 60'))!;
+		const back = run.changes.find((c) => c.reason.includes('headroom for 120'))!;
+		expect(lock).toBeDefined();
+		expect(back).toBeDefined();
+		expect(back.t - lock.t).toBeGreaterThanOrEqual(DEFAULT_GOVERNOR.unlockSeconds);
+		expect(back.t).toBeGreaterThan(heavy);
+		expect(g.isLockedTo60).toBe(false);
+		expect(g.targetFps).toBe(120);
+	});
+
+	test('a step back to 120 that misses returns to 60 and is not tried again in that scene', () => {
+		const g = make();
+		// the series misses 120 at every rung; a new scene (one look per scene) tries 120 again and fails
+		const run = play(g, 400, (l) => 160 * levelCost(l), {
+			hz: 120,
+			scene: (t) => (t < 100 ? 'ground' : 'orbit')
+		});
+		const backs = run.changes.filter((c) => c.reason.includes('headroom for 120'));
+		const locks = run.changes.filter((c) => c.reason.includes('locked to 60'));
+		expect(locks.length).toBe(1);
+		expect(backs.length).toBe(1);
+		expect(run.changes.some((c) => c.reason.includes('missed'))).toBe(true);
+		expect(g.isLockedTo60).toBe(true);
+	});
+
+	test('the learned level starts on the TAAU rung it names', () => {
+		const g = make();
+		const level = g.startAt({ preset: 'high', scale: 1, taau: 0.6 });
+		expect(level.preset).toBe('high');
+		expect(level.taau).toBe(0.6);
+	});
+});

@@ -47,6 +47,7 @@ import {
 	CAMERA_MODE_LABEL,
 	FramePacer,
 	QualityGovernor,
+	rungResolution,
 	sceneKeyOf,
 	nextCameraMode,
 	type CameraMode,
@@ -65,15 +66,21 @@ import { worldRenderer } from './world-renderer.svelte';
 import { pinchZoomFactor } from './touch/touch-model';
 import {
 	clearGraphicsPreset,
+	batteryFrameCap,
 	frameCapFps,
 	governorCeiling,
+	hasSavedFrameCap,
 	initialGraphicsPreset,
 	loadAutoQuality,
 	loadFrameCap,
 	loadGraphicsPreset,
+	learnedKey,
 	loadLearnedLevel,
+	lockCeiling,
+	measuredRefreshHz,
 	onGraphicsChange,
 	probeCapabilities,
+	probeRefreshHz,
 	saveAutoQuality,
 	saveFrameCap,
 	saveGraphicsPreset,
@@ -470,6 +477,8 @@ const ordinal = (n: number): string => {
 };
 
 export function startFlight(options: FlightOptions): Flight {
+	// the display's rate, measured before the machine is loaded (plan 395)
+	probeRefreshHz();
 	const canvas = worldRenderer.canvas;
 	/** The flown vessel's design (plan 221): the launch design, or the record of a vessel switched to. */
 	let design = options.design;
@@ -1570,9 +1579,21 @@ export function startFlight(options: FlightOptions): Flight {
 	} {
 		const saved = loadGraphicsPreset();
 		const learned =
-			saved || !renderer ? null : loadLearnedLevel(renderer.debug.counters().renderer);
+			saved || !renderer ? null : loadLearnedLevel(learnKey(renderer.debug.counters().renderer));
 		const start = startPreset(saved, learned, probeCapabilities());
 		return { saved, learned, start, ceiling: governorCeiling(saved, autoQuality, start) };
+	}
+
+	/**
+	 * The learned level's key (plan 395): per backend and per lock target, 120 where this tier and
+	 * screen are asked to hold it, so a 60 settled on a 120 Hz display does not start a 120 session.
+	 */
+	function learnKey(backend: string): string {
+		const live = governor?.targetFps;
+		return learnedKey(
+			backend,
+			live ?? (lockCeiling(probeCapabilities(), navigator.userAgent) >= 120 && measuredRefreshHz() >= 100 ? 120 : 60)
+		);
 	}
 
 	/** A fresh governor run from `governorPlan`: the level to draw. */
@@ -1582,7 +1603,11 @@ export function startFlight(options: FlightOptions): Flight {
 		g.setEnabled(autoQuality);
 		return plan.saved
 			? g.level
-			: g.startAt({ preset: plan.start, scale: plan.learned?.scale ?? 1 });
+			: g.startAt({
+					preset: plan.start,
+					scale: plan.learned?.scale ?? 1,
+					...(plan.learned?.taau !== undefined ? { taau: plan.learned.taau } : {})
+				});
 	}
 
 	/** Draws at the governor's level and, when it moved by itself, tells the player once (plan 039). */
@@ -1593,11 +1618,13 @@ export function startFlight(options: FlightOptions): Flight {
 		syncGlass();
 		renderer.setRenderScale(level.scale);
 		renderer.setPlanetScale(level.planetScale);
+		// the TAAU rung: no resource of the scene changes with it (plan 395); null follows the preset
+		renderer.setTaau?.(level.taau ?? null);
 		// Automatic starts the next session where this one settled (plan 362)
 		if (announce && loadGraphicsPreset() === null)
-			saveLearnedLevel(renderer.debug.counters().renderer, level);
+			saveLearnedLevel(learnKey(renderer.debug.counters().renderer), level);
 		if (announce) {
-			const percent = Math.round(level.scale * 100);
+			const percent = Math.round(rungResolution(level) * 100);
 			logBuffer.add(
 				'info',
 				'graphics',
@@ -1617,6 +1644,29 @@ export function startFlight(options: FlightOptions): Flight {
 		}
 	}
 
+	let refreshHinted = false;
+	/** On battery with no limit chosen, the frame rate limit is 60 (plan 395); follows the charger. */
+	function watchBattery(g: QualityGovernor): void {
+		type Battery = EventTarget & { charging: boolean };
+		const nav = navigator as Navigator & { getBattery?: () => Promise<Battery> };
+		if (!nav.getBattery) return;
+		void nav
+			.getBattery()
+			.then((battery) => {
+				const apply = (): void => {
+					if (disposed || governor !== g) return;
+					g.setFrameCap(
+						batteryFrameCap(hasSavedFrameCap(), battery.charging) ?? frameCapFps(loadFrameCap())
+					);
+				};
+				apply();
+				battery.addEventListener('chargingchange', apply);
+				batteryOff = () => battery.removeEventListener('chargingchange', apply);
+			})
+			.catch(() => undefined);
+	}
+	let batteryOff: (() => void) | null = null;
+
 	function frame(now: number): void {
 		if (disposed) return;
 		raf = requestAnimationFrame(frame);
@@ -1624,6 +1674,10 @@ export function startFlight(options: FlightOptions): Flight {
 		// second rAF at 60, and a drawn frame is judged by the time since the previous drawn one
 		if (governor) {
 			// the GPU's time where the renderer measures it (WebGPU, plan 261): headroom to step up on
+			if (!refreshHinted && measuredRefreshHz() > 0) {
+				refreshHinted = true;
+				governor.setDisplayHint(measuredRefreshHz());
+			}
 			const tick = governor.tick(now - lastRaf, renderer?.gpuFrameMs ?? undefined);
 			lastRaf = now;
 			if (tick.level) applyLevel(tick.level, true, governor.history.at(-1)?.reason);
@@ -1941,13 +1995,17 @@ export function startFlight(options: FlightOptions): Flight {
 				mapOn: () => draw.isMapView,
 				size: () => ({ width: canvas.clientWidth, height: canvas.clientHeight, insets: viewInsets })
 			});
+			// the lock the tier and the browser allow (plan 395, ADR 0338): TAAU is the fast axis where it is 120
+			const maxHz = lockCeiling(probeCapabilities(), navigator.userAgent);
 			governor = new QualityGovernor(
 				governorPlan().ceiling,
 				undefined,
 				renderer.halfPlanetAvailable,
-				renderer.governorPresetSteps
+				renderer.governorPresetSteps,
+				{ taau: renderer.taauAvailable === true && maxHz >= 120, maxHz }
 			);
 			governor.setFrameCap(frameCapFps(loadFrameCap()));
+			watchBattery(governor);
 			// the shared renderer may still be at a level an earlier flight's governor chose: start afresh
 			applyLevel(startGovernor(governor), false);
 			// Measurement (plan 251): the switches named in localStorage `orbital.graphics.features` go down
@@ -2070,7 +2128,7 @@ export function startFlight(options: FlightOptions): Flight {
 				governor && {
 					history: governor.history.map(
 						(c) =>
-							`${c.at.toFixed(1)}s ${c.level.preset} ${Math.round(c.level.scale * 100)}%${c.level.planetScale < 1 ? ' half' : ''} — ${c.reason}`
+							`${c.at.toFixed(1)}s ${c.level.preset} ${Math.round(rungResolution(c.level) * 100)}%${c.level.planetScale < 1 ? ' half' : ''} — ${c.reason}`
 					),
 					targetFps: governor.targetFps,
 					displayHz: governor.displayRate,
@@ -2211,7 +2269,7 @@ export function startFlight(options: FlightOptions): Flight {
 			governorChanges: [...governorChanges],
 			governorPacing:
 				governor && autoQuality
-					? `${governor.targetFps} fps${governor.isLockedTo30 ? ' (locked)' : ''} on ${governor.displayRate} Hz, every ${governor.renderEvery === 1 ? '' : `${ordinal(governor.renderEvery)} `}frame`
+					? `${governor.targetFps} fps${governor.isLockedTo30 || governor.isLockedTo60 ? ' (locked)' : ''} on ${governor.displayRate} Hz, every ${governor.renderEvery === 1 ? '' : `${ordinal(governor.renderEvery)} `}frame`
 					: null,
 			versions: [`api ${API_VERSION}`, ...(catalog?.plugins ?? [])].join(', '),
 			frames: frameStats.summary(performance.now()),
@@ -2430,6 +2488,7 @@ export function startFlight(options: FlightOptions): Flight {
 		},
 		dispose() {
 			disposed = true;
+			batteryOff?.();
 			director.stop();
 			cancelAnimationFrame(raf);
 			observer.disconnect();

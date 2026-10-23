@@ -1,7 +1,7 @@
 ---
 id: 395
 title: "A governor for 120 Hz: a 7 ms budget, a lock at 120 or 60, the TAAU scale as the fast axis, 120 in the frame-rate setting"
-status: draft
+status: done
 owner: "Worker A"
 depends: [393]
 phase: 9
@@ -73,3 +73,4 @@ The governor chooses its target per device tier (392's tiers): a locked 120 on t
 ## Log
 
 - 2026-10-24 — Created by the coordinator from refs/graphics-v2 (ADR 0330).
+- 2026-10-24 — Worker A: ADR 0338. The lock, the fall to 60 and the way back, TAAU rungs, per-tier start preset, `'120'`, battery limit, refresh probe and tests are in. Measured on the M5 with the governor on: it ended on `low` at p95 10 ms, the 120 lock is not held (journal 395). Not done: the lock itself, the M2/Windows runs, a no-allocation scale change, `STEP_TO`.
