@@ -347,16 +347,16 @@ describe('placement on terrain', () => {
 	});
 
 	test('the terrain option may be a function of the root body', async () => {
-		let seen = '';
+		const seen: string[] = [];
 		const sim = await createSim({
 			plugins: [Stock],
 			backendFactory: rapier(),
 			terrain: (body) => {
-				seen = `${body.id} ${body.radius}`;
+				seen.push(`${body.id} ${body.radius}`);
 				return plateau(0);
 			}
 		});
-		expect(seen).toBe('stock.home 600000');
+		expect(seen).toContain('stock.home 600000');
 		sim.dispose();
 	});
 

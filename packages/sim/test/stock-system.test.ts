@@ -66,7 +66,8 @@ describe('the stock system (plan 381)', () => {
 			for (const b of bodies) {
 				if (!a.orbit || !b.orbit || a.parent !== b.parent || a.id >= b.id) continue;
 				const gap = closestCurves(a, b);
-				if (gap < 1.5 * (soiOf(a) + soiOf(b))) pairs.push(`${a.id}–${b.id}: ${gap.toExponential(2)} m`);
+				if (gap < 1.5 * (soiOf(a) + soiOf(b)))
+					pairs.push(`${a.id}–${b.id}: ${gap.toExponential(2)} m`);
 			}
 		}
 		expect(pairs).toEqual([]);

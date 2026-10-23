@@ -26,6 +26,7 @@ import {
 import { createSim, type Sim } from '../src/index.ts';
 import { homeFrame, moonState, systemOf, transferState, type System } from './helpers/moon.ts';
 import { newSim, probe, rapier, stack, twoStage } from './helpers/vessels.ts';
+import { STOCK_TREE } from './helpers/stock-tree.ts';
 
 /** Transfer that misses the moon's centre by about 800 km: a flyby with a periapsis near 500 km. */
 const FLYBY = 800_000;
@@ -312,11 +313,7 @@ describe('the moon as a place', () => {
 		const sim = await newSim();
 		const s = systemOf(sim);
 		const snap0 = sim.snapshot();
-		expect(snap0.bodies.map((b) => String(b.id))).toEqual([
-			'stock.sun',
-			'stock.home',
-			'stock.cinder'
-		]);
+		expect(snap0.bodies.map((b) => String(b.id))).toEqual(STOCK_TREE);
 		// the moon's place relative to the home planet (the system frame is the Sun's since plan 122)
 		const h = snap0.bodies.find((b) => b.id === s.home.id)!;
 		const m = snap0.bodies.find((b) => b.id === s.moon.id)!;

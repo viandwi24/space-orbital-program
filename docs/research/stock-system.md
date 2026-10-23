@@ -37,7 +37,7 @@ The formulas are those of `delta-v-map.md` (plan 034). The ascent through an atm
 
 The airless ascent is `1.12 v_circ + √(2 g · 2 km)`.
 
-The first window of each planet is placed by its phase at t = 0 (ADR 0318 point 3): Kiln at day 30, Ochre 45, Vagrant 90, Tempest 120, Vesper 160 and Glim 200 (a day is Home's solar day, 21 651 s). For Vagrant and Glim, the eccentric orbits make the Hohmann numbers a guide only: plan the trip with the map's maneuver tools.
+The first window of each planet is placed by its phase at t = 0 (ADR 0318 point 3). As the game's trip planner (`hohmannToTarget`) finds them, the windows open on these days: Kiln 29, Ochre 44, Tempest 120, Vesper 160 and Glim 198 (a day is Home's solar day, 21 651 s). The stock-system test holds each within 3 days. Vagrant's e = 0.68 makes a Hohmann window meaningless: plan that trip with the map's maneuver tools. Glim's and Kiln's eccentric orbits make their numbers a guide only.
 
 ### Bodies
 
@@ -93,3 +93,14 @@ The first window of each planet is placed by its phase at t = 0 (ADR 0318 point 
 | Kiln landing, one way | ~6,000 (1,620 + 1,309 + 2,176 + 895) |
 
 Targets for the parts calibration (plan 380): a stock "interplanetary stage" should carry ~2.5 km/s (Ochre and back with aerobraking); a "deep space" probe ~5.5 km/s from low orbit.
+
+## Flown headless (packages/sim/test/stock-transfer.test.ts)
+
+A stock upper stage flew Home to Ochre in the sim: a pod, two reaction wheels, two medium tanks and the wide engine. It started in an 80 km parking orbit in the departure plane.
+
+- It burned at the planner's window (day 44.2): 1 096 m/s on a maneuver node with SAS. The node direction is fixed, so a one-minute burn leaves a few tens of m/s.
+- It made one correction three days after leaving Home's sphere: 44 m/s.
+- It entered Ochre's sphere 307 days after departure.
+- The capture into a 58 km orbit would cost about 744 m/s, or less with aerobraking.
+
+Total from low orbit: about 1 140 m/s to arrive and about 1 900 m/s to stay.

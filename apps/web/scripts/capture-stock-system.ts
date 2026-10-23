@@ -95,7 +95,8 @@ async function frame(id: string, radius: number, px: number, turn = true): Promi
 			const wait = (ms: number) => new Promise((r) => setTimeout(r, ms));
 			R.setMapView(true);
 			R.setMapFocus(id);
-			await wait(800);
+			// the map's camera eases to its focus first; input before then is lost
+			await wait(3000);
 			const bodyAt = () => o.snapshot().bodies.find((b: any) => b.id === id).position;
 			const sunAt = () => o.snapshot().bodies.find((b: any) => b.id === 'stock.sun').position;
 			const size = (): number => {
@@ -128,20 +129,26 @@ async function frame(id: string, radius: number, px: number, turn = true): Promi
 				const c = bodyAt();
 				const s = sunAt();
 				const d = Math.hypot(s.x - c.x, s.y - c.y, s.z - c.z);
-				const k = (0.95 * radius) / d;
+				const k = (1.02 * radius) / d;
 				const p = { x: c.x + (s.x - c.x) * k, y: c.y + (s.y - c.y) * k, z: c.z + (s.z - c.z) * k };
 				const a = R.project(c);
 				const b = R.project(p);
-				return a && b && b.visible !== false ? Math.hypot(b.x - a.x, b.y - a.y) : Infinity;
+				return a && b && !b.hidden ? Math.hypot(b.x - a.x, b.y - a.y) : Infinity;
 			};
-			let best = { yaw: 0, score: Infinity };
-			for (let step = 0; step < 24; step++) {
-				const score = sunward();
-				if (score < best.score) best = { yaw: step, score };
-				R.orbitCamera({ dYaw: (2 * Math.PI) / 24 });
-				await wait(60);
+			// yaw round and pitch up and down: the sun may stand well off the camera's horizon
+			const PITCHES = [0, 0.35, -0.35, 0.7, -0.7, 1.05, -1.05];
+			let best = { yaw: 0, pitch: 0, score: Infinity };
+			for (const pitch of PITCHES) {
+				R.orbitCamera({ dPitch: pitch });
+				for (let step = 0; step < 24; step++) {
+					const score = sunward();
+					if (score < best.score) best = { yaw: step, pitch, score };
+					R.orbitCamera({ dYaw: (2 * Math.PI) / 24 });
+					await wait(40);
+				}
+				R.orbitCamera({ dPitch: -pitch });
 			}
-			R.orbitCamera({ dYaw: ((2 * Math.PI) / 24) * best.yaw + 0.55 });
+			R.orbitCamera({ dPitch: best.pitch, dYaw: ((2 * Math.PI) / 24) * best.yaw + 0.55 });
 		},
 		[id, radius, px, turn] as const
 	);
@@ -162,12 +169,14 @@ for (const id of ids) {
 	await page.waitForTimeout(2500);
 	await frame(id, b.radius, 280);
 	// the body wakes and bakes its full colour map over a few frames
-	await page.waitForTimeout(5000);
+	await page.waitForTimeout(Number(process.env.SHOT_WAIT ?? 5000));
 	await page.screenshot({ path: join(out, `381-${backend}-${id.split('.')[1]}.jpg`), type: 'jpeg', quality: 88 });
 	console.log('shot', id);
 }
 
-// the overview: the whole system from the Sun, out to Glim's aphelion, seen from above at a slant
+// the overview: the whole system from the Sun, out to Glim's aphelion, seen from above at a slant,
+// with the interface back on for the body labels
+await page.keyboard.press('F2');
 await page.evaluate(() => {
 	const R = (window as any).__orbital.renderer();
 	R.setMapScope('system');

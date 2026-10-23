@@ -266,6 +266,8 @@ export class SceneModel {
 	 */
 	private readonly dresses = new Map<string, BodyDress>();
 	private readonly dormant = new Set<string>();
+	/** The moon passes awake now (every one but the dormant), rebuilt when one wakes or sleeps. */
+	private awake: MoonPass[] = [];
 	/** Map view furniture of a body with a parent: its orbit around the parent and its sphere of influence. */
 	private readonly bodyMarks = new Map<
 		string,
@@ -403,10 +405,15 @@ export class SceneModel {
 						seed: hillsSeedOf(b, config.terrain?.seed ?? LEGACY_TERRAIN_SEED, false),
 						zones: []
 					};
-				const dress = b.appearance ? new BodyDress(b.id, b.radius, b.appearance, this.sphere) : null;
+				const dress = b.appearance
+					? new BodyDress(b.id, b.radius, b.appearance, this.sphere)
+					: null;
 				const moon = new MoonPass(b.id, b.radius, {
 					...(dress
-						? { look: dress.map, tint: [LOOK_ALBEDO, LOOK_ALBEDO, LOOK_ALBEDO] as [number, number, number] }
+						? {
+								look: dress.map,
+								tint: [LOOK_ALBEDO, LOOK_ALBEDO, LOOK_ALBEDO] as [number, number, number]
+							}
 						: {}),
 					...(b.terrain.kind === 'hills'
 						? { kind: 'hills' as const, terrain: hillsTerrain() }
@@ -450,6 +457,7 @@ export class SceneModel {
 				...(b.atmosphere ? { atmosphereTop: b.atmosphere.height } : {})
 			});
 		});
+		this.listAwake();
 		for (const b of config.bodies) {
 			if (b.parent === undefined || !b.orbit) continue;
 			this.systemExtent = Math.max(this.systemExtent, b.orbit.a * (1 + b.orbit.e));
@@ -1354,7 +1362,7 @@ export class SceneModel {
 		const primaryRot = this.primaryBody ? this.bodyRot.get(this.primaryBody) : undefined;
 		const starWorld = this.starBody ? bodyWorld.get(this.starBody) : undefined;
 		this.environment.setStarDirection(
-			starWorld && primaryWorld ? normalize(sub3(starWorld, primaryWorld)) : null
+			starWorld && primaryWorld ? normalize(sub3(starWorld, this.lightFrom(primaryWorld))) : null
 		);
 		const activeGroup = activeVessel ? this.vessels.get(activeVessel.id)?.group : undefined;
 		this.frameState =
@@ -1467,7 +1475,7 @@ export class SceneModel {
 		const sunInertial = this.frameState
 			? this.environment.sunDirection(this.frameState.bodyRotation)
 			: undefined;
-		this.updateDresses();
+		this.updateDresses(sunInertial);
 		for (const [id, moon] of this.moons) {
 			if (this.dormant.has(id)) continue;
 			const entry = this.bodies.get(id);
@@ -1499,7 +1507,7 @@ export class SceneModel {
 	 * moon pass, its full colour map baked) when it covers `DRESS_NEAR_PX` of radius or holds the
 	 * active vessel, and sleeps again below `DRESS_FAR_PX`; clouds fade below their deck.
 	 */
-	private updateDresses(): void {
+	private updateDresses(sun: Vec3 | undefined): void {
 		if (this.dresses.size === 0) return;
 		const halfTan = Math.tan((this.camera.fov * Math.PI) / 360);
 		const soi = this.lastView?.active?.soi;
@@ -1525,14 +1533,37 @@ export class SceneModel {
 					this.dormant.delete(id);
 					moon.root.visible = true;
 					dress.showFar(false);
+					this.listAwake();
 				} else if (!asleep && sleep) {
 					this.dormant.add(id);
 					moon.root.visible = false;
 					dress.showFar(true);
+					this.listAwake();
 				}
 			}
+			if (sun) dress.light(sun, entry.holder.quaternion);
 			if (dress.frame(px, d - dress.radius, !baked)) baked = true;
 		}
+	}
+
+	/**
+	 * Where the sunlight is aimed from (plan 381): the home body while the camera is in its sphere,
+	 * as before; elsewhere the camera itself, so a planet across the system is lit from its own side
+	 * of the star (within a planet's moons the difference is under half a degree).
+	 */
+	private lightFrom(primaryWorld: Vec3): Vec3 {
+		const camera = {
+			x: this.origin.x + this.camera.position.x,
+			y: this.origin.y + this.camera.position.y,
+			z: this.origin.z + this.camera.position.z
+		};
+		const home = this.primaryBody ? this.bodyMarks.get(this.primaryBody)?.soi : undefined;
+		const d = Math.hypot(
+			camera.x - primaryWorld.x,
+			camera.y - primaryWorld.y,
+			camera.z - primaryWorld.z
+		);
+		return home !== undefined && d > home ? camera : primaryWorld;
 	}
 
 	/** The moon the active vessel is at, from the last `updateMoons`. */
@@ -1603,7 +1634,11 @@ export class SceneModel {
 
 	/** The moon passes (plan 261: the WebGPU renderer bakes and draws them with its TSL twins). */
 	get moonPasses(): Iterable<MoonPass> {
-		return [...this.moons].filter(([id]) => !this.dormant.has(id)).map(([, m]) => m);
+		return this.awake;
+	}
+
+	private listAwake(): void {
+		this.awake = [...this.moons].filter(([id]) => !this.dormant.has(id)).map(([, m]) => m);
 	}
 
 	/** Bakes what the moon passes asked for this frame (needs a context; the facade calls it). */

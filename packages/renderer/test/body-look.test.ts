@@ -76,7 +76,9 @@ describe('body look (plan 381)', () => {
 
 	test('clouds carry the cover in alpha; rings fade at the edges and have a gap', () => {
 		const clouds = cloudMap({ color: '#eedcae', altitude: 48_000, opacity: 0.96 }, 1, SMALL);
-		expect(Math.min(...Array.from({ length: 50 }, (_, k) => clouds[k * 4 + 3]!))).toBeGreaterThan(180);
+		expect(Math.min(...Array.from({ length: 50 }, (_, k) => clouds[k * 4 + 3]!))).toBeGreaterThan(
+			180
+		);
 		const strip = ringStrip({ inner: 1, outer: 2, color: '#d8c7a4', opacity: 0.7 }, 5);
 		const alpha = (t: number): number => strip[Math.floor(t * (RING_TEXELS - 1)) * 4 + 3]!;
 		expect(alpha(0)).toBeLessThan(20);

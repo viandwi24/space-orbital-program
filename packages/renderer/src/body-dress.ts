@@ -9,7 +9,10 @@ import {
 	DoubleSide,
 	LinearFilter,
 	Mesh,
+	MeshBasicMaterial,
 	MeshLambertMaterial,
+	Quaternion,
+	Vector3,
 	Object3D,
 	RepeatWrapping,
 	RingGeometry,
@@ -61,6 +64,8 @@ function ringGeometry(inner: number, outer: number): BufferGeometry {
 	return g;
 }
 
+const RING_POLE = new Vector3();
+
 export class BodyDress {
 	readonly root = new Object3D();
 	/** The colour map the body is drawn with now. */
@@ -69,7 +74,7 @@ export class BodyDress {
 	readonly far: Mesh;
 	private readonly farMaterial: MeshLambertMaterial;
 	private readonly clouds: { mesh: Mesh; material: MeshLambertMaterial; altitude: number } | null;
-	private readonly rings: Mesh | null;
+	private readonly rings: { mesh: Mesh; material: MeshBasicMaterial } | null;
 	private readonly seed: number;
 	private bake: { data: Uint8Array; row: number } | null = null;
 	private full = false;
@@ -109,19 +114,18 @@ export class BodyDress {
 		if (look.rings) {
 			const strip = mapTexture(ringStrip(look.rings, this.seed), RING_TEXELS, 1);
 			strip.wrapS = ClampToEdgeWrapping;
-			const mesh = new Mesh(
-				ringGeometry(look.rings.inner, look.rings.outer),
-				new MeshLambertMaterial({
-					map: strip,
-					transparent: true,
-					depthWrite: false,
-					side: DoubleSide
-				})
-			);
+			// rings scatter light to both faces: lit by the sun's angle on their plane (`light`), not by a normal
+			const material = new MeshBasicMaterial({
+				map: strip,
+				transparent: true,
+				depthWrite: false,
+				side: DoubleSide
+			});
+			const mesh = new Mesh(ringGeometry(look.rings.inner, look.rings.outer), material);
 			mesh.name = `rings:${id}`;
 			mesh.renderOrder = 3;
 			this.root.add(mesh);
-			this.rings = mesh;
+			this.rings = { mesh, material };
 		} else this.rings = null;
 	}
 
@@ -138,6 +142,17 @@ export class BodyDress {
 	/** The far sphere on or off (off while the moon pass draws the ground). */
 	showFar(on: boolean): void {
 		this.far.visible = on;
+	}
+
+	/**
+	 * The rings' light from the sun direction (inertial, unit) and the body's orientation: bright when
+	 * the sun shines across the plane, dim when it stands edge-on, never dark (light passes through).
+	 */
+	light(sun: { x: number; y: number; z: number }, orientation: Quaternion): void {
+		if (!this.rings) return;
+		const pole = RING_POLE.set(0, 1, 0).applyQuaternion(orientation);
+		const k = Math.abs(pole.x * sun.x + pole.y * sun.y + pole.z * sun.z);
+		this.rings.material.color.setScalar(0.18 + 0.82 * Math.sqrt(k));
 	}
 
 	/**
@@ -180,10 +195,9 @@ export class BodyDress {
 			this.clouds.material.dispose();
 		}
 		if (this.rings) {
-			const m = this.rings.material as MeshLambertMaterial;
-			m.map?.dispose();
-			m.dispose();
-			this.rings.geometry.dispose();
+			this.rings.material.map?.dispose();
+			this.rings.material.dispose();
+			this.rings.mesh.geometry.dispose();
 		}
 	}
 }

@@ -23,7 +23,7 @@ The renderer had no per-body look. A body without terrain was a flat Lambert bal
 
    The numbers and the Δv map are in `docs/research/stock-system.md`. Home and Cinder are unchanged.
 2. **Orbits are written against the ecliptic.** Planet elements are given against Home's orbit plane, which is 23.44° from the system's +Y frame (ADR 0119). Moon elements are given against the parent's equator. A helper (`orbitAgainst`) turns them into system-frame elements, so the inclinations in the file read as in a textbook. Poles are tilted from each orbit normal (`tiltedPole`). Moons are tidally locked and share their planet's pole.
-3. **The first transfer windows come early.** Each planet's phase at t = 0 is set so that its first Hohmann window from Home opens on a chosen day of a new world: Kiln 30, Ochre 45, Vagrant 90, Tempest 120, Vesper 160, Glim 200. A new world has somewhere to go within its first months.
+3. **The first transfer windows come early.** Each planet's phase at t = 0 is set so that the trip planner (`hohmannToTarget`) finds its first window from Home on a chosen day of a new world: Kiln 30, Ochre 45, Tempest 120, Vesper 160, Glim 200, each within 3 days. Vagrant's orbit is too eccentric for a Hohmann window. A new world has somewhere to go within its first months.
 4. **`BodyDefinition.appearance`** (optional, SDK), so the look is data that any mod can use:
    - `palette`: one to six sRGB colours, the first the main one.
    - `pattern`: `mottled`, `polar-caps`, `lineae`, `volcanic` or `bands`.
@@ -41,9 +41,10 @@ The renderer had no per-body look. A body without terrain was a flat Lambert bal
 6. **Moon-pass bodies away from Home build lazily.** A craters body outside the home system first draws as a Lambert sphere with its colour map. That is one pipeline shared by every body. Its moon pass (globe, patches, stones, air) turns on only when the body is near: it covers more than a few dozen pixels on screen, or the active vessel is in its sphere. Its pipelines are built then, not at world load. Cinder keeps today's behaviour and is warmed at load.
 7. **Gameplay follows the data.**
    - Generic contracts already offer flybys of every planet.
-   - The main line gains an "Ochre" chapter after the Moon. Tech nodes of the last tier ask for an interplanetary flyby.
-   - A flight lesson points at the transfer window to Ochre.
-   - Discovery facts gain the new bodies' hidden facts.
+   - The main line goes on after the Moon: to Ochre (flyby, landing), then a Tempest flyby.
+   - The Nuclear power node asks for an Ochre flyby.
+   - The Cinder transfer lesson's debrief and hint point at Ochre's window.
+   - Discovery facts already roll for every body that is not a star, so the new bodies have theirs with no change.
    - The system art reads `appearance` (colours, bands and rings), so stock gets the right picture with no per-id hint.
 8. **Old worlds gain the bodies.** A save lists the bodies it was made with, but loading checks only the bodies its vessels are in. A world made before this plan loads with the new bodies in their places at its time.
 

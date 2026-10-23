@@ -149,7 +149,8 @@ const ECLIPTIC: Plane = (() => {
 })();
 
 /** A vector given in a plane's own axes (Y its pole), in the system frame. */
-const inPlane = (p: Plane, l: V3): V3 => add(add(scale(p.x, l.x), scale(p.y, l.y)), scale(p.z, l.z));
+const inPlane = (p: Plane, l: V3): V3 =>
+	add(add(scale(p.x, l.x), scale(p.y, l.y)), scale(p.z, l.z));
 
 /**
  * Orbit elements given against a reference plane (inclination, node and periapsis measured in it,
@@ -225,7 +226,8 @@ const poleVector = (p: { ra: number; dec: number }): V3 =>
 	v(Math.cos(p.dec) * Math.cos(p.ra), Math.sin(p.dec), -Math.cos(p.dec) * Math.sin(p.ra));
 
 /** μ from a radius and a surface gravity, then the mass. */
-const massFor = (radius: number, g: number): number => (g * radius * radius) / GRAVITATIONAL_CONSTANT;
+const massFor = (radius: number, g: number): number =>
+	(g * radius * radius) / GRAVITATIONAL_CONSTANT;
 
 /** The orbital period around a parent of `mu`, s (the spin of a tidally locked moon). */
 const periodOf = (a: number, mu: number): number => 2 * Math.PI * Math.sqrt(a ** 3 / mu);
@@ -276,7 +278,7 @@ const KILN_ORBIT = planetOrbit({
 	i: 6.2 * DEG,
 	raan: 72 * DEG,
 	argp: 14 * DEG,
-	window: 35,
+	window: 35
 });
 /**
  * Kiln: a scorched rock close to the Sun. No air, a long day, cheap to land on but expensive to reach:
@@ -292,7 +294,7 @@ export const KilnBody = defineBody({
 	parent: 'stock.sun',
 	orbit: KILN_ORBIT,
 	terrain: { kind: 'craters', seed: 11 },
-	appearance: { palette: ['#8f8273', '#5a5048', '#b9a48a'], pattern: 'mottled' },
+	appearance: { palette: ['#a39584', '#665a50', '#cbb79c'], pattern: 'mottled' },
 	science: { spaceHigh: km(80), multiplier: 7 },
 	regions: {
 		kind: 'cells',
@@ -450,7 +452,7 @@ export const MoteBody = defineBody({
 		m0: 0.6
 	}),
 	terrain: { kind: 'craters', seed: 37 },
-	appearance: { palette: ['#5e5249', '#3c342f', '#7a6b5d'], pattern: 'mottled' },
+	appearance: { palette: ['#857868', '#51473f', '#ab9a87'], pattern: 'mottled' },
 	science: { spaceHigh: km(30), multiplier: 5 }
 });
 
@@ -469,7 +471,7 @@ export const FlickBody = defineBody({
 		m0: 2.4
 	}),
 	terrain: { kind: 'craters', seed: 41 },
-	appearance: { palette: ['#6b6058', '#463d37', '#8d7e70'], pattern: 'mottled' },
+	appearance: { palette: ['#8b8075', '#5a5048', '#b0a293'], pattern: 'mottled' },
 	science: { spaceHigh: km(30), multiplier: 5.5 }
 });
 
@@ -524,11 +526,23 @@ export const TempestBody = defineBody({
 	regions: {
 		kind: 'bands',
 		bands: [
-			{ id: 'south-polar', label: 'South polar region', from: -Math.PI / 2, to: -0.9, multiplier: 1.4 },
+			{
+				id: 'south-polar',
+				label: 'South polar region',
+				from: -Math.PI / 2,
+				to: -0.9,
+				multiplier: 1.4
+			},
 			{ id: 'south-belt', label: 'Southern belts', from: -0.9, to: -0.15 },
 			{ id: 'equatorial-zone', label: 'Equatorial zone', from: -0.15, to: 0.15, multiplier: 1.2 },
 			{ id: 'north-belt', label: 'Northern belts', from: 0.15, to: 0.9 },
-			{ id: 'north-polar', label: 'North polar region', from: 0.9, to: Math.PI / 2, multiplier: 1.4 }
+			{
+				id: 'north-polar',
+				label: 'North polar region',
+				from: 0.9,
+				to: Math.PI / 2,
+				multiplier: 1.4
+			}
 		]
 	}
 });
@@ -653,7 +667,7 @@ export const HuskBody = defineBody({
 		m0: 1.2
 	}),
 	terrain: { kind: 'craters', seed: 61 },
-	appearance: { palette: ['#3f3a36', '#26221f', '#5b544d'], pattern: 'mottled' },
+	appearance: { palette: ['#615a54', '#3b3632', '#857c74'], pattern: 'mottled' },
 	science: { spaceHigh: km(40), multiplier: 8 }
 });
 
@@ -665,7 +679,7 @@ const GLIM_ORBIT = planetOrbit({
 	i: 12 * DEG,
 	raan: 280 * DEG,
 	argp: 90 * DEG,
-	window: 233,
+	window: 233
 });
 /**
  * Glim: a dwarf of ice and frost far out, on an orbit tilted 12° and stretched from 69 to 121 Gm;
@@ -714,7 +728,7 @@ export const VagrantBody = defineBody({
 	parent: 'stock.sun',
 	orbit: VAGRANT_ORBIT,
 	terrain: { kind: 'craters', seed: 71 },
-	appearance: { palette: ['#4a4541', '#2e2a27', '#6a625a'], pattern: 'mottled' },
+	appearance: { palette: ['#6e665e', '#46403a', '#958a7f'], pattern: 'mottled' },
 	science: { spaceHigh: km(20), multiplier: 8 }
 });
 

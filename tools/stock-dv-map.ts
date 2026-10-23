@@ -116,8 +116,10 @@ for (const b of bodies) {
 	);
 }
 
-out.push('\n### Moons, from their planet\'s low orbit\n');
-out.push('| Moon | Planet | Transfer | Plane change | Capture to low orbit | Land | Ascent | Trip hours |');
+out.push("\n### Moons, from their planet's low orbit\n");
+out.push(
+	'| Moon | Planet | Transfer | Plane change | Capture to low orbit | Land | Ascent | Trip hours |'
+);
 out.push('|---|---|---|---|---|---|---|---|');
 for (const b of bodies) {
 	const parent = b.parent ? byId.get(b.parent) : undefined;
@@ -130,7 +132,8 @@ for (const b of bodies) {
 	const vInf = Math.abs(Math.sqrt(m / r2) - Math.sqrt(m * (2 / r2 - 1 / at)));
 	const di = b.orbit!.i - (parent.rotation ? 0 : 0);
 	void di;
-	const plane = b.id === 'stock.husk' ? Math.sqrt(m / r2) * 2 * Math.sin(((180 - 158) * Math.PI) / 360) : 0;
+	const plane =
+		b.id === 'stock.husk' ? Math.sqrt(m / r2) * 2 * Math.sin(((180 - 158) * Math.PI) / 360) : 0;
 	const hours = (Math.PI * Math.sqrt(at ** 3 / m)) / 3600;
 	out.push(
 		`| ${name(b)} | ${name(parent)} | ${r0(dv1)} | ${b.id === 'stock.husk' ? `${r0(plane)} (retrograde: arrive head-on instead)` : '—'} | ${r0(oberth(b, vInf))} | ${landing(b)} | ${ascent(b)} | ${hours.toFixed(1)} |`

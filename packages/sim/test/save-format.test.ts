@@ -19,7 +19,10 @@ import fixtureV2 from './fixtures/save-v2.json';
 import fixtureV3 from './fixtures/save-v3.json';
 import fixtureV4 from './fixtures/save-v4.json';
 import fixtureV5 from './fixtures/save-v5.json';
+import fixtureV7 from './fixtures/save-v7.json';
 import { rapier } from './helpers/vessels.ts';
+import { STOCK_TREE } from './helpers/stock-tree.ts';
+import { openTree } from './helpers/tech.ts';
 
 const resume = (save: unknown, extra: { dt?: number; body?: string; world?: WorldInfo } = {}) =>
 	createSim({ plugins: [Stock], backendFactory: rapier(16), resume: save, ...extra });
@@ -76,9 +79,9 @@ describe('the frozen format-1 fixture', () => {
 			...expected,
 			worldInfo: { ...expected.worldInfo, rules: actual.worldInfo.rules }
 		});
-		// The old save listed the home planet only; the sim that continues it knows the moon too.
+		// The old save listed the home planet only; the sim that continues it knows every stock body.
 		expect(oldBodies).toEqual(['stock.home']);
-		expect(bodies).toEqual(['stock.sun', 'stock.home', 'stock.cinder']);
+		expect(bodies).toEqual(STOCK_TREE);
 	});
 });
 
@@ -353,11 +356,7 @@ describe('the frozen format-5 fixture (plan 122, ADR 0119)', () => {
 		const sim = await resume(fixtureV5);
 		expect(sim.home).toBe('stock.home');
 		const snap = sim.snapshot();
-		expect(snap.bodies.map((b) => String(b.id))).toEqual([
-			'stock.sun',
-			'stock.home',
-			'stock.cinder'
-		]);
+		expect(snap.bodies.map((b) => String(b.id))).toEqual(STOCK_TREE);
 		const saved = (fixtureV5.world.components['sim.vessel'] as Record<string, SavedVessel>)['0']!;
 		const v = snap.vessels[0]!;
 		expect(String(v.soi)).toBe('stock.home');
@@ -386,7 +385,30 @@ describe('the frozen format-5 fixture (plan 122, ADR 0119)', () => {
 		const again = sim.save();
 		expect(again.formatVersion).toBe(SIM_SAVE_VERSION);
 		expect(again.home).toBe('stock.home');
-		expect(again.bodies).toEqual(['stock.sun', 'stock.home', 'stock.cinder']);
+		// the wider stock system (plan 381): the bodies that came later stand in their places
+		expect(again.bodies).toEqual(STOCK_TREE);
+		sim.dispose();
+	});
+});
+
+describe('a world saved before the wider stock system (plan 381, ADR 0318 point 8)', () => {
+	test('loads with every new body in its place, its vessels where they were, and runs on', async () => {
+		expect(fixtureV7.bodies).toEqual(['stock.sun', 'stock.home', 'stock.cinder']);
+		const sim = await createSim({
+			plugins: [Stock, openTree],
+			backendFactory: rapier(16),
+			resume: fixtureV7
+		});
+		const snap = sim.snapshot();
+		expect(snap.bodies.map((b) => String(b.id))).toEqual(STOCK_TREE);
+		// Home and Cinder did not move: the same place as the save's own time says
+		const savedVessels = fixtureV7.world.components['sim.vessel'] as Record<string, SavedVessel>;
+		for (const v of snap.vessels) {
+			const saved = savedVessels[String(v.id)];
+			if (saved) expect(String(v.soi)).toBe(saved.soi);
+		}
+		for (let i = 0; i < 100; i++) sim.step(0.02);
+		expect(sim.save().bodies).toEqual(STOCK_TREE);
 		sim.dispose();
 	});
 });

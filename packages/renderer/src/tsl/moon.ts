@@ -331,8 +331,12 @@ export class MoonTSL {
 	/** The body's colour map at a unit body-fixed direction (the GLSL's `moonLook`). */
 	private lookAt(n: N): N {
 		const st = vec2(
-			atan(n.z.negate(), n.x).mul(1 / (2 * PI)).add(0.5),
-			asin(clamp(n.y, -1.0, 1.0)).mul(1 / PI).add(0.5)
+			atan(n.z.negate(), n.x)
+				.mul(1 / (2 * PI))
+				.add(0.5),
+			asin(clamp(n.y, -1.0, 1.0))
+				.mul(1 / PI)
+				.add(0.5)
 		);
 		const node = texture(this.pass.look, st);
 		this.lookNodes.push(node);
