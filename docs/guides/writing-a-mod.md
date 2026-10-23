@@ -323,7 +323,7 @@ A template makes procedural contracts. The world offers one at most each day, wh
 Since API 0.1.85 (plan 231, ADR 0231):
 - **`ctx.milestones`** lists the world's firsts (`orbit:stock.home`, `dock:stock.home`). Return null until the one your job needs exists.
 - **`spawn: { design, body, altitude, member: true }`** makes a vessel when the player accepts: the design in a circular orbit, with a stranded crew member aboard. The stock `stock.rescue` objective is done once they are recovered at home.
-- **The objective view** also tells inclination, seats, crew, antenna, power, ports and docked per vessel. The stock primitives `stock.satellite`, `stock.station` and `stock.dock` use them.
+- **The objective view** also tells inclination, seats, crew, antenna, power, ports, docked and `launchLatitude` (the launch site's latitude, ADR 0327) per vessel. The stock primitives `stock.satellite` (with `minLaunchLatitude` for a polar customer), `stock.station` and `stock.dock` use them.
 
 ```ts
 ctx.contractTemplates.register(defineContractTemplate({
@@ -959,7 +959,7 @@ A world's `gravityModel` may be `n-body`: vessels are integrated against every b
 
 ## Bases on other bodies (API 0.1.64, plan 128, ADR 0125)
 
-A building can say where it stands: `placement: 'home'` (the home planet only) or `'off-world'` (other bodies only); without it, anywhere. `canPlace` refuses with the code `placement`. A part with the `stock.base-kit` module founds a base where it lands (`deploy-base`); a vessel landed in a base's flat zone joins it with `join-site`, and its `stock.drill` modules (`{ perDay }`) fill the site's storage with `stock.ice` on each world tick. A recipe's `inputs` other than `power` are taken from the site's storage, so a recipe runs only as far as its inputs allow (stock: `stock.ice-electrolysis` in `stock.isru-plant`). Craters bodies flatten round their sites like hills bodies do.
+A building can say where it stands: `placement: 'home'` (the home planet only), `'hq'` (the home Space Center only, not a branch: a building whose capacity the agency reads there; ADR 0327) or `'off-world'` (other bodies only); without it, anywhere. `canPlace` refuses with the code `placement`. A part with the `stock.base-kit` module founds a base where it lands (`deploy-base`); a vessel landed in a base's flat zone joins it with `join-site`, and its `stock.drill` modules (`{ perDay }`) fill the site's storage with `stock.ice` on each world tick. A recipe's `inputs` other than `power` are taken from the site's storage, so a recipe runs only as far as its inputs allow (stock: `stock.ice-electrolysis` in `stock.isru-plant`). Craters bodies flatten round their sites like hills bodies do.
 
 ## Range safety (API 0.1.56, plan 127, ADR 0155)
 

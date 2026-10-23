@@ -303,6 +303,7 @@ function loadVessel(
 		enterFlight(core, id, frame);
 	}
 	if (!surface) vessel.launchedAt = core.t; // loaded in flight or orbit: no pad to wait on
+	if (placement.kind === 'site' && surface) vessel.launchLatitude = surface.latitude; // ADR 0327
 	if (command.crew && command.crew.length > 0) {
 		// Design indices to part entities: the vessel's parts follow the resolved order.
 		const indexOf = new Map(resolved.parts.map((rp, i) => [rp.index, vessel.parts[i]!]));

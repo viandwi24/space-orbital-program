@@ -55,6 +55,8 @@ export interface BuildContext {
 	bodyName?: (id: string) => string;
 	/** The site is a branch whose HQ is not built yet (plan 236, ADR 0229 point 3). */
 	hqPending?: boolean;
+	/** The site is a branch (plan 236): `hq` buildings are the home Space Center's only (ADR 0327). */
+	branch?: boolean;
 }
 
 const number = (n: number): string => Math.round(n).toLocaleString('en-US');
@@ -69,6 +71,7 @@ export function cardFacts(c: Pick<BuildCard, 'cost' | 'size' | 'days' | 'levels'
 export function buildReason(def: BuildingDefinition, ctx: BuildContext): string | null {
 	if (def.provides.includes(BRANCH_HQ)) return 'Comes with a new branch';
 	if (def.placement === 'home' && !ctx.home) return 'Only at the home Space Center';
+	if (def.placement === 'hq' && (!ctx.home || ctx.branch)) return 'Only at the home Space Center';
 	if (def.placement === 'off-world' && ctx.home) return 'Only at an off-world base';
 	if (def.bodies && !def.bodies.includes(ctx.body))
 		return `Cannot be built on ${ctx.bodyName?.(ctx.body) ?? ctx.body}`;

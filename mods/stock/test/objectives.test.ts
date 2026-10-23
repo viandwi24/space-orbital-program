@@ -85,6 +85,15 @@ describe('stock objectives', () => {
 		expect(run(ObjectiveSatellite, sat, view([{ ...good, apoapsis: 200_000 }])).status).toBe(
 			'active'
 		);
+		// ADR 0327: a polar customer also asks for a launch from 30° latitude or more
+		const polar = { ...sat, minLaunchLatitude: Math.PI / 6 };
+		expect(run(ObjectiveSatellite, polar, view([good])).status).toBe('active');
+		expect(run(ObjectiveSatellite, polar, view([{ ...good, launchLatitude: 0.1 }])).status).toBe(
+			'active'
+		);
+		expect(run(ObjectiveSatellite, polar, view([{ ...good, launchLatitude: -0.6 }])).status).toBe(
+			'done'
+		);
 		// station: a port, the seats and power, in orbit high enough
 		const station = vessel({ ports: 1, seats: 3, power: true });
 		expect(run(ObjectiveStation, { minPeriapsis: 80_000, seats: 3 }, view([station])).status).toBe(

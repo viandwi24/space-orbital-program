@@ -34,7 +34,7 @@ export const BuildingHangar = defineBuilding({
 	entrances: southDoor(8),
 	levels: levels({ hangar: [30, 120, 255] }, [40_000, 90_000, 250_000], [10, 20, 30]),
 	provides: ['hangar'],
-	placement: 'home',
+	placement: 'hq',
 	category: 'stock.infrastructure',
 	description: 'Builds and stores vessel designs; its level sets the part count.',
 	visual: gen('hangar')
@@ -100,7 +100,7 @@ export const BuildingMissionCenter = defineBuilding({
 	entrances: southDoor(4),
 	levels: levels({ 'mission-control': [3, 6, 12] }, [30_000, 90_000, 200_000], [6, 14, 24]),
 	provides: ['mission-control'],
-	placement: 'home',
+	placement: 'hq',
 	category: 'stock.administration',
 	description: 'Tracks vessels and runs missions; its level sets how many at once.',
 	visual: gen('control')
@@ -112,7 +112,7 @@ export const BuildingAstronautComplex = defineBuilding({
 	entrances: southDoor(4),
 	levels: levels({ crew: [5, 12, 30] }, [30_000, 80_000, 180_000], [6, 12, 20]),
 	provides: ['crew'],
-	placement: 'home',
+	placement: 'hq',
 	category: 'stock.crew',
 	description: 'Hires and trains astronauts; its level sets the roster size.',
 	visual: gen('office')
@@ -124,7 +124,7 @@ export const BuildingResearch = defineBuilding({
 	entrances: southDoor(5),
 	levels: levels({ lab: [1, 2, 3] }, [50_000, 120_000, 250_000], [8, 16, 28]),
 	provides: ['lab'],
-	placement: 'home',
+	placement: 'hq',
 	category: 'stock.science',
 	description: 'Researches the tech tree and analyses science.',
 	visual: gen('office')
@@ -136,7 +136,7 @@ export const BuildingAdministration = defineBuilding({
 	entrances: southDoor(5),
 	levels: levels({ admin: [1, 3, 5] }, [30_000, 90_000, 200_000], [6, 14, 24]),
 	provides: ['admin'],
-	placement: 'home',
+	placement: 'hq',
 	category: 'stock.administration',
 	description: 'Contracts and strategies; its level sets their slots.',
 	visual: gen('office')

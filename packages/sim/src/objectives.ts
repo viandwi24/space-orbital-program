@@ -121,7 +121,8 @@ function vesselView(core: SimCore, id: EntityId): ObjectiveVesselView {
 		antenna,
 		power,
 		ports,
-		docked: (vessel.docks?.length ?? 0) > 0
+		docked: (vessel.docks?.length ?? 0) > 0,
+		...(vessel.launchLatitude !== undefined ? { launchLatitude: vessel.launchLatitude } : {})
 	};
 }
 
