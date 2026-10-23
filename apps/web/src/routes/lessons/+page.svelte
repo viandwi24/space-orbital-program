@@ -55,6 +55,9 @@
 	/** The first lesson not done yet: selected when the page opens. */
 	const next = LESSONS.find((l) => (settings.lessons[l.id] ?? NEW_LESSON).status !== 'done');
 	if (next) selected = next.id;
+	// `?lesson=<id>` picks a lesson (the Space Center tour's last step, plan 377)
+	const asked = new URLSearchParams(location.search).get('lesson');
+	if (asked && LESSONS.some((l) => l.id === asked)) selected = asked;
 	const levelOf = (l: Lesson) => LEVELS.find((v) => v.id === l.level)!;
 
 	onMount(() => {

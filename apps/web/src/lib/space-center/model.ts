@@ -240,7 +240,9 @@ export async function confirmPlacement(
 	ghost: { kind: string; cell: Cell; rotation: Rotation; check: GhostCheck },
 	site: string,
 	newId: () => string,
-	dispatch: (c: Command) => Promise<CommandResult>
+	dispatch: (c: Command) => Promise<CommandResult>,
+	/** The Space Center tour's building (ADR 0314 point 4). */
+	tour = false
 ): Promise<CommandResult | null> {
 	if (!ghost.check.valid) return null;
 	return dispatch({
@@ -249,7 +251,8 @@ export async function confirmPlacement(
 		kind: ghost.kind,
 		cell: { ...ghost.cell },
 		rotation: ghost.rotation,
-		id: newId()
+		id: newId(),
+		...(tour ? { tour: true } : {})
 	});
 }
 

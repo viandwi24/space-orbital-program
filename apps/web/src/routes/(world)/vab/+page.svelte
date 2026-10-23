@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { tourStore } from '../../../lib/onboarding/sc-tour-store.svelte';
 	import { resolve } from '$app/paths';
 	import { GAME_NAME } from '../../../lib/public/about';
 	import PageMeta from '../../../lib/ui/PageMeta.svelte';
@@ -138,7 +139,8 @@
 	let coach = $state(false);
 	let coachAt = $state({ x: 0, y: 0 });
 	function offerStart(): void {
-		if (!emptyHangar || runningLesson()) return;
+		// not in a lesson, nor during the Space Center tour's visit (plan 377)
+		if (!emptyHangar || runningLesson() || tourStore.progress?.status === 'active') return;
 		if (loadFlag('hideStart')) showCoach();
 		else startOpen = true;
 	}

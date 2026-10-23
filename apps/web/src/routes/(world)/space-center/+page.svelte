@@ -58,6 +58,10 @@
 	} from '../../../lib/space-center/model';
 	import { startSpaceCenter, type SpaceCenter } from '../../../lib/space-center/space-center-loop';
 	import { activeWorldId } from '../../../lib/worlds/worlds';
+	import TourOffer from '../../../lib/space-center/TourOffer.svelte';
+	import { placesTourBuilding, START_TOUR } from '../../../lib/onboarding/sc-tour';
+	import { scFeed, tourStore } from '../../../lib/onboarding/sc-tour-store.svelte';
+	import { activeLesson } from '../../../lib/onboarding/lesson-world';
 
 	// The world's one sim (plan 204, ADR 0201): construction and spending happen in it, and the
 	// world layout autosaves it after a change.
@@ -193,7 +197,15 @@
 		}
 		if (JSON.stringify(next) === JSON.stringify(site)) return;
 		site = next;
+		// the tour reads the site's buildings and whether money counts (plan 377)
+		scFeed.update({ buildings: next?.buildings ?? [], economy: s.economy?.enabled === true });
 	}
+	// the tour's feed: what is being placed and what is selected (plan 377, ADR 0314 point 3)
+	$effect(() => {
+		scFeed.update({ placing: build?.kind ?? null, selected });
+	});
+	/** The welcome on the world's first visit (plan 377, ADR 0314 point 1). */
+	let offerTour = $state(false);
 	let shown: SiteState | undefined;
 
 	function ghostAt(at: { east: number; north: number } | null): void {
@@ -242,7 +254,8 @@
 			{ kind: build.kind, cell: hover.cell, rotation: build.rotation, check: hover.check },
 			siteInfo.id,
 			() => crypto.randomUUID(),
-			(c) => center!.dispatch(c)
+			(c) => center!.dispatch(c),
+			placesTourBuilding(tourStore.progress, build.kind)
 		);
 		if (r && !r.ok) problem = r.reason;
 		else if (r?.ok) {
@@ -434,6 +447,10 @@
 			const client = await bootWorld(worldSession, worldId);
 			world = worldSession.base?.sim.worldInfo ?? (await worlds.startInfo(worldId));
 			if (gone) return;
+			// a world's first visit offers the tour (plan 377), never in a lesson world
+			tourStore.load(worldId);
+			if (tourStore.progress === null && !tourStore.never && activeLesson() === null)
+				offerTour = true;
 			if (world) registries = registriesOf(world);
 			center = startSpaceCenter({
 				host: view,
@@ -448,8 +465,22 @@
 				onError: (m) => (problem = m)
 			});
 		})();
+		// the tour's camera step: a drag over the 3D view turns or moves it, the wheel zooms (plan
+		// 377); the world's canvas lives in the layout (plan 340), so the window hears them
+		const onView = (e: Event): boolean => (e.target as Element | null)?.tagName === 'CANVAS';
+		const drag = (e: PointerEvent) => {
+			if (e.buttons !== 0 && onView(e) && !scFeed.feed?.orbited) scFeed.update({ orbited: true });
+		};
+		const wheel = (e: WheelEvent) => {
+			if (onView(e) && !scFeed.feed?.zoomed) scFeed.update({ zoomed: true });
+		};
+		window.addEventListener('pointermove', drag);
+		window.addEventListener('wheel', wheel, { passive: true });
 		return () => {
 			gone = true;
+			window.removeEventListener('pointermove', drag);
+			window.removeEventListener('wheel', wheel);
+			scFeed.leave();
 			center?.dispose();
 		};
 	});
@@ -516,6 +547,19 @@
 		onfound={foundBranch}
 		onclose={() => (branchOpen = false)}
 	/>
+	{#if offerTour}
+		<TourOffer
+			onstart={() => {
+				offerTour = false;
+				tourStore.set(START_TOUR);
+			}}
+			onskip={(never) => {
+				offerTour = false;
+				tourStore.set({ status: 'skipped', step: 0, review: false });
+				if (never) tourStore.setNever(true);
+			}}
+		/>
+	{/if}
 	{#if problem}<p class="problem" role="alert" data-testid="sc-problem">{problem}</p>{/if}
 	{#if settings.ui.perfOverlay}
 		<!-- the performance overlay (plan 294), clear of the bars and the side panels -->

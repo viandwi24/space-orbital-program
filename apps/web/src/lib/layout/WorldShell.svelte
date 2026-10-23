@@ -33,6 +33,7 @@
 		programs,
 		onsettings,
 		onworldsettings,
+		ontour,
 		onhome,
 		clockChip = null,
 		paused = false,
@@ -69,6 +70,8 @@
 		onsettings: () => void;
 		/** World settings during play (plan 230). */
 		onworldsettings?: () => void;
+		/** Restart the Space Center tour (plan 377). */
+		ontour?: () => void;
 		/** Leave the world (the sim stops). */
 		onhome: () => void;
 		/** The clock's chip (plan 205): `PAUSED`, `PAUSED · HANGAR`, `LOCKED`, `BACKGROUND`, or null. */
@@ -205,6 +208,17 @@
 					menuOpen = false;
 					ondebug();
 				}}>Debug (Alt+F12)</button
+			>
+		{/if}
+		{#if ontour}
+			<button
+				type="button"
+				role="menuitem"
+				data-testid="nav-tour"
+				onclick={() => {
+					menuOpen = false;
+					ontour();
+				}}>Space Center tour</button
 			>
 		{/if}
 		<button

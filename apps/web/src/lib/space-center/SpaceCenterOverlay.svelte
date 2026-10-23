@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { scFeed } from '../onboarding/sc-tour-store.svelte';
 	import { resolve } from '$app/paths';
 	/**
 	 * The Space Center's overlay (plan 091; v3 since plan 273, V3 §1, ADR 0254): pins over the 3D
@@ -121,6 +122,10 @@
 	let confirm = $state<string | null>(null);
 	// a ghost being placed is Build mode too (the page can start one, ADR 0254 point 1)
 	const mode = $derived(modeOf(buildOpen || build !== null, selected));
+	// the Space Center tour reads the overlay's state (plan 377, ADR 0314 point 3)
+	$effect(() => {
+		scFeed.update({ buildOpen, tool, listOpen, confirm: confirm !== null });
+	});
 	const confirming = $derived(rows.find((r) => r.id === confirm) ?? null);
 	const demolishing = $derived(mode === 'build' && tool === 'demolish');
 	const ids = $derived(rows.map((r) => r.id));

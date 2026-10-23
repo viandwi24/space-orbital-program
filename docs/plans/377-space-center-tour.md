@@ -1,7 +1,7 @@
 ---
 id: 377
 title: "Space Center tour: a welcome offer per world and an interactive stepper on the guide card"
-status: in-progress
+status: done
 owner: "lessons session (Claude)"
 depends: [344, 273, 349]
 phase: 0
@@ -37,17 +37,18 @@ The first visit to a world's Space Center offers a short tour; the tour waits fo
 
 ## Acceptance criteria
 
-- [ ] `bun test packages/sim`: a tour building placed and upgraded with the economy on is refunded in full when removed; an ordinary one is not; the flag changes nothing with the economy off.
-- [ ] Web vitest `src/lib/onboarding/sc-tour.test.ts`: each step completes only on its own observation, in order; Back reviews without skipping ahead; every step's target test id exists.
-- [ ] The welcome modal shows on a world's first Space Center visit, not again after a choice, and the world menu restarts the tour (screenshots).
-- [ ] `bun run typecheck`, `bun run docs:check` pass.
+- [x] `bun test packages/sim`: a tour building placed and upgraded with the economy on is refunded in full when removed; an ordinary one is not; the flag changes nothing with the economy off.
+- [x] Web vitest `src/lib/onboarding/sc-tour.test.ts`: each step completes only on its own observation, in order; Back reviews without skipping ahead; every step's target test id exists.
+- [x] The welcome modal shows on a world's first Space Center visit, not again after a choice, and the world menu restarts the tour (screenshots).
+- [x] `bun run typecheck`, `bun run docs:check` pass.
 
 ## Docs checklist
 
-- [ ] `docs/STATUS.md` board row.
-- [ ] `docs/journal/377-space-center-tour.md`.
-- [ ] ADR 0314 in the index.
+- [x] `docs/STATUS.md` board row.
+- [x] `docs/journal/377-space-center-tour.md`.
+- [x] ADR 0314 in the index.
 
 ## Log
 
 - 2026-10-23 — Plan written in the lessons session.
+- 2026-10-23 — Done. `bun test` sim building-levels + buildings + core: 403 pass (2 new); web vitest onboarding, space-center, hud, layout, vab: 312 pass (sc-tour 20); svelte-check 0 errors. A Playwright walk through a new Career world: every step completes on its action; funds 100,000 → 80,000 (dish) → 20,000 (upgrade) → 100,000 after the demolish; the world menu restarts the tour; a reload does not offer it again. The same walk in Sandbox passes. Screenshots in the shared notes (plan-377-shots).

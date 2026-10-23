@@ -76,6 +76,9 @@
 		runningLesson
 	} from '../../lib/onboarding/lesson-gate.svelte';
 	import LessonOverlay from '../../lib/hud/LessonOverlay.svelte';
+	import SpaceCenterTour from '../../lib/hud/SpaceCenterTour.svelte';
+	import { START_TOUR } from '../../lib/onboarding/sc-tour';
+	import { tourStore } from '../../lib/onboarding/sc-tour-store.svelte';
 	import type { LayoutProps } from './$types';
 
 	let { children }: LayoutProps = $props();
@@ -131,11 +134,14 @@
 	/** Pipelines ready of those asked for while the programs compile (plan 370). */
 	const loadDetail = $derived.by(() => {
 		const p = worldRenderer.pipelines;
-		if ((worldRenderer.step !== 'programs' && worldRenderer.step !== 'views') || p.total === 0) return '';
+		if ((worldRenderer.step !== 'programs' && worldRenderer.step !== 'views') || p.total === 0)
+			return '';
 		return `${p.ready} of ${p.total} shaders ready`;
 	});
 
 	const worldId = activeWorldId();
+	// the world's Space Center tour (plan 377): its progress follows the world
+	tourStore.load(worldId);
 	let lockState = $state<LockState>('asking');
 	let lock: WorldLock | null = null;
 	let snapshot = $state.raw<Snapshot | null>(null);
@@ -648,6 +654,12 @@
 		programs={programActions}
 		onsettings={() => (settingsOpen = true)}
 		onworldsettings={openWorldSettings}
+		ontour={runningLesson()
+			? undefined
+			: () => {
+					tourStore.set(START_TOUR);
+					void goto(resolve('/(world)/space-center'));
+				}}
 		onhome={() => void goto(resolve('/'))}
 		clockChip={clockView.chip}
 		paused={!clockView.ticks}
@@ -686,6 +698,16 @@
 				tips={LOADING_TIPS}
 			/>
 		</div>
+	{/if}
+	{#if local(page.url.pathname) !== '/flight' && !runningLesson()}
+		<!-- the Space Center tour's card (plan 377, ADR 0314 point 2) -->
+		<SpaceCenterTour
+			place={local(page.url.pathname)
+				.split('/')
+				.filter((p) => p !== '')
+				.at(-1) ?? ''}
+			{warp}
+		/>
 	{/if}
 	{#if local(page.url.pathname) !== '/flight' && runningLesson()}
 		<!-- the lesson's card off Flight (plan 344, ADR 0293 point 2) -->
