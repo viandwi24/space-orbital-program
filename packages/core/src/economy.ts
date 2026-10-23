@@ -323,6 +323,12 @@ export interface RecoveryQuote {
 	/** Metres to the nearest recovery site; null off the root body. */
 	distance: number | null;
 	credit: number;
+	/**
+	 * With markets open, the traded contents that go to `site`'s storage instead of funds, units
+	 * after the factor (system audit D2); what does not fit is sold at today's price.
+	 */
+	stored?: Array<{ commodity: string; amount: number }>;
+	site?: string;
 }
 
 export const recoveryQuote = (

@@ -294,7 +294,15 @@ export interface VesselSnapshot {
 	 * Present while the vessel can be recovered (landed or splashed and at rest; plan 095): what
 	 * `recover-vessel` would credit, for the HUD to show before the player confirms.
 	 */
-	recovery?: { value: number; factor: number; distance: number | null; credit: number };
+	recovery?: {
+		value: number;
+		factor: number;
+		distance: number | null;
+		/** Funds paid; with markets open the traded contents go to `site`'s storage (`stored`). */
+		credit: number;
+		stored?: Array<{ commodity: string; amount: number }>;
+		site?: string;
+	};
 	/**
 	 * Present while the vessel takes no control commands (ADR 0109; plan 208, ADR 0214): it has no
 	 * control source, or every source needs power the vessel has run out of.

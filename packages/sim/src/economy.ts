@@ -10,24 +10,17 @@ import {
 	designCost,
 	ECONOMY_CAUSES,
 	ECONOMY_RULES,
-	greatCircle,
-	recoveryQuote,
 	REPUTATION_DECAY_EVERY,
-	sitesOf,
 	chargeOn,
 	type Currency,
 	type EntityId,
 	type LedgerEntry,
-	type RecoveryQuote,
 	type RuleValue,
 	type SaveEconomy,
 	type StrategyKey,
 	type VesselDesign
 } from '@orbital/core';
 import { moduleDefOf, moduleState, partDefOf, partOf, vesselOf, type SimCore } from './core.ts';
-import { normalize } from '@orbital/kepler';
-import { rotationAt } from './bodies.ts';
-import { qConj, qRotate } from './math.ts';
 
 /** A registered rule's value, or undefined. */
 export const ruleOf = (core: SimCore, id: string): RuleValue | undefined =>
@@ -139,7 +132,7 @@ export function vesselValue(core: SimCore, vesselId: EntityId): number {
 }
 
 /** Recovery sites as body-fixed unit directions on the root body; until 084 the launch site. */
-const RECOVERY_SITES = [{ x: 1, y: 0, z: 0 }];
+export const RECOVERY_SITES = [{ x: 1, y: 0, z: 0 }];
 
 /** Why the vessel cannot be recovered, or undefined. */
 export function recoveryBlocker(core: SimCore, vesselId: EntityId): string | undefined {
@@ -152,40 +145,6 @@ export function recoveryBlocker(core: SimCore, vesselId: EntityId): string | und
 	return 'only a landed or splashed vessel at rest can be recovered';
 }
 
-/** The vessel's position as a body-fixed unit direction, or null when not on the root body. */
-function bodyFixedDirection(
-	core: SimCore,
-	vesselId: EntityId
-): { x: number; y: number; z: number } | null {
-	const vessel = vesselOf(core, vesselId);
-	if (vessel.soi !== core.root.def.id) return null;
-	if (vessel.rails?.kind === 'surface') return normalize(vessel.rails.r);
-	return normalize(qRotate(qConj(rotationAt(core.root, core.t)), vessel.com));
-}
-
-/** The home body's sites as body-fixed unit directions (plan 223): every site recovers. */
-function recoverySites(core: SimCore): Array<{ x: number; y: number; z: number }> {
-	const home = core.root.def.id;
-	const sites = sitesOf(core.info)
-		.filter((s) => s.body === home)
-		.map((s) => ({
-			x: Math.cos(s.latitude) * Math.cos(s.longitude),
-			y: Math.sin(s.latitude),
-			z: -Math.cos(s.latitude) * Math.sin(s.longitude)
-		}));
-	return sites.length > 0 ? sites : RECOVERY_SITES;
-}
-
-export function quoteRecovery(core: SimCore, vesselId: EntityId): RecoveryQuote {
-	const dir = bodyFixedDirection(core, vesselId);
-	const radius = core.root.def.radius;
-	const distance =
-		dir === null ? null : Math.min(...recoverySites(core).map((s) => greatCircle(dir, s, radius)));
-	const quote = recoveryQuote(vesselValue(core, vesselId), distance, radius);
-	const factor = strategyFactor(quote.factor, multiplierOf(core, 'recovery'));
-	return { ...quote, factor, credit: quote.value * factor };
-}
-
 /**
  * A recovery strategy's factor (plan 101; system audit D1): above 1 it shrinks only the loss for
  * distance, `1 − (1 − f) / m`, so a recovery never pays more than the vessel is worth (Reuse first
@@ -193,15 +152,6 @@ export function quoteRecovery(core: SimCore, vesselId: EntityId): RecoveryQuote 
  */
 export const strategyFactor = (factor: number, multiplier: number): number =>
 	multiplier >= 1 ? 1 - (1 - factor) / multiplier : factor * Math.max(0, multiplier);
-
-/** Credit the recovery (economy on) and return the quote; the caller removes the vessel. */
-export function creditRecovery(core: SimCore, vesselId: EntityId): RecoveryQuote {
-	const quote = quoteRecovery(core, vesselId);
-	if (economyOn(core) && quote.credit > 0) {
-		record(core, 'funds', quote.credit, ECONOMY_CAUSES.recovery, `vessel ${vesselId}`);
-	}
-	return quote;
-}
 
 /** Charges and reputation decay for the tick of `day` (ADR 0113 points 3 and 7). */
 export function economyTick(core: SimCore, day: number): void {

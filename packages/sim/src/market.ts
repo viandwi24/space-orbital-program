@@ -184,6 +184,42 @@ export function marketBuy(
 	return { ok: true };
 }
 
+/** The traded commodity that is `resource`, if any (fuel, oxidizer, …). */
+export const tradedResource = (
+	core: SimCore,
+	resource: string
+): (CommodityDefinition & { market: MarketParams }) | undefined =>
+	traded(core).find((d) => d.resource === resource);
+
+/** Room left in a site's storage, commodity units. */
+export const storageRoom = (core: SimCore, site: string): number =>
+	Math.max(0, capacityOf(core, site) - storedUnits(core.economy.storage?.[site]));
+
+/**
+ * Recovered contents (system audit D2): into the site's storage while it has room, the rest sold at
+ * today's price as `market-sell` would. Returns the funds the sale paid.
+ */
+export function storeRecovered(
+	core: SimCore,
+	site: string,
+	commodity: string,
+	amount: number
+): number {
+	const def = core.registries.commodities.get(commodity);
+	if (!def || !isTraded(def) || !(amount > 0)) return 0;
+	const kept = Math.min(amount, storageRoom(core, site));
+	if (kept > 0) {
+		const held = storageOf(core, site);
+		held[commodity] = (held[commodity] ?? 0) + kept;
+	}
+	const sold = amount - kept;
+	if (sold <= 0) return 0;
+	const price = priceOf(core, def);
+	marketOf(core, def).stock += sold;
+	record(core, 'funds', price * sold, MARKET_CAUSES.sell, tradeRef(commodity, sold, price));
+	return price * sold;
+}
+
 /** `market-sell` (ADR 0124 point 7): from the site's storage at today's price. */
 export function marketSell(
 	core: SimCore,

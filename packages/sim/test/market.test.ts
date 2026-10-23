@@ -158,3 +158,43 @@ describe('resume (ADR 0124 point 2)', () => {
 		resumed.dispose();
 	});
 });
+
+describe('recovered fuel goes to the site, not to funds (system audit D2)', () => {
+	test('a full rocket recovered on the pad: its fuel lands in storage, its hardware pays funds', async () => {
+		const sim = await make({ 'stock.starting-funds': 500_000 });
+		plant(sim); // the site's storage
+		const r = sim.dispatch({ type: 'load-vessel', design: twoStage(), crew: [] });
+		if (!r.ok) throw new Error(r.reason);
+		for (let i = 0; i < 200; i++) sim.step(0.02);
+		const quote = sim.snapshot().vessels.find((v) => v.id === r.vessel)!.recovery!;
+		expect(quote.factor).toBe(1);
+		expect(quote.site).toBe('legacy');
+		const lf = quote.stored!.find((x) => x.commodity === LF)!.amount;
+		expect(lf).toBeGreaterThan(0);
+		// the funds are the hardware alone: the value less the fuel's static price
+		expect(quote.credit).toBeLessThan(quote.value);
+		const f0 = funds(sim);
+		const lf0 = stored(sim, LF);
+		expect(sim.dispatch({ type: 'recover-vessel', vessel: r.vessel! }).ok).toBe(true);
+		expect(stored(sim, LF) - lf0).toBeCloseTo(lf, 6);
+		expect(funds(sim) - f0).toBeCloseTo(quote.credit, 6);
+		sim.dispose();
+	});
+
+	test("without storage room the fuel is sold at today's price, as market-sell would", async () => {
+		const sim = await make();
+		const r = sim.dispatch({ type: 'load-vessel', design: twoStage(), crew: [] });
+		if (!r.ok) throw new Error(r.reason);
+		for (let i = 0; i < 200; i++) sim.step(0.02);
+		const quote = sim.snapshot().vessels.find((v) => v.id === r.vessel)!.recovery!;
+		const f0 = funds(sim);
+		expect(sim.dispatch({ type: 'recover-vessel', vessel: r.vessel! }).ok).toBe(true);
+		const sales = sim
+			.save()
+			.economy!.entries.filter((e) => e.cause === 'stock.market-sell')
+			.reduce((n, e) => n + e.amount, 0);
+		expect(sales).toBeGreaterThan(0);
+		expect(funds(sim) - f0).toBeCloseTo(quote.credit + sales, 6);
+		sim.dispose();
+	});
+});

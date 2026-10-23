@@ -21,6 +21,24 @@ describe('recovery in the HUD', () => {
 		expect(lines[3]!.value).toBe(formatFunds(11_760));
 		expect(recoveryLines({ ...quote, distance: null })[1]!.value).toBe('Not on the home planet');
 	});
+	it('fuel that goes to the site storage is its own line, before the credit (system audit D2)', () => {
+		const lines = recoveryLines({
+			value: 10_000,
+			factor: 1,
+			distance: 50,
+			credit: 6_000,
+			stored: [
+				{ commodity: 'stock.liquid-fuel', amount: 800 },
+				{ commodity: 'stock.oxidizer', amount: 977.6 }
+			]
+		});
+		expect(lines.at(-2)).toEqual({
+			label: "To the site's storage",
+			value: '800 u liquid fuel, 978 u oxidizer'
+		});
+		expect(lines.at(-1)!.label).toBe('Credit');
+	});
+
 	it('the dialog shows the lines and a Recover button', () => {
 		const { body } = render(RecoverDialog, {
 			props: { open: true, quote, onrecover: () => {}, onclose: () => {} }

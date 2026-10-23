@@ -4,6 +4,7 @@
  * so the page and the tests share it.
  */
 import { resolve } from '$app/paths';
+import type { RecoveryQuoteView } from '../hud/recovery-model';
 import {
 	VESSEL_TYPES,
 	type AlarmKind,
@@ -328,7 +329,7 @@ export interface ObjectCard {
 		name: string;
 		type: VesselType;
 		/** Present while it can be recovered (landed or splashed, at rest): the sim's quote. */
-		recovery?: { value: number; factor: number; distance: number | null; credit: number };
+		recovery?: RecoveryQuoteView;
 		/** Crew aboard (plan 318): Terminate asks first only when there are any. */
 		crew: number;
 	};

@@ -3,6 +3,7 @@
  * renderer, the rAF loop and the keyboard live here as plain TypeScript. Svelte only receives a
  * ~10 Hz `FlightHud` copy through `onHud` and paints it.
  */
+import type { RecoveryQuoteView } from './hud/recovery-model';
 import { vesselNearPoint } from './vessel-menu';
 import { defaultFilters, hiddenVessels, type MapFilters } from './map/map-filters';
 import { FrameHistogram, type FrameSummary } from './debug/frame-histogram';
@@ -200,7 +201,7 @@ export interface FlightHud {
 	 */
 	drive?: boolean;
 	/** The focused vessel's recovery quote while it can be recovered (plan 132, ADR 0113 point 6). */
-	recovery: { value: number; factor: number; distance: number | null; credit: number } | null;
+	recovery: RecoveryQuoteView | null;
 }
 
 /** Near the ground with a wheel motor on: drive mode turns on by itself (plan 307). */
