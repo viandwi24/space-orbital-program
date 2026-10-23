@@ -1,7 +1,7 @@
 ---
 id: 400
 title: "Engine plumes v2: Waterfall-style templates (mesh, material, controllers), templates per engine, one light per cluster"
-status: draft
+status: done
 owner: "Worker C"
 depends: [393]
 phase: 9
@@ -105,3 +105,4 @@ The owner's ask (2026-10-24): **real variety per engine** — very long tails an
 ## Log
 
 - 2026-10-24 — Created by the coordinator from refs/graphics-v2 (ADR 0330).
+- 2026-10-24 — Template slice done (Worker C, ADR 0335): propellant bases, per-engine scales and chamber pressure, cluster lights, the `plume` quality, a template on every stock engine. Left: the volumetric depth-fade layer, noise, extra meshes and LOD, the captures, frame times and the owner's look.

@@ -23,6 +23,12 @@ import {
 	type PlumeShape
 } from './plume.ts';
 import { PLUME_FRAG, PLUME_VERT, SPRITE_FRAG, SPRITE_VERT } from './shaders.ts';
+import {
+	plumeQuality,
+	resolveTemplate,
+	templateLook,
+	type ResolvedTemplate
+} from './plume-template.ts';
 
 export type PlumeSpec = NonNullable<PartVisual['plume']>;
 
@@ -87,11 +93,15 @@ export class PlumeEffect {
 	private readonly inner: ShaderMaterial;
 	private readonly sprite: ShaderMaterial;
 	private readonly meshes: Mesh[] = [];
+	/** The outer flame's meshes, hidden at Low (plan 400). */
+	private readonly outerMeshes: Mesh[] = [];
 	shape: PlumeShape | null = null;
 	private ramp: EngineRamp = RAMP_START;
 	private rampTime: number | null = null;
 	/** Bells of the engine (1 without `nozzles`). */
 	private readonly bells: number;
+	/** The engine's plume template (plan 400), the default one when it has none. */
+	readonly template: ResolvedTemplate;
 
 	constructor(
 		readonly spec: PlumeSpec,
@@ -100,16 +110,24 @@ export class PlumeEffect {
 	) {
 		this.root.name = 'plume';
 		this.root.position.set(spec.nozzle[0], spec.nozzle[1], spec.nozzle[2]);
-		const base = new Color(spec.color ?? '#ff8a2a');
-		this.outer = layerMaterial(new Color(1, 0.85, 0.55), base, 1.4, 1);
-		this.inner = layerMaterial(new Color(1, 0.98, 0.9), new Color(1, 0.78, 0.4), 0.58, 0.72);
+		this.template = resolveTemplate(spec.template, spec.color);
+		const c = this.template.colours;
+		const rgb = (v: readonly [number, number, number]): Color => new Color(v[0], v[1], v[2]);
+		// the default template keeps the colours the plume always had
+		this.outer = layerMaterial(
+			this.template.base ? rgb(c.inner) : new Color(1, 0.85, 0.55),
+			rgb(c.outer),
+			1.4,
+			1
+		);
+		this.inner = layerMaterial(rgb(c.core), rgb(c.inner), 0.58, 0.72);
 		this.sprite = new ShaderMaterial({
 			vertexShader: SPRITE_VERT,
 			fragmentShader: SPRITE_FRAG,
 			uniforms: {
 				uSize: { value: 1 },
 				uGain: { value: 0 },
-				uColor: { value: new Color(1, 0.72, 0.38) }
+				uColor: { value: new Color(...this.template.colours.glow) }
 			},
 			transparent: true,
 			depthWrite: false,
@@ -139,6 +157,7 @@ export class PlumeEffect {
 				mesh.renderOrder = 10;
 				holder.add(mesh);
 				this.meshes.push(mesh);
+				if (m === this.outer) this.outerMeshes.push(mesh);
 			}
 			this.root.add(holder);
 		}
@@ -171,14 +190,19 @@ export class PlumeEffect {
 		this.shape = shape;
 		this.root.visible = shape.visible;
 		if (!shape.visible) return;
+		// the template's scales on the pressure-based shape (plan 400)
+		const look = templateLook(shape, this.template);
+		const low = plumeQuality.level === 'low';
+		for (const m of this.outerMeshes) m.visible = !low;
+		if (low) look.diamonds = 0;
 		for (const m of [this.outer, this.inner]) {
 			const u = m.uniforms;
-			u.uLength!.value = shape.length;
+			u.uLength!.value = look.length;
 			u.uExitR!.value = shape.exitRadius;
-			u.uMaxR!.value = shape.maxRadius;
+			u.uMaxR!.value = look.maxRadius;
 			u.uTime!.value = time;
 			u.uVacuum!.value = shape.vacuum;
-			u.uDiamonds!.value = shape.diamonds;
+			u.uDiamonds!.value = look.diamonds;
 			u.uPeriod!.value = diamondPeriod(this.spec.exitRadius);
 		}
 		// Ignition flash: a brief extra glow and a wider sprite.
@@ -186,13 +210,13 @@ export class PlumeEffect {
 		// The flames of a cluster's bells overlap near the exit: each is dimmer, so four of them add
 		// up to about twice one engine's, which is what their thrust is (ADR 0081).
 		const spread = Math.sqrt(this.bells);
-		this.outer.uniforms.uGain!.value = (1.6 * shape.brightness * boost) / spread;
-		this.inner.uniforms.uGain!.value = (4.2 * shape.brightness * boost) / spread;
+		this.outer.uniforms.uGain!.value = (1.6 * look.brightness * boost) / spread;
+		this.inner.uniforms.uGain!.value = (4.2 * look.brightness * look.core * boost) / spread;
 		this.sprite.uniforms.uSize!.value =
-			Math.max(0.7 / spread, shape.maxRadius * (2.6 - 1.5 * shape.vacuum)) *
+			Math.max(0.7 / spread, look.maxRadius * (2.6 - 1.5 * shape.vacuum)) *
 			(1 + 0.35 * this.ramp.flash);
 		this.sprite.uniforms.uGain!.value =
-			((1.8 - 0.9 * shape.vacuum) * shape.brightness * boost) / spread;
+			((1.8 - 0.9 * shape.vacuum) * look.brightness * look.core * boost) / spread;
 	}
 
 	/** Position of the nozzle exit in the part frame. */

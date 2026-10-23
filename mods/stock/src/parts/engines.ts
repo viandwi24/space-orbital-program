@@ -32,6 +32,7 @@ export const PartEngineLV = definePart({
 		palette: { primary: '#2d3138', secondary: '#9aa1aa', accent: '#b0642e' },
 		// Thrust along +Y, so the exhaust leaves the bell exit (bottom face) downwards.
 		plume: {
+			template: { propellant: 'kerolox', chamberPressure: 70 },
 			module: ModuleEngine.id,
 			nozzle: [0, -0.6, 0],
 			exitRadius: 0.46,
@@ -79,6 +80,7 @@ export const PartEngineCluster = definePart({
 		palette: { primary: '#2d3138', secondary: '#9aa1aa', accent: '#b0642e' },
 		params: { bells: 4, ring: 0.31, bellExit: 0.2 },
 		plume: {
+			template: { propellant: 'kerolox', brightness: 0.9, lengthScale: 0.9, chamberPressure: 90 },
 			module: ModuleEngine.id,
 			nozzle: [0, -0.6, 0],
 			nozzles: [
@@ -143,6 +145,7 @@ function solidBooster(spec: {
 			// white with black bands, as solid motors are painted (plan 291 livery)
 			params: { bellExit: spec.bellExit, livery: 'bands' },
 			plume: {
+				template: { propellant: 'solid' },
 				module: ModuleEngine.id,
 				nozzle: [0, -h2, 0],
 				exitRadius: spec.bellExit,
@@ -206,6 +209,7 @@ export const PartBoosterLiquid = definePart({
 		kind: 'booster',
 		palette: { primary: '#e8ecef', secondary: '#2a4f7a', accent: '#e3a61f' },
 		plume: {
+			template: { propellant: 'kerolox', chamberPressure: 55 },
 			module: ModuleEngine.id,
 			nozzle: [0, -1.6, 0],
 			exitRadius: 0.3,
@@ -282,6 +286,7 @@ export const PartEngineVacuum = definePart({
 		palette: { primary: '#2d3138', secondary: '#c9ced4', accent: '#3d7fb0' },
 		params: { bellExit: 0.5, throat: 0.1 },
 		plume: {
+			template: { propellant: 'hydrolox', chamberPressure: 30 },
 			module: ModuleEngine.id,
 			nozzle: [0, -0.45, 0],
 			exitRadius: 0.5,
@@ -323,6 +328,7 @@ export const PartEngineWide = definePart({
 		palette: { primary: '#2d3138', secondary: '#9aa1aa', accent: '#b0642e' },
 		params: { bellExit: 0.95, throat: 0.3 },
 		plume: {
+			template: { propellant: 'methalox', chamberPressure: 80 },
 			module: ModuleEngine.id,
 			nozzle: [0, -0.9, 0],
 			exitRadius: 0.95,

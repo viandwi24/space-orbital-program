@@ -4,7 +4,7 @@
  * modules; a lunar lander; satellites and a telescope; the shuttle; engine plates and the escape
  * tower. Titles follow ADR 0255 (`OrbitX <code> "<nickname>"`).
  */
-import { definePart, kg } from '@orbital/sdk';
+import { definePart, kg, type PartVisual } from '@orbital/sdk';
 import { ModulePaint } from '../paint.ts';
 import { ModuleAnimate, ModuleBay, ModuleCoverShell, ModuleFuelCell } from '../animate.ts';
 import { AntennaDish, AntennaWhip, ModuleAntenna } from '../comms.ts';
@@ -880,6 +880,7 @@ export const PartLanderDescent = definePart({
 		palette: WHITE,
 		params: { top: 0.625 },
 		plume: {
+			template: { propellant: 'hypergolic', chamberPressure: 10 },
 			module: ModuleEngine.id,
 			nozzle: [0, -0.8, 0],
 			exitRadius: 0.44,
@@ -921,6 +922,7 @@ export const PartLanderAscent = definePart({
 		palette: WHITE,
 		params: { top: 0.3125, bottom: 0.625 },
 		plume: {
+			template: { propellant: 'hypergolic', lengthScale: 0.8, chamberPressure: 8 },
 			module: ModuleEngine.id,
 			nozzle: [0, -0.8, 0],
 			exitRadius: 0.2,
@@ -996,6 +998,8 @@ function enginePlate(opts: {
 	kind: EngineKind;
 	ispVacuum: number;
 	ispSeaLevel: number;
+	/** The plume's template (plan 400). */
+	template: NonNullable<PartVisual['plume']>['template'];
 }) {
 	const massKg = engineMass(opts.kind, opts.thrust, opts.bells);
 	const h2 = opts.height / 2;
@@ -1011,6 +1015,7 @@ function enginePlate(opts: {
 			palette: { primary: '#2d3138', secondary: '#9aa1aa', accent: '#b0642e' },
 			params: { bells: opts.bells, ring: opts.ring, bellExit: opts.exit, centre: opts.centre },
 			plume: {
+				template: opts.template,
 				module: ModuleEngine.id,
 				nozzle: [0, -h2, 0],
 				nozzles: plateNozzles(opts.bells, opts.ring, -h2, opts.centre),
@@ -1043,6 +1048,7 @@ function enginePlate(opts: {
 }
 export const PartEnginePlate5 = enginePlate({
 	id: 'stock.engine-plate-5',
+	template: { propellant: 'kerolox', lengthScale: 1.15, brightness: 1.1, chamberPressure: 70 },
 	title: 'OrbitX GP-F5 "Titan"',
 	size: 5,
 	height: 3,
@@ -1058,6 +1064,7 @@ export const PartEnginePlate5 = enginePlate({
 });
 export const PartEnginePlate9 = enginePlate({
 	id: 'stock.engine-plate-9',
+	template: { propellant: 'methalox', lengthScale: 0.9, chamberPressure: 250 },
 	title: 'OrbitX GP-M9 "Hawk"',
 	size: 3.75,
 	height: 2.2,
@@ -1073,6 +1080,7 @@ export const PartEnginePlate9 = enginePlate({
 });
 export const PartEnginePlate8 = enginePlate({
 	id: 'stock.engine-plate-8',
+	template: { propellant: 'methalox', chamberPressure: 100 },
 	title: 'OrbitX GP-R8 "Octet"',
 	size: 3.75,
 	height: 2.2,
@@ -1093,6 +1101,13 @@ export const PartEnginePlate8 = enginePlate({
  */
 export const PartEnginePlateF1 = enginePlate({
 	id: 'stock.engine-plate-f1',
+	template: {
+		propellant: 'kerolox',
+		lengthScale: 1.3,
+		brightness: 1.25,
+		chamberPressure: 70,
+		core: '#fff1c8'
+	},
 	title: 'OrbitX GP-F1X "Colossus"',
 	size: 7.5,
 	height: 4.5,
@@ -1108,6 +1123,7 @@ export const PartEnginePlateF1 = enginePlate({
 /** The S-II's five J-2s (plan 380): a 5 m hydrolox plate, 5.17 MN in vacuum. */
 export const PartEnginePlateJ2 = enginePlate({
 	id: 'stock.engine-plate-j2',
+	template: { propellant: 'hydrolox', lengthScale: 1.2, chamberPressure: 30 },
 	title: 'OrbitX GP-J5 "Quintet"',
 	size: 5,
 	height: 3.4,
@@ -1133,6 +1149,7 @@ export const PartEngineVacuumXl = definePart({
 		palette: { primary: '#2d3138', secondary: '#9aa1aa', accent: '#b0642e' },
 		params: { bellExit: 1.0, throat: 0.25 },
 		plume: {
+			template: { propellant: 'hydrolox', lengthScale: 1.15, widthScale: 1.1, chamberPressure: 20 },
 			module: ModuleEngine.id,
 			nozzle: [0, -1.3, 0],
 			exitRadius: 1.0,
@@ -1171,6 +1188,7 @@ export const PartEscapeTower = definePart({
 		palette: { primary: '#e9ebee', secondary: '#2a2e35', accent: '#d9552b' },
 		params: { base: 0.625 },
 		plume: {
+			template: { propellant: 'solid', lengthScale: 0.8 },
 			module: ModuleEngine.id,
 			nozzle: [0, -0.2, 0],
 			exitRadius: 0.1,
@@ -1334,6 +1352,7 @@ export const PartOrbiterAft = definePart({
 		palette: WHITE,
 		params: { body: 1.25 },
 		plume: {
+			template: { propellant: 'hydrolox', lengthScale: 1.1, brightness: 1.2, chamberPressure: 200 },
 			module: ModuleEngine.id,
 			nozzle: [0, -1.75, 0],
 			nozzles: [
@@ -1413,6 +1432,7 @@ export const PartSrbXl = definePart({
 		palette: { primary: '#ecebe6', secondary: '#23272d', accent: '#d9552b' },
 		params: { bellExit: 0.8, livery: 'bands' },
 		plume: {
+			template: { propellant: 'solid', lengthScale: 1.1, brightness: 1.1 },
 			module: ModuleEngine.id,
 			nozzle: [0, -8, 0],
 			exitRadius: 0.8,

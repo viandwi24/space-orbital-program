@@ -21,6 +21,7 @@ import {
 	Mesh,
 	MeshStandardMaterial,
 	Object3D,
+	PointLight,
 	Quaternion,
 	Vector3
 } from 'three';
@@ -79,6 +80,8 @@ import {
 	plasmaIntensity,
 	stagnationFlux
 } from './reentry.ts';
+import { clusterLights, type ClusterEngine } from './plume-cluster.ts';
+import { resolveTemplate } from './plume-template.ts';
 import { condensationOpacity, heatingOf, paletteFor, plasmaColour } from './plasma-palette.ts';
 import { FIRE_FRAG, SMOKE_FRAG } from './shaders.ts';
 import {
@@ -89,6 +92,9 @@ import {
 	type ShardSource
 } from './shards.ts';
 import type { FxEvent } from './transitions.ts';
+
+/** Point lights the cluster lights draw from (plan 400). */
+const CLUSTER_LIGHTS = 3;
 
 export type EffectBody = Pick<BodyDefinition, 'id' | 'radius' | 'atmosphere'> &
 	Partial<Pick<BodyDefinition, 'mass'>>;
@@ -231,6 +237,11 @@ export class Effects {
 	});
 	private readonly glow = new GroundGlow(4);
 	private readonly glowItems: GroundGlowItem[] = [];
+	/** The lit engines of this frame, for the cluster lights (plan 400). */
+	private readonly litEngines: ClusterEngine[] = [];
+	/** One light per cluster of engines, a fixed few so the light count never changes in flight; none at Low. */
+	private readonly clusterPool: PointLight[] = [];
+	private readonly glowColours = new WeakMap<object, readonly [number, number, number]>();
 	private explosions: Explosion[] = [];
 	private flashes: Array<{ soi: string; local: Vec3; size: number; age: number; life: number }> =
 		[];
@@ -340,6 +351,7 @@ export class Effects {
 		const dt = Math.max(0, frame.dt);
 		this.consumeEvents(frame);
 		this.glowItems.length = 0;
+		this.litEngines.length = 0;
 		if (dt > 0) {
 			this.emitFromEngines(frame, dt);
 			this.pool.step(dt, this.windField(frame));
@@ -361,6 +373,7 @@ export class Effects {
 		}
 		this.writeSmoke(frame);
 		this.glow.update(this.glowItems);
+		this.writeClusterLights();
 		this.writeFire(frame);
 		this.writeShards(frame);
 		this.updatePlasma(frame);
@@ -479,6 +492,21 @@ export class Effects {
 				acc.blast += (vacuum ? vacuumDustRate(input) : groundBlastRate(input)) * dt;
 				acc.trail += exhaustTrailRate(input) * dt * TRAIL_PARTICLE_SHARE;
 				const exhaust = rotate(part.orientation, vec(0, -1, 0));
+				if (this.settings.plume !== 'low') {
+					let colour = this.glowColours.get(spec);
+					if (!colour) {
+						colour = resolveTemplate(spec.template, spec.color).colours.outer;
+						this.glowColours.set(spec, colour);
+					}
+					const bells = spec.nozzles?.length ?? 1;
+					this.litEngines.push({
+						vessel: v.id,
+						position: toRenderSpace(add(body.world, nozzle), frame.origin),
+						radius: spec.exitRadius,
+						thrust: throttle * spec.exitRadius * spec.exitRadius * bells,
+						colour
+					});
+				}
 				const light = plumeGroundLight(height, throttle, shape.length, spec.exitRadius);
 				if (
 					light.intensity > 0 &&
@@ -582,6 +610,36 @@ export class Effects {
 			if (!vacuum && tips.length > 0) this.feedTrail(String(v.id), tips, dt);
 		}
 		for (const k of this.accumulators.keys()) if (!seen.has(k)) this.accumulators.delete(k);
+	}
+
+	/** The cluster lights of this frame (plan 400): a pooled light per cluster, the rest at intensity 0. */
+	private writeClusterLights(): void {
+		const on = this.settings.plume !== 'low';
+		if (on && this.clusterPool.length === 0) {
+			for (let i = 0; i < CLUSTER_LIGHTS; i++) {
+				const light = new PointLight(0xffa860, 0, 0, 2);
+				light.name = 'plume-cluster';
+				this.clusterPool.push(light);
+				this.root.add(light);
+			}
+		} else if (!on && this.clusterPool.length > 0) {
+			for (const light of this.clusterPool) this.root.remove(light);
+			this.clusterPool.length = 0;
+		}
+		if (!on) return;
+		const lights = clusterLights(this.litEngines);
+		for (const [i, light] of this.clusterPool.entries()) {
+			const c = lights[i];
+			if (!c) {
+				light.intensity = 0;
+				continue;
+			}
+			light.position.set(c.position.x, c.position.y, c.position.z);
+			light.color.setRGB(c.colour[0], c.colour[1], c.colour[2]);
+			light.intensity = c.intensity;
+			// reaches about a bell diameter per engine's worth of thrust, so a lone engine lights its pad and a cluster its stage
+			light.distance = 18 + 14 * Math.sqrt(c.engines);
+		}
 	}
 
 	/** One trail per vessel: the engines' flames merged into a point and a width (ADR 0080). */

@@ -320,3 +320,4 @@ An ADR records one decision, its context, and its consequences. ADRs are **appen
 | 0332 | [Several scripts at once: one per vessel, a Worker each](0332-several-scripts-at-once.md) | accepted | 2026-10-24 |
 | 0333 | [An inverse side link: a part hangs on its parent's node by its own surface](0333-inverse-side-link.md) | accepted | 2026-10-24 |
 | 0334 | [Separation and deploy without flinging: pair-contact grace, hollow bays, a rebuild that keeps momentum](0334-separation-without-flinging.md) | accepted | 2026-10-24 |
+| 0335 | [Engine plume templates: a propellant base and the engine's scales](0335-engine-plume-templates.md) | accepted | 2026-10-24 |

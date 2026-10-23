@@ -345,6 +345,39 @@ export const partShapeSchema = z.discriminatedUnion('kind', [
 
 const hexColour = z.string().regex(/^#[0-9a-fA-F]{6}$/, 'expected "#rrggbb"');
 
+/** The propellant bases a plume template extends (plan 400, ADR 0335). */
+export const PLUME_PROPELLANTS = [
+	'kerolox',
+	'hydrolox',
+	'methalox',
+	'hypergolic',
+	'solid',
+	'ion'
+] as const;
+export type PlumePropellant = (typeof PLUME_PROPELLANTS)[number];
+
+/**
+ * An engine's plume look (plan 400, ADR 0335): a propellant base (its colours, core and diamonds)
+ * and the engine's own scales on it. Everything is optional but the base; the length, the width and
+ * the brightness still follow throttle, chamber pressure and the ambient pressure.
+ */
+export const plumeTemplateSchema = z.object({
+	propellant: z.enum(PLUME_PROPELLANTS),
+	/** Scales on the plume's length and width (1 = the base's), 0.25 to 4: very long tails and short ones. */
+	lengthScale: z.number().min(0.25).max(4).optional(),
+	widthScale: z.number().min(0.25).max(4).optional(),
+	/** Scale on the emission, 0 to 4. */
+	brightness: z.number().min(0).max(4).optional(),
+	/** Scale on the shock-diamond strength, 0 to 2. */
+	diamonds: z.number().min(0).max(2).optional(),
+	/** Chamber pressure, bar: a higher one gives a longer, narrower plume (reference 60 bar). */
+	chamberPressure: z.number().positive().max(500).optional(),
+	/** The outer flame and the core, overriding the base's. */
+	color: hexColour.optional(),
+	core: hexColour.optional()
+});
+export type PlumeTemplateData = z.infer<typeof plumeTemplateSchema>;
+
 /**
  * What a part looks like (ADR 0028). `kind` names a renderer generator; `params` are read (and
  * clamped) by that generator. `plume` and `deploy` name the module whose snapshot drives the
@@ -382,7 +415,9 @@ export const partVisualSchema = z.object({
 			exitRadius: z.number().positive(),
 			length: z.number().positive(),
 			exitPressure: z.number().positive().optional(),
-			color: hexColour.optional()
+			color: hexColour.optional(),
+			/** The engine's plume template (plan 400); an engine without one draws the default look. */
+			template: plumeTemplateSchema.optional()
 		})
 		.optional(),
 	deploy: z

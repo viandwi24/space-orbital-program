@@ -230,6 +230,8 @@ export {
 	partDefinitionSchema,
 	partShapeSchema,
 	partVisualSchema,
+	plumeTemplateSchema,
+	PLUME_PROPELLANTS,
 	moduleInfoSchema,
 	resourceDefinitionSchema,
 	bodyDefinitionSchema,

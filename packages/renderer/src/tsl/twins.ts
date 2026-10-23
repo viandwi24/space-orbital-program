@@ -363,10 +363,10 @@ const shell = (m: ShaderMaterial): Twin => {
 			.mul(tail)
 			.add(uIntensity.mul(streak.mul(0.5).add(bow.mul(0.35))));
 		const cold = uCondense.mul(smoothstep(0.0, 0.3, uIntensity).oneMinus());
+		const band = smoothstep(0.05, 0.3, depth).mul(smoothstep(0.5, 0.85, depth).oneMinus());
 		const coldA = cold
-			.mul(pow(rim, 1.6).mul(0.5).add(0.08))
-			.mul(windward.mul(0.4).add(0.6))
-			.mul(tail);
+			.mul(pow(rim, 3.0).mul(0.28).mul(band.mul(0.6).add(0.4)).add(0.015))
+			.mul(windward.mul(0.6).add(0.4));
 		const base = mix(hot.mul(uIntensity.mul(1.2).add(0.7)), vec3(0.9, 0.95, 1.0), cold);
 		const colour = base.add(
 			uIntensity.mul(

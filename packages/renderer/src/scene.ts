@@ -66,6 +66,7 @@ import { Environment } from './environment.ts';
 import { Effects, type BodyFrame, type EffectsFrame } from './effects/system.ts';
 import { silhouetteOfShape } from './effects/plasma-shape.ts';
 import { ambientPressureAt } from './effects/plume.ts';
+import { plumeQuality } from './effects/plume-template.ts';
 import {
 	angularVelocity,
 	detectTransitions,
@@ -408,6 +409,7 @@ export class SceneModel {
 		this.config = config;
 		const settings = PRESETS[config.preset ?? 'high'];
 		this.partsPreset = config.preset ?? 'high';
+		plumeQuality.level = settings.plume;
 		this.factory = this.makeFactory(this.partsPreset);
 		this.threshold = config.originThreshold ?? DEFAULT_ORIGIN_THRESHOLD;
 		const primary = config.bodies.find((b) => b.id === config.home) ?? config.bodies[0];
@@ -611,6 +613,7 @@ export class SceneModel {
 	setPreset(preset: GraphicsPreset, resources?: GraphicsPreset, keepParts = false): void {
 		this.environment.setPreset(preset, resources);
 		this.effects.setPreset(PRESETS[preset]);
+		plumeQuality.level = PRESETS[preset].plume;
 		for (const moon of this.moons.values()) moon.setShadowSteps(SHADOW_STEPS[preset]);
 		// a governor step keeps the part detail of the resource preset (plan 373, ADR 0310): rebuilding
 		// the models made new materials and their shadow pipelines in flight, 0.1 to 0.2 s on the M2

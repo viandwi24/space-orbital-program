@@ -268,7 +268,9 @@ void main() {
 	a += uIntensity * (0.5 * streak + 0.35 * bow);
 	// Condensation and the vapour cone (plan 399): the same shell, cold and white, fading in as the plasma fades out.
 	float cold = uCondense * (1.0 - smoothstep(0.0, 0.3, uIntensity));
-	float coldA = cold * (0.08 + 0.5 * pow(rim, 1.6)) * (0.6 + 0.4 * windward) * tail;
+	// a soft collar near the shock with a faint skin, not a solid dome
+	float band = smoothstep(0.05, 0.3, depth) * (1.0 - smoothstep(0.5, 0.85, depth));
+	float coldA = cold * (0.015 + 0.28 * pow(rim, 3.0) * (0.4 + 0.6 * band)) * (0.4 + 0.6 * windward);
 	vec3 colour = mix(hot * (0.7 + 1.2 * uIntensity), vec3(0.9, 0.95, 1.0), cold);
 	colour += uIntensity * (0.8 * streak * vec3(1.0, 0.85, 0.9) + 0.6 * bow * uShock);
 	gl_FragColor = vec4(colour, clamp(a + coldA, 0.0, 1.0));

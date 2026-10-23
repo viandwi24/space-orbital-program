@@ -73,6 +73,8 @@ export interface PresetSettings {
 	debrisShards: number;
 	/** Re-entry plasma and condensation (plan 399): Low a two-stop gradient and no condensation, Medium the full gradient and condensation, High adds streaks and the bow shock. */
 	plasma: 'low' | 'medium' | 'high';
+	/** Engine plumes (plan 400): Low draws the inner flame and the nozzle glow, no diamonds and no cluster light; Medium adds the outer flame, the diamonds and the cluster light; High is for the volumetric layer (plan 400 follow-up). */
+	plume: 'low' | 'medium' | 'high';
 }
 
 /**
@@ -136,7 +138,8 @@ export const PRESETS: Readonly<Record<GraphicsPreset, PresetSettings>> = {
 		partTexture: 128,
 		smokeParticles: 56,
 		debrisShards: 0,
-		plasma: 'low'
+		plasma: 'low',
+		plume: 'low'
 	},
 	medium: {
 		pixelRatioCap: 1.5,
@@ -169,7 +172,8 @@ export const PRESETS: Readonly<Record<GraphicsPreset, PresetSettings>> = {
 		partTexture: 256,
 		smokeParticles: 160,
 		debrisShards: 24,
-		plasma: 'medium'
+		plasma: 'medium',
+		plume: 'medium'
 	},
 	high: {
 		pixelRatioCap: 2,
@@ -203,7 +207,8 @@ export const PRESETS: Readonly<Record<GraphicsPreset, PresetSettings>> = {
 		partTexture: 512,
 		smokeParticles: 320,
 		debrisShards: 48,
-		plasma: 'high'
+		plasma: 'high',
+		plume: 'high'
 	}
 };
 
