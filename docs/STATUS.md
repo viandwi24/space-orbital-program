@@ -282,6 +282,7 @@
 | 369 | [Cached shadow maps for the static site](plans/369-cached-shadow-maps-for-the-static-site.md) | draft | — | From plan 363's ranking. |
 | 370 | [Shader compile at world load](plans/370-shader-compile-at-world-load.md) | in-progress | shader compile session | ADR 0308; the owner's 1 min+ load on Windows/D3D: 11.2 → 3.6 MB of WGSL, async pipelines, a loading screen that never freezes (10 of the game's shots incl. staging, the petals, the Shuttle bay and a Moon landing; a vignette, a changing line and the bar in the corner; lower quality after 15 s), load logs on `/developer`. Waiting for the owner's Windows log. |
 | 374 | [Split the WebGPU planet pass](plans/374-split-the-webgpu-planet-pass.md) | draft | — | From plan 370's Windows log: the planet pass is one 14.6 s pipeline on D3D. |
+| 376 | [The Mods page as a mod manager](plans/376-mods-page-mod-manager.md) | done | ui-v3 session | ADR 0312. Owner request 2026-10-23. Cards for every mod with status chips, counts per kind linking to the Developer viewers, API and dependency badges, switch, Patches/Update/Remove; search, filter, sort; drop-to-install with a review dialog; Reload banner. Journal 376. |
 | 364 | [Planet textures and sky like KSP](plans/364-planet-textures-and-sky.md) | done | planet-sky session | ADR 0306. Baked Milky Way sky with stars that never twinkle; a scaled-space albedo and normal bake of the planet from its own `surfaceAt` for orbit and map views; mid octaves for fractal coasts; triplanar ground detail; biome maps cached in IndexedDB. Journal 364. |
 | 340 | [One renderer for the world session, warm-up at world load, loading screen](plans/340-world-renderer-warm-up-and-loading-screen.md) | done | world renderer session | ADR 0290. Flight, Mission Center and Space Center share one renderer and canvas owned by the `(world)` layout; every view is drawn once behind a loading screen when the world loads. Page switches went from 1.5–2.8 s (WebGPU) and 0.2–0.4 s (WebGL) worst frames to 19 ms. Journal 340. |
 | 341 | [Stylised crew character](plans/341-stylised-crew-character.md) | done | crew character session | ADR 0291. The NOVA chibi astronaut for every person: EVA suit, 10 Hangar walkers, 6 Space Center staff, one skinned mesh each on one material; 12 outfits as data, looks from the crew id, 8 expressions, 1.7 m tall; portraits in the Astronaut Complex and crew seats; `/dev/crew`. Journal 341. |
@@ -384,6 +385,7 @@ The owner takes the remaining performance work on the M5; the M2 handles the fix
 
 ## Recent journal entries
 
+- [376 — The Mods page as a mod manager](journal/376-mods-page-mod-manager.md)
 - [372 — Trajectories into the Guidance Landing tab](journal/372-trajectories-into-guidance-landing.md)
 - [370 — Shader compile at world load](journal/370-shader-compile-at-world-load.md)
 - [371 — Rendezvous Fast mode](journal/371-rendezvous-fast-mode.md)

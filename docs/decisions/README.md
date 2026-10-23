@@ -295,3 +295,4 @@ An ADR records one decision, its context, and its consequences. ADRs are **appen
 | 0307 | [Trajectories shows when it helps; panels pick points on the map](0307-trajectories-shows-when-it-helps.md) | accepted | 2026-10-22 |
 | 0308 | [Shader compile at world load: measured, in parallel, and off the critical path](0308-shader-compile-measured-parallel-off-critical-path.md) | accepted | 2026-10-22 |
 | 0309 | [The landing prediction moves into the Guidance Computer; the Trajectories mod goes](0309-trajectories-move-into-guidance-landing.md) | accepted | 2026-10-22 |
+| 0312 | [The Mods page is a mod manager of cards built from the loader's registries](0312-mods-page-mod-manager.md) | accepted | 2026-10-23 |
