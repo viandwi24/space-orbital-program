@@ -16,7 +16,9 @@ The research is in `refs/graphics-v2/01`–`04`. Two findings drive this decisio
 
 ## Decision
 
-1. **Target.** Chrome and Edge aim for a locked 120 Hz; Safari, which caps ProMotion near 60, aims for a locked 60. The budget per frame is ≤ 7 ms of GPU time and ≤ 4–6 ms of main-thread time. Acceptance uses the p95 frame interval, not the average.
+1. **Targets by device tier.**
+   - **Base Macs (M1/M2) and mid-range Windows PCs** (Iris Xe / 680M, GTX 1650 / RTX 3050 class, Chrome or Edge on D3D12) aim for a locked 60 at a default preset chosen per tier. Every look has a cheap version for them, and Windows first-load shader compile time counts against the budget.
+   - **M5-class and better:** Chrome and Edge aim for a locked 120 Hz; Safari, which caps ProMotion near 60, aims for a locked 60. The budget per frame is ≤ 7 ms of GPU time and ≤ 4–6 ms of main-thread time. Acceptance uses the p95 frame interval, not the average.
 2. **Resolution.**
    - The 3D image renders at a fraction of the canvas, about 0.6 of the side, and is rebuilt with temporal anti-aliased upscaling (TAAU). This replaces MSAA and the planet pass's own upsample.
    - FSR 1 covers frames without valid history (camera cuts) and the WebGL2 path.

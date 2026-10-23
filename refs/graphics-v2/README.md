@@ -5,6 +5,10 @@ Written 2026-10-24 by the coordinator (owner's CTO mandate), from the owner's re
 ## The owner's targets
 
 - On the MacBook Pro M5 at Retina, a **stable 100–150 fps**. In practice that means a **locked 120** on its 120 Hz display.
+- **Lower machines matter as much.** Most players use **Windows PCs**. Base Macs such as the **M2** count too. These targets get a **locked 60** at their default preset:
+  - integrated Intel Iris Xe or AMD 680M;
+  - GTX 1650 / RTX 3050 class cards;
+  - Chrome or Edge on D3D12.
 - **Better visuals**, matching the seven reference looks in `reference/`:
   1. re-entry heat in several colours;
   2. aero and condensation effects;
@@ -52,7 +56,13 @@ Written 2026-10-24 by the coordinator (owner's CTO mandate), from the owner's re
 
 ## Decisions (ADR 0330)
 
-1. **A locked 120 on Chrome and Edge is the target.** On Safari the target is a locked 60, because Safari caps ProMotion near 60. The budget is ≤ 7 ms of GPU time and ≤ 4–6 ms of main-thread time per frame. A frame that misses its slot shows for two refreshes, so averages do not count; the measure is the p95 frame interval.
+1. **Device tiers.**
+   - **M5-class and better:** a locked 120 on Chrome and Edge.
+   - **Base Macs (M1/M2) and mid-range Windows:** a locked 60, with Low or Medium as the default. Each look ships a cheap version for this tier.
+   - **Safari:** a locked 60.
+   - **Windows extras:** first-load shader compile time on Windows is part of the budget (plans 370/374).
+   
+   For the M5 tier: On Safari the target is a locked 60, because Safari caps ProMotion near 60. The budget is ≤ 7 ms of GPU time and ≤ 4–6 ms of main-thread time per frame. A frame that misses its slot shows for two refreshes, so averages do not count; the measure is the p95 frame interval.
 2. **Pixels are the lever.**
    - The 3D image renders at about 0.6 of the side and is rebuilt with TAAU (temporal anti-aliased upscaling). This replaces MSAA and the planet pass's bilinear upsample.
    - FSR 1 covers camera cuts and the WebGL2 path.
@@ -106,4 +116,5 @@ Drafts folded in:
 - **M5 Retina, Chrome, `high`, governor on:** p95 frame interval ≤ 8.4 ms at the pad, 3 km, 12 km and in orbit, with fewer than 1 % of frames over 16.7 ms in a 2-minute flight.
 - **Looks:** all seven reference looks exist, each with a quality setting and a switch. The owner judges them by hand.
 - **Mods:** a mod can add a textured planet that the sim collides with, and per-body plasma, cloud and plume data.
-- **Physics:** no fling on opening bays, doors, legs or petals in space. A vessel cannot pass through another vessel or the ground. Each fix has a unit test.
+- **Lower tiers:** a locked 60 on a base M2 and on a mid-range Windows PC at their default preset. These are measured by the owner or on other machines.
+- **Physics:** no fling on opening bays, doors, legs or petals in space. That includes the Wayfarer Shuttle's cargo bay and Kronos releasing its payload. A vessel cannot pass through another vessel or the ground. Each fix has a unit test.
