@@ -64,7 +64,8 @@ describe('patches over the stock registries', () => {
 			resource: {},
 			body: {},
 			building: {},
-			category: {}
+			category: {},
+			'crew-outfit': {}
 		});
 	});
 

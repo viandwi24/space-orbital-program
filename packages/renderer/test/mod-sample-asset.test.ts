@@ -86,7 +86,7 @@ describe('the sample mod asset part', () => {
 		expect(provider.failures.size).toBe(0);
 		const model = factory.create(PART);
 		expect(warnings).toEqual([]);
-		expect(model.triangles).toBe(asset.info.triangles);
+		expect(model.triangles).toBe(asset.info!.triangles);
 		expect(model.bounds.max.y).toBeCloseTo(0.5, 2);
 		expect(model.bounds.min.y).toBeCloseTo(-0.5, 2);
 		expect(model.bounds.max.x).toBeLessThanOrEqual(0.625 + 0.0625);

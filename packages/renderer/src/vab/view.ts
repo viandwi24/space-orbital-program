@@ -59,6 +59,16 @@ import {
 } from './hangar-signs.ts';
 import { StabilityMarkerKit } from './stability-markers.ts';
 import {
+	ZEN_BACKGROUND,
+	ZEN_LIGHTS,
+	applyLook,
+	createStudio,
+	lightLook,
+	type HangarLook,
+	type LookTargets,
+	type Studio
+} from './studio.ts';
+import {
 	ARROW_LENGTH,
 	GIZMO_AXES,
 	GizmoKit,
@@ -123,6 +133,8 @@ export interface VabViewConfig {
 	reducedMotion?: boolean;
 	/** Daylight of the hangar, 0 = dawn to 1 = dusk (`high` only); default a fixed afternoon. */
 	timeOfDay?: number;
+	/** The realistic hangar or the studio (plan 375); default normal. */
+	look?: HangarLook;
 }
 
 export type VabHit =
@@ -188,6 +200,12 @@ export class VabView {
 	private readonly rimLight: DirectionalLight;
 	private readonly fill: HemisphereLight;
 	private readonly glowLight: PointLight;
+	/** The studio's fill (plan 375): dark in the normal look, so the light set never changes. */
+	private readonly studioFill: DirectionalLight;
+	private readonly spot: SpotLight;
+	private readonly studio: Studio;
+	private readonly lookTargets: LookTargets;
+	private look: HangarLook;
 	private readonly layer: PartLayer;
 	private readonly glyphKit = new StabilityMarkerKit();
 	/** The move and rotate gizmo (plan 279). */
@@ -299,15 +317,99 @@ export class VabView {
 		const spot = new SpotLight(0xfff4e6, 900, 70, 0.34, 0.7, 1.6);
 		spot.position.set(0.5, 40, 1.5);
 		spot.target.position.set(0, 3, 0);
+		this.spot = spot;
 		this.scene.add(spot, spot.target);
+		// The studio's fill from the front left (plan 375); off in the normal look.
+		this.studioFill = new DirectionalLight(0xffffff, 0);
+		this.studioFill.position.set(-18, 12, 20);
+		this.studioFill.target.position.set(0, 6, 0);
+		this.scene.add(this.studioFill, this.studioFill.target);
 		this.scene.add(this.layer.root);
 		for (const light of this.hangar.workLights) this.scene.add(light);
 		this.scene.add(this.props);
 		this.buildProps(config.props ?? []);
 		this.bakeEnvironment();
 
+		// The studio look (plan 375): one light set and one scene for both looks, so a switch only
+		// changes intensities and visibility of objects compiled in advance (`warmLooks`).
+		this.studio = createStudio(PLATFORM_TOP);
+		this.scene.add(this.studio.root);
+		this.lookTargets = {
+			hangar: [this.hangar.root, this.props],
+			studio: this.studio.root,
+			lights: [
+				lightLook(this.key, ZEN_LIGHTS.key),
+				lightLook(this.rimLight, ZEN_LIGHTS.rim),
+				lightLook(this.fill, ZEN_LIGHTS.sky),
+				lightLook(this.glowLight, ZEN_LIGHTS.off),
+				lightLook(this.spot, ZEN_LIGHTS.off),
+				lightLook(this.studioFill, ZEN_LIGHTS.fill),
+				...this.hangar.workLights.map((l) => lightLook(l, ZEN_LIGHTS.off))
+			],
+			fog: this.scene.fog as FogExp2,
+			fogDensity: { normal: (this.scene.fog as FogExp2).density, zen: 0 },
+			background: this.scene.background as Color,
+			backgroundColour: { normal: 0x0b1118, zen: ZEN_BACKGROUND }
+		};
+		this.look = config.look ?? 'normal';
+		this.warmLooks();
+
 		if (this.quality === 'high') this.buildComposer();
-		this.ready = this.drawSign();
+		// the signs get their textures once the fonts load: warm both looks again then (plan 375)
+		this.ready = this.drawSign().then(() => {
+			if (!this.disposed) this.warmLooks();
+		});
+	}
+
+	// --- looks (plan 375) ------------------------------------------------------------------------------------
+
+	/**
+	 * Compiles both looks' programs before the first frame: everything visible for one compile and
+	 * one draw (the shadow pass), then the chosen look. A later switch then meets no new shader.
+	 */
+	private warmLooks(): void {
+		for (const o of this.lookTargets.hangar) o.visible = true;
+		this.studio.root.visible = true;
+		try {
+			this.gl.compile(this.scene, this.camera);
+			// one draw too, off screen: `compile` skips the shadow pass's depth programs
+			// (every object, culling off for this draw: the light's frustum is fitted to the vessel later)
+			if (this.gl.shadowMap.enabled) {
+				const culled: Object3D[] = [];
+				this.scene.traverse((o) => {
+					if (o.frustumCulled) {
+						culled.push(o);
+						o.frustumCulled = false;
+					}
+				});
+				const target = new WebGLRenderTarget(4, 4);
+				const before = this.gl.getRenderTarget();
+				this.gl.setRenderTarget(target);
+				this.gl.render(this.scene, this.camera);
+				this.gl.setRenderTarget(before);
+				target.dispose();
+				for (const o of culled) o.frustumCulled = true;
+			}
+		} catch {
+			// a context that cannot compile now compiles on first use instead
+		}
+		this.applyLook();
+	}
+
+	private applyLook(): void {
+		applyLook(this.lookTargets, this.look);
+		this.gl.setClearColor(this.lookTargets.backgroundColour[this.look], 1);
+	}
+
+	/** The realistic hangar or the studio; the tools are the same in both. */
+	setLook(look: HangarLook): void {
+		if (look === this.look) return;
+		this.look = look;
+		this.applyLook();
+	}
+
+	get currentLook(): HangarLook {
+		return this.look;
 	}
 
 	// --- environment and decoration -------------------------------------------------------------------------
@@ -1033,7 +1135,7 @@ export class VabView {
 			);
 		gl.setScissorTest(false);
 		gl.shadowMap.enabled = prevShadow;
-		gl.setClearColor(0x0b1118, 1);
+		gl.setClearColor(this.lookTargets.backgroundColour[this.look], 1);
 		gl.setPixelRatio(prevRatio);
 		gl.setSize(prevSize.x, prevSize.y, false);
 		this.resize(this.width, this.height, true);
@@ -1168,7 +1270,7 @@ export class VabView {
 		this.camera.lookAt(...this.cam.target);
 		this.highlights.setTime(this.reduced ? 0 : this.time);
 		if (!this.reduced) pulseMarkers(this.markers.values(), this.time);
-		this.hangar.update(dt, this.time);
+		if (this.look === 'normal') this.hangar.update(dt, this.time);
 		this.glyphKit.orient(this.glyphs.values(), this.camera, this.fov, this.height);
 		if (this.gizmoKit.root.visible && this.gizmoKit.root.parent) {
 			const at = this.gizmoKit.root.getWorldPosition(new Vector3());
@@ -1262,6 +1364,7 @@ export class VabView {
 		this.markerKit.dispose();
 		this.highlights.dispose();
 		this.hangar.dispose();
+		this.studio.dispose();
 		for (const t of this.signTextures) t.dispose();
 		this.trestleGeometry.dispose();
 		this.trestleMaterial.dispose();

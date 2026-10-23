@@ -1,0 +1,10 @@
+{
+	"id": "crew-sample",
+	"version": "1.0.0",
+	"api": "^0.1.110",
+	"title": "Marching band (crew sample)",
+	"description": "A band outfit for the Hangar crew, a marching walk, a cheer, a star-eyed face, a portrait image, and a patch that paints stock's mechanics teal. The reference for the crew API.",
+	"author": "Orbital",
+	"licence": "Apache-2.0",
+	"dependencies": { "stock": "*" }
+}

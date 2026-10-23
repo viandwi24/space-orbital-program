@@ -1,14 +1,19 @@
 import { describe, expect, it } from 'vitest';
+import { loadPlugins } from '@orbital/core';
+import Stock from '@orbital/mod-stock';
+import { crewContentOf, setCrewContent } from '@orbital/renderer/crew';
 import { portraitSpec } from './portrait-model';
+
+setCrewContent(crewContentOf(loadPlugins([Stock]).registries));
 
 describe('crew portraits (plan 341)', () => {
 	it('is happy at the Space Center in the profession outfit, in the flight suit aboard', () => {
 		expect(portraitSpec({ id: 'a', profession: 'engineer', status: 'available' })).toMatchObject({
-			outfit: 'engineer',
+			outfit: 'stock.engineer',
 			expression: 'happy'
 		});
 		expect(portraitSpec({ id: 'a', profession: 'engineer', status: 'assigned' }).outfit).toBe(
-			'flight'
+			'stock.flight'
 		);
 	});
 

@@ -16,14 +16,18 @@ import {
 	modAssetSchema,
 	modPackageFingerprint,
 	sha256Hex,
+	assetTypeOfPath,
 	MOD_ASSET_TYPE,
 	type DecodedAssets,
 	type ModAsset
 } from './mod-assets.ts';
 
 export const MOD_PACKAGE_FORMAT = 'orbital-mod';
-/** Newest package format this game reads: 2 adds `assets` (ADR 0076); 1 packages still load. */
-export const MOD_PACKAGE_VERSION = 2;
+/**
+ * Newest package format this game reads: 2 adds `assets` (ADR 0076), 3 adds image assets (ADR
+ * 0313 point 4); older packages still load.
+ */
+export const MOD_PACKAGE_VERSION = 3;
 /** Largest `code` a package may carry, characters. */
 export const MAX_MOD_CODE_LENGTH = 8_000_000;
 
@@ -93,7 +97,7 @@ export type ModManifest = z.output<typeof modManifestSchema>;
 
 export const modPackageSchema = z.strictObject({
 	format: z.literal(MOD_PACKAGE_FORMAT),
-	formatVersion: z.union([z.literal(1), z.literal(2)]),
+	formatVersion: z.union([z.literal(1), z.literal(2), z.literal(3)]),
 	manifest: modManifestSchema,
 	code: z.string().min(1).max(MAX_MOD_CODE_LENGTH),
 	/** Files the mod ships, by path (format 2). Models are `.glb` (ADR 0076). */
@@ -153,6 +157,13 @@ export async function parseModPackage(text: string): Promise<ParsedModPackage> {
 	if (assets !== undefined && parsed.data.formatVersion < 2) {
 		return { ok: false, errors: ['assets: a format 1 package cannot carry assets.'] };
 	}
+	if (
+		assets !== undefined &&
+		parsed.data.formatVersion < 3 &&
+		Object.values(assets).some((a) => a.type !== MOD_ASSET_TYPE)
+	) {
+		return { ok: false, errors: ['assets: images need a format 3 package.'] };
+	}
 	if (assets !== undefined) {
 		const decoded = await decodeAssets(assets);
 		if (!decoded.ok) return { ok: false, errors: decoded.errors };
@@ -183,7 +194,7 @@ export async function createModPackage(
 	for (const path of paths) {
 		const bytes = files[path]!;
 		assets[path] = {
-			type: MOD_ASSET_TYPE,
+			type: assetTypeOfPath(path) ?? MOD_ASSET_TYPE,
 			size: bytes.byteLength,
 			sha256: await sha256Hex(bytes),
 			data: bytesToBase64(bytes)
@@ -192,7 +203,11 @@ export async function createModPackage(
 	const withAssets = paths.length > 0;
 	const pkg = modPackageSchema.parse({
 		format: MOD_PACKAGE_FORMAT,
-		formatVersion: withAssets ? 2 : 1,
+		formatVersion: Object.values(assets).some((a) => a.type !== MOD_ASSET_TYPE)
+			? 3
+			: withAssets
+				? 2
+				: 1,
 		manifest,
 		code,
 		...(withAssets ? { assets } : {}),
@@ -479,6 +494,16 @@ export async function resolveMods(
 						refs.push({ part: def.id, mod: m.id, path: lod.asset, lod: i + 1 });
 					}
 					if (missing) break;
+				}
+				// A crew portrait names an image the package ships (ADR 0313 point 4).
+				for (const { def, by } of trial.registries.crewPortraits.entries()) {
+					if (by !== m.id || missing) continue;
+					const asset = decoded.get(def.image);
+					if (!asset) {
+						missing = `portrait "${def.id}" names the image "${def.image}", which the package does not carry`;
+					} else if (asset.type === MOD_ASSET_TYPE) {
+						missing = `portrait "${def.id}" names "${def.image}", which is not an image`;
+					}
 				}
 				if (missing) {
 					reject(m, missing, 'assets');

@@ -1,18 +1,16 @@
 import { describe, expect, it } from 'bun:test';
 import { Box3, Vector3 } from 'three';
 import { buildCharacter, piecesHeight } from '../src/crew/character.ts';
-import {
-	CREW_HEIGHT,
-	EXPRESSIONS,
-	OUTFIT_IDS,
-	SKIN_NAMES,
-	appearanceOf,
-	outfitForProfession
-} from '../src/crew/outfits.ts';
+import { stockRegistries } from './stock-crew.ts';
+import { CREW_HEIGHT, appearanceOf, outfitForProfession } from '../src/crew/outfits.ts';
 import { characterGeometry, createCrewMaterial, createPerson } from '../src/crew/person.ts';
 import { REST_POSE, STEP, personPose } from '../src/crew/poses.ts';
 
-describe('crew character (plan 341)', () => {
+const OUTFIT_IDS = stockRegistries.crewOutfits.list().map((o) => o.id);
+const EXPRESSIONS = stockRegistries.crewExpressions.list().map((e) => e.id);
+const SKINS = stockRegistries.crewLooks.list().filter((l) => l.kind === 'skin');
+
+describe('crew character (plan 341; content from stock since plan 375)', () => {
 	it('every outfit stands 1.6–1.85 m tall with the feet on the ground', () => {
 		for (const outfit of OUTFIT_IDS) {
 			const h = piecesHeight(buildCharacter({ outfit }));
@@ -25,7 +23,7 @@ describe('crew character (plan 341)', () => {
 	});
 
 	it('the bare head and hair reach about CREW_HEIGHT', () => {
-		const h = piecesHeight(buildCharacter({ outfit: 'flight' }));
+		const h = piecesHeight(buildCharacter({ outfit: 'stock.flight' }));
 		expect(Math.abs(h.max - CREW_HEIGHT)).toBeLessThan(0.06);
 	});
 
@@ -44,28 +42,29 @@ describe('crew character (plan 341)', () => {
 
 	it('builds every expression with face pieces', () => {
 		for (const expression of EXPRESSIONS) {
-			const pieces = buildCharacter({ outfit: 'flight', expression });
+			const pieces = buildCharacter({ outfit: 'stock.flight', expression });
 			expect(pieces.some((p) => p.role === 'pupil')).toBe(true);
 		}
 	});
 
 	it('the EVA helmet is the only helmet piece, and can be left off', () => {
-		const eva = buildCharacter({ outfit: 'eva' });
+		const eva = buildCharacter({ outfit: 'stock.eva' });
 		expect(eva.some((p) => p.helmet)).toBe(true);
-		expect(buildCharacter({ outfit: 'flight' }).some((p) => p.helmet)).toBe(false);
-		expect(buildCharacter({ outfit: 'eva', noHelmet: true }).some((p) => p.helmet)).toBe(false);
+		expect(buildCharacter({ outfit: 'stock.flight' }).some((p) => p.helmet)).toBe(false);
+		expect(buildCharacter({ outfit: 'stock.eva', noHelmet: true }).some((p) => p.helmet)).toBe(false);
 	});
 
 	it('the look of a crew id is stable and varies across ids', () => {
 		expect(appearanceOf('crew-7')).toEqual(appearanceOf('crew-7'));
 		const skins = new Set(Array.from({ length: 60 }, (_, i) => appearanceOf(`c${i}`).skin));
-		expect(skins.size).toBe(SKIN_NAMES.length);
-		expect(outfitForProfession('engineer')).toBe('engineer');
-		expect(outfitForProfession('pilot')).toBe('flight');
+		expect(skins.size).toBe(SKINS.length);
+		expect(outfitForProfession('engineer').id).toBe('stock.engineer');
+		expect(outfitForProfession('pilot').id).toBe('stock.flight');
+		expect(outfitForProfession('nobody').id).toBe('stock.flight');
 	});
 
 	it('one skinned geometry with one bone per vertex', () => {
-		const g = characterGeometry({ outfit: 'engineer' });
+		const g = characterGeometry({ outfit: 'stock.engineer' });
 		const w = g.getAttribute('skinWeight');
 		for (let i = 0; i < w.count; i += 97) expect(w.getX(i)).toBe(1);
 		expect(g.getAttribute('color').count).toBe(g.getAttribute('position').count);
@@ -73,7 +72,7 @@ describe('crew character (plan 341)', () => {
 	});
 
 	it('a person poses its limbs and keeps its height', () => {
-		const p = createPerson({ outfit: 'scientist' }, createCrewMaterial());
+		const p = createPerson({ outfit: 'stock.scientist' }, createCrewMaterial());
 		p.pose(personPose('wave', 1));
 		expect(p.bones.armR.rotation.z).toBeLessThan(-2);
 		p.pose(REST_POSE);

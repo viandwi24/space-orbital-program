@@ -6,7 +6,7 @@
  */
 import type { LoadReport, PatchTarget, Plugin, RegistryKind } from '@orbital/core';
 import { BUILTIN_PLUGINS } from '../builtins';
-import { activePlugins, evaluateMods } from '../mods/runtime';
+import { activePlugins, evaluateMods, modRuntime } from '../mods/runtime';
 import { openModStore } from '../mods/store-idb';
 
 export const INCLUDE_DISABLED_KEY = 'orbital.dev.includeDisabled';
@@ -15,22 +15,25 @@ export interface DevPlugins {
 	plugins: Plugin[];
 	/** Mod ids booted only because of the switch (they are off in Mods). */
 	extra: string[];
+	/** The booted mods' decoded assets, by mod then path (portrait images). */
+	assets: ReadonlyMap<string, ReadonlyMap<string, Uint8Array>>;
 }
 
 /** The plugin list for the viewers. */
 export async function devPlugins(includeDisabled: boolean): Promise<DevPlugins> {
 	const base = [...BUILTIN_PLUGINS, ...activePlugins()];
-	if (!includeDisabled) return { plugins: base, extra: [] };
+	if (!includeDisabled) return { plugins: base, extra: [], assets: modRuntime().assets };
 	try {
 		const records = await (await openModStore()).store.list();
 		const all = await evaluateMods(records, { includeDisabled: true });
 		const on = new Set(activePlugins().map((p) => p.meta.id));
 		return {
 			plugins: [...BUILTIN_PLUGINS, ...all.plugins],
-			extra: all.plugins.map((p) => p.meta.id).filter((id) => !on.has(id))
+			extra: all.plugins.map((p) => p.meta.id).filter((id) => !on.has(id)),
+			assets: all.assets
 		};
 	} catch {
-		return { plugins: base, extra: [] };
+		return { plugins: base, extra: [], assets: modRuntime().assets };
 	}
 }
 

@@ -1,0 +1,9 @@
+{
+	"extends": "../../tsconfig.base.json",
+	"compilerOptions": {
+		// Environment-neutral: no DOM lib. Browser/Bun-only APIs must not be used here.
+		"lib": ["ESNext"],
+		"types": ["bun"]
+	},
+	"include": ["src/**/*.ts", "test/**/*.ts", "assets.ts"]
+}

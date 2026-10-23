@@ -3,8 +3,8 @@
  * Stable surface — changes follow docs/conventions/versioning.md.
  *
  * Plugin authors: definePlugin / defineModule / definePart / defineResource / defineBody /
- * defineSystem / definePatch / defineRule / definePreset / defineDataKind / defineActionGroup / defineObjective / defineContract / defineContractTemplate / defineStrategy / defineAgency / defineDiscoveryFact / defineMission / defineCrewTrait / defineCrewNames / defineSiteTemplate / defineExperiment / defineSituation / defineAntenna / defineBand / defineGroundStation / defineCategory / defineDossierEntry / defineSystemVariant (`./define.ts`), plus `z` for module config schemas. Hosts and tests boot plugins
- * defineSystem / definePatch / defineRule / definePreset / defineDataKind / defineActionGroup / defineObjective / defineContract / defineContractTemplate / defineMission / defineCrewTrait / defineCrewNames / defineSiteTemplate / defineExperiment / defineSituation / defineAntenna / defineBand / defineRoutePolicy / defineGroundStation / defineCategory / defineDossierEntry / defineSystemVariant (`./define.ts`), plus `z` for module config schemas. Hosts and tests boot plugins
+ * defineSystem / definePatch / defineRule / definePreset / defineDataKind / defineActionGroup / defineObjective / defineContract / defineContractTemplate / defineStrategy / defineAgency / defineDiscoveryFact / defineMission / defineCrewTrait / defineCrewNames / defineCrewOutfit / defineCrewLook / defineCrewExpression / defineCrewAnimation / defineCrewPortrait / defineSiteTemplate / defineExperiment / defineSituation / defineAntenna / defineBand / defineGroundStation / defineCategory / defineDossierEntry / defineSystemVariant (`./define.ts`), plus `z` for module config schemas. Hosts and tests boot plugins
+ * defineSystem / definePatch / defineRule / definePreset / defineDataKind / defineActionGroup / defineObjective / defineContract / defineContractTemplate / defineMission / defineCrewTrait / defineCrewNames / defineCrewOutfit / defineCrewLook / defineCrewExpression / defineCrewAnimation / defineCrewPortrait / defineSiteTemplate / defineExperiment / defineSituation / defineAntenna / defineBand / defineRoutePolicy / defineGroundStation / defineCategory / defineDossierEntry / defineSystemVariant (`./define.ts`), plus `z` for module config schemas. Hosts and tests boot plugins
  * with `loadPlugins`. Everything else re-exported here is a type or helper a mod may need.
  */
 export * from './define.ts';
@@ -25,6 +25,15 @@ export {
 } from '@orbital/core';
 export { satisfies as apiSatisfies } from '@orbital/core';
 export { PATCH_TARGETS } from '@orbital/core';
+export {
+	CREW_ANIMATION_ROLES,
+	CREW_HAIR_STYLES,
+	CREW_MOODS,
+	CREW_OUTFIT_USES,
+	CREW_POSE_CHANNELS,
+	REST_CREW_POSE,
+	crewPoseAt
+} from '@orbital/core';
 export { NODE_SIZES, nodeSize, nodeSizeClass, nodeSizesMatch } from '@orbital/core';
 export { powerBudget } from '@orbital/core';
 export { resolveSiteTemplate, siteConsequences, siteDistance } from '@orbital/core';
@@ -394,6 +403,17 @@ export type {
 	CrewMember,
 	CrewNamesDefinition,
 	CrewTraitDefinition,
+	CrewAnimationDefinition,
+	CrewAnimationRole,
+	CrewExpressionDefinition,
+	CrewLookDefinition,
+	CrewLookKind,
+	CrewMood,
+	CrewOutfitDefinition,
+	CrewOutfitUse,
+	CrewPortraitDefinition,
+	CrewPose,
+	CrewPoseContext,
 	Profession,
 	TrajectoryCapabilities,
 	TrajectoryModel,

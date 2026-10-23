@@ -4,9 +4,9 @@ import type { LibraryStore, StoredRecord } from './library';
 const DB = 'orbital';
 const STORE = 'library';
 
-function open(): Promise<IDBDatabase> {
+function open(db: string): Promise<IDBDatabase> {
 	return new Promise((resolve, reject) => {
-		const request = indexedDB.open(DB, 1);
+		const request = indexedDB.open(db, 1);
 		request.onupgradeneeded = () => request.result.createObjectStore(STORE, { keyPath: 'id' });
 		request.onsuccess = () => resolve(request.result);
 		request.onerror = () => reject(request.error ?? new Error('IndexedDB could not be opened'));
@@ -21,10 +21,13 @@ function done<T>(request: IDBRequest<T>): Promise<T> {
 	});
 }
 
-/** A store on the browser's IndexedDB. Rejects when it is unavailable; wrap it with `withFallback`. */
-export function indexedDbStore(): LibraryStore {
+/**
+ * A store on the browser's IndexedDB. Rejects when it is unavailable; wrap it with `withFallback`.
+ * `database`: the developer sandbox keeps its own library (`orbital-dev`, plan 375).
+ */
+export function indexedDbStore(database = DB): LibraryStore {
 	let db: Promise<IDBDatabase> | null = null;
-	const get = (): Promise<IDBDatabase> => (db ??= open());
+	const get = (): Promise<IDBDatabase> => (db ??= open(database));
 	const store = async (mode: IDBTransactionMode): Promise<IDBObjectStore> =>
 		(await get()).transaction(STORE, mode).objectStore(STORE);
 	return {

@@ -13,7 +13,7 @@ export const DEV_TABS: readonly DevTab[] = [
 	{ id: 'overview', label: 'Overview', path: '/developer', full: false },
 	{ id: 'parts', label: 'Parts', path: '/developer/parts', full: true },
 	{ id: 'crew', label: 'Crew', path: '/developer/crew', full: true },
-	{ id: 'hangar', label: 'Hangar', path: '/developer/hangar', full: true, soon: true },
+	{ id: 'hangar', label: 'Hangar', path: '/developer/hangar', full: true },
 	{ id: 'blueprints', label: 'Blueprints', path: '/developer/blueprints', full: false, soon: true },
 	{ id: 'mods', label: 'Mods', path: '/developer/mods', full: false }
 ];
