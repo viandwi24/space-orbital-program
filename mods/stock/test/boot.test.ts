@@ -124,6 +124,8 @@ describe('stock boots through the loader', () => {
 			'stock.engine-plate-5',
 			'stock.engine-plate-8',
 			'stock.engine-plate-9',
+			'stock.engine-plate-f1',
+			'stock.engine-plate-j2',
 			'stock.engine-vacuum',
 			'stock.engine-vacuum-xl',
 			'stock.engine-wide',

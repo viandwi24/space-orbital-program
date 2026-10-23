@@ -65,13 +65,14 @@ describe('stage delta-v with radial boosters', () => {
 	// Hand numbers (kg, N, s).
 	// The pod also carries 50 EC at 1e-6 kg each.
 	const podMass = 840 + 50e-6;
-	const tank = { dry: 250, prop: 400 * 5 + 490 * 5 };
-	const engine = 1250;
+	// realistic early-era stats since plan 380 (ADR 0317)
+	const tank = { dry: 1160, prop: 400 * 5 + 490 * 5 };
+	const engine = 275;
 	const decoupler = 40;
 	// 225 : 275 is exactly the engine's 0.9 : 1.1 mix, so both propellants run out together.
-	const booster = { dry: 450, prop: 225 * 5 + 275 * 5 };
-	const mdotCore = 215_000 / (300 * G0);
-	const mdotBooster = 150_000 / (270 * G0);
+	const booster = { dry: 1025, prop: 225 * 5 + 275 * 5 };
+	const mdotCore = 215_000 / (250 * G0);
+	const mdotBooster = 150_000 / (255 * G0);
 	const m0 = podMass + tank.dry + tank.prop + engine + n * (decoupler + booster.dry + booster.prop);
 
 	it('stage 0 is the burn until the boosters are empty', () => {
@@ -99,7 +100,7 @@ describe('stage delta-v with radial boosters', () => {
 		const fuelLeft = 400 - 0.09 * mdotCore * tBoost;
 		const tCore = fuelLeft / (0.09 * mdotCore);
 		const after = before - mdotCore * tCore;
-		const expected = 300 * G0 * Math.log(before / after);
+		const expected = 250 * G0 * Math.log(before / after);
 		const s1 = report.stages[1]!;
 		expect(s1.stage).toBe(1);
 		near(s1.dvVacuum, expected);

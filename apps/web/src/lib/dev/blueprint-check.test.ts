@@ -33,6 +33,8 @@ const card = (id: string, d: VesselDesign): BlueprintCard => ({
 	origin: 'mod',
 	goal: 'orbit',
 	crew: 0,
+	systems: 'Stock',
+	fits: true,
 	summary: 'test',
 	build: () => d
 });

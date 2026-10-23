@@ -25,7 +25,7 @@
 	import BodyLabels from '../../../lib/map/BodyLabels.svelte';
 	import type { BodyLabel } from '../../../lib/map/body-labels';
 	import { categoriesOf } from '../../../lib/editor/categories';
-	import { loadPlugins } from '@orbital/core';
+	import { homeBodyOf, loadPlugins } from '@orbital/core';
 	import Stock from '@orbital/mod-stock';
 	import { activePlugins } from '../../../lib/mods/runtime';
 	import {
@@ -980,6 +980,8 @@
 			(await saves.worldStartInfo(activeWorldId()));
 		const own = info ? loadContent({ id: info.systemId, variant: info.variant }) : undefined;
 		if (own) siteBuildings = own.world.buildings;
+		// the guide's orbit line is the world's own air (plan 380): 70 km at Home, 100 km on the Earth
+		airTop = homeBodyOf((own?.catalog ?? catalog).bodies, info)?.atmosphere?.height;
 		if (info) launchSites = sitesOf(info);
 		if (gone() || !ready) return undefined;
 		return begin(
@@ -1558,6 +1560,8 @@
 	});
 
 	/** The first-flight guide: what the player has done so far, as the step machine's input. */
+	/** Top of the world's home air, m (plan 380): the first-flight guide's orbit line. */
+	let airTop = $state<number | undefined>(undefined);
 	const observation = $derived.by((): Observation | null => {
 		if (!hud || hud.status !== 'flying' || !model) return null;
 		return {
@@ -1570,7 +1574,8 @@
 				sasMode: model.sas?.mode ?? 'off',
 				map: hud.map,
 				apoapsis: model.orbit?.apoapsis ?? null,
-				periapsis: model.orbit && !model.orbit.escape ? model.orbit.periapsis : null
+				periapsis: model.orbit && !model.orbit.escape ? model.orbit.periapsis : null,
+				...(airTop === undefined ? {} : { airTop })
 			}
 		};
 	});
@@ -1931,6 +1936,7 @@
 							step={tutorialStep}
 							label={stepLabel(settings.tutorial, 'flight')}
 							touch={touchOn}
+							air={airTop}
 							onskip={() => settings.setTutorial(skip(settings.tutorial))}
 						/>
 					{/if}

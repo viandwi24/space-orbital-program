@@ -312,6 +312,8 @@
 | 361 | [Shuttle landing and re-entry: retractable gear, a drag chute, SAS Re-entry, roll held](plans/361-shuttle-landing-and-reentry.md) | done | part visuals session | Owner's Shuttle report. ADR 0303: pointing modes keep roll, prograde/retrograde level the wings in the air, a Re-entry mode holds 40° belly first. Retractable `stock.wheel` gear (orbiter main and nose gear), `stock.drag-chute`; Wayfarer carries both. Journal 371. |
 | 366 | [Trajectories rework](plans/366-trajectories-rework.md) | done | mod world API session | ADR 0307. The path shows when it helps: never on the ground, the pad or a stable orbit, fading in past 1 km in Flight, in the map whenever it comes down; a thin heat-coloured arc clear of the vessel; panel settings and a landing target picked on the map (`pick` node, `mod-key` data). API 0.1.108. Journal 366. |
 | 378 | [Hangar nested editing](plans/378-hangar-nested-editing.md) | done | hangar placement UX session | ADR 0315. Selection and hover as a stencil silhouette outline (no fill over what a shell holds); see-through shells a faint veil; open shells reached through; inside mode (double click, Inside on the card, the Parts list) with a breadcrumb and Esc; Section cut; click again for the part behind with a pick list |
+| 380 | [Realistic part stats in every system](plans/380-realistic-parts-in-every-system.md) | done | realistic parts session | ADR 0317, API 0.1.116. Owner 2026-10-23: one set of realistic stats per part, no per-system patches, the system sets the difficulty; eras by tech tier (early parts V-2/LR-79 class: two stages to orbit in stock). Rules in `mods/stock/src/parts/realism.ts` with a band test; Sol balance patches gone; Δv from the world's bodies (Hangar, Create World with Easy/Medium/Realistic, guide, lessons); Guidance ascent burns on into orbit; blueprints list their systems, a real-size Kronos V and a Titan-like launcher for Sol 1:1; headless flights per blueprint and system. Journal 380. |
+| 385 | [Wayfarer at Sol scale](plans/385-wayfarer-at-sol-scale.md) | draft | — | From plan 380: the Shuttle reaches orbit in stock only; a Sol-scale tank and boosters, and the ascent after booster separation. |
 
 Statuses: `draft` (needs refinement before an agent takes it) · `ready` · `in-progress` · `done` · `blocked`.
 
@@ -404,6 +406,7 @@ The owner takes the remaining performance work on the M5; the M2 handles the fix
 
 ## Recent journal entries
 
+- [380 — Realistic part stats in every system](journal/380-realistic-parts-in-every-system.md)
 - [382 — Small-body terrain and body names on the map](journal/382-small-body-terrain-and-map-body-labels.md)
 - [383 — Compact navball](journal/383-compact-navball.md)
 - [375 — Developer tools](journal/375-developer-tools.md)

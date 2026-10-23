@@ -6,6 +6,7 @@ import { blueprintDesign } from '../blueprint-registry';
 import type { Lesson } from './lessons';
 import {
 	HOME_AIR,
+	LOW,
 	IN_PARKING_ORBIT,
 	LIGHT,
 	PARKING,
@@ -29,7 +30,7 @@ export const FLIGHT_LESSONS: readonly Lesson[] = [
 		level: 'flight',
 		title: 'Ascent with the Guidance Computer',
 		summary:
-			'Pathfinder on the pad again: add the Guidance Computer to the dock, set an 80 km orbit on its Ascent tab and let it fly the gravity turn, the staging and the circularisation.',
+			`Pathfinder on the pad again: add the Guidance Computer to the dock, set an ${LOW} orbit on its Ascent tab and let it fly the gravity turn, the staging and the circularisation.`,
 		design: pathfinder,
 		setup: [],
 		blocked: { actions: {}, places: closedPlaces() },
@@ -54,7 +55,7 @@ export const FLIGHT_LESSONS: readonly Lesson[] = [
 			{
 				id: 'engage',
 				title: 'Engage Ascent',
-				text: 'On the Ascent tab, leave the orbit at 80 km and the inclination at 0°, and press Engage. The program throttles up and stages by itself.',
+				text: `On the Ascent tab, leave the orbit at ${LOW} and the inclination at 0°, and press Engage. The program throttles up and stages by itself.`,
 				targets: { commands: ['autopilot-engage'] },
 				done: (o) => o.autopilot === 'guidance.ascent'
 			},

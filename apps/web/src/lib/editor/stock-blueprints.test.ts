@@ -21,10 +21,20 @@ describe("stock's blueprints (ADR 0316)", () => {
 	for (const source of BLUEPRINT_SOURCES) {
 		it(`${source.id} equals what its builder makes (bake again if not)`, () => {
 			const registered = registries.blueprints.get(source.id)!;
-			const { build, ...card } = source;
-			const { design, ...fields } = registered;
+			const { build, systems, ...card } = source;
+			const { design, systems: registeredSystems, ...fields } = registered;
 			expect(fields).toEqual(card);
 			expect(stableNumbers(design)).toEqual(stableNumbers(build(content)));
+			// each system's own design too (plan 380)
+			expect(stableNumbers(registeredSystems)).toEqual(
+				systems &&
+					stableNumbers(
+						systems.map(({ build: own, ...s }) => ({
+							...s,
+							...(own ? { design: own(content) } : {})
+						}))
+					)
+			);
 		});
 	}
 });

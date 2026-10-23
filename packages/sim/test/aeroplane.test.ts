@@ -50,8 +50,16 @@ export function testPlane(surfaces = true): VesselDesign {
 			},
 			{
 				index: 2,
-				part: partId('stock.engine-lv'),
+				// the 0.5 t cluster since plan 380: the realistic LV-T30 is light, and the plane trimmed
+				// nose-down with its mass forward (ADR 0317)
+				part: partId('stock.engine-cluster'),
 				parent: { index: 1, parentNode: 'bottom', node: 'top' }
+			},
+			// and the heat shield under it as tail ballast (0.38 t): together about the old engine's mass
+			{
+				index: 30,
+				part: partId('stock.heat-shield'),
+				parent: { index: 2, parentNode: 'bottom', node: 'top' }
 			},
 			wing(3, 0, 0.3, INCIDENCE, 1),
 			wing(4, Math.PI, 0.3, INCIDENCE, 1),
@@ -130,7 +138,7 @@ describe('aeroplanes (plan 063)', () => {
 		const noseY = 1 - 2 * (q.x * q.x + q.z * q.z);
 		expect(noseY).toBeGreaterThan(0.99);
 		expect(ground(sim, id).speed).toBeLessThan(0.05);
-		expect(parts(sim, id)).toBe(16);
+		expect(parts(sim, id)).toBe(17); // 16 and the tail ballast (plan 380)
 		sim.dispose();
 	}, 60_000);
 
@@ -321,9 +329,10 @@ describe('aeroplanes (plan 063)', () => {
 		const { sim, id } = await fly(disturbed, 'level');
 		const start = attitude(sim, id);
 		expect(Math.abs(start.bank)).toBeGreaterThan(0.3);
-		// 45 s to come back, then the wings stay level within 2 degrees and the nose within 4 of the
+		// 45 s to come back, then the wings stay level within 2 degrees and the nose within 6 of the
 		// horizon to 60 s (the test plane's few small tail surfaces are what make it slow; 4, not 3,
-		// since plan 212's colder, denser air aloft trims it about half a degree further)
+		// since plan 212's colder, denser air aloft trims it about half a degree further; 6 since plan
+		// 380: the heavier early-era tank moves its mass forward, and it trims nose-down 5.5)
 		run(sim, 45);
 		let bank = 0;
 		let pitch = 0;
@@ -338,7 +347,7 @@ describe('aeroplanes (plan 063)', () => {
 			`level: from bank ${deg(start.bank)} deg, worst bank ${deg(bank)} and pitch ${deg(pitch)} deg over 45 to 60 s`
 		);
 		expect(bank).toBeLessThan((2 * Math.PI) / 180);
-		expect(pitch).toBeLessThan((4 * Math.PI) / 180);
+		expect(pitch).toBeLessThan((6 * Math.PI) / 180);
 		sim.dispose();
 		// trim alone (no assist): nose-up trim raises the nose against nose-down trim
 		const noseAfter = async (trim: number) => {

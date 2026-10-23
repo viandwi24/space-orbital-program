@@ -255,13 +255,14 @@ describe('resource flow and staging', () => {
 	test('mass follows the propellant: the vessel gets lighter as it burns', async () => {
 		const { sim, id } = await pad();
 		const m0 = vesselMass(sim, sim.snapshot().vessels[0]!);
-		expect(m0).toBeCloseTo(12_890, 3); // plus 50 mg of electric charge
+		expect(m0).toBeCloseTo(12_760, 3); // plus 50 mg of electric charge (realistic early stats, plan 380)
 		sim.dispatch({ type: 'throttle', vessel: id, value: 1 });
 		sim.dispatch({ type: 'stage', vessel: id });
 		run(sim, 10);
 		const v = sim.snapshot().vessels[0]!;
 		const burned = 400 * 5 + 490 * 5 - (amounts(v, 5)[LF]! + amounts(v, 5)['stock.oxidizer']!) * 5;
-		expect(burned).toBeCloseTo(73.08 * 10, -1); // about 730 kg at 73.08 kg/s (sea-level Isp changes thrust, not flow)
+		// about 877 kg at 87.7 kg/s: 215 kN at 250 s (plan 380); sea-level Isp changes thrust, not flow
+		expect(burned).toBeCloseTo(87.7 * 10, -1);
 		expect(vesselMass(sim, v)).toBeCloseTo(m0 - burned, 3);
 	});
 

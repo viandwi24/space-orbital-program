@@ -13,7 +13,13 @@ import { newTestSim } from './helpers/test-mod.ts';
 const RADIUS = 600_000;
 const LF = 'stock.liquid-fuel';
 
-async function ascend(design: VesselDesign, tankIndex: number, limit = 1_500) {
+async function ascend(
+	design: VesselDesign,
+	tankIndex: number,
+	limit = 1_500,
+	untilDrop = false,
+	apoapsis = 100_000
+) {
 	const sim = await newTestSim();
 	const loaded = sim.dispatch({ type: 'load-vessel', design });
 	if (!loaded.ok) throw new Error(loaded.reason);
@@ -30,7 +36,8 @@ async function ascend(design: VesselDesign, tankIndex: number, limit = 1_500) {
 		// The radial decouplers are fired here, when every booster is dry; the cut fires the next stage.
 		stageCount: 0,
 		jettisonAtCut: true,
-		apoapsis: 200_000,
+		// 100 km since plan 380: early-era boosters and tanks (ADR 0317) carry it less far
+		apoapsis,
 		turnStart: 100,
 		turnEnd: 12_000,
 		turnPitch: 1.1
@@ -55,6 +62,7 @@ async function ascend(design: VesselDesign, tankIndex: number, limit = 1_500) {
 				droppedAt = sim.time;
 				const r = sim.dispatch({ type: 'stage', vessel });
 				if (!r.ok) throw new Error(r.reason);
+				if (untilDrop) break;
 			}
 		}
 	}
@@ -87,7 +95,8 @@ test('the asparagus rocket reaches orbit with its core tank full at booster sepa
 
 test('without the lines the core burns its own fuel meanwhile', async () => {
 	const design = saturnAsparagus(1, { lines: false });
-	const r = await ascend(design, 5);
+	// a high target keeps the first stage burning past booster burnout; only the drop is measured
+	const r = await ascend(design, 5, 1_500, true, 200_000);
 	expect(r.droppedAt).toBeDefined();
 	// Core engine at 6.6 u/s for the 44 s the boosters last.
 	expect(r.coreFuelAtDrop).toBeLessThan(150);

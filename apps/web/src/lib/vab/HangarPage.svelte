@@ -95,6 +95,8 @@
 		void worldSaves
 			.worldStartInfo(activeWorldId())
 			.then((info) => {
+				// the world's own bodies: Δv to orbit and gravity are the world's system's (plan 380)
+				vab.useWorld(info);
 				const site = sitesOf(info ?? { sites: [] })[0];
 				vab.capacity = site ? { site, on: limitsOn(info, vab.loaded.world) } : null;
 			})

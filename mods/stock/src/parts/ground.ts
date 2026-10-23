@@ -40,7 +40,8 @@ const wheelPart = (id: string, title: string, steer: number) =>
 		id,
 		title,
 		mass: kg(40),
-		cost: partCost(40, 'structure'),
+		// gear, like the rover wheels and the legs (system audit #25, plan 380)
+		cost: partCost(40, 'gear'),
 		impactTolerance: 6,
 		shape: { kind: 'box', size: [0.4, 0.3, 0.2] },
 		visual: {

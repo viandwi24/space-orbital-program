@@ -13,8 +13,16 @@
 		step,
 		label,
 		touch = false,
+		air = undefined,
 		onskip
-	}: { step: TutorialStep; label: string; touch?: boolean; onskip: () => void } = $props();
+	}: {
+		step: TutorialStep;
+		label: string;
+		touch?: boolean;
+		/** Top of the world's air, m (plan 380); stock's when absent. */
+		air?: number;
+		onskip: () => void;
+	} = $props();
 	const keys = $derived(stepKeys(step, settings.keymap, touch));
 </script>
 
@@ -26,7 +34,7 @@
 	ariaLabel="First flight guide"
 >
 	<h2>{step.title}</h2>
-	<p class="text">{stepText(step, settings.keymap, touch)}</p>
+	<p class="text">{stepText(step, settings.keymap, touch, air)}</p>
 	{#if keys.length > 0}
 		<p class="keys" aria-hidden="true">
 			{#each keys as k (k)}<Kbd>{k}</Kbd>{/each}

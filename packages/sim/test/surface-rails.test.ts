@@ -3,9 +3,9 @@ import type { Quat, Vec3, VesselSnapshot } from '@orbital/core';
 import { length, sub } from '@orbital/kepler';
 import { createAscent } from './helpers/ascent.ts';
 import { groundRelativeVelocity, rotateBy } from './helpers/ground.ts';
-import { createLanding } from './helpers/landing.ts';
+import { createLanding, defaultLanding } from './helpers/landing.ts';
 import { altitude, orbitState } from './helpers/measure.ts';
-import { lander, newSim, probe, stack, twoStage } from './helpers/vessels.ts';
+import { newSim, ORBIT_LANDER_ROOT_TO_FOOT, orbitLander, probe, stack, twoStage } from './helpers/vessels.ts';
 
 /** Plan 016 / ADR 0024: controlled vessels at rest on the ground go on surface-fixed rails. */
 type TestSim = Awaited<ReturnType<typeof newSim>>;
@@ -235,13 +235,13 @@ describe('a lander', () => {
 		sim.events.on('part:damaged', (e) => hurt.push(e));
 		const placed = sim.dispatch({
 			type: 'load-vessel',
-			design: lander(),
+			design: orbitLander(),
 			placement: { kind: 'state', ...orbitState(sim, 100_000) }
 		});
 		if (!placed.ok) throw new Error(placed.reason);
 		const id = placed.vessel!;
 		sim.dispatch({ type: 'stage', vessel: id });
-		const landing = createLanding(sim, id);
+		const landing = createLanding(sim, id, { ...defaultLanding, rootToFoot: ORBIT_LANDER_ROOT_TO_FOOT });
 		while (sim.time < 3_000 && landing.phase !== 'done') {
 			sim.step(0.02);
 			landing.update();
@@ -258,9 +258,10 @@ describe('a lander', () => {
 		const after = vesselOf(sim);
 		expect(after.mode).toBe('on-rails');
 		expect(length(sub(bodyFixed(sim, after), fixed0))).toBeLessThan(1e-6);
-		expect(altitude(after.position)).toBeGreaterThan(10);
-		expect(altitude(after.position)).toBeLessThan(11.5);
-		expect(after.parts).toHaveLength(6);
+		// the root stands its root-to-foot height over the ground (the orbit lander, plan 380)
+		expect(altitude(after.position)).toBeGreaterThan(ORBIT_LANDER_ROOT_TO_FOOT - 0.8);
+		expect(altitude(after.position)).toBeLessThan(ORBIT_LANDER_ROOT_TO_FOOT + 0.7);
+		expect(after.parts).toHaveLength(7);
 	}, 60_000);
 });
 

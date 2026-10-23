@@ -75,14 +75,15 @@ describe('stage delta-v with fuel lines (ADR 0071)', () => {
 	const n = 2;
 	const report = stageDeltaV(stagingModelFromDesign(asparagus(n, true), content));
 	const podMass = 840 + 50e-6;
-	const tank = { dry: 250, prop: 400 * 5 + 490 * 5 };
-	const engine = 1250;
+	// realistic early-era stats since plan 380 (ADR 0317)
+	const tank = { dry: 1160, prop: 400 * 5 + 490 * 5 };
+	const engine = 275;
 	const decoupler = 40;
 	const line = 10;
 	// 225 : 275 is exactly the 0.9 : 1.1 mix of both engines.
-	const booster = { dry: 450, prop: 225 * 5 + 275 * 5 };
-	const mdotCore = 215_000 / (300 * G0);
-	const mdotBooster = 150_000 / (270 * G0);
+	const booster = { dry: 1025, prop: 225 * 5 + 275 * 5 };
+	const mdotCore = 215_000 / (250 * G0);
+	const mdotBooster = 150_000 / (255 * G0);
 	const m0 =
 		podMass + tank.dry + tank.prop + engine + n * (decoupler + booster.dry + booster.prop + line);
 
@@ -106,7 +107,7 @@ describe('stage delta-v with fuel lines (ADR 0071)', () => {
 		const before = podMass + tank.dry + tank.prop + engine;
 		const tCore = 400 / (0.09 * mdotCore);
 		const after = before - mdotCore * tCore;
-		const expected = 300 * G0 * Math.log(before / after);
+		const expected = 250 * G0 * Math.log(before / after);
 		const s1 = report.stages[1]!;
 		expect(s1.stage).toBe(1);
 		near(s1.dvVacuum, expected);

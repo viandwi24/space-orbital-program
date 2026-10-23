@@ -44,13 +44,16 @@ export async function runParity(): Promise<{ orbit: ParityState; moon: ParitySta
 	};
 	const ascent = createAscent(sim, m.vessel, {
 		...defaultAscent,
-		stageCount: 1,
-		jettisonAtCut: true,
-		apoapsis: 100_000,
+		// the boosters, then the core: the lander finishes the ascent (plan 380)
+		stageCount: 2,
+		jettisonAtCut: false,
+		// an 80 km parking orbit since plan 380 (it was 100): the early-era lander has no Δv to spare
+		apoapsis: 80_000,
 		periapsis: 76_000,
 		turnStart: 100,
-		turnEnd: 25_000,
-		turnPitch: 1.2
+		// flatter since plan 380: the early-era core lofted and left the lander short
+		turnEnd: 30_000,
+		turnPitch: 1.4
 	});
 	while (sim.time < 1_500 && ascent.phase !== 'done') {
 		sim.step(0.02);

@@ -124,7 +124,7 @@ actions: {
 export const PartEngineLV = definePart({
 	id: 'stock.engine-lv',
 	title: 'LV-T30 Liquid Engine',
-	mass: kg(1_250),
+	mass: kg(275), // realistic for an early tier: 215 kN at thrust-to-weight 80 (plan 380)
 	shape: { kind: 'cylinder', radius: 0.625, height: 1.2 }, // physics and heating geometry, metres
 	visual: {
 		kind: 'engine', // which renderer generator draws it
@@ -140,8 +140,8 @@ export const PartEngineLV = definePart({
 			ModuleEngine,
 			{
 				thrust: 215_000, // vacuum thrust, N
-				ispVacuum: 300,
-				ispSeaLevel: 280,
+				ispVacuum: 250,
+				ispSeaLevel: 215,
 				propellants: [
 					{ resource: 'stock.liquid-fuel', ratio: 0.9 }, // relative volume
 					{ resource: 'stock.oxidizer', ratio: 1.1 }
@@ -166,6 +166,12 @@ export const PartEngineLV = definePart({
   - A node's `size` is its joint diameter, m. The stock classes (`NODE_SIZES`, ADR 0256) are 0.625, 1.25, 1.875, 2.5, 3.75, 5 and 7.5. Two joined stack nodes should have the same size; between classes, use an adapter. Stock has one for each step, from `stock.adapter-small` (0.625 to 1.25) to `stock.adapter-5000-7500`.
   - A stack node without a `size` takes the class nearest to its cylinder's diameter, by ratio. Since plan 289 added 1.875, **a size-less part about 1.53 to 2.17 m across now takes 1.875**: one from 1.53 to 1.77 m took 1.25 before, and one from 1.77 to 2.17 m took 2.5. Declare `size` on your nodes to keep the class you meant. Every stock part declares its sizes, and none changed.
 - `connector` (optional, API 0.1.19, ADR 0071): marks a strut or fuel line (see Lifting surfaces and Struts above). A radial part may now attach to a box-shaped parent (a control surface on a wing). Engines that report `axis` in `describe` get their cosine loss in the stage Δv when a design tilts them.
+- **Use realistic stats, and never patch parts per system (ADR 0317).** A part has one set of numbers in every star system; the system a world uses sets the difficulty (stock is easy, Sol rescaled medium, Sol 1:1 real). Stock's rules are data in `mods/stock/src/parts/realism.ts`, from the reference hardware in `docs/research/realistic-part-stats.md`:
+  - an engine's vacuum and sea-level Isp and its thrust-to-weight (vacuum thrust over dry mass × g0) in its kind's band: kerolox at sea level 289–340 / 250–312 s and TWR 60–120 (stock builds to 85), hydrolox 405–470 s, hypergolic 300–330 s and TWR 15–40, solids 240–290 s; the early kinds of the first tech tiers are lower (kerolox 230–310 s and TWR 20–100, storables 260–300 s, solids 200–255 s), so a mod's starting parts fit an early tech node;
+  - a tank's dry fraction (dry / (dry + propellant)) near its size class's: 12 % at 0.625 m, 9 % at 1.25 m, 6.5 % at 2.5 m, 5.5 % at 3.75 m, 4.5 % at 7.5 m (±30 %); ×2.3 for an early tank, ×0.85 for a modern one (`STOCK_TANK_ERA`);
+  - a solid motor's casing 8–20 % of the motor; a part that carries its own engine and propellant (a lander stage) at least as heavy as a bare tank of its propellant plus its engine.
+
+  `realismIssues(part, kinds, density)` checks a part against them and names the part, the value and the band; run it over your parts in a test as `mods/stock/test/realism.test.ts` does. A part that needs to be easier in a small system is the system's business, not the part's.
 - A part is plain data, so the same thing written as JSON (`modules: [["stock.engine", {...}]]`) is accepted and validated the same way.
 
 ## 4. Bodies
@@ -193,15 +199,16 @@ A body with no `parent`/`orbit` is a root body. A moon is a body with `parent` (
 ctx.systemVariants.register(defineSystemVariant({
 	id: 'acme.full', system: 'acme', variant: 'full', label: 'Full scale',
 	description: 'What this scale means for the player.', home: 'acme.terra',
-	facts: { dvToOrbit: 6_000, moonTransfer: 3 * 86_400 },
-	patches: [/* balance for this scale: ordinary patches (ADR 0170) */]
+	facts: { moonTransfer: 3 * 86_400, notes: 'What this scale asks of a player.' },
+	patches: [/* this scale's bodies: `set` patches on your own bodies (ADR 0170) */]
 }));
 ```
 
 - The loader keeps one system's bodies per world. Every plugin that registers a variant owns its bodies as a system, and every other plugin's bodies belong to stock.
 - The chosen variant's patches apply only in that variant's worlds. A smaller scale is a set of `set` patches on your own bodies that your pack computes (the Sol pack keeps surface gravity and periods real: sizes ×k, masses ×k², distances ×k^(2/3)).
 - `rotation.epoch: 'j2000'` measures your bodies' spin at J2000, like their orbits.
-- Create World shows each variant's `facts`.
+- Create World shows each variant's `facts` and the Δv to a low orbit, which the game computes from the variant's bodies (the trip planner's ascent model, ADR 0083); a declared `dvToOrbit` is ignored since API 0.1.116.
+- **System balance (ADR 0317).** A variant patches bodies, never parts: parts are the same in every system. Difficulty is the system's: stock's 600 km home asks about 3.3 km/s to an 80 km orbit, Sol rescaled about 5.2 km/s to 60 km, Sol 1:1 about 8.8 km/s to 110 km (the computed figures; real rockets fly about 9.4). The Hangar's trip line and pre-flight checks, Create World and the first-flight guide all read the world's own bodies. Mark which systems your blueprints are designed for (below).
 - `mods/sol` is the worked example, with its validation suite in `packages/sim/test/sol-validation.test.ts`.
 
 **A picture for your system (API 0.1.101, plan 317, ADR 0273).** Create World draws each system's card from its bodies: the star, the planets in orbit order, moons beside them, and sizes and tints from the data (air and hills make a blue world, craters a grey one, a large body without a surface a banded giant). You get that for free. To ship your own picture, give a variant `illustration` (the card) and `icon` (the square badge): each is a `data:` URL of an SVG, PNG, WebP or JPEG image, at most 128 KiB. The first variant that has one is used for the system. A preset takes the same two fields for its mode card (`definePreset({ ..., illustration })`). Presets without one get a generated orbit glyph in a colour from their id. Pictures are drawn as images, so an SVG's script never runs.
@@ -1119,3 +1126,4 @@ Since API 0.1.112 (ADR 0316) stock registers the game's own blueprints the same 
 - `goal` may also be `deep-space`.
 - Stock's designs are generated from the Hangar's builders (`apps/web/scripts/bake-stock-blueprints.ts`), and a test keeps them equal.
 - Developer → Blueprints checks every registered blueprint and opens it in the sandbox Hangar.
+- **Systems (API 0.1.116, plan 380, ADR 0317).** `systems: [{ system: 'stock' }, { system: 'sol', variant: '1:1', design: bigger }]` lists the systems a blueprint is designed for; absent, stock alone. An entry's own `design` replaces `design` in that system (stock's Kronos V is a Saturn V the real size at Sol 1:1). The Library builds each card's design for the world's system and marks a card that is not designed for it. `blueprintFits` and `blueprintDesignFor` (from `@orbital/sdk`) answer the same questions in your code; `apps/web/src/lib/editor/blueprint-systems.test.ts` flies every stock blueprint in every system.

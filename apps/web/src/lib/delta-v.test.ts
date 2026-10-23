@@ -23,9 +23,10 @@ const content: ContentLookups = {
 // Stock numbers written out by hand (mods/stock/src/parts.ts): the test must not read them from the code under test.
 const G0 = 9.80665;
 const THRUST = 215_000;
-const ISP_VAC = 300;
-const ISP_SL = 280;
-const MASS = { pod: 840, wheel: 100, tank: 250, engine: 1250, decoupler: 50 };
+// realistic early-era stats since plan 380 (ADR 0317): an early tank and a V-2-class engine
+const ISP_VAC = 250;
+const ISP_SL = 215;
+const MASS = { pod: 840, wheel: 100, tank: 1160, engine: 275, decoupler: 50 };
 const EC = 50 * 1e-6;
 const U = 5; // kg per unit of fuel / oxidizer
 const mdot = THRUST / (ISP_VAC * G0);
@@ -51,10 +52,11 @@ describe('stage delta-v of the stock two-stage vessel', () => {
 		expect(Math.abs(b!.dvSeaLevel / tsiolkovsky(ISP_SL, m2, m2 - burned) - 1)).toBeLessThan(1e-9);
 		expect(a!.burnTime).toBeCloseTo(burnTime, 9);
 	});
-	it('stays at the figures journal 022 recorded: 1,161 + 2,844 m/s at sea level, 1,244 + 3,047 m/s in vacuum', () => {
+	// journal 022 recorded 1,161 + 2,844 m/s at sea level; the early-era stats of plan 380 give less
+	it('stays at the figures of plan 380: 903 + 2,221 m/s at sea level, 1,050 + 2,582 m/s in vacuum', () => {
 		const [a, b] = report.stages;
-		expect([a!.dvSeaLevel, b!.dvSeaLevel].map(Math.round)).toEqual([1161, 2844]);
-		expect([a!.dvVacuum, b!.dvVacuum].map(Math.round)).toEqual([1244, 3047]);
+		expect([a!.dvSeaLevel, b!.dvSeaLevel].map(Math.round)).toEqual([903, 2221]);
+		expect([a!.dvVacuum, b!.dvVacuum].map(Math.round)).toEqual([1050, 2582]);
 	});
 	it('the total is the sum of the stages', () => {
 		const sum = tsiolkovsky(ISP_VAC, m1, m1 - burned) + tsiolkovsky(ISP_VAC, m2, m2 - burned);

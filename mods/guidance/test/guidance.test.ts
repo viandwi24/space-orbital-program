@@ -186,7 +186,14 @@ describe('Guidance Computer (plan 321)', () => {
 		expect(
 			sim.dispatch({ type: 'autopilot-engage', vessel: id, autopilot: 'guidance.ascent', params: { altitude: 80_000 } }).ok
 		).toBe(true);
-		const ended = fly(sim, id, 1_500);
+		let lastT = -100;
+		const ended = fly(sim, id, 1_500, (t) => {
+			const ap = vesselOf(sim, id)?.autopilot;
+			if (process.env.ASC_TRACE && ap && t - lastT >= 10) {
+				lastT = t;
+				console.log(Math.round(t), ap.phase, ap.status, JSON.stringify(ap.readouts));
+			}
+		});
 		const s = vesselOf(sim, id)!;
 		const o = orbitOf(s.position, s.velocity, mu);
 		expect(ended).toMatch(/^done/);

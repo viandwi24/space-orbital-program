@@ -1,6 +1,6 @@
 # 0184 — Systems and scale variants: selection in the loader, variant patches, J2000 rotation, the Sol pack
 
-**Status:** accepted
+**Status:** accepted; point 5's balance patches on parts superseded by ADR 0317 (parts are the same in every system)
 **Date:** 2026-10-18
 **Plan:** 124
 **Builds on:** ADR 0103 points 6 and 7 (Sol, scale variants, balance and validation), 0104 and 0170 (patches), 0110 (the world's `systemId` and `variant`), 0145 (pole times spin), 0183 (path models), 0142 (sites).

@@ -1,6 +1,6 @@
 /**
- * Reference vessels of each variant (plan 124, ADR 0184 point 6): stock parts under the variant's
- * balance profile. The validation suite flies them; players can start from them.
+ * Reference vessels of each variant (plan 124, ADR 0184 point 6): stock parts as they are in every
+ * system (plan 380, ADR 0317). The validation suite flies them; players can start from them.
  */
 import { partId, type VesselDesign } from '@orbital/sdk';
 
@@ -18,28 +18,30 @@ function stack(name: string, chain: readonly string[], stages: number[][]): Vess
 	};
 }
 
-/** Two stages to a low Earth orbit at real scale. */
+/**
+ * Two stages to a low Earth orbit at real scale (plan 380): a kerolox first stage on nine
+ * Merlin-class bells and a hydrolox upper stage on a J-2-class engine, like a Falcon 9 with a
+ * Centaur on top. About 12 km/s against the 9.4 km/s a low orbit costs.
+ */
 export function realScaleRocket(): VesselDesign {
 	const chain = [
 		'stock.command-pod',
 		'stock.reaction-wheel',
 		'stock.reaction-wheel',
-		'stock.tank-medium',
-		'stock.tank-medium',
-		'stock.engine-lv',
-		'stock.decoupler',
-		'stock.tank-medium',
-		'stock.tank-medium',
-		'stock.tank-medium',
-		'stock.tank-medium',
-		'stock.tank-medium',
-		'stock.tank-medium',
-		'stock.engine-lv'
+		'stock.adapter-large',
+		'stock.tank-wide',
+		'stock.tank-wide',
+		'stock.engine-vacuum-xl',
+		'stock.decoupler-wide',
+		'stock.adapter-2500-3750',
+		'stock.tank-3750-long',
+		'stock.tank-3750-long',
+		'stock.engine-plate-9'
 	];
-	return stack('Sol 1:1 orbiter', chain, [[chain.length - 1], [6, 5]]);
+	return stack('Sol 1:1 orbiter', chain, [[chain.length - 1], [7, 6]]);
 }
 
-/** Two stages to a low orbit of the rescaled Earth. */
+/** Two stages to a low orbit of the rescaled Earth: a 2.5 m kerolox first stage, the LV-T30 above. */
 export function rescaledRocket(): VesselDesign {
 	const chain = [
 		'stock.command-pod',
@@ -48,9 +50,9 @@ export function rescaledRocket(): VesselDesign {
 		'stock.tank-medium',
 		'stock.engine-lv',
 		'stock.decoupler',
-		'stock.tank-medium',
-		'stock.tank-medium',
-		'stock.engine-lv'
+		'stock.adapter-large',
+		'stock.tank-wide',
+		'stock.engine-wide'
 	];
 	return stack('Sol rescaled orbiter', chain, [[chain.length - 1], [5, 4]]);
 }
@@ -60,11 +62,14 @@ export function lunarOrbiter(): VesselDesign {
 	return stack('Sol lunar orbiter', ['stock.probe-core', 'stock.dish-antenna'], []);
 }
 
-/** A transfer stage, placed in the parking orbit the ascent reached: pod, wheel, tank, engine. */
+/**
+ * A transfer stage, placed in the parking orbit the ascent reached: pod, wheel, tank, engine. The tank
+ * is a later-tier 1.875 m one (plan 380): the early-era medium tank leaves it short of the Moon.
+ */
 export function transferStage(): VesselDesign {
 	return stack(
 		'Sol transfer stage',
-		['stock.command-pod', 'stock.reaction-wheel', 'stock.tank-medium', 'stock.engine-lv'],
+		['stock.command-pod', 'stock.reaction-wheel', 'stock.tank-1875', 'stock.engine-lv'],
 		[[3]]
 	);
 }

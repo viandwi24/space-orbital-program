@@ -5,6 +5,18 @@ import { ModuleParachute } from '../parachute.ts';
 import { cylinder, stackNodes, WIDE_RADIUS } from './shared.ts';
 
 /**
+ * The 1.25 m shield's ablator, kg, and the heat each kilogram carries away, J/kg (plan 380, ADR 0317):
+ * the values journal 124 measured for an orbital entry at real scale, now in every system. Larger
+ * shields scale the ablator with their area.
+ */
+export const SHIELD_ABLATOR = 300;
+export const SHIELD_HEAT_OF_ABLATION = 1.2e7;
+const shieldOf = (area: number) => ({
+	ablator: Math.round(SHIELD_ABLATOR * area),
+	heatOfAblation: SHIELD_HEAT_OF_ABLATION
+});
+
+/**
  * An ablative heat shield, 1.25 m class. Mount it at the end that faces the airflow in a
  * re-entry; it covers that end of the part above it (ADR 0023).
  */
@@ -21,7 +33,7 @@ export const PartHeatShield = definePart({
 	visual: { kind: 'heat-shield', palette: { primary: '#3a2d27' } },
 	attach: stackNodes(0.2),
 	crossfeed: false,
-	modules: [[ModuleHeatShield, {}]],
+	modules: [[ModuleHeatShield, shieldOf(1)]],
 	stagingIcon: 'shield'
 });
 
@@ -39,13 +51,13 @@ export const PartHeatShieldWide = definePart({
 	visual: { kind: 'heat-shield', palette: { primary: '#3a2d27' } },
 	attach: stackNodes(0.3, 2.5),
 	crossfeed: false,
-	modules: [[ModuleHeatShield, { ablator: 480 }]],
+	modules: [[ModuleHeatShield, shieldOf(4)]],
 	stagingIcon: 'shield'
 });
 
 /**
  * A heat shield of class `size` m (plan 289): mass and ablator grow with the area from the 1.25 m
- * shield (80 kg, 120 ablator). Heat shields stop at 5 m (ADR 0256).
+ * shield (80 kg dry, `SHIELD_ABLATOR` of ablator). Heat shields stop at 5 m (ADR 0256).
  */
 function classHeatShield(id: string, title: string, size: number, height: number) {
 	const area = (size / 1.25) ** 2;
@@ -63,7 +75,7 @@ function classHeatShield(id: string, title: string, size: number, height: number
 		visual: { kind: 'heat-shield', palette: { primary: '#3a2d27' } },
 		attach: stackNodes(height, size),
 		crossfeed: false,
-		modules: [[ModuleHeatShield, { ablator: Math.round(120 * area) }]],
+		modules: [[ModuleHeatShield, shieldOf(area)]],
 		stagingIcon: 'shield'
 	});
 }

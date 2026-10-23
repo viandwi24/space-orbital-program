@@ -30,6 +30,8 @@ export interface FlightObservation {
 	/** Orbit of the body being orbited: apoapsis and periapsis altitude in m, null on a hyperbola or without an orbit. */
 	apoapsis: number | null;
 	periapsis: number | null;
+	/** Top of the home body's air, m (the world's system, plan 380); stock's 70 km when absent. */
+	airTop?: number;
 }
 
 export type Observation =
@@ -50,13 +52,20 @@ export interface TutorialStep {
 	done(o: Observation): boolean;
 }
 
-/** The step's text for the keys in force; unknown placeholders are left as written (a test pins that none exist). */
+/**
+ * The step's text for the keys in force; `{air}` is the top of the world's air (plan 380). Unknown
+ * placeholders are left as written (a test pins that none exist).
+ */
 export function stepText(
 	step: Pick<TutorialStep, 'text' | 'touchText'>,
 	keymap: Keymap,
-	touch = false
+	touch = false,
+	air: number = TARGET_ORBIT
 ): string {
-	const text = touch ? (step.touchText ?? step.text) : step.text;
+	const text = (touch ? (step.touchText ?? step.text) : step.text).replace(
+		/\{air\}/g,
+		`${Math.round(air / 1000)} km`
+	);
 	return text.replace(/\{key:([A-Za-z]+)\}/g, (whole, id: string) => {
 		const label = keymap.label(id as ActionId);
 		return label === '' ? whole : label;
@@ -73,11 +82,16 @@ export function stepKeys(
 	return (step.actions ?? []).flatMap((a) => keymap.labels(a).slice(0, 1));
 }
 
-/** Above this height the atmosphere no longer shapes the orbit; the tutorial's orbit target, m. */
+/**
+ * Above this height the atmosphere no longer shapes the orbit: the tutorial's orbit target at the
+ * stock home, m. A world of another system passes its own (`FlightObservation.airTop`, plan 380).
+ */
 export const TARGET_ORBIT = 70_000;
 
 const flight = (o: Observation): FlightObservation | null =>
 	o.scene === 'flight' ? o.flight : null;
+/** The orbit target of this observation's world, m. */
+const target = (o: Observation): number => flight(o)?.airTop ?? TARGET_ORBIT;
 
 export const TUTORIAL_STEPS: readonly TutorialStep[] = [
 	{
@@ -91,7 +105,7 @@ export const TUTORIAL_STEPS: readonly TutorialStep[] = [
 		id: 'launch',
 		scene: 'vab',
 		title: 'Launch it',
-		text: 'The Pre-flight checks on the right should show no red items. Press the white LAUNCH above the vessel stats on the right, then LAUNCH on the launch screen. The Library has a Two-stage starter that reaches orbit.',
+		text: 'The Pre-flight checks on the right should show no red items. Press the white LAUNCH above the vessel stats on the right, then LAUNCH on the launch screen. The Library has a Two-stage starter that reaches orbit in the stock system (a Sol world needs a bigger rocket: see the Δv to orbit on the right).',
 		done: (o) => o.scene === 'flight'
 	},
 	{
@@ -142,11 +156,11 @@ export const TUTORIAL_STEPS: readonly TutorialStep[] = [
 		scene: 'flight',
 		point: 'dock-tab-host.orbit',
 		title: 'Raise the apoapsis',
-		text: 'Burn until Ap (the top of your orbit, in the Orbit panel on the left) passes 70 km. Press {key:stage} to drop an empty stage. {key:throttleCut} cuts the engine.',
+		text: 'Burn until Ap (the top of your orbit, in the Orbit panel on the left) passes {air}. Press {key:stage} to drop an empty stage. {key:throttleCut} cuts the engine.',
 		touchText:
-			'Burn until Ap (the top of your orbit, in the Orbit panel on the left) passes 70 km. Tap Stage to drop an empty stage. Tap Cut to cut the engine.',
+			'Burn until Ap (the top of your orbit, in the Orbit panel on the left) passes {air}. Tap Stage to drop an empty stage. Tap Cut to cut the engine.',
 		actions: ['throttleCut'],
-		done: (o) => (flight(o)?.apoapsis ?? 0) >= TARGET_ORBIT
+		done: (o) => (flight(o)?.apoapsis ?? 0) >= target(o)
 	},
 	{
 		id: 'map',
@@ -164,11 +178,11 @@ export const TUTORIAL_STEPS: readonly TutorialStep[] = [
 		scene: 'flight',
 		point: 'hud-warp',
 		title: 'Circularise',
-		text: 'Coast up to the Ap marker (the {key:warpDown} and {key:warpUp} keys warp time), then burn with SAS on prograde until Pe is above 70 km too.',
+		text: 'Coast up to the Ap marker (the {key:warpDown} and {key:warpUp} keys warp time), then burn with SAS on prograde until Pe is above {air} too.',
 		touchText:
-			'Coast up to the Ap marker (the warp buttons speed up time), then burn with SAS on prograde until Pe is above 70 km too.',
+			'Coast up to the Ap marker (the warp buttons speed up time), then burn with SAS on prograde until Pe is above {air} too.',
 		actions: ['warpDown', 'warpUp'],
-		done: (o) => (flight(o)?.periapsis ?? -Infinity) >= TARGET_ORBIT
+		done: (o) => (flight(o)?.periapsis ?? -Infinity) >= target(o)
 	}
 ];
 
@@ -208,7 +222,7 @@ export function advance(progress: TutorialProgress, o: Observation): TutorialPro
 	)
 		step = FIRST_FLIGHT;
 	// A rocket that already has an orbit above the atmosphere has done what the guide teaches.
-	if (o.scene === 'flight' && (o.flight.periapsis ?? -Infinity) >= TARGET_ORBIT)
+	if (o.scene === 'flight' && (o.flight.periapsis ?? -Infinity) >= target(o))
 		return { status: 'done', step: TUTORIAL_STEPS.length };
 	const current = TUTORIAL_STEPS[step];
 	if (!current) return { status: 'done', step: TUTORIAL_STEPS.length };

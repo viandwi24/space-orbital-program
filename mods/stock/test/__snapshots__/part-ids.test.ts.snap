@@ -44,7 +44,7 @@ exports[`stock part ids, masses, costs and modules match the snapshot 1`] = `
   {
     "cost": 375,
     "id": "stock.tank-small",
-    "mass": 250,
+    "mass": 1160,
     "modules": [
       [
         "stock.resource-container",
@@ -64,7 +64,7 @@ exports[`stock part ids, masses, costs and modules match the snapshot 1`] = `
   {
     "cost": 750,
     "id": "stock.tank-medium",
-    "mass": 500,
+    "mass": 2325,
     "modules": [
       [
         "stock.resource-container",
@@ -84,7 +84,7 @@ exports[`stock part ids, masses, costs and modules match the snapshot 1`] = `
   {
     "cost": 7500,
     "id": "stock.engine-lv",
-    "mass": 1250,
+    "mass": 275,
     "modules": [
       [
         "stock.engine",
@@ -93,8 +93,8 @@ exports[`stock part ids, masses, costs and modules match the snapshot 1`] = `
             "range": 3,
             "rate": 20,
           },
-          "ispSeaLevel": 280,
-          "ispVacuum": 300,
+          "ispSeaLevel": 215,
+          "ispVacuum": 250,
           "propellants": [
             {
               "ratio": 0.9,
@@ -111,9 +111,9 @@ exports[`stock part ids, masses, costs and modules match the snapshot 1`] = `
     ],
   },
   {
-    "cost": 11100,
+    "cost": 10337,
     "id": "stock.engine-cluster",
-    "mass": 1850,
+    "mass": 500,
     "modules": [
       [
         "stock.engine",
@@ -122,8 +122,8 @@ exports[`stock part ids, masses, costs and modules match the snapshot 1`] = `
             "range": 2,
             "rate": 16,
           },
-          "ispSeaLevel": 272,
-          "ispVacuum": 295,
+          "ispSeaLevel": 230,
+          "ispVacuum": 265,
           "propellants": [
             {
               "ratio": 0.9,
@@ -165,7 +165,7 @@ exports[`stock part ids, masses, costs and modules match the snapshot 1`] = `
     ],
   },
   {
-    "cost": 80,
+    "cost": 160,
     "id": "stock.wheel",
     "mass": 40,
     "modules": [
@@ -187,7 +187,7 @@ exports[`stock part ids, masses, costs and modules match the snapshot 1`] = `
     ],
   },
   {
-    "cost": 80,
+    "cost": 160,
     "id": "stock.wheel-steer",
     "mass": 40,
     "modules": [
@@ -215,7 +215,10 @@ exports[`stock part ids, masses, costs and modules match the snapshot 1`] = `
     "modules": [
       [
         "stock.heat-shield",
-        {},
+        {
+          "ablator": 300,
+          "heatOfAblation": 12000000,
+        },
       ],
     ],
   },
@@ -241,8 +244,8 @@ exports[`stock part ids, masses, costs and modules match the snapshot 1`] = `
       [
         "stock.engine",
         {
-          "ispSeaLevel": 175,
-          "ispVacuum": 200,
+          "ispSeaLevel": 215,
+          "ispVacuum": 240,
           "propellants": [
             {
               "ratio": 1,
@@ -273,8 +276,8 @@ exports[`stock part ids, masses, costs and modules match the snapshot 1`] = `
       [
         "stock.engine",
         {
-          "ispSeaLevel": 165,
-          "ispVacuum": 185,
+          "ispSeaLevel": 210,
+          "ispVacuum": 230,
           "propellants": [
             {
               "ratio": 1,
@@ -305,8 +308,8 @@ exports[`stock part ids, masses, costs and modules match the snapshot 1`] = `
       [
         "stock.engine",
         {
-          "ispSeaLevel": 180,
-          "ispVacuum": 210,
+          "ispSeaLevel": 225,
+          "ispVacuum": 250,
           "propellants": [
             {
               "ratio": 1,
@@ -330,15 +333,15 @@ exports[`stock part ids, masses, costs and modules match the snapshot 1`] = `
     ],
   },
   {
-    "cost": 2700,
+    "cost": 6150,
     "id": "stock.booster-liquid",
-    "mass": 450,
+    "mass": 1025,
     "modules": [
       [
         "stock.engine",
         {
-          "ispSeaLevel": 250,
-          "ispVacuum": 270,
+          "ispSeaLevel": 220,
+          "ispVacuum": 255,
           "propellants": [
             {
               "ratio": 0.9,
@@ -368,9 +371,9 @@ exports[`stock part ids, masses, costs and modules match the snapshot 1`] = `
     ],
   },
   {
-    "cost": 3000,
+    "cost": 3990,
     "id": "stock.engine-vacuum",
-    "mass": 500,
+    "mass": 305,
     "modules": [
       [
         "stock.engine",
@@ -379,8 +382,8 @@ exports[`stock part ids, masses, costs and modules match the snapshot 1`] = `
             "range": 4,
             "rate": 20,
           },
-          "ispSeaLevel": 85,
-          "ispVacuum": 345,
+          "ispSeaLevel": 100,
+          "ispVacuum": 280,
           "propellants": [
             {
               "ratio": 0.9,
@@ -397,9 +400,9 @@ exports[`stock part ids, masses, costs and modules match the snapshot 1`] = `
     ],
   },
   {
-    "cost": 750,
+    "cost": 337,
     "id": "stock.tank-wide-short",
-    "mass": 500,
+    "mass": 280,
     "modules": [
       [
         "stock.paint",
@@ -435,9 +438,9 @@ exports[`stock part ids, masses, costs and modules match the snapshot 1`] = `
     ],
   },
   {
-    "cost": 3000,
+    "cost": 1348,
     "id": "stock.tank-wide",
-    "mass": 2000,
+    "mass": 1110,
     "modules": [
       [
         "stock.paint",
@@ -473,9 +476,9 @@ exports[`stock part ids, masses, costs and modules match the snapshot 1`] = `
     ],
   },
   {
-    "cost": 18000,
+    "cost": 16270,
     "id": "stock.engine-wide",
-    "mass": 3000,
+    "mass": 780,
     "modules": [
       [
         "stock.engine",
@@ -484,8 +487,8 @@ exports[`stock part ids, masses, costs and modules match the snapshot 1`] = `
             "range": 2,
             "rate": 16,
           },
-          "ispSeaLevel": 280,
-          "ispVacuum": 320,
+          "ispSeaLevel": 282,
+          "ispVacuum": 311,
           "propellants": [
             {
               "ratio": 0.9,
@@ -523,7 +526,8 @@ exports[`stock part ids, masses, costs and modules match the snapshot 1`] = `
       [
         "stock.heat-shield",
         {
-          "ablator": 480,
+          "ablator": 1200,
+          "heatOfAblation": 12000000,
         },
       ],
     ],
@@ -1678,9 +1682,9 @@ exports[`stock part ids, masses, costs and modules match the snapshot 1`] = `
     ],
   },
   {
-    "cost": 38,
+    "cost": 17,
     "id": "stock.tank-0625",
-    "mass": 25,
+    "mass": 65,
     "modules": [
       [
         "stock.paint",
@@ -1716,9 +1720,9 @@ exports[`stock part ids, masses, costs and modules match the snapshot 1`] = `
     ],
   },
   {
-    "cost": 855,
+    "cost": 384,
     "id": "stock.tank-1875-short",
-    "mass": 570,
+    "mass": 370,
     "modules": [
       [
         "stock.paint",
@@ -1754,9 +1758,9 @@ exports[`stock part ids, masses, costs and modules match the snapshot 1`] = `
     ],
   },
   {
-    "cost": 1688,
+    "cost": 758,
     "id": "stock.tank-1875",
-    "mass": 1125,
+    "mass": 730,
     "modules": [
       [
         "stock.paint",
@@ -1792,9 +1796,9 @@ exports[`stock part ids, masses, costs and modules match the snapshot 1`] = `
     ],
   },
   {
-    "cost": 3420,
+    "cost": 1538,
     "id": "stock.tank-3750-short",
-    "mass": 2280,
+    "mass": 895,
     "modules": [
       [
         "stock.paint",
@@ -1830,9 +1834,9 @@ exports[`stock part ids, masses, costs and modules match the snapshot 1`] = `
     ],
   },
   {
-    "cost": 6750,
+    "cost": 3034,
     "id": "stock.tank-3750",
-    "mass": 4500,
+    "mass": 1765,
     "modules": [
       [
         "stock.paint",
@@ -1868,9 +1872,9 @@ exports[`stock part ids, masses, costs and modules match the snapshot 1`] = `
     ],
   },
   {
-    "cost": 13500,
+    "cost": 6067,
     "id": "stock.tank-3750-long",
-    "mass": 9000,
+    "mass": 3530,
     "modules": [
       [
         "stock.paint",
@@ -1906,9 +1910,9 @@ exports[`stock part ids, masses, costs and modules match the snapshot 1`] = `
     ],
   },
   {
-    "cost": 8003,
+    "cost": 3595,
     "id": "stock.tank-5000-short",
-    "mass": 5335,
+    "mass": 1895,
     "modules": [
       [
         "stock.paint",
@@ -1944,9 +1948,9 @@ exports[`stock part ids, masses, costs and modules match the snapshot 1`] = `
     ],
   },
   {
-    "cost": 15998,
+    "cost": 7191,
     "id": "stock.tank-5000",
-    "mass": 10665,
+    "mass": 3790,
     "modules": [
       [
         "stock.paint",
@@ -1982,9 +1986,9 @@ exports[`stock part ids, masses, costs and modules match the snapshot 1`] = `
     ],
   },
   {
-    "cost": 32003,
+    "cost": 14382,
     "id": "stock.tank-5000-long",
-    "mass": 21335,
+    "mass": 7575,
     "modules": [
       [
         "stock.paint",
@@ -2020,9 +2024,9 @@ exports[`stock part ids, masses, costs and modules match the snapshot 1`] = `
     ],
   },
   {
-    "cost": 54000,
+    "cost": 24270,
     "id": "stock.tank-7500",
-    "mass": 36000,
+    "mass": 11455,
     "modules": [
       [
         "stock.paint",
@@ -2058,9 +2062,9 @@ exports[`stock part ids, masses, costs and modules match the snapshot 1`] = `
     ],
   },
   {
-    "cost": 108000,
+    "cost": 48539,
     "id": "stock.tank-7500-long",
-    "mass": 72000,
+    "mass": 22910,
     "modules": [
       [
         "stock.paint",
@@ -2269,7 +2273,8 @@ exports[`stock part ids, masses, costs and modules match the snapshot 1`] = `
       [
         "stock.heat-shield",
         {
-          "ablator": 270,
+          "ablator": 675,
+          "heatOfAblation": 12000000,
         },
       ],
     ],
@@ -2282,7 +2287,8 @@ exports[`stock part ids, masses, costs and modules match the snapshot 1`] = `
       [
         "stock.heat-shield",
         {
-          "ablator": 1080,
+          "ablator": 2700,
+          "heatOfAblation": 12000000,
         },
       ],
     ],
@@ -2295,7 +2301,8 @@ exports[`stock part ids, masses, costs and modules match the snapshot 1`] = `
       [
         "stock.heat-shield",
         {
-          "ablator": 1920,
+          "ablator": 4800,
+          "heatOfAblation": 12000000,
         },
       ],
     ],
@@ -2604,7 +2611,7 @@ exports[`stock part ids, masses, costs and modules match the snapshot 1`] = `
     ],
   },
   {
-    "cost": 400,
+    "cost": 60,
     "id": "stock.life-support-radial",
     "mass": 40,
     "modules": [
@@ -3372,9 +3379,9 @@ exports[`stock part ids, masses, costs and modules match the snapshot 1`] = `
     ],
   },
   {
-    "cost": 96000,
+    "cost": 85886,
     "id": "stock.engine-plate-5",
-    "mass": 16000,
+    "mass": 9655,
     "modules": [
       [
         "stock.paint",
@@ -3392,7 +3399,7 @@ exports[`stock part ids, masses, costs and modules match the snapshot 1`] = `
             "range": 5,
             "rate": 10,
           },
-          "ispSeaLevel": 265,
+          "ispSeaLevel": 263,
           "ispVacuum": 304,
           "propellants": [
             {
@@ -3410,9 +3417,9 @@ exports[`stock part ids, masses, costs and modules match the snapshot 1`] = `
     ],
   },
   {
-    "cost": 54000,
+    "cost": 58049,
     "id": "stock.engine-plate-9",
-    "mass": 9000,
+    "mass": 5520,
     "modules": [
       [
         "stock.paint",
@@ -3430,8 +3437,8 @@ exports[`stock part ids, masses, costs and modules match the snapshot 1`] = `
             "range": 5,
             "rate": 10,
           },
-          "ispSeaLevel": 265,
-          "ispVacuum": 304,
+          "ispSeaLevel": 282,
+          "ispVacuum": 311,
           "propellants": [
             {
               "ratio": 0.9,
@@ -3448,9 +3455,9 @@ exports[`stock part ids, masses, costs and modules match the snapshot 1`] = `
     ],
   },
   {
-    "cost": 48000,
+    "cost": 59585,
     "id": "stock.engine-plate-8",
-    "mass": 8000,
+    "mass": 5360,
     "modules": [
       [
         "stock.paint",
@@ -3468,8 +3475,8 @@ exports[`stock part ids, masses, costs and modules match the snapshot 1`] = `
             "range": 5,
             "rate": 10,
           },
-          "ispSeaLevel": 265,
-          "ispVacuum": 304,
+          "ispSeaLevel": 366,
+          "ispVacuum": 452,
           "propellants": [
             {
               "ratio": 0.9,
@@ -3486,9 +3493,9 @@ exports[`stock part ids, masses, costs and modules match the snapshot 1`] = `
     ],
   },
   {
-    "cost": 15000,
+    "cost": 26396,
     "id": "stock.engine-vacuum-xl",
-    "mass": 2500,
+    "mass": 1760,
     "modules": [
       [
         "stock.engine",
@@ -3498,7 +3505,7 @@ exports[`stock part ids, masses, costs and modules match the snapshot 1`] = `
             "rate": 10,
           },
           "ispSeaLevel": 200,
-          "ispVacuum": 420,
+          "ispVacuum": 421,
           "propellants": [
             {
               "ratio": 0.9,
@@ -3647,9 +3654,9 @@ exports[`stock part ids, masses, costs and modules match the snapshot 1`] = `
     ],
   },
   {
-    "cost": 36000,
+    "cost": 16180,
     "id": "stock.external-tank",
-    "mass": 24000,
+    "mass": 9415,
     "modules": [
       [
         "stock.resource-container",
@@ -3725,6 +3732,82 @@ exports[`stock part ids, masses, costs and modules match the snapshot 1`] = `
             "y": 4.5,
             "z": 1.05,
           },
+        },
+      ],
+    ],
+  },
+  {
+    "cost": 285055,
+    "id": "stock.engine-plate-f1",
+    "mass": 53600,
+    "modules": [
+      [
+        "stock.paint",
+        {
+          "offers": [
+            "default",
+            "foil-engines",
+          ],
+        },
+      ],
+      [
+        "stock.engine",
+        {
+          "gimbal": {
+            "range": 5,
+            "rate": 10,
+          },
+          "ispSeaLevel": 263,
+          "ispVacuum": 304,
+          "propellants": [
+            {
+              "ratio": 0.9,
+              "resource": "stock.liquid-fuel",
+            },
+            {
+              "ratio": 1.1,
+              "resource": "stock.oxidizer",
+            },
+          ],
+          "thrust": 38850000,
+        },
+      ],
+    ],
+  },
+  {
+    "cost": 83308,
+    "id": "stock.engine-plate-j2",
+    "mass": 10445,
+    "modules": [
+      [
+        "stock.paint",
+        {
+          "offers": [
+            "default",
+            "foil-engines",
+          ],
+        },
+      ],
+      [
+        "stock.engine",
+        {
+          "gimbal": {
+            "range": 5,
+            "rate": 10,
+          },
+          "ispSeaLevel": 200,
+          "ispVacuum": 421,
+          "propellants": [
+            {
+              "ratio": 0.9,
+              "resource": "stock.liquid-fuel",
+            },
+            {
+              "ratio": 1.1,
+              "resource": "stock.oxidizer",
+            },
+          ],
+          "thrust": 5165000,
         },
       ],
     ],

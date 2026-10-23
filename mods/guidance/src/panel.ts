@@ -203,7 +203,12 @@ const ascentTab: PanelNode[] = [
 				min: 20,
 				max: 2_000,
 				step: 5,
-				value: (i) => Number(settingsOf(i, Ascent.id).altitude ?? 80_000) / 1000,
+				// the autopilot's own default: 80 km, or 10 km over a taller air (110 km at Sol 1:1, plan 380)
+				value: (i) =>
+					Number(
+						settingsOf(i, Ascent.id).altitude ??
+							Math.max(80_000, (i.body?.atmosphereHeight ?? 0) + 10_000)
+					) / 1000,
 				command: (i, v) => setting(i, Ascent.id, 'altitude', v * 1000)
 			},
 			{

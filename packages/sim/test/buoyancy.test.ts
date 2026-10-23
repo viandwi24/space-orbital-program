@@ -116,7 +116,7 @@ function settle(sim: Sim, seconds: number): void {
 }
 
 describe('floating and sinking (ADR 0182 points 2 to 5)', () => {
-	test('a pod floats on the sea at the waterline its density gives; a 17.6 t two-stage rocket sinks', async () => {
+	test('a pod floats on the sea at the waterline its density gives; a 16.2 t two-stage rocket sinks', async () => {
 		const sea = findWater('sea');
 		const sim = await make();
 		const pod = load(sim, ['stock.command-pod'], { kind: 'surface', ...sea });
@@ -133,7 +133,7 @@ describe('floating and sinking (ADR 0182 points 2 to 5)', () => {
 			longitude: sea.longitude
 		});
 		const r = vessel(sim, rocket)!;
-		expect(vesselMass(sim, r)).toBeGreaterThan(17_000);
+		expect(vesselMass(sim, r)).toBeGreaterThan(16_000);
 		settle(sim, 40);
 		expect(altitudeOf(vessel(sim, rocket)!)).toBeLessThan(-20); // on the seabed, 30 m down
 		sim.dispose();

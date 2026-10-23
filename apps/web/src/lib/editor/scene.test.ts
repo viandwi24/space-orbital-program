@@ -189,7 +189,7 @@ describe('part facts', () => {
 				partFacts(registries.parts.get(id)!, lookups).map((x) => [x.label, x.value])
 			);
 		expect(f('stock.engine-lv').Thrust).toBe('215.0 kN');
-		expect(f('stock.engine-lv').Isp).toContain('300 s vacuum');
+		expect(f('stock.engine-lv').Isp).toContain('250 s vacuum');
 		expect(f('stock.tank-small').Propellant).toBe('4.45 t');
 		expect(f('stock.command-pod').Control).toBeDefined();
 		expect(f('stock.decoupler').Staging).toBeDefined();

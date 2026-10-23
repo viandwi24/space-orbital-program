@@ -1,6 +1,8 @@
 /**
  * Sample autopilot: the plan 007 two-stage ascent written against the scripting API. Full
- * throttle, vertical to 10 km, pitch-over towards east by 40 km, prograde after, stage when an
+ * throttle, vertical to 1 km, pitch-over towards east by 30 km (an early, flat turn since plan 380:
+ * the starter rocket's realistic early-era parts have no Δv for a long vertical climb), prograde
+ * after, stage when an
  * engine runs dry, cut at an 80 km apoapsis, coast, circularise around apoapsis until the
  * periapsis reaches 76 km. Attitude is a PD loop on the orientation (rate by finite difference)
  * sent as `ship.attitude`. Wheel torque, engine thrust and Isp come from `ship.wheels` and
@@ -10,7 +12,7 @@
  * Plain JavaScript (an async function body); no backticks or `${` because it is a template literal.
  */
 export const ascentScript = String.raw`
-const TURN_START = 10000, TURN_END = 40000, TURN_PITCH = Math.PI / 4;
+const TURN_START = 1000, TURN_END = 30000, TURN_PITCH = 1.45;
 const TARGET_APOAPSIS = 80000, TARGET_PERIAPSIS = 76000;
 const BANDWIDTH = 0.5;
 const G0 = 9.80665; // standard gravity: the definition of specific impulse

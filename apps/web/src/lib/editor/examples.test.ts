@@ -63,7 +63,9 @@ describe('asparagus rocket and glider examples (plan 041)', () => {
 describe('moon shot example (plan 034)', () => {
 	const full = { ...content, resources: registries.resources };
 
-	it('is a valid design and the trip planner covers the landing and says what is left', () => {
+	// Cinder's orbit since plan 380: on the first tech tiers' realistic early-era parts (ADR 0317) a
+	// landing in one launch is just out of reach (by about 7 m/s); later tiers do it
+	it('is a valid design and the trip planner covers the orbit of Cinder and says what is left', () => {
 		const d = moonShot();
 		expect(resolveVesselDesign(d, content.parts).ok).toBe(true);
 		const stats = designStats(d, full, 'vacuum', 9.81);
@@ -74,14 +76,18 @@ describe('moon shot example (plan 034)', () => {
 				stats.partCount
 			);
 		expect(view('low-orbit').state).toBe('covered');
-		const landing = view('stock.cinder:landing');
-		expect(landing.state).toBe('covered');
-		// the lander stage is the one that covers the transfer, the capture and the descent
+		const orbit = view('stock.cinder:orbit');
+		expect(orbit.state).toBe('covered');
+		// the lander stage is the one that covers the transfer and the capture
 		expect(
-			landing.rows
+			orbit.rows
 				.filter((r) => r.id !== 'ascent')
 				.every((r) => r.covers.every((c) => c.label === 'Stage 3'))
 		).toBe(true);
+		// and the landing says by how much it is short
+		const landing = view('stock.cinder:landing');
+		expect(landing.state).toBe('short');
+		expect(landing.short).toBeLessThan(50);
 	});
 });
 
@@ -99,10 +105,12 @@ describe('every stock example with engines leaves the pad', () => {
 		expect(twr!).toBeGreaterThanOrEqual(1.2);
 	});
 
-	it('the moon shot flies on half-thrust liquid boosters: TWR about 1.4, the same delta-v budget', () => {
+	// TWR about 1.3 since plan 380's realistic early-era stats (ADR 0317); 1.4 before
+	it('the moon shot flies on half-thrust liquid boosters: TWR about 1.3, the same delta-v budget', () => {
 		const stats = designStats(moonShot(), full, 'sea-level', 9.81);
-		expect(stats.liftoffTwr!).toBeGreaterThan(1.3);
+		expect(stats.liftoffTwr!).toBeGreaterThan(1.2);
 		expect(stats.liftoffTwr!).toBeLessThan(1.5);
-		expect(designStats(moonShot(), full, 'vacuum', 9.81).totalDv).toBeGreaterThan(5_800);
+		// enough for Cinder's orbit from the pad (4 492 m/s, the trip planner's figure)
+		expect(designStats(moonShot(), full, 'vacuum', 9.81).totalDv).toBeGreaterThan(4_500);
 	});
 });
