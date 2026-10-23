@@ -23,18 +23,24 @@
 	let log = $state.raw<ModBootLog | null>(null);
 	let note = $state('');
 	let filter = $state<'all' | 'problems'>('all');
+	/** `?mod=<id>` shows one mod (the Mods page's links, plan 376). */
+	let only = $state<string | null>(null);
 	onMount(() => {
 		log = modBootLog() ?? readBootLog();
-		if (new URLSearchParams(location.search).get('show') === 'problems') filter = 'problems';
+		const q = new URLSearchParams(location.search);
+		if (q.get('show') === 'problems') filter = 'problems';
+		only = q.get('mod');
 	});
 
 	const summary = $derived(log ? bootSummary(log) : null);
 	const shown = $derived(
 		!log
 			? []
-			: filter === 'problems'
-				? log.mods.filter((m) => m.problem || m.warnings.length > 0)
-				: log.mods
+			: log.mods.filter(
+					(m) =>
+						(only === null || m.id === only) &&
+						(filter === 'all' || m.problem !== undefined || m.warnings.length > 0)
+				)
 	);
 	/** Kinds with a viewer: a count links to it, filtered to the mod. */
 	const VIEWER: Record<string, '/developer/parts' | '/developer/crew' | '/developer/blueprints'> = {
@@ -117,6 +123,12 @@
 
 	<section aria-labelledby="results">
 		<h2 id="results">Mods</h2>
+		{#if only}
+			<p class="dim">
+				Showing <code>{only}</code> only.
+				<button type="button" class="link" onclick={() => (only = null)}>Show every mod</button>
+			</p>
+		{/if}
 		<ul class="mods" data-testid="modlog-mods">
 			{#each shown as m (m.id)}
 				<li data-state={m.state} data-testid="modlog-{m.id}">
@@ -233,6 +245,15 @@
 		align-items: center;
 		gap: 8px;
 		margin: 0 0 var(--s-3);
+	}
+	.link {
+		padding: 0;
+		border: 0;
+		background: none;
+		color: var(--accent-text);
+		font: inherit;
+		cursor: pointer;
+		text-decoration: underline;
 	}
 	.switch {
 		display: inline-flex;

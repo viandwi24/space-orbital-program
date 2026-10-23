@@ -5,7 +5,7 @@
 	import PageMeta from '../../lib/ui/PageMeta.svelte';
 	import Button from '../../lib/ui/Button.svelte';
 	import { downloadText } from '../../lib/download';
-	import { shownTabs } from '../../lib/dev/tabs';
+	import { devTabForKind, shownTabs } from '../../lib/dev/tabs';
 	import { devHref } from '../../lib/dev/href';
 	import {
 		clearLoadLogs,
@@ -50,6 +50,15 @@
 	let logs = $state.raw<LoadLogEntry[]>([]);
 	let note = $state('');
 	onMount(() => {
+		// `/developer?tab=<kind>&mod=<id>` (the Mods page's counts, plan 376) opens that viewer filtered
+		const q = new URLSearchParams(location.search);
+		const tab = q.get('tab');
+		if (tab) {
+			const to = devTabForKind(tab);
+			const mod = q.get('mod');
+			location.replace(`${devHref(to)}${mod ? `?mod=${encodeURIComponent(mod)}` : ''}`);
+			return;
+		}
 		logs = readLoadLogs().reverse();
 	});
 

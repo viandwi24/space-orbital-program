@@ -42,6 +42,8 @@
 			selected: feed.selected,
 			listOpen: feed.listOpen,
 			confirm: feed.confirm,
+			branchOpen: feed.branchOpen,
+			branches: scFeed.branches,
 			building: own.building,
 			removed: own.removed,
 			warp
@@ -145,7 +147,7 @@
 						onclick={() => tourStore.set(skipTour(progress))}
 						data-testid="sc-tour-skip">Skip tour</Button
 					>
-					{#if !step.done || progress.review}
+					{#if !step.done || step.optional || progress.review}
 						<Button
 							variant="primary"
 							onclick={() => tourStore.set(nextTour(progress))}

@@ -83,6 +83,42 @@ export function countsByPlugin(
 	return out;
 }
 
+/** Which count each registry kind of the loader log (plan 375's boot log) goes to. */
+export function countKeyOfKind(kind: string): CountKey | null {
+	if (kind === 'part') return 'parts';
+	if (kind === 'blueprint') return 'blueprints';
+	if (kind.startsWith('crew-')) return 'crew';
+	if (kind === 'autopilot') return 'programs';
+	if (kind === 'panel') return 'panels';
+	if (kind === 'overlay') return 'overlays';
+	if (['body', 'building', 'system', 'tech-node', 'mission', 'contract', 'scenario'].includes(kind))
+		return 'world';
+	return null;
+}
+
+/**
+ * The counts from the loader log (ADR 0312 point 3, read from plan 375's boot log), with the kinds
+ * the log does not list (autopilots, which are not a `RegistryKind`) taken from `extra`.
+ */
+export function countsFromLog(
+	mods: readonly { id: string; counts: Partial<Record<string, number>> }[],
+	extra: ReadonlyMap<string, Partial<Record<CountKey, number>>> = new Map()
+): Map<string, Partial<Record<CountKey, number>>> {
+	const out = new Map<string, Partial<Record<CountKey, number>>>();
+	for (const m of mods) {
+		const row: Partial<Record<CountKey, number>> = {};
+		for (const [kind, n] of Object.entries(m.counts)) {
+			const key = countKeyOfKind(kind);
+			if (key && n) row[key] = (row[key] ?? 0) + n;
+		}
+		out.set(m.id, row);
+	}
+	for (const [id, row] of extra) {
+		if (row.programs) out.set(id, { ...(out.get(id) ?? {}), programs: row.programs });
+	}
+	return out;
+}
+
 /** The Developer page's viewer of one kind, filtered by a mod. */
 export const viewerHref = (tab: string, mod: string): string =>
 	`/developer?tab=${encodeURIComponent(tab)}&mod=${encodeURIComponent(mod)}`;
@@ -120,7 +156,12 @@ export interface ModCard {
 	updateUrl: string | null;
 }
 
-const chipOf = (status: ModStatus, failedPatches: number, badDeps: number): ModChip => {
+const chipOf = (
+	status: ModStatus,
+	failedPatches: number,
+	badDeps: number,
+	warnings: readonly string[] = []
+): ModChip => {
 	switch (status.kind) {
 		case 'failed':
 			return { tone: 'bad', label: 'Failed', reason: status.reason };
@@ -141,14 +182,17 @@ const chipOf = (status: ModStatus, failedPatches: number, badDeps: number): ModC
 		case 'off':
 			return { tone: 'off', label: 'Off' };
 		case 'running':
-			if (failedPatches > 0 || badDeps > 0)
+			if (warnings.length > 0 || failedPatches > 0 || badDeps > 0)
 				return {
 					tone: 'warn',
 					label: 'Loaded with warnings',
 					reason: [
-						failedPatches > 0
-							? `${failedPatches} patch${failedPatches === 1 ? '' : 'es'} did not apply`
-							: '',
+						// the loader log's own words when there are some (plan 375); else the patch count
+						warnings.length > 0
+							? warnings.join('; ')
+							: failedPatches > 0
+								? `${failedPatches} patch${failedPatches === 1 ? '' : 'es'} did not apply`
+								: '',
 						badDeps > 0 ? `${badDeps} dependenc${badDeps === 1 ? 'y' : 'ies'} not met` : ''
 					]
 						.filter(Boolean)
@@ -170,6 +214,8 @@ export interface CardInput {
 	statusOf: (record: ModRecord) => ModStatus;
 	patchesOf: (id: string) => readonly PatchReport[];
 	counts: ReadonlyMap<string, Partial<Record<CountKey, number>>>;
+	/** The loader log's warnings for a mod (plan 375's boot log); none when there is no log. */
+	warningsOf?: (id: string) => readonly string[];
 	apiVersion: string;
 }
 
@@ -204,7 +250,7 @@ export function modCards(input: CardInput): ModCard[] {
 			size: null,
 			builtin: true,
 			enabled: true,
-			chip: chipOf({ kind: 'running' }, patches.failed, 0),
+			chip: chipOf({ kind: 'running' }, patches.failed, 0, input.warningsOf?.(b.id)),
 			counts: countsOf(b.id),
 			api: { range: b.api, ok: satisfies(input.apiVersion, b.api) },
 			deps: [],
@@ -240,7 +286,12 @@ export function modCards(input: CardInput): ModCard[] {
 				size: r.code.length + Object.values(r.assets ?? {}).reduce((n, a) => n + a.size, 0),
 				builtin: false,
 				enabled: r.enabled,
-				chip: chipOf(status, patches.failed, deps.filter((d) => !d.ok).length),
+				chip: chipOf(
+					status,
+					patches.failed,
+					deps.filter((d) => !d.ok).length,
+					input.warningsOf?.(r.id)
+				),
 				counts: countsOf(r.id),
 				api: { range: r.manifest.api, ok: satisfies(input.apiVersion, r.manifest.api) },
 				deps,

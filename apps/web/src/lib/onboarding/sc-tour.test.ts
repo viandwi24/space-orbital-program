@@ -40,7 +40,7 @@ const RUN: Partial<ScTourObservation>[] = [
 	{ place: 'space-center', building: dish() },
 	{ selected: 'd1', building: dish('upgrading') },
 	{ selected: 'd1', removed: true },
-	{},
+	{ branchOpen: true },
 	{}
 ];
 
@@ -100,6 +100,17 @@ describe('the Space Center tour (plan 377)', () => {
 		expect(backTour(START_TOUR)).toBe(START_TOUR);
 		expect(skipTour(p).status).toBe('skipped');
 		expect(advanceTour(skipTour(p), at({ orbited: true, zoomed: true }))).toEqual(skipTour(p));
+	});
+
+	it('Branches completes on the picker or a standing branch, and Next skips it (owner, 2026-10-23)', () => {
+		const step = SC_TOUR_STEPS.findIndex((s) => s.id === 'branch');
+		const p: TourProgress = { ...START_TOUR, step };
+		expect(SC_TOUR_STEPS[step]!.optional).toBe(true);
+		expect(advanceTour(p, at({}))).toBe(p);
+		// founding a branch reloads the page: the picker is shut by then, the branch stands
+		expect(advanceTour(p, at({ branches: 5 })).step).toBe(step + 1);
+		expect(advanceTour(p, at({ branchOpen: true })).step).toBe(step + 1);
+		expect(nextTour(p).step).toBe(step + 1);
 	});
 
 	it('the Sandbox and Career words differ where money and time do', () => {
