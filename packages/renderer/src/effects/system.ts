@@ -5,7 +5,13 @@
  * on the ground while it turns; each frame they are written to render space (float64 to float32
  * after the floating-origin shift, so precision is fine near the vessel).
  */
-import { GRAVITATIONAL_CONSTANT, type BodyDefinition, type Quat, type Vec3 } from '@orbital/core';
+import {
+	GRAVITATIONAL_CONSTANT,
+	ambientAt,
+	type BodyDefinition,
+	type Quat,
+	type Vec3
+} from '@orbital/core';
 import {
 	BufferAttribute,
 	BufferGeometry,
@@ -66,7 +72,14 @@ import {
 } from './wreckage.ts';
 import { DEFAULT_EXIT_PRESSURE, ambientPressureAt, plumeShape } from './plume.ts';
 import type { PlumeSpec } from './plume-mesh.ts';
-import { airVelocity, plasmaIntensity } from './reentry.ts';
+import {
+	PLASMA_NOSE_RADIUS,
+	airDensity,
+	airVelocity,
+	plasmaIntensity,
+	stagnationFlux
+} from './reentry.ts';
+import { condensationOpacity, heatingOf, paletteFor, plasmaColour } from './plasma-palette.ts';
 import { FIRE_FRAG, SMOKE_FRAG } from './shaders.ts';
 import {
 	PIECE_VERTICES,
@@ -1025,6 +1038,22 @@ export class Effects {
 		const root = toRenderSpace(add(body.world, v.position), frame.origin);
 		const at = (s: number): Vec3 => vec(root.x + fwd.x * s, root.y + fwd.y * s, root.z + fwd.z * s);
 		const tip = at(profile.front + 0.6);
+		// the colours of the three layers from the heating, the speed and the body's palette (plan 399)
+		const quality = this.settings.plasma;
+		const palette = paletteFor(info.id, info.atmosphere);
+		const heating = heatingOf(
+			stagnationFlux(airDensity(info.atmosphere, altitude), PLASMA_NOSE_RADIUS, speed),
+			palette.multipliers.strength
+		);
+		const layer = (l: 'skin' | 'shock' | 'trail') =>
+			plasmaColour(l, heating, speed, palette, quality);
+		// condensation and the vapour cone: Medium and up, by Mach and the local air
+		let condensation = 0;
+		if (quality !== 'low' && info.atmosphere && speed > 1) {
+			const air = ambientAt({ atmosphere: info.atmosphere } as BodyDefinition, altitude);
+			if (air.speedOfSound)
+				condensation = condensationOpacity(speed / air.speedOfSound, air.density);
+		}
 		this.plasma.update({
 			intensity,
 			forward: fwd,
@@ -1037,7 +1066,12 @@ export class Effects {
 				origin: add(at(profile.front), profile.axisPoint)
 			},
 			time: frame.time,
-			tint: ionisationColour(speed)
+			tint: ionisationColour(speed),
+			skin: layer('skin'),
+			shock: layer('shock'),
+			trail: layer('trail'),
+			condensation,
+			detail: quality === 'high' ? 2 : quality === 'medium' ? 1 : 0
 		});
 	}
 

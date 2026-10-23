@@ -323,6 +323,11 @@ const shell = (m: ShaderMaterial): Twin => {
 	const vAxial = varying(positionGeometry.y);
 	const uIntensity = u('uIntensity');
 	const uTint = u('uTint');
+	const uSkin = u('uSkin');
+	const uShock = u('uShock');
+	const uTrail = u('uTrail');
+	const uCondense = u('uCondense');
+	const uDetail = u('uDetail');
 	const uTime = u('uTime');
 	const uForward = u('uForward');
 	const uTip = u('uTip');
@@ -341,9 +346,37 @@ const shell = (m: ShaderMaterial): Twin => {
 			.add(0.88);
 		const depth = clamp(uTip.sub(vAxial).div(max(uLength, 1e-3)), 0.0, 1.0);
 		const tail = smoothstep(0.3, 0.8, depth).oneMinus();
-		const hot = mix(uTint, mix(uTint, vec3(1.0), 0.3), smoothstep(0.55, 1.0, uIntensity));
-		const a = uIntensity.mul(windward).mul(rim.mul(0.5).add(0.1)).mul(flick).mul(tail);
-		return vec4(hot.mul(uIntensity.mul(1.2).add(0.7)), clamp(a, 0.0, 1.0));
+		const body = mix(uSkin, uShock, smoothstep(0.25, 0.9, rim).mul(windward));
+		const toTail = mix(body, uTrail, smoothstep(0.15, 0.7, depth));
+		const hot = mix(toTail, mix(toTail, vec3(1.0), 0.3), smoothstep(0.55, 1.0, uIntensity));
+		const high = step(1.5, uDetail);
+		const lane = sin(dot(wN, vec3(23.0, 31.0, 17.0)).mul(3.0));
+		const streak = smoothstep(0.82, 0.97, lane.mul(sin(vAxial.mul(2.3).sub(uTime.mul(17.0)))))
+			.mul(tail.mul(0.5).oneMinus())
+			.mul(windward.mul(0.6).oneMinus())
+			.mul(high);
+		const bow = smoothstep(0.55, 0.95, windward).mul(pow(rim, 2.0)).mul(high);
+		const a = uIntensity
+			.mul(windward)
+			.mul(rim.mul(0.5).add(0.1))
+			.mul(flick)
+			.mul(tail)
+			.add(uIntensity.mul(streak.mul(0.5).add(bow.mul(0.35))));
+		const cold = uCondense.mul(smoothstep(0.0, 0.3, uIntensity).oneMinus());
+		const coldA = cold
+			.mul(pow(rim, 1.6).mul(0.5).add(0.08))
+			.mul(windward.mul(0.4).add(0.6))
+			.mul(tail);
+		const base = mix(hot.mul(uIntensity.mul(1.2).add(0.7)), vec3(0.9, 0.95, 1.0), cold);
+		const colour = base.add(
+			uIntensity.mul(
+				streak
+					.mul(0.8)
+					.mul(vec3(1.0, 0.85, 0.9))
+					.add(uShock.mul(bow.mul(0.6)))
+			)
+		);
+		return vec4(colour, clamp(a.add(coldA), 0.0, 1.0));
 	})();
 	return { material: twin, sync: () => syncs.forEach((s) => s()) };
 };

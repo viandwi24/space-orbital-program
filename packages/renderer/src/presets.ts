@@ -71,6 +71,8 @@ export interface PresetSettings {
 	/** Smoke, dust and gas particles alive at once, debris shards per explosion, fireball sprites. */
 	smokeParticles: number;
 	debrisShards: number;
+	/** Re-entry plasma and condensation (plan 399): Low a two-stop gradient and no condensation, Medium the full gradient and condensation, High adds streaks and the bow shock. */
+	plasma: 'low' | 'medium' | 'high';
 }
 
 /**
@@ -133,7 +135,8 @@ export const PRESETS: Readonly<Record<GraphicsPreset, PresetSettings>> = {
 		partExtras: 0,
 		partTexture: 128,
 		smokeParticles: 56,
-		debrisShards: 0
+		debrisShards: 0,
+		plasma: 'low'
 	},
 	medium: {
 		pixelRatioCap: 1.5,
@@ -165,7 +168,8 @@ export const PRESETS: Readonly<Record<GraphicsPreset, PresetSettings>> = {
 		partExtras: 1,
 		partTexture: 256,
 		smokeParticles: 160,
-		debrisShards: 24
+		debrisShards: 24,
+		plasma: 'medium'
 	},
 	high: {
 		pixelRatioCap: 2,
@@ -198,7 +202,8 @@ export const PRESETS: Readonly<Record<GraphicsPreset, PresetSettings>> = {
 		partExtras: 2,
 		partTexture: 512,
 		smokeParticles: 320,
-		debrisShards: 48
+		debrisShards: 48,
+		plasma: 'high'
 	}
 };
 

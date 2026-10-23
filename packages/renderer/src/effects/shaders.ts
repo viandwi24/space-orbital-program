@@ -232,6 +232,11 @@ uniform vec3 uForward;
 uniform float uIntensity;
 uniform float uTime;
 uniform vec3 uTint;
+uniform vec3 uSkin;
+uniform vec3 uShock;
+uniform vec3 uTrail;
+uniform float uCondense;
+uniform float uDetail;
 uniform float uLength;
 uniform float uTip;
 varying vec3 vWorldN;
@@ -247,9 +252,26 @@ void main() {
 	// The shell thins out towards the tail so its aft rings do not float as separate patches.
 	float depth = clamp((uTip - vAxial) / max(uLength, 1e-3), 0.0, 1.0);
 	float tail = 1.0 - smoothstep(0.3, 0.8, depth);
-	vec3 hot = mix(uTint, mix(uTint, vec3(1.0), 0.3), smoothstep(0.55, 1.0, uIntensity));
+	// Plan 399: the skin glow inside, the shock layer at the leading rim, the trail colour toward the tail;
+	// the High level adds streaks along the flow and a bow shock at the stand-off.
+	vec3 hot = mix(uSkin, uShock, smoothstep(0.25, 0.9, rim) * windward);
+	hot = mix(hot, uTrail, smoothstep(0.15, 0.7, depth));
+	hot = mix(hot, mix(hot, vec3(1.0), 0.3), smoothstep(0.55, 1.0, uIntensity));
+	float streak = 0.0;
+	float bow = 0.0;
+	if (uDetail > 1.5) {
+		float lane = sin(dot(vWorldN, vec3(23.0, 31.0, 17.0)) * 3.0);
+		streak = smoothstep(0.82, 0.97, lane * sin(vAxial * 2.3 - uTime * 17.0)) * (1.0 - tail * 0.5) * (1.0 - windward * 0.6);
+		bow = smoothstep(0.55, 0.95, windward) * pow(rim, 2.0);
+	}
 	float a = uIntensity * windward * (0.1 + 0.5 * rim) * flick * tail;
-	gl_FragColor = vec4(hot * (0.7 + 1.2 * uIntensity), clamp(a, 0.0, 1.0));
+	a += uIntensity * (0.5 * streak + 0.35 * bow);
+	// Condensation and the vapour cone (plan 399): the same shell, cold and white, fading in as the plasma fades out.
+	float cold = uCondense * (1.0 - smoothstep(0.0, 0.3, uIntensity));
+	float coldA = cold * (0.08 + 0.5 * pow(rim, 1.6)) * (0.6 + 0.4 * windward) * tail;
+	vec3 colour = mix(hot * (0.7 + 1.2 * uIntensity), vec3(0.9, 0.95, 1.0), cold);
+	colour += uIntensity * (0.8 * streak * vec3(1.0, 0.85, 0.9) + 0.6 * bow * uShock);
+	gl_FragColor = vec4(colour, clamp(a + coldA, 0.0, 1.0));
 	#include <tonemapping_fragment>
 	#include <colorspace_fragment>
 }

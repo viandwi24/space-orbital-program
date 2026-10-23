@@ -45,6 +45,14 @@ export interface PlasmaFrame {
 	time: number;
 	/** Shock-layer colour (`ionisationColour`); the old orange when absent. */
 	tint?: readonly [number, number, number];
+	/** The three layers' colours (plan 399, `plasmaColour`); each the tint when absent. */
+	skin?: readonly [number, number, number];
+	shock?: readonly [number, number, number];
+	trail?: readonly [number, number, number];
+	/** 0..1 condensation and vapour cone (`condensationOpacity`), drawn on the same shell. */
+	condensation?: number;
+	/** 0 Low, 1 Medium, 2 High: streaks and the bow shock from High. */
+	detail?: 0 | 1 | 2;
 }
 
 export class PlasmaEffect {
@@ -77,6 +85,11 @@ export class PlasmaEffect {
 				uIntensity: { value: 0 },
 				uTime: { value: 0 },
 				uTint: { value: new Color(1, 0.35, 0.1) },
+				uSkin: { value: new Color(1, 0.35, 0.1) },
+				uShock: { value: new Color(1, 0.35, 0.1) },
+				uTrail: { value: new Color(1, 0.35, 0.1) },
+				uCondense: { value: 0 },
+				uDetail: { value: 2 },
 				// Axial coordinate of the shell tip and its length: the shell fades towards the tail.
 				uTip: { value: 1 },
 				uLength: { value: 1e9 }
@@ -119,7 +132,8 @@ export class PlasmaEffect {
 	}
 
 	update(f: PlasmaFrame): void {
-		this.root.visible = f.intensity > 0.02;
+		const condensation = f.condensation ?? 0;
+		this.root.visible = f.intensity > 0.02 || condensation > 0.02;
 		if (!this.root.visible) return;
 		const fwd = new Vector3(f.forward.x, f.forward.y, f.forward.z).normalize();
 		const rw = Math.max(1.6, f.radius * 2.1) * (0.75 + 0.5 * f.intensity);
@@ -151,6 +165,14 @@ export class PlasmaEffect {
 		u.uTime!.value = f.time;
 		const tint = f.tint ?? [1, 0.35, 0.1];
 		(u.uTint!.value as Color).setRGB(tint[0], tint[1], tint[2]);
+		const skin = f.skin ?? tint;
+		const shock = f.shock ?? tint;
+		const trail = f.trail ?? tint;
+		(u.uSkin!.value as Color).setRGB(skin[0], skin[1], skin[2]);
+		(u.uShock!.value as Color).setRGB(shock[0], shock[1], shock[2]);
+		(u.uTrail!.value as Color).setRGB(trail[0], trail[1], trail[2]);
+		u.uCondense!.value = condensation;
+		u.uDetail!.value = f.detail ?? 2;
 
 		// Wake: the plume surface points along local -Y, so turn -Y onto -forward.
 		this.q.setFromUnitVectors(new Vector3(0, -1, 0), fwd.clone().negate());
@@ -168,7 +190,7 @@ export class PlasmaEffect {
 		w.uMaxR!.value = Math.max(0.8, f.radius * 1.1) * (0.6 + 0.5 * f.intensity);
 		w.uTime!.value = f.time;
 		w.uGain!.value = (f.shell ? 0.35 : 0.8) * f.intensity;
-		(w.uColor!.value as Color).setRGB(tint[0], tint[1] * 0.9, tint[2] * 1.1);
+		(w.uColor!.value as Color).setRGB(trail[0], trail[1] * 0.9, trail[2] * 1.1);
 	}
 
 	/** Fills the shell buffers with a unit sphere (rings from the +Y pole down) for the no-parts case. */

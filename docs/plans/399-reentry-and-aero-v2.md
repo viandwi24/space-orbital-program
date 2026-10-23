@@ -1,7 +1,7 @@
 ---
 id: 399
 title: "Re-entry and aero v2: per-body plasma palettes in Firefly style, condensation and vapour cones gated by Mach"
-status: draft
+status: done
 owner: "Worker C"
 depends: [393]
 phase: 9
@@ -96,3 +96,4 @@ The owner's ask (2026-10-24): clearly different colours that read beautifully. T
 ## Log
 
 - 2026-10-24 — Created by the coordinator from refs/graphics-v2 (ADR 0330).
+- 2026-10-24 — Code done (Worker C): palettes, the colour function, the shell's three layers with streaks and bow shock, condensation, the `plasma` quality in the presets; tests and screenshots in journal 399. Left: the before captures, frame-time and low-end runs, the TAAU check (393) and the owner's look ([manual]).
