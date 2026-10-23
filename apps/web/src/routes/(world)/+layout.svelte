@@ -724,8 +724,8 @@
 			/>
 		</div>
 	{/if}
-	{#if local(page.url.pathname) !== '/flight' && !runningLesson()}
-		<!-- the Space Center tour's card (plan 377, ADR 0314 point 2) -->
+	{#if local(page.url.pathname) !== '/flight' && !runningLesson() && !(worldView && !worldRenderer.ready)}
+		<!-- the Space Center tour's card (plan 377, ADR 0314 point 2); never over the loading screen -->
 		<SpaceCenterTour
 			place={local(page.url.pathname)
 				.split('/')

@@ -65,6 +65,7 @@
 	} from '../../../lib/space-center/site-camera';
 	import { activeWorldId } from '../../../lib/worlds/worlds';
 	import TourOffer from '../../../lib/space-center/TourOffer.svelte';
+	import { worldRenderer } from '../../../lib/world-renderer.svelte';
 	import { modeWelcome } from '../../../lib/onboarding/welcome';
 	import { placesTourBuilding, START_TOUR } from '../../../lib/onboarding/sc-tour';
 	import { scFeed, tourStore } from '../../../lib/onboarding/sc-tour-store.svelte';
@@ -611,7 +612,8 @@
 		onfound={foundBranch}
 		onclose={() => (branchOpen = false)}
 	/>
-	{#if offerTour}
+	<!-- the welcome waits for the loading screen: shown over it, it read as the game being ready (owner, 2026-10-23) -->
+	{#if offerTour && worldRenderer.ready}
 		<TourOffer
 			welcome={world ? modeWelcome(world, registries) : undefined}
 			onstart={() => {
