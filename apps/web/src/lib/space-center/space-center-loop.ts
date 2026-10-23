@@ -12,7 +12,8 @@ import {
 	startPreset
 } from '../graphics';
 import type { Command, CommandResult, SimSave, Snapshot, WorldInfo } from '@orbital/core';
-import { FramePacer, type Renderer, type SiteBuildingView } from '@orbital/renderer';
+import { FramePacer, type Renderer, type SitePlace } from '@orbital/renderer';
+import type { SiteDraw } from './site-views';
 import { worldRenderer } from '../world-renderer.svelte';
 import { startSimWorker } from '../sim-client';
 import { PerfSource, type PerfSample } from '../perf/perf-stats';
@@ -42,7 +43,8 @@ export interface SpaceCenter {
 	dispatch(command: Command): Promise<CommandResult>;
 	/** The sim's state now, to write back as the world's newest save (plan 096). */
 	save(): Promise<SimSave>;
-	setBuildings(list: readonly SiteBuildingView[], roads: readonly { i: number; j: number }[]): void;
+	/** Every home site's buildings at its place, and the site the view is on (plan 384, ADR 0321). */
+	setBuildings(draws: readonly SiteDraw[], view?: SitePlace): void;
 	setGhost(ghost: Parameters<Renderer['setSiteGhost']>[0]): void;
 	/** The renderer, once the sim is up (screenshots and measurements). */
 	readonly renderer: Renderer | null;
@@ -67,10 +69,7 @@ export function startSpaceCenter(options: SpaceCenterOptions): SpaceCenter {
 	let raf = 0;
 	/** The drawn frames since the performance overlay's last sample (plan 294). */
 	const perf = new PerfSource();
-	let pending: {
-		list: readonly SiteBuildingView[];
-		roads: readonly { i: number; j: number }[];
-	} | null = null;
+	let pending: { draws: readonly SiteDraw[]; view: SitePlace | undefined } | null = null;
 	let ghost: Parameters<Renderer['setSiteGhost']>[0] = null;
 
 	const offError = client.onError((m) => options.onError(m));
@@ -163,8 +162,8 @@ export function startSpaceCenter(options: SpaceCenterOptions): SpaceCenter {
 			const shared = await acquired.catch(() => null);
 			if (disposed || !shared) return;
 			renderer = shared;
-			renderer.setSiteView(true);
-			if (pending) renderer.setSiteBuildings(pending.list, pending.roads);
+			renderer.setSiteView(true, pending?.view);
+			for (const d of pending?.draws ?? []) renderer.setSiteBuildings(d.views, d.roads, d.place);
 			renderer.setSiteGhost(ghost);
 			observer.observe(canvas.parentElement ?? canvas);
 			resize();
@@ -183,9 +182,11 @@ export function startSpaceCenter(options: SpaceCenterOptions): SpaceCenter {
 	return {
 		dispatch: (command) => client.dispatch(command),
 		save: () => client.save(),
-		setBuildings(list, roads) {
-			pending = { list, roads };
-			renderer?.setSiteBuildings(list, roads);
+		setBuildings(draws, view) {
+			pending = { draws, view };
+			if (!renderer) return;
+			for (const d of draws) renderer.setSiteBuildings(d.views, d.roads, d.place);
+			renderer.setSiteView(true, view);
 		},
 		setGhost(g) {
 			ghost = g;

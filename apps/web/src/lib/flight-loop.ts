@@ -25,6 +25,7 @@ import {
 	type EntityId,
 	type PartDefinition,
 	type SasMode,
+	type Site,
 	type Snapshot,
 	type VesselDesign,
 	type WarpTarget,
@@ -115,7 +116,7 @@ import { createTargetView, type TargetView } from './target-view';
 import { computeTelemetry, type Telemetry } from './telemetry';
 import { createVesselPresence } from './vessel-presence';
 import type { ContentLookups } from './delta-v';
-import { siteViews, type BuildingLookup } from './space-center/site-views';
+import { homeSiteDraws, siteViews, type BuildingLookup } from './space-center/site-views';
 import { resumeInfo, type GameSave } from './save/game-save';
 import type { SaveRequest } from './save/saves';
 import { captureThumbnail } from './save/thumbnail';
@@ -290,6 +291,8 @@ export interface FlightOptions {
 	 * built, as the Space Center does; without them (tests) the hard-coded layout.
 	 */
 	buildings?: BuildingLookup;
+	/** The world's sites with their places (plan 384): every home site's buildings are drawn. */
+	sites?: readonly Site[];
 }
 
 export interface Flight {
@@ -1730,15 +1733,24 @@ export function startFlight(options: FlightOptions): Flight {
 	}
 	const observer = new ResizeObserver(resize);
 
-	// The primary site's buildings, redrawn when the world's layout changed (built in the Space Center)
+	// Every home site's buildings at its own place (plan 384, ADR 0321), redrawn when the world's
+	// layout changed (built in the Space Center): a launch from a branch stands among its buildings
 	let siteKey = '';
 	function showSite(s: Snapshot): void {
 		if (!options.buildings || !renderer) return;
-		const site = s.sites?.find((x) => x.body === homeBody) ?? s.sites?.[0];
-		const key = JSON.stringify([site?.buildings, site?.roads]);
+		const key = JSON.stringify(s.sites?.map((x) => [x.id, x.buildings, x.roads]));
 		if (key === siteKey) return;
 		siteKey = key;
-		renderer.setSiteBuildings(siteViews(site, options.buildings), site?.roads ?? []);
+		const draws = options.sites?.length
+			? homeSiteDraws(s, options.sites, options.buildings, homeBody)
+			: [];
+		if (draws.length === 0) {
+			// no world sites given (tests, the Legacy world): the first site at the primary place
+			const site = s.sites?.find((x) => x.body === homeBody) ?? s.sites?.[0];
+			renderer.setSiteBuildings(siteViews(site, options.buildings), site?.roads ?? []);
+			return;
+		}
+		for (const d of draws) renderer.setSiteBuildings(d.views, d.roads, d.place);
 	}
 	let homeBody: string | undefined;
 

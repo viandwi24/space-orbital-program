@@ -85,3 +85,56 @@ describe('the site view', () => {
 		expect(m.pickSite(600, 0)).not.toBeNull(); // the top edge still sees ground (pitch 0.45 rad)
 	});
 });
+
+describe('the site view on a branch (plan 384, ADR 0321)', () => {
+	const BRANCH = { id: 'branch-1', latitude: 0.35, longitude: 0.9 };
+	// every site's ground is flat, as the world bakes it (plan 084)
+	const zone = (latitude: number, longitude: number) => ({
+		latitude,
+		longitude,
+		flatRadius: 2_000,
+		blendWidth: 4_000
+	});
+	const model = (): SceneModel => {
+		const m = new SceneModel({
+			bodies: [{ id: BODY, radius: R }],
+			partShapes: new Map(),
+			siteBuildings: true,
+			terrain: { seed: 1, zones: [zone(0, 0), zone(BRANCH.latitude, BRANCH.longitude)] }
+		});
+		m.resize(1200, 800);
+		m.setSiteView(true, BRANCH);
+		m.sync(snapshot());
+		m.sync(snapshot());
+		// a frame places every site on the turning body (the primary happens to be at the origin)
+		m.prepareFrame(0.016, true);
+		return m;
+	};
+
+	test("the camera looks at the branch, and picks answer in the branch's own metres", () => {
+		const m = model();
+		const centre = m.projectSite({ east: 0, north: 0 })!;
+		expect(centre.x).toBeCloseTo(600, 0);
+		for (const p of [
+			{ east: 0, north: 0 },
+			{ east: 120, north: -60 }
+		]) {
+			const s = m.projectSite(p)!;
+			const back = m.pickSite(s.x, s.y)!;
+			expect(Math.abs(back.east - p.east)).toBeLessThan(0.01);
+			expect(Math.abs(back.north - p.north)).toBeLessThan(0.01);
+		}
+	});
+
+	test('the view back on the primary site looks at the primary again', () => {
+		const m = model();
+		m.setSiteView(true, { id: 'space-center', latitude: 0, longitude: 0 });
+		m.sync(snapshot());
+		m.prepareFrame(0.016, true);
+		const centre = m.projectSite({ east: 0, north: 0 })!;
+		expect(centre.x).toBeCloseTo(600, 0);
+		// the branch is far over the horizon from here
+		m.setSiteView(true);
+		expect(m.pickSite(600, 400)).not.toBeNull();
+	});
+});

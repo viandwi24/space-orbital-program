@@ -2,7 +2,7 @@
 import { describe, expect, it } from 'vitest';
 import { loadPlugins } from '@orbital/core';
 import Stock from '@orbital/mod-stock';
-import { siteViews } from './site-views';
+import { homeSiteDraws, siteViews } from './site-views';
 
 const buildings = loadPlugins([Stock]).registries.buildings;
 
@@ -49,5 +49,31 @@ describe('siteViews', () => {
 				buildings
 			)
 		).toEqual([]);
+	});
+});
+
+describe('homeSiteDraws (plan 384, ADR 0321)', () => {
+	const pad = { id: 'pad', kind: 'stock.launchpad-s', cell: { i: 0, j: 0 }, rotation: 0 as const, level: 0, state: 'active' as const };
+	const sites = [
+		{ id: 'space-center', body: 'stock.home', latitude: 0.1, longitude: 0.2 },
+		{ id: 'branch-1', body: 'stock.home', latitude: 0.5, longitude: -1.2 },
+		{ id: 'base-1', body: 'stock.cinder', latitude: 0, longitude: 0 }
+	];
+	const snapshot = {
+		sites: [
+			{ id: 'space-center', buildings: [pad], roads: [] },
+			{ id: 'branch-1', buildings: [{ ...pad, id: 'pad2' }], roads: [{ i: 1, j: 1 }] },
+			{ id: 'base-1', body: 'stock.cinder', buildings: [pad], roads: [] }
+		]
+	};
+
+	it('draws every space center on the home body at its own place; a base elsewhere is left out', () => {
+		const draws = homeSiteDraws(snapshot as never, sites, buildings, 'stock.home');
+		expect(draws.map((d) => d.place)).toEqual([
+			{ id: 'space-center', latitude: 0.1, longitude: 0.2 },
+			{ id: 'branch-1', latitude: 0.5, longitude: -1.2 }
+		]);
+		expect(draws[1]!.views.map((v) => v.id)).toEqual(['pad2']);
+		expect(draws[1]!.roads).toEqual([{ i: 1, j: 1 }]);
 	});
 });

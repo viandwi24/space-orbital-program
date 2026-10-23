@@ -5,7 +5,7 @@
  */
 import { TetherLayer } from './effects/tethers.ts';
 import { addOverlay, HighlightMaterials, removeOverlay } from './vab/highlight.ts';
-import type { SiteBuildingView } from './site-list.ts';
+import type { SiteBuildingView, SitePlace } from './site-list.ts';
 import type { LaunchSite } from './site-meshes.ts';
 import type {
 	BodyDefinition,
@@ -352,6 +352,16 @@ export class SceneModel {
 	/** Site view (ADR 0117): the camera orbits the site centre, a virtual vessel without parts. */
 	private siteView = false;
 	private siteLocal: Vec3 = { x: 0, y: 0, z: 0 };
+	/** The primary site, the home radius and whether buildings come from lists (ADR 0321). */
+	private primarySite: { latitude: number; longitude: number } = { latitude: 0, longitude: 0 };
+	private siteRadius = 1;
+	private siteListMode = false;
+	/** A site whose place is the primary's is the primary (ADR 0321 point 4). */
+	private otherPlace(site: SitePlace | undefined): SitePlace | null {
+		if (!site) return null;
+		const p = this.primarySite;
+		return site.latitude === p.latitude && site.longitude === p.longitude ? null : site;
+	}
 	private readonly threshold: number;
 	private readonly sphere = new SphereGeometry(1, 64, 32);
 	private readonly viewport = { width: 1, height: 1 };
@@ -499,10 +509,10 @@ export class SceneModel {
 			...(config.terrain ? { terrain: config.terrain } : {}),
 			siteBuildings: config.siteBuildings === true
 		});
-		this.siteLocal = latLonDir(
-			config.launchSite ?? { latitude: 0, longitude: 0 },
-			primary?.radius ?? 1
-		);
+		this.primarySite = config.launchSite ?? { latitude: 0, longitude: 0 };
+		this.siteRadius = primary?.radius ?? 1;
+		this.siteListMode = config.siteBuildings === true;
+		this.siteLocal = latLonDir(this.primarySite, this.siteRadius);
 		this.scene.add(this.environment.root);
 		this.scene.add(this.waterline.root);
 		this.scene.fog = this.environment.fog;
@@ -1752,7 +1762,22 @@ export class SceneModel {
 	}
 
 	/** Site view on or off (ADR 0117): the orbit camera looks at the site centre. */
-	setSiteView(on: boolean): void {
+	setSiteView(on: boolean, site?: SitePlace): void {
+		// the site the view is on (ADR 0321): its centre is the camera's, its ground the picks'
+		const other = this.otherPlace(site);
+		const before = this.siteLocal;
+		this.environment.viewBuildings.setGhost(null);
+		if (other) this.environment.otherSite(other.id, other.latitude, other.longitude);
+		this.environment.setViewSite(other?.id ?? null);
+		this.siteLocal = latLonDir(other ?? this.primarySite, this.siteRadius);
+		if (
+			this.siteLocal.x !== before.x ||
+			this.siteLocal.y !== before.y ||
+			this.siteLocal.z !== before.z
+		) {
+			this.siteFocusNow = ZERO;
+			this.siteFocusTo = ZERO;
+		}
 		if (on && !this.siteView) {
 			this.siteFocusNow = ZERO;
 			this.siteFocusTo = ZERO;
@@ -1773,8 +1798,8 @@ export class SceneModel {
 	): void {
 		if (!this.siteView) return;
 		if (p) {
-			const w = this.environment.site.siteToWorld(p);
-			const c = this.environment.site.siteToWorld({ east: 0, north: 0, up: 0 });
+			const w = this.environment.viewBuildings.siteToWorld(p);
+			const c = this.environment.viewBuildings.siteToWorld({ east: 0, north: 0, up: 0 });
 			this.siteFocusTo = { x: w.x - c.x, y: w.y - c.y, z: w.z - c.z };
 		} else this.siteFocusTo = ZERO;
 		if (options.animate === false) this.siteFocusNow = this.siteFocusTo;
@@ -1802,12 +1827,18 @@ export class SceneModel {
 	/** Site mode: the buildings and road cells to draw. */
 	setSiteBuildings(
 		list: readonly SiteBuildingView[],
-		roads: readonly { i: number; j: number }[]
+		roads: readonly { i: number; j: number }[],
+		site?: SitePlace
 	): void {
-		this.environment.site.setBuildings(list, roads);
+		const other = this.otherPlace(site);
+		if (!other) this.environment.site.setBuildings(list, roads);
+		else if (this.siteListMode)
+			this.environment
+				.otherSite(other.id, other.latitude, other.longitude)
+				.setBuildings(list, roads);
 	}
 	setSiteGhost(g: Parameters<LaunchSite['setGhost']>[0]): void {
-		this.environment.site.setGhost(g);
+		this.environment.viewBuildings.setGhost(g);
 	}
 
 	/**
@@ -1834,7 +1865,10 @@ export class SceneModel {
 		this.setMapPath(null);
 		this.setRegionOverlay(null);
 		this.setOverlays([]);
-		this.environment.site.setGhost(null);
+		this.environment.viewBuildings.setGhost(null);
+		// a new page starts at the primary site (ADR 0321)
+		this.environment.setViewSite(null);
+		this.siteLocal = latLonDir(this.primarySite, this.siteRadius);
 		this.highlightPart(null);
 		this.focusId = null;
 		this.focus = null;
@@ -1920,13 +1954,13 @@ export class SceneModel {
 			0.5
 		);
 		const dir = ndc.unproject(this.camera).sub(this.camera.position).normalize();
-		return this.environment.site.pickPlane(this.camera.position.clone(), dir);
+		return this.environment.viewBuildings.pickPlane(this.camera.position.clone(), dir);
 	}
 
 	/** CSS pixel of a site point (m east, north and up), or null behind the camera or a body. */
 	projectSite(p: { east: number; north: number; up?: number }): ScreenPoint | null {
 		this.camera.updateMatrixWorld();
-		const w = this.environment.site.siteToWorld(p);
+		const w = this.environment.viewBuildings.siteToWorld(p);
 		return projectWorldPoint(
 			this.camera,
 			{ x: w.x, y: w.y, z: w.z },

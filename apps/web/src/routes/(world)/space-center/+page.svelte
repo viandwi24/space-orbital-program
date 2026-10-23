@@ -38,6 +38,7 @@
 	import PageMeta from '../../../lib/ui/PageMeta.svelte';
 	import PerfOverlay from '../../../lib/perf/PerfOverlay.svelte';
 	import { settings } from '../../../lib/settings/settings.svelte';
+	import { homeSiteDraws, sitePlace } from '../../../lib/space-center/site-views';
 	import SpaceCenterOverlay from '../../../lib/space-center/SpaceCenterOverlay.svelte';
 	import {
 		buildingRows,
@@ -45,7 +46,6 @@
 		confirmPlacement,
 		ghostCell,
 		nextRotation,
-		siteViews,
 		pinPositions,
 		upkeepWarning,
 		flowRows,
@@ -179,14 +179,8 @@
 		if (JSON.stringify(s.economy) !== JSON.stringify(economy)) economy = s.economy;
 		if (s.vessels.length !== vessels.length || s.sites?.some((x) => x.members?.length))
 			vessels = s.vessels;
-		// the 3D view draws the chosen site while it is on the home planet (the HQ or a branch,
-		// plan 248); a base on another body keeps the primary site's view (ADR 0125 point 7)
-		const primary =
-			(homeSelected ? s.sites?.find((x) => x.id === siteInfo.id) : undefined) ?? s.sites?.[0];
-		if (JSON.stringify(primary) !== JSON.stringify(shown)) {
-			shown = primary;
-			center?.setBuildings(siteViews(primary, buildingRegistry), primary?.roads ?? []);
-		}
+		lastSnapshot = s;
+		drawSites(s);
 		const next = s.sites?.find((x) => x.id === siteInfo.id);
 		for (const b of next?.buildings ?? []) {
 			const was = site?.buildings.find((x) => x.id === b.id);
@@ -211,7 +205,20 @@
 	});
 	/** The welcome on the world's first visit (plan 377, ADR 0314 point 1). */
 	let offerTour = $state(false);
-	let shown: SiteState | undefined;
+	let lastSnapshot: Snapshot | null = null;
+	let drawnKey = '';
+	/**
+	 * Every home space center at its own place, and the view on the chosen one (plan 384, ADR
+	 * 0321); a base on another body keeps the primary site's view (ADR 0125 point 7).
+	 */
+	function drawSites(s: Snapshot): void {
+		const draws = homeSiteDraws(s, allSites, buildingRegistry, homeId);
+		const view = homeSelected ? sitePlace(siteInfo) : undefined;
+		const key = JSON.stringify([draws, view]);
+		if (key === drawnKey) return;
+		drawnKey = key;
+		center?.setBuildings(draws, view);
+	}
 
 	function ghostAt(at: { east: number; north: number } | null): void {
 		if (!build || !at) {
@@ -541,6 +548,7 @@
 			selected = null;
 			frame(null);
 			setBuild(null);
+			if (lastSnapshot) drawSites(lastSnapshot);
 		}}
 		{flows}
 		market={marketRows(economy, site?.id)}

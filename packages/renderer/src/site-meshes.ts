@@ -247,6 +247,253 @@ interface VegetationSet {
 	ready: boolean;
 }
 
+/** One site's materials (`siteMaterials`), shared by every site's buildings (ADR 0321). */
+export type SiteMaterials = ReturnType<typeof siteMaterials>;
+
+/**
+ * One site's list buildings, roads, deep-space dishes and the build ghost (plan 384, ADR 0321), in
+ * site-local metres (x east, y up, z south). It draws with the materials it is given: another
+ * site's buildings share the HQ's, so showing them compiles nothing. The HQ's `LaunchSite` holds
+ * one at its own origin; another home site's stands alone and is placed with `place`.
+ */
+export class SiteBuildings {
+	readonly root = new Object3D();
+	private readonly listGroup = new Object3D();
+	private listGeometries: BufferGeometry[] = [];
+	/** Deep-space dishes of the list (plan 234): a near and a far model each, and where they point. */
+	private dishes: Array<{ near: DishObject; far: DishObject; at: Vector3; aim: DishAim }> = [];
+	private dishFar = false;
+	private listKey = '';
+	private ghost: Mesh | null = null;
+	private ghostGeometry: BufferGeometry | null = null;
+	private siteUp: Vec3 = { x: 1, y: 0, z: 0 };
+	private siteQuat: Quat = { x: 0, y: 0, z: 0, w: 1 };
+
+	constructor(
+		private readonly materials: SiteMaterials,
+		private readonly radius: number,
+		site?: { latitude: number; longitude: number }
+	) {
+		this.root.name = 'site-buildings';
+		this.listGroup.name = 'site-building-list';
+		this.root.add(this.listGroup);
+		if (site) this.setSite(site.latitude, site.longitude);
+	}
+
+	/** Where a standalone site stands (a branch); the HQ's follows its `LaunchSite`. */
+	setSite(latitude: number, longitude: number): void {
+		const axes = siteAxes(latitude, longitude);
+		this.siteUp = axes.up;
+		const south = scale(axes.north, -1);
+		const q = new Quaternion().setFromRotationMatrix(
+			new Matrix4().makeBasis(
+				new Vector3(axes.east.x, axes.east.y, axes.east.z),
+				new Vector3(axes.up.x, axes.up.y, axes.up.z),
+				new Vector3(south.x, south.y, south.z)
+			)
+		);
+		this.siteQuat = { x: q.x, y: q.y, z: q.z, w: q.w };
+	}
+
+	/** Puts a standalone site on the rotating body, as `LaunchSite.place` does. */
+	place(bodyRender: Vec3, bodyRotation: Quat): void {
+		const p = add(bodyRender, rotate(bodyRotation, scale(this.siteUp, this.radius)));
+		this.root.position.set(p.x, p.y, p.z);
+		const q = new Quaternion(
+			bodyRotation.x,
+			bodyRotation.y,
+			bodyRotation.z,
+			bodyRotation.w
+		).multiply(new Quaternion(this.siteQuat.x, this.siteQuat.y, this.siteQuat.z, this.siteQuat.w));
+		this.root.quaternion.copy(q);
+		this.root.updateMatrixWorld(true);
+	}
+
+	/** The dishes' near or far model by the camera's distance from the site, m. */
+	setDishDistance(distance: number): void {
+		this.dishFar = distance > DISH_FAR_DISTANCE;
+		for (const dish of this.dishes) {
+			dish.near.root.visible = !this.dishFar;
+			dish.far.root.visible = this.dishFar;
+		}
+	}
+
+	/**
+	 * Draw these buildings and road cells, one mesh per material; rebuilt only when the list changed.
+	 */
+	setBuildings(
+		list: readonly SiteBuildingView[],
+		roads: readonly { i: number; j: number }[]
+	): void {
+		const key = JSON.stringify([list, roads]);
+		if (key === this.listKey) return;
+		this.listKey = key;
+		for (const child of [...this.listGroup.children]) this.listGroup.remove(child);
+		for (const g of this.listGeometries) g.dispose();
+		this.listGeometries = [];
+		// deep-space dishes move: drawn as their own nested groups, not merged (plan 234)
+		this.dishes = [];
+		const dishes = list.filter((b) => b.generator === DEEP_SPACE_DISH);
+		const parts = buildSiteList(
+			list.filter((b) => b.generator !== DEEP_SPACE_DISH),
+			roads
+		);
+		const m = this.materials;
+		const add = (
+			geos: BufferGeometry[],
+			material: MeshStandardMaterial | MeshBasicMaterial,
+			shadows = true
+		) => {
+			if (!geos.length) return;
+			const g = merge(geos);
+			this.listGeometries.push(g);
+			const mesh = new Mesh(g, material);
+			mesh.castShadow = shadows;
+			mesh.receiveShadow = shadows;
+			this.listGroup.add(mesh);
+		};
+		add(parts.structure, m.structure);
+		add(parts.painted, m.painted);
+		add(parts.siding, m.siding);
+		add(parts.door, m.door);
+		add(parts.glass, m.glass);
+		add(parts.glassLit, m.glassLit);
+		add(parts.lamp, m.lamp, false);
+		add(parts.thin, m.structure, false);
+		const bucketMaterial = {
+			structure: m.structure,
+			painted: m.painted,
+			siding: m.siding,
+			glass: m.glass,
+			door: m.door,
+			lamp: m.lamp,
+			thin: m.structure,
+			glassLit: m.glassLit,
+			beacon: m.beaconA
+		} as const;
+		const dishMesh = (geos: BufferGeometry[], bucket: keyof typeof bucketMaterial) => {
+			const g = merge(geos);
+			this.listGeometries.push(g);
+			const mesh = new Mesh(g, bucketMaterial[bucket]);
+			const shadows = bucket !== 'beacon' && bucket !== 'thin';
+			mesh.castShadow = shadows;
+			mesh.receiveShadow = shadows;
+			return mesh;
+		};
+		for (const b of dishes) {
+			const f = footprintCentre(b);
+			const yaw = (b.rotation * Math.PI) / 180;
+			const near = dishObject(buildDishParts('high'), dishMesh);
+			const far = dishObject(buildDishParts('low'), dishMesh);
+			const aim: DishAim = { azimuth: yaw, elevation: DISH_STOW };
+			for (const d of [near, far]) {
+				d.root.position.set(f.x, 0, f.z);
+				d.setAim(aim);
+				this.listGroup.add(d.root);
+			}
+			far.root.visible = this.dishFar;
+			near.root.visible = !this.dishFar;
+			this.dishes.push({ near, far, at: new Vector3(f.x, 0, f.z), aim });
+		}
+	}
+
+	/**
+	 * The deep-space dishes follow `target` (render space: the active vessel, or a body in the sky;
+	 * null stows them), slewed in wall time (plan 234).
+	 */
+	trackDishes(target: Vec3 | null, dt: number): void {
+		if (this.dishes.length === 0) return;
+		let local: Vector3 | null = null;
+		if (target) {
+			local = new Vector3(
+				target.x - this.root.position.x,
+				target.y - this.root.position.y,
+				target.z - this.root.position.z
+			).applyQuaternion(this.root.quaternion.clone().invert());
+		}
+		for (const d of this.dishes) {
+			const goal = local
+				? aimOf(
+						local
+							.clone()
+							.sub(d.at)
+							.setY(local.y - DISH.axisHeight)
+					)
+				: null;
+			d.aim = trackStep(d.aim, goal, dt);
+			d.near.setAim(d.aim);
+			d.far.setAim(d.aim);
+		}
+	}
+
+	/** Where each dish points (plan 234, for tests and the debug overlay). */
+	get dishAims(): readonly DishAim[] {
+		return this.dishes.map((d) => d.aim);
+	}
+
+	/** Draw calls of the building group (journal of plan 091). */
+	get buildingMeshes(): number {
+		return this.listGroup.children.length;
+	}
+
+	/** The translucent box of build mode at a footprint, green when it may be placed, red when not. */
+	setGhost(
+		g: {
+			size: { w: number; d: number };
+			cell: { i: number; j: number };
+			rotation: 0 | 90 | 180 | 270;
+			valid: boolean;
+		} | null
+	): void {
+		if (!g) {
+			if (this.ghost) this.ghost.visible = false;
+			return;
+		}
+		if (!this.ghost) {
+			const geo = new BoxGeometry(1, 1, 1);
+			geo.translate(0, 0.5, 0);
+			this.ghost = new Mesh(
+				geo,
+				new MeshBasicMaterial({ transparent: true, opacity: 0.35, depthWrite: false })
+			);
+			this.ghost.name = 'site-ghost';
+			this.ghost.renderOrder = 10;
+			this.root.add(this.ghost);
+			this.ghostGeometry = geo;
+		}
+		const f = footprintCentre(g);
+		this.ghost.visible = true;
+		this.ghost.position.set(f.x, 0, f.z);
+		this.ghost.scale.set(f.w * SITE_CELL, 12, f.d * SITE_CELL);
+		(this.ghost.material as MeshBasicMaterial).color.set(g.valid ? 0x3ccf6e : 0xe2483d);
+	}
+
+	/**
+	 * Where the ray (`origin`, `direction`, both in the scene's world space) meets the site's ground
+	 * plane, in site metres east and north; null when it does not (looking up, or from below).
+	 */
+	pickPlane(origin: Vector3, direction: Vector3): { east: number; north: number } | null {
+		const inv = new Matrix4().copy(this.root.matrixWorld).invert();
+		const o = origin.clone().applyMatrix4(inv);
+		const d = direction.clone().transformDirection(inv);
+		if (Math.abs(d.y) < 1e-9) return null;
+		const t = -o.y / d.y;
+		if (!(t > 0)) return null;
+		return { east: o.x + d.x * t, north: -(o.z + d.z * t) };
+	}
+
+	/** A site point (metres east, north and up) in the scene's world space. */
+	siteToWorld(p: { east: number; north: number; up?: number }): Vector3 {
+		return new Vector3(p.east, p.up ?? 0, -p.north).applyMatrix4(this.root.matrixWorld);
+	}
+
+	dispose(): void {
+		for (const g of this.listGeometries) g.dispose();
+		this.ghostGeometry?.dispose();
+		(this.ghost?.material as MeshBasicMaterial | undefined)?.dispose();
+	}
+}
+
 export class LaunchSite {
 	/** Placed at the pad each frame; children are in site-local metres. */
 	readonly root = new Object3D();
@@ -279,13 +526,8 @@ export class LaunchSite {
 
 	/** Site mode (ADR 0117): the buildings come from a list, not from the hard-coded layout. */
 	private readonly listMode: boolean;
-	private readonly listGroup = new Object3D();
-	private listGeometries: BufferGeometry[] = [];
-	/** Deep-space dishes of the list (plan 234): a near and a far model each, and where they point. */
-	private dishes: Array<{ near: DishObject; far: DishObject; at: Vector3; aim: DishAim }> = [];
-	private dishFar = false;
-	private listKey = '';
-	private ghost: Mesh | null = null;
+	/** The list buildings, roads, dishes and ghost (ADR 0321), in this site's frame. */
+	readonly buildings: SiteBuildings;
 
 	constructor(
 		radius: number,
@@ -298,8 +540,8 @@ export class LaunchSite {
 		this.listMode = listMode;
 		this.setSite(site.latitude, site.longitude);
 		this.root.name = 'launch-site';
-		this.listGroup.name = 'site-buildings';
-		this.root.add(this.listGroup);
+		this.buildings = new SiteBuildings(this.materials, radius);
+		this.root.add(this.buildings.root);
 		this.buildStructures();
 		for (const m of this.people.meshes) this.root.add(m);
 		this.people.pose(0);
@@ -423,7 +665,7 @@ export class LaunchSite {
 		dishTarget?: Vec3 | null;
 	}): void {
 		const m = this.materials;
-		this.trackDishes(input.dishTarget ?? null, Math.min(input.dt, 0.1));
+		this.buildings.trackDishes(input.dishTarget ?? null, Math.min(input.dt, 0.1));
 		// the vessel's place in the pad's frame: height along the pad's vertical and distance off its axis
 		let up: number | null = null;
 		let off = 0;
@@ -661,182 +903,42 @@ export class LaunchSite {
 		}
 		for (const m of this.structureMeshes) m.visible = d.structures;
 		this.detailStructures = d.structures;
-		this.dishFar = distance > DISH_FAR_DISTANCE;
-		for (const dish of this.dishes) {
-			dish.near.root.visible = !this.dishFar;
-			dish.far.root.visible = this.dishFar;
-		}
+		this.buildings.setDishDistance(distance);
 	}
 
-	/**
-	 * Site mode (ADR 0117): draw these buildings and road cells, one mesh per material; rebuilt only
-	 * when the list changed. Ignored outside site mode.
-	 */
+	/** Site mode (ADR 0117): draw these buildings and road cells; ignored outside site mode. */
 	setBuildings(
 		list: readonly SiteBuildingView[],
 		roads: readonly { i: number; j: number }[]
 	): void {
-		if (!this.listMode) return;
-		const key = JSON.stringify([list, roads]);
-		if (key === this.listKey) return;
-		this.listKey = key;
-		for (const child of [...this.listGroup.children]) this.listGroup.remove(child);
-		for (const g of this.listGeometries) g.dispose();
-		this.listGeometries = [];
-		// deep-space dishes move: drawn as their own nested groups, not merged (plan 234)
-		this.dishes = [];
-		const dishes = list.filter((b) => b.generator === DEEP_SPACE_DISH);
-		const parts = buildSiteList(
-			list.filter((b) => b.generator !== DEEP_SPACE_DISH),
-			roads
-		);
-		const m = this.materials;
-		const add = (
-			geos: BufferGeometry[],
-			material: MeshStandardMaterial | MeshBasicMaterial,
-			shadows = true
-		) => {
-			if (!geos.length) return;
-			const g = merge(geos);
-			this.listGeometries.push(g);
-			const mesh = new Mesh(g, material);
-			mesh.castShadow = shadows;
-			mesh.receiveShadow = shadows;
-			this.listGroup.add(mesh);
-		};
-		add(parts.structure, m.structure);
-		add(parts.painted, m.painted);
-		add(parts.siding, m.siding);
-		add(parts.door, m.door);
-		add(parts.glass, m.glass);
-		add(parts.glassLit, m.glassLit);
-		add(parts.lamp, m.lamp, false);
-		add(parts.thin, m.structure, false);
-		const bucketMaterial = {
-			structure: m.structure,
-			painted: m.painted,
-			siding: m.siding,
-			glass: m.glass,
-			door: m.door,
-			lamp: m.lamp,
-			thin: m.structure,
-			glassLit: m.glassLit,
-			beacon: m.beaconA
-		} as const;
-		const dishMesh = (geos: BufferGeometry[], bucket: keyof typeof bucketMaterial) => {
-			const g = merge(geos);
-			this.listGeometries.push(g);
-			const mesh = new Mesh(g, bucketMaterial[bucket]);
-			const shadows = bucket !== 'beacon' && bucket !== 'thin';
-			mesh.castShadow = shadows;
-			mesh.receiveShadow = shadows;
-			return mesh;
-		};
-		for (const b of dishes) {
-			const f = footprintCentre(b);
-			const yaw = (b.rotation * Math.PI) / 180;
-			const near = dishObject(buildDishParts('high'), dishMesh);
-			const far = dishObject(buildDishParts('low'), dishMesh);
-			const aim: DishAim = { azimuth: yaw, elevation: DISH_STOW };
-			for (const d of [near, far]) {
-				d.root.position.set(f.x, 0, f.z);
-				d.setAim(aim);
-				this.listGroup.add(d.root);
-			}
-			far.root.visible = this.dishFar;
-			near.root.visible = !this.dishFar;
-			this.dishes.push({ near, far, at: new Vector3(f.x, 0, f.z), aim });
-		}
-	}
-
-	/**
-	 * The deep-space dishes follow `target` (render space: the active vessel, or a body in the sky;
-	 * null stows them), slewed in wall time (plan 234).
-	 */
-	private trackDishes(target: Vec3 | null, dt: number): void {
-		if (this.dishes.length === 0) return;
-		let local: Vector3 | null = null;
-		if (target) {
-			local = new Vector3(
-				target.x - this.root.position.x,
-				target.y - this.root.position.y,
-				target.z - this.root.position.z
-			).applyQuaternion(this.root.quaternion.clone().invert());
-		}
-		for (const d of this.dishes) {
-			const goal = local
-				? aimOf(
-						local
-							.clone()
-							.sub(d.at)
-							.setY(local.y - DISH.axisHeight)
-					)
-				: null;
-			d.aim = trackStep(d.aim, goal, dt);
-			d.near.setAim(d.aim);
-			d.far.setAim(d.aim);
-		}
+		if (this.listMode) this.buildings.setBuildings(list, roads);
 	}
 
 	/** Where each dish points (plan 234, for tests and the debug overlay). */
 	get dishAims(): readonly DishAim[] {
-		return this.dishes.map((d) => d.aim);
+		return this.buildings.dishAims;
 	}
 
 	/** Draw calls of the building group (journal of plan 091). */
 	get buildingMeshes(): number {
-		return this.listGroup.children.length;
+		return this.buildings.buildingMeshes;
 	}
 
-	/** The translucent box of build mode at a footprint, green when it may be placed, red when not. */
-	setGhost(
-		g: {
-			size: { w: number; d: number };
-			cell: { i: number; j: number };
-			rotation: 0 | 90 | 180 | 270;
-			valid: boolean;
-		} | null
-	): void {
-		if (!g) {
-			if (this.ghost) this.ghost.visible = false;
-			return;
-		}
-		if (!this.ghost) {
-			const geo = new BoxGeometry(1, 1, 1);
-			geo.translate(0, 0.5, 0);
-			this.ghost = new Mesh(
-				geo,
-				new MeshBasicMaterial({ transparent: true, opacity: 0.35, depthWrite: false })
-			);
-			this.ghost.name = 'site-ghost';
-			this.ghost.renderOrder = 10;
-			this.root.add(this.ghost);
-			this.geometries.push(geo);
-		}
-		const f = footprintCentre(g);
-		this.ghost.visible = true;
-		this.ghost.position.set(f.x, 0, f.z);
-		this.ghost.scale.set(f.w * SITE_CELL, 12, f.d * SITE_CELL);
-		(this.ghost.material as MeshBasicMaterial).color.set(g.valid ? 0x3ccf6e : 0xe2483d);
+	setGhost(g: Parameters<SiteBuildings['setGhost']>[0]): void {
+		this.buildings.setGhost(g);
 	}
 
-	/**
-	 * Where the ray (`origin`, `direction`, both in the scene's world space) meets the site's ground
-	 * plane, in site metres east and north; null when it does not (looking up, or from below).
-	 */
 	pickPlane(origin: Vector3, direction: Vector3): { east: number; north: number } | null {
-		const inv = new Matrix4().copy(this.root.matrixWorld).invert();
-		const o = origin.clone().applyMatrix4(inv);
-		const d = direction.clone().transformDirection(inv);
-		if (Math.abs(d.y) < 1e-9) return null;
-		const t = -o.y / d.y;
-		if (!(t > 0)) return null;
-		return { east: o.x + d.x * t, north: -(o.z + d.z * t) };
+		return this.buildings.pickPlane(origin, direction);
 	}
 
-	/** A site point (metres east, north and up) in the scene's world space. */
 	siteToWorld(p: { east: number; north: number; up?: number }): Vector3 {
-		return new Vector3(p.east, p.up ?? 0, -p.north).applyMatrix4(this.root.matrixWorld);
+		return this.buildings.siteToWorld(p);
+	}
+
+	/** The materials the site draws with, which another site's buildings share (ADR 0321). */
+	get sharedMaterials(): SiteMaterials {
+		return this.materials;
 	}
 
 	/** Puts the site on the rotating body: position in float64, orientation = body * site frame. */
@@ -860,6 +962,7 @@ export class LaunchSite {
 			g.dispose();
 		for (const set of this.sets.values()) for (const v of set.meshes) v.dispose();
 		this.steam.dispose();
+		this.buildings.dispose();
 		for (const p of this.people.geometries) p.dispose();
 		for (const m of this.people.materials) m.dispose();
 		const { textures, ...mats } = this.materials;

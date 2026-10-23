@@ -44,7 +44,7 @@ import { PlanetPass } from './planet.ts';
 import { PRESETS, settingsFor, shadowSizeAt, type GraphicsPreset } from './presets.ts';
 import { fitShadow } from './shadow-fit.ts';
 import { liftAboveTerrain } from './terrain-patch.ts';
-import { LaunchSite } from './site-meshes.ts';
+import { LaunchSite, SiteBuildings } from './site-meshes.ts';
 import { DEG, dot, length, rotate, rotateInverse, sub, vec } from './vec.ts';
 
 const smoothstep = (a: number, b: number, x: number): number => {
@@ -227,6 +227,37 @@ export class Environment {
 
 	private resources: GraphicsPreset | undefined;
 
+	/** The home planet's other sites (branches): their buildings only, at their places (ADR 0321). */
+	private readonly others = new Map<string, SiteBuildings>();
+	/** The site the view is on: null is the primary (ADR 0321 point 4). */
+	private viewSite: string | null = null;
+
+	/**
+	 * The buildings of the home site `id` at `latitude`, `longitude` (ADR 0321): another site's
+	 * stand alone with the primary's materials, made the first time they are asked for.
+	 */
+	otherSite(id: string, latitude: number, longitude: number): SiteBuildings {
+		let b = this.others.get(id);
+		if (!b) {
+			b = new SiteBuildings(this.site.sharedMaterials, this.radius, { latitude, longitude });
+			this.others.set(id, b);
+			this.root.add(b.root);
+		}
+		return b;
+	}
+
+	/** Look at, pick on and draw the ghost at the site `id` (null: the primary). */
+	setViewSite(id: string | null): void {
+		this.viewSite = id !== null && this.others.has(id) ? id : null;
+	}
+
+	/** The buildings the view is on: the picks, the projection and the ghost use them. */
+	get viewBuildings(): SiteBuildings {
+		return (
+			(this.viewSite !== null ? this.others.get(this.viewSite) : undefined) ?? this.site.buildings
+		);
+	}
+
 	/** The vessel really launched from here (see `SceneModel.sync`); moves the site meshes and the painted pad. */
 	setSite(latitude: number, longitude: number): void {
 		this.config = { ...this.config, site: { latitude, longitude } };
@@ -383,6 +414,14 @@ export class Environment {
 			vesselRender: input.vesselRender,
 			dishTarget: input.dishTarget ?? null
 		});
+		for (const other of this.others.values()) {
+			other.place(bodyRender, bodyRotation);
+			const p = other.root.position;
+			other.setDishDistance(
+				Math.hypot(p.x - cameraRender.x, p.y - cameraRender.y, p.z - cameraRender.z)
+			);
+			other.trackDishes(input.dishTarget ?? null, Math.min(input.dt, 0.1));
+		}
 		const sun = this.sunDirection(bodyRotation);
 		const sunBF = rotateInverse(bodyRotation, sun);
 		const up = input.up ?? frame.up;
@@ -535,6 +574,7 @@ export class Environment {
 
 	dispose(): void {
 		this.planet.dispose();
+		for (const other of this.others.values()) other.dispose();
 		this.site.dispose();
 	}
 }

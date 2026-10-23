@@ -305,3 +305,4 @@ An ADR records one decision, its context, and its consequences. ADRs are **appen
 | 0318 | [The wider stock system and a body's appearance](0318-wider-stock-system-and-body-appearance.md) | accepted | 2026-10-23 |
 | 0319 | [The Flight navball module is compact by default](0319-compact-navball.md) | accepted | 2026-10-23 |
 | 0320 | [Small-body terrain and body names on the map](0320-small-body-terrain-and-map-body-names.md) | accepted | 2026-10-23 |
+| 0321 | [Every home site's buildings are drawn at their own place](0321-one-site-mesh-per-site.md) | accepted | 2026-10-23 |

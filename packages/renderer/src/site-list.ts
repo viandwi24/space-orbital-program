@@ -134,3 +134,10 @@ export function buildSiteList(
 	}
 	return out;
 }
+
+/** A home site by id and place (ADR 0321): a host names the site whose buildings or view it means. */
+export interface SitePlace {
+	id: string;
+	latitude: number;
+	longitude: number;
+}

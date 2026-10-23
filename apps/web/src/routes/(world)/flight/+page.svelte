@@ -1087,6 +1087,7 @@
 			...(crew?.length ? { crew } : {}),
 			content,
 			...(siteBuildings ? { buildings: siteBuildings } : {}),
+			sites: launchSites,
 			profile: profileStore(),
 			onHud: (h) => {
 				hud = h;

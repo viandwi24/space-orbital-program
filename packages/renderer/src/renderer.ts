@@ -5,7 +5,7 @@
  * same facade to three's `WebGPURenderer` instead (`renderer-webgpu.ts`, plan 261, ADR 0249).
  */
 import type { OverlayInput } from './overlay-layer.ts';
-import type { SiteBuildingView } from './site-list.ts';
+import type { SiteBuildingView, SitePlace } from './site-list.ts';
 import type { EntityId, RegionWorld, Snapshot } from '@orbital/core';
 import type { RegionBody } from './region-overlay.ts';
 import type { WorldTerrainSpec } from './terrain-zones.ts';
@@ -278,15 +278,20 @@ export interface Renderer {
 	 * Site view (plan 091, ADR 0117): the orbit camera looks at the site centre instead of a vessel.
 	 * With `siteBuildings: true` in the config, the site's buildings come from `setSiteBuildings`.
 	 */
-	setSiteView(on: boolean): void;
+	setSiteView(on: boolean, site?: SitePlace): void;
 	/** Site view (plan 259): look at a point of the site, or null for its centre; see `Scene.setSiteFocus`. */
 	setSiteFocus(
 		p: { east: number; north: number; up?: number } | null,
 		options?: { distance?: number; animate?: boolean }
 	): void;
+	/**
+	 * A site's buildings and roads (ADR 0117). `site` names another home site (a branch, ADR 0321):
+	 * its buildings stand at its own place; absent is the primary site.
+	 */
 	setSiteBuildings(
 		list: readonly SiteBuildingView[],
-		roads: readonly { i: number; j: number }[]
+		roads: readonly { i: number; j: number }[],
+		site?: SitePlace
 	): void;
 	/** The translucent footprint of build mode, or null to hide it. */
 	setSiteGhost(
