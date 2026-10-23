@@ -31,8 +31,10 @@
 	import { activePlugins } from '../../lib/mods/runtime';
 	import { BUILTIN_PLUGINS } from '../../lib/builtins';
 	import { saveAndReload } from '../../lib/fatal-error.svelte';
+	import { modBootLog, readBootLog } from '../../lib/mods/boot-log';
 	import {
 		countsByPlugin,
+		countsFromLog,
 		FILTER_LABELS,
 		modCards,
 		modHue,
@@ -49,8 +51,15 @@
 		reload: () => void saveAndReload()
 	});
 	const builtins = builtinModRows(BUILTIN_PLUGINS);
-	// what each booted plugin registered (the loader's registries, ADR 0312 point 3)
-	const counts = countsByPlugin(loadPlugins([...BUILTIN_PLUGINS, ...activePlugins()]).registries);
+	// what each booted plugin registered and its warnings: the loader log (plan 375, ADR 0312
+	// point 3); programs (autopilots) are not a registry kind there, so they come from the registries
+	const bootLog = modBootLog() ?? readBootLog();
+	const registryCounts = countsByPlugin(
+		loadPlugins([...BUILTIN_PLUGINS, ...activePlugins()]).registries
+	);
+	const counts = bootLog ? countsFromLog(bootLog.mods, registryCounts) : registryCounts;
+	const warningsOf = (id: string): readonly string[] =>
+		bootLog?.mods.find((m) => m.id === id)?.warnings ?? [];
 	let fileInput = $state<HTMLInputElement>();
 	let url = $state('');
 	let query = $state('');
@@ -67,6 +76,7 @@
 			statusOf: (r) => manager.statusOf(r),
 			patchesOf: (id) => manager.patchesOf(id),
 			counts,
+			warningsOf,
 			apiVersion: API_VERSION
 		})
 	);
