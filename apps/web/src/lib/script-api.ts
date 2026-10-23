@@ -66,7 +66,11 @@ export const GLOBALS: readonly ApiEntry[] = [
 		'memory',
 		'Your saved state: a plain object kept with the vessel in every save. Change its fields; a world that opens runs the script again with it.'
 	),
-	value('resumed', 'resumed', 'True when this run was restarted from a save, with the saved memory.'),
+	value(
+		'resumed',
+		'resumed',
+		'True when this run was restarted from a save, with the saved memory.'
+	),
 	fn(
 		'warp',
 		'warp(factor): Promise<{ ok, reason? }>',

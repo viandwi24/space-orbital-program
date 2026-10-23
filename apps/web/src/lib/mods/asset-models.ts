@@ -29,7 +29,11 @@ export async function prepareModelProviders(
 		});
 		await provider.preload([...assets.keys()]);
 		for (const [part, reason] of provider.failures) {
-			noteAssetProblem({ mod: part.split('.')[0] ?? part, what: `model of part "${part}"`, message: reason });
+			noteAssetProblem({
+				mod: part.split('.')[0] ?? part,
+				what: `model of part "${part}"`,
+				message: reason
+			});
 			log(
 				`Mod model for "${part}" could not be loaded (${reason}); the part is drawn with its fallback look.`
 			);

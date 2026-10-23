@@ -79,7 +79,7 @@ describe('blueprint Library (plan 285)', () => {
 		]);
 	});
 
-	it('old ids resolve to stock\'s (ADR 0316)', () => {
+	it("old ids resolve to stock's (ADR 0316)", () => {
 		expect(resolveBlueprintId('kronos-selene', cards)).toBe('stock.kronos-selene');
 		expect(resolveBlueprintId('learn.two-stage', cards)).toBe('stock.two-stage');
 		expect(resolveBlueprintId('acme.pebble', cards)).toBe('acme.pebble');

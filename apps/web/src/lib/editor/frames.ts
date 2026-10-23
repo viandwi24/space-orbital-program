@@ -162,7 +162,11 @@ export function surfaceLinkOnto(
 	if (pointNearShape(parentShape, contact)) point = contact;
 	else if (anchor && pointNearShape(parentShape, anchor)) {
 		point = [anchor[0], anchor[1], anchor[2]];
-		offset = offsetOf({ x: contact[0] - point[0], y: contact[1] - point[1], z: contact[2] - point[2] });
+		offset = offsetOf({
+			x: contact[0] - point[0],
+			y: contact[1] - point[1],
+			z: contact[2] - point[2]
+		});
 	} else return null;
 	// the node's direction in the parent's frame; the surface normal is against it
 	const along = mat3Apply(turn, d);

@@ -70,7 +70,8 @@ const AIR = 70_000;
 const POD = ['stock.command-pod', 'stock.reaction-wheel'];
 const report = (line: string): void => {
 	console.log(`[eras] ${line}`);
-	if (process.env.ORBITAL_FLIGHT_REPORT) appendFileSync(process.env.ORBITAL_FLIGHT_REPORT, `eras | ${line}\n`);
+	if (process.env.ORBITAL_FLIGHT_REPORT)
+		appendFileSync(process.env.ORBITAL_FLIGHT_REPORT, `eras | ${line}\n`);
 };
 
 describe('eras in the stock system (plan 380)', () => {
@@ -89,7 +90,9 @@ describe('eras in the stock system (plan 380)', () => {
 	}, 600_000);
 
 	it('the two-stage starter reaches orbit', async () => {
-		const pe = await periapsisAfterAscent(blueprintDesign('stock.two-stage', registries.blueprints.list()));
+		const pe = await periapsisAfterAscent(
+			blueprintDesign('stock.two-stage', registries.blueprints.list())
+		);
 		report(`two-stage starter: periapsis ${(pe / 1000).toFixed(0)} km`);
 		expect(pe).toBeGreaterThan(AIR);
 	}, 600_000);

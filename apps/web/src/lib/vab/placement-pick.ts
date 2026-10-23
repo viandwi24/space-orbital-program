@@ -57,7 +57,8 @@ export function nextPlacement<Site>(
 			const held = rings.find((r) => r.index === prev.node);
 			if (held && held.px <= snap * RELEASE_FACTOR) {
 				const other = rings.find((r) => r.index !== prev.node);
-				if (!other || other.px > held.px * TAKEOVER) return { node: prev.node, site: null, free: null };
+				if (!other || other.px > held.px * TAKEOVER)
+					return { node: prev.node, site: null, free: null };
 			}
 		}
 		const nearest = rings[0];

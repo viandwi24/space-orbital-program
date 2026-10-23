@@ -145,7 +145,12 @@ const skyMilkyWay = Fn(([d]: N[]) => {
 	const n2 = smoothstep(0.66, 0.9, skyFbm(d.mul(2.6).add(43.0), 5)).mul(
 		exp(bb.mul(bb).negate().div(0.25))
 	);
-	col.addAssign(vec3(1.0, 0.32, 0.45).mul(n1).mul(0.22).add(vec3(0.25, 0.62, 0.78).mul(n2).mul(0.12)));
+	col.addAssign(
+		vec3(1.0, 0.32, 0.45)
+			.mul(n1)
+			.mul(0.22)
+			.add(vec3(0.25, 0.62, 0.78).mul(n2).mul(0.12))
+	);
 	const grain = pow(noiseF(d.mul(90.0)), 6.0).mul(disk.add(bulge.mul(0.5)));
 	col.addAssign(vec3(0.9, 0.92, 1.0).mul(grain).mul(0.9));
 	return col.mul(MILKY_WAY_RADIANCE).add(SKY_FLOOR_RADIANCE);
@@ -162,7 +167,9 @@ const starTint = (t: N): N => {
 
 const starSigmaPx = (mag: N): N =>
 	clamp(
-		float(STAR_SIGMA_FROM_MAG).sub(mag).div(STAR_SIGMA_FROM_MAG - STAR_SIGMA_BRIGHT_MAG),
+		float(STAR_SIGMA_FROM_MAG)
+			.sub(mag)
+			.div(STAR_SIGMA_FROM_MAG - STAR_SIGMA_BRIGHT_MAG),
 		0.0,
 		1.0
 	)
@@ -189,18 +196,12 @@ export const catalogueStars = Fn(([rd, px]: N[]) => {
 	const face = select(
 		isX,
 		select(rd.x.greaterThan(0.0), 0.0, 1.0),
-		select(
-			isY,
-			select(rd.y.greaterThan(0.0), 2.0, 3.0),
-			select(rd.z.greaterThan(0.0), 4.0, 5.0)
-		)
+		select(isY, select(rd.y.greaterThan(0.0), 2.0, 3.0), select(rd.z.greaterThan(0.0), 4.0, 5.0))
 	).toVar();
-	const ab = select(
-		isX,
-		rd.yz.div(a.x),
-		select(isY, vec2(rd.z, rd.x).div(a.y), rd.xy.div(a.z))
-	);
-	const st = atan(ab).mul(4 / Math.PI).toVar();
+	const ab = select(isX, rd.yz.div(a.x), select(isY, vec2(rd.z, rd.x).div(a.y), rd.xy.div(a.z)));
+	const st = atan(ab)
+		.mul(4 / Math.PI)
+		.toVar();
 	const col = vec3(0.0).toVar();
 	for (const L of STAR_LAYERS) {
 		const cellAngle = Math.PI / 2 / L.cells;

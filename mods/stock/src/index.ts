@@ -280,7 +280,8 @@ export const Stock = definePlugin({
 		for (const part of STOCK_ROBOTIC_PARTS) ctx.parts.register(part);
 		for (const part of STOCK_TETHER_PARTS) ctx.parts.register(part);
 		// plan 361: the orbiter's landing gear and brake chute
-		for (const part of [PartOrbiterGear, PartOrbiterNoseGear, PartDragChute]) ctx.parts.register(part);
+		for (const part of [PartOrbiterGear, PartOrbiterNoseGear, PartDragChute])
+			ctx.parts.register(part);
 		for (const part of STOCK_ROVER_PARTS) ctx.parts.register(part);
 		ctx.commodities.register(CommodityIce);
 		ctx.recipes.register(RecipeIceElectrolysis);

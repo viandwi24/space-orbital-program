@@ -13,12 +13,18 @@ const facts = (f: Partial<PointerFacts<string>> = {}): PointerFacts<string> => (
 
 describe('nextPlacement (plan 348, ADR 0297)', () => {
 	it('a ring within the snap radius on screen is the candidate', () => {
-		const p = nextPlacement(NO_PICK, facts({ rings: [{ index: 4, px: SNAP_PX - 1 }], site: 'side' }));
+		const p = nextPlacement(
+			NO_PICK,
+			facts({ rings: [{ index: 4, px: SNAP_PX - 1 }], site: 'side' })
+		);
 		expect(p).toEqual({ node: 4, site: null, free: null });
 	});
 
 	it('a ring outside the snap radius is not: the surface under the pointer is', () => {
-		const p = nextPlacement(NO_PICK, facts({ rings: [{ index: 4, px: SNAP_PX + 10 }], site: 'side' }));
+		const p = nextPlacement(
+			NO_PICK,
+			facts({ rings: [{ index: 4, px: SNAP_PX + 10 }], site: 'side' })
+		);
 		expect(p).toEqual({ node: null, site: 'side', free: null });
 	});
 
@@ -32,7 +38,10 @@ describe('nextPlacement (plan 348, ADR 0297)', () => {
 	});
 
 	it('with node snapping off rings near the pointer are ignored', () => {
-		const p = nextPlacement(NO_PICK, facts({ snapOn: false, rings: [{ index: 1, px: 2 }], site: 's' }));
+		const p = nextPlacement(
+			NO_PICK,
+			facts({ snapOn: false, rings: [{ index: 1, px: 2 }], site: 's' })
+		);
 		expect(p.site).toBe('s');
 	});
 
@@ -43,9 +52,15 @@ describe('nextPlacement (plan 348, ADR 0297)', () => {
 
 	it('hysteresis: a snapped ring holds up to 1.5 times the snap radius', () => {
 		const prev = { node: 3, site: null, free: null };
-		const p = nextPlacement(prev, facts({ rings: [{ index: 3, px: SNAP_PX * 1.4 }], site: 'side' }));
+		const p = nextPlacement(
+			prev,
+			facts({ rings: [{ index: 3, px: SNAP_PX * 1.4 }], site: 'side' })
+		);
 		expect(p.node).toBe(3);
-		const gone = nextPlacement(prev, facts({ rings: [{ index: 3, px: SNAP_PX * 1.6 }], site: 'side' }));
+		const gone = nextPlacement(
+			prev,
+			facts({ rings: [{ index: 3, px: SNAP_PX * 1.6 }], site: 'side' })
+		);
 		expect(gone).toEqual({ node: null, site: 'side', free: null });
 	});
 
@@ -53,10 +68,23 @@ describe('nextPlacement (plan 348, ADR 0297)', () => {
 		const prev = { node: 3, site: null, free: null };
 		const close = nextPlacement(
 			prev,
-			facts({ rings: [{ index: 3, px: 30 }, { index: 5, px: 25 }] })
+			facts({
+				rings: [
+					{ index: 3, px: 30 },
+					{ index: 5, px: 25 }
+				]
+			})
 		);
 		expect(close.node).toBe(3);
-		const much = nextPlacement(prev, facts({ rings: [{ index: 3, px: 30 }, { index: 5, px: 10 }] }));
+		const much = nextPlacement(
+			prev,
+			facts({
+				rings: [
+					{ index: 3, px: 30 },
+					{ index: 5, px: 10 }
+				]
+			})
+		);
 		expect(much.node).toBe(5);
 	});
 });

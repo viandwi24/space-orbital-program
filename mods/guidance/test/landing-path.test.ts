@@ -120,7 +120,10 @@ describe('when the path shows (ADR 0309 point 3: pad, ascent, orbit, re-entry, l
 			expect(visibility(always, at(s, 0), impact)).toEqual({ flight: 0, map: false });
 		for (const s of ['prelaunch', 'landed', 'splashed'])
 			expect(visibility(on, at(s, 0), impact)).toEqual({ flight: 0, map: false });
-		expect(visibility(on, at('landed', 0, 'guidance.land'), impact)).toEqual({ flight: 0, map: false });
+		expect(visibility(on, at('landed', 0, 'guidance.land'), impact)).toEqual({
+			flight: 0,
+			map: false
+		});
 	});
 	test('ascent: hidden near the pad, fading in from 1 to 2 km, in the map whenever it comes down', () => {
 		expect(visibility(on, at('flying', 400), impact)).toEqual({ flight: 0, map: true });
@@ -141,13 +144,19 @@ describe('when the path shows (ADR 0309 point 3: pad, ascent, orbit, re-entry, l
 		expect(visibility({ show: false }, reentry(null), impact)).toEqual({ flight: 0, map: false });
 		expect(visibility({ show: true }, reentry(null), impact)).toEqual({ flight: 1, map: true });
 		expect(visibility(on, reentry('guidance.ascent'), impact)).toEqual({ flight: 0, map: false });
-		expect(visibility(on, reentry('guidance.rendezvous'), impact)).toEqual({ flight: 0, map: false });
+		expect(visibility(on, reentry('guidance.rendezvous'), impact)).toEqual({
+			flight: 0,
+			map: false
+		});
 		// a program of another mod does not hide it
 		expect(visibility(on, reentry('autodock.dock'), impact)).toEqual({ flight: 1, map: true });
 	});
 	test('always: in Flight from the first metre of a manual flight, and under another program', () => {
 		expect(visibility(always, at('flying', 400), impact)).toEqual({ flight: 1, map: true });
-		expect(visibility(always, at('sub-orbital', 60_000, 'guidance.ascent'), impact)).toEqual({ flight: 1, map: true });
+		expect(visibility(always, at('sub-orbital', 60_000, 'guidance.ascent'), impact)).toEqual({
+			flight: 1,
+			map: true
+		});
 		expect(visibility(always, at('sub-orbital', 60_000), { impact: null }).map).toBe(false);
 	});
 	test('the arc: nothing within 30 m of the vessel, faint near it, red where it is hot', () => {
@@ -191,7 +200,9 @@ describe('the landing path in a sim', () => {
 		expect(views).toContain('flight+map');
 		expect(pathOf(sim)!.shapes.some((s) => Number(s.vessel) === orbit)).toBe(false);
 		// the Landing tab's Predicted path: Off
-		expect(sim.dispatch({ type: 'mod-key', key: SET_PATH.id, vessel: id, data: { mode: 'off' } }).ok).toBe(true);
+		expect(
+			sim.dispatch({ type: 'mod-key', key: SET_PATH.id, vessel: id, data: { mode: 'off' } }).ok
+		).toBe(true);
 		for (let i = 0; i < 15; i++) sim.step(0.02);
 		expect(sim.snapshot().stores?.[PathSettings.id]).toEqual({ mode: 'off' });
 		expect(pathOf(sim)).toBeUndefined();
@@ -200,7 +211,9 @@ describe('the landing path in a sim', () => {
 
 	test('Always: a manual flight just off the ground, no program engaged, shows it in Flight', async () => {
 		const sim = await make();
-		expect(sim.dispatch({ type: 'mod-key', key: SET_PATH.id, data: { mode: 'always' } }).ok).toBe(true);
+		expect(sim.dispatch({ type: 'mod-key', key: SET_PATH.id, data: { mode: 'always' } }).ok).toBe(
+			true
+		);
 		// a hop: 900 m up, climbing slowly, coming back down (Auto keeps Flight clear under 1 km)
 		const id = drop(sim, 900, 0.02);
 		for (let i = 0; i < 30; i++) sim.step(0.02);

@@ -499,8 +499,8 @@
 			</p>
 		{:else if tab === 'info'}
 			<p class="tools">
-				<a href={resolve('/developer/parts')} target="_blank" rel="noopener">Part viewer</a> (a new tab: every
-				part on its own, its nodes and colliders, no world loaded)
+				<a href={resolve('/developer/parts')} target="_blank" rel="noopener">Part viewer</a> (a new tab:
+				every part on its own, its nodes and colliders, no world loaded)
 			</p>
 			<dl class="info" data-testid="debug-info">
 				<dt>Frames per second</dt>
@@ -557,7 +557,9 @@
 				<dt>World load</dt>
 				<dd data-testid="debug-load">
 					{loadLine}
-					<Button onclick={() => void copyLoadReport()} data-testid="debug-copy-load">Copy load report</Button>
+					<Button onclick={() => void copyLoadReport()} data-testid="debug-copy-load"
+						>Copy load report</Button
+					>
 				</dd>
 				<dt>Frame pacing</dt>
 				<dd data-testid="debug-governor-pacing">

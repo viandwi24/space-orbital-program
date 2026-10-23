@@ -93,7 +93,10 @@ export function summarize(
 	top = 10
 ): CompileSummary {
 	const timed = pipelines.filter((p) => p.ms !== null);
-	const phases = new Map<string, { pipelines: number; timedMs: number; from: number; to: number }>();
+	const phases = new Map<
+		string,
+		{ pipelines: number; timedMs: number; from: number; to: number }
+	>();
 	for (const p of pipelines) {
 		const ph = phases.get(p.phase) ?? { pipelines: 0, timedMs: 0, from: p.at, to: p.at };
 		ph.pipelines++;
@@ -224,7 +227,9 @@ export class CompileReport {
 			return sync(desc);
 		};
 		const later = device.createRenderPipelineAsync.bind(device);
-		d.createRenderPipelineAsync = (desc: GPURenderPipelineDescriptor): Promise<GPURenderPipeline> => {
+		d.createRenderPipelineAsync = (
+			desc: GPURenderPipelineDescriptor
+		): Promise<GPURenderPipeline> => {
 			const p = this.addPipeline(desc.label ?? '', 'async', bytesOf(desc));
 			const made = later(desc);
 			made.then(
@@ -268,7 +273,8 @@ export class CompileReport {
 		const source = gl.shaderSource.bind(gl);
 		g.shaderSource = (shader: WebGLShader, raw: string): void => {
 			const code = stableShaderNames(raw);
-			const stage = gl.getShaderParameter(shader, gl.SHADER_TYPE) === gl.VERTEX_SHADER ? 'vertex' : 'fragment';
+			const stage =
+				gl.getShaderParameter(shader, gl.SHADER_TYPE) === gl.VERTEX_SHADER ? 'vertex' : 'fragment';
 			const name = /#define SHADER_NAME (\S+)/.exec(code)?.[1] ?? '';
 			this.addModule(name, stage, code);
 			shaderBytes.set(shader, code.length);
@@ -281,13 +287,19 @@ export class CompileReport {
 		};
 		const link = gl.linkProgram.bind(gl);
 		g.linkProgram = (program: WebGLProgram): void => {
-			const entry = this.addPipeline(labelOf?.(program) ?? '', parallel ? 'program' : 'sync', programBytes.get(program) ?? 0);
+			const entry = this.addPipeline(
+				labelOf?.(program) ?? '',
+				parallel ? 'program' : 'sync',
+				programBytes.get(program) ?? 0
+			);
 			link(program);
 			if (!parallel) return;
 			const poll = (): void => {
 				let complete = true;
 				try {
-					complete = gl.isContextLost() || gl.getProgramParameter(program, parallel.COMPLETION_STATUS_KHR) === true;
+					complete =
+						gl.isContextLost() ||
+						gl.getProgramParameter(program, parallel.COMPLETION_STATUS_KHR) === true;
 				} catch {
 					complete = true;
 				}

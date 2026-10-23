@@ -63,14 +63,20 @@ export function detailTexel(u: number, v: number): [number, number, number, numb
 	const ridge = 1 - Math.abs(2 * fbm(u, v, 8, 4, 7) - 1);
 	const crack = Math.pow(Math.max(0, ridge - 0.82) / 0.18, 2);
 	const grain = fbm(u, v, 32, 3, 13);
-	const rock = 0.5 + 0.22 * (strata - 0.5) + 0.3 * (fbm(u, v, 4, 5, 3) - 0.5) + 0.2 * (grain - 0.5) - 0.35 * crack;
+	const rock =
+		0.5 +
+		0.22 * (strata - 0.5) +
+		0.3 * (fbm(u, v, 4, 5, 3) - 0.5) +
+		0.2 * (grain - 0.5) -
+		0.35 * crack;
 	// grass: clumps and blades seen from above, darker gaps
 	const clump = fbm(u, v, 8, 3, 21);
 	const blade = periodicNoise(u, v, 128, 29);
 	const grass = 0.5 + 0.35 * (clump - 0.5) + 0.25 * (blade - 0.5);
 	// sand: wind ripples bent by noise, and grain
 	const rip = Math.sin((u * 14 + (fbm(u, v, 4, 2, 31) - 0.5) * 3) * Math.PI * 2);
-	const sand = 0.5 + 0.12 * rip + 0.18 * (fbm(u, v, 64, 2, 37) - 0.5) + 0.15 * (fbm(u, v, 4, 3, 41) - 0.5);
+	const sand =
+		0.5 + 0.12 * rip + 0.18 * (fbm(u, v, 64, 2, 37) - 0.5) + 0.15 * (fbm(u, v, 4, 3, 41) - 0.5);
 	// snow: soft drifts, very low contrast
 	const snow = 0.5 + 0.3 * (fbm(u, v, 4, 4, 51) - 0.5) + 0.08 * (fbm(u, v, 32, 2, 53) - 0.5);
 	return [rock, grass, sand, snow];

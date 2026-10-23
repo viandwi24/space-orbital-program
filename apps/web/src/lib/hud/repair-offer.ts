@@ -23,7 +23,8 @@ export function repairOffer(
 	const failed = snapshot.reliability?.failed ?? [];
 	if (failed.length === 0) return null;
 	const engineer = (snapshot.crew ?? []).some(
-		(m) => m.profession === 'engineer' && m.vessel !== undefined && Number(m.vessel) === Number(suit)
+		(m) =>
+			m.profession === 'engineer' && m.vessel !== undefined && Number(m.vessel) === Number(suit)
 	);
 	if (!engineer) return null;
 	const me = snapshot.vessels.find((v) => Number(v.id) === Number(suit));

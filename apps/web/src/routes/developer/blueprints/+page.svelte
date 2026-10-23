@@ -95,7 +95,8 @@
 	<input type="search" placeholder="Search title or id" bind:value={query} />
 	<select bind:value={origin} aria-label="Origin">
 		<option value="all">All origins</option>
-		{#each Object.entries(ORIGIN_LABELS) as [id, label] (id)}<option value={id}>{label}</option>{/each}
+		{#each Object.entries(ORIGIN_LABELS) as [id, label] (id)}<option value={id}>{label}</option
+			>{/each}
 	</select>
 	<select
 		value={modFilter ?? ''}
@@ -141,13 +142,16 @@
 					<strong>{r.title}</strong>
 					<code>{r.id}</code>
 					<span class="tag">{ORIGIN_LABELS[r.origin]}</span>
-					<span class="dim">by {r.by} · {GOAL_LABELS[r.goal]} · {r.crew ? `${r.crew} crew` : 'probe'}</span>
-					<a class="open" href={hangarHref(r.id)} data-testid="blueprint-open">Open in the Hangar</a>
+					<span class="dim"
+						>by {r.by} · {GOAL_LABELS[r.goal]} · {r.crew ? `${r.crew} crew` : 'probe'}</span
+					>
+					<a class="open" href={hangarHref(r.id)} data-testid="blueprint-open">Open in the Hangar</a
+					>
 				</div>
 				{#if r.stats}
 					<div class="nums">
-						{r.stats.parts} parts · {r.stats.mass.toFixed(1)} t · Δv {Math.round(r.stats.deltaV)} m/s ·
-						TWR {r.stats.twr === null ? '—' : r.stats.twr.toFixed(2)}
+						{r.stats.parts} parts · {r.stats.mass.toFixed(1)} t · Δv {Math.round(r.stats.deltaV)} m/s
+						· TWR {r.stats.twr === null ? '—' : r.stats.twr.toFixed(2)}
 					</div>
 				{/if}
 				{#if r.buildError}<div class="bad">Could not be built: {r.buildError}</div>{/if}

@@ -345,7 +345,8 @@ export class PartLayer {
 
 	/** The materials of an overlay look. */
 	private lookOf(kind: string): Material | Material[] {
-		if (kind === 'select' || kind === 'hover' || kind === 'flag') return this.highlights.outline(kind);
+		if (kind === 'select' || kind === 'hover' || kind === 'flag')
+			return this.highlights.outline(kind);
 		if (kind === 'veil') return this.highlights.veil;
 		if (kind === 'dim') return this.highlights.dim;
 		return this.highlights.get(kind as 'ghost' | 'xray');

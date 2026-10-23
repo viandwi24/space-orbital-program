@@ -8,9 +8,11 @@ describe('compile report (plan 370)', () => {
 		expect(hashSource('')).toMatch(/^[0-9a-f]{8}$/);
 	});
 
-	it('renumbers three\'s NodeBuffer names in order of appearance', () => {
-		const a = 'struct NodeBuffer_1348856Struct {};\nvar<uniform> NodeBuffer_1348856 : NodeBuffer_1348856Struct;\nvar<uniform> NodeBuffer_77 : X;';
-		const b = 'struct NodeBuffer_1351320Struct {};\nvar<uniform> NodeBuffer_1351320 : NodeBuffer_1351320Struct;\nvar<uniform> NodeBuffer_80 : X;';
+	it("renumbers three's NodeBuffer names in order of appearance", () => {
+		const a =
+			'struct NodeBuffer_1348856Struct {};\nvar<uniform> NodeBuffer_1348856 : NodeBuffer_1348856Struct;\nvar<uniform> NodeBuffer_77 : X;';
+		const b =
+			'struct NodeBuffer_1351320Struct {};\nvar<uniform> NodeBuffer_1351320 : NodeBuffer_1351320Struct;\nvar<uniform> NodeBuffer_80 : X;';
 		expect(stableShaderNames(a)).toBe(stableShaderNames(b));
 		expect(stableShaderNames(a)).toContain('NodeBuffer_0Struct');
 		expect(stableShaderNames(a)).toContain('NodeBuffer_1 : X');
@@ -40,12 +42,16 @@ describe('compile report (plan 370)', () => {
 		expect(s.timedMs).toBe(920);
 		expect(s.slowest.map((p) => p.label)).toEqual(['planet', 'part']);
 		expect(s.largest[0]!.label).toBe('planet');
-		expect(s.phases).toEqual([{ phase: 'programs', pipelines: 3, timedMs: 920, spanMs: expect.any(Number) }]);
+		expect(s.phases).toEqual([
+			{ phase: 'programs', pipelines: 3, timedMs: 920, spanMs: expect.any(Number) }
+		]);
 	});
 
 	it('gives the same set hash for the same shaders in any order', () => {
 		const m = (h: string) => ({ label: '', stage: 'fragment', bytes: 1, hash: h });
-		expect(summarize([m('a'), m('b')], []).setHash).toBe(summarize([m('b'), m('a'), m('a')], []).setHash);
+		expect(summarize([m('a'), m('b')], []).setHash).toBe(
+			summarize([m('b'), m('a'), m('a')], []).setHash
+		);
 		expect(summarize([m('a')], []).setHash).not.toBe(summarize([m('b')], []).setHash);
 	});
 

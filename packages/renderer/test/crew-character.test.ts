@@ -51,7 +51,9 @@ describe('crew character (plan 341; content from stock since plan 375)', () => {
 		const eva = buildCharacter({ outfit: 'stock.eva' });
 		expect(eva.some((p) => p.helmet)).toBe(true);
 		expect(buildCharacter({ outfit: 'stock.flight' }).some((p) => p.helmet)).toBe(false);
-		expect(buildCharacter({ outfit: 'stock.eva', noHelmet: true }).some((p) => p.helmet)).toBe(false);
+		expect(buildCharacter({ outfit: 'stock.eva', noHelmet: true }).some((p) => p.helmet)).toBe(
+			false
+		);
 	});
 
 	it('the look of a crew id is stable and varies across ids', () => {

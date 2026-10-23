@@ -22,7 +22,11 @@ const vessel = (extra: Partial<VesselSnapshot> = {}): VesselSnapshot =>
 		...extra
 	}) as unknown as VesselSnapshot;
 const BODY = { id: 'stock.home', radius: 600_000, mu: 3.5316e12, atmosphereHeight: 70_000 };
-const input = (v: VesselSnapshot, others: VesselSnapshot[] = [], deltaV: number | null = null): PanelInput =>
+const input = (
+	v: VesselSnapshot,
+	others: VesselSnapshot[] = [],
+	deltaV: number | null = null
+): PanelInput =>
 	({
 		snapshot: { t: 10, vessels: [v, ...others], bodies: [] },
 		vessel: v,
@@ -52,12 +56,21 @@ const button = (id: string, label: string) => {
 describe('Guidance Computer panel (plan 332)', () => {
 	// the loader validates it (ADR 0287 schema) whenever a sim loads the mod: rendezvous.test.ts does
 	test('has a tab per program', () => {
-		expect(view.tabs.map((t) => t.label)).toEqual(['Ascent', 'Orbit', 'Rendezvous', 'Landing', 'Log']);
+		expect(view.tabs.map((t) => t.label)).toEqual([
+			'Ascent',
+			'Orbit',
+			'Rendezvous',
+			'Landing',
+			'Log'
+		]);
 	});
 
 	test('a program that cannot start says why and has no Engage', () => {
 		const v = vessel();
-		expect(statusOf('orbit', v)).toEqual({ text: 'No maneuver node: add one on the map.', tone: 'warn' });
+		expect(statusOf('orbit', v)).toEqual({
+			text: 'No maneuver node: add one on the map.',
+			tone: 'warn'
+		});
 		expect(button('orbit', 'Execute node').command(input(v))).toBeNull();
 		expect(statusOf('rendezvous', v).text).toBe('Target a vessel or a docking port first.');
 		expect(statusOf('ascent', v).text).toBe('Already in orbit.');
@@ -85,11 +98,17 @@ describe('Guidance Computer panel (plan 332)', () => {
 		expect(view.active?.(input(v))).toBe('orbit');
 		expect(tab('orbit').badge?.(input(v))).toBe('ON');
 		expect(tab('ascent').badge?.(input(v))).toBeNull();
-		expect(statusOf('orbit', v)).toEqual({ text: 'Execute node: Burning: 6.0 m/s left', tone: 'active' });
+		expect(statusOf('orbit', v)).toEqual({
+			text: 'Execute node: Burning: 6.0 m/s left',
+			tone: 'active'
+		});
 		const progress = nodesOf('orbit').find((n) => n.kind === 'progress');
 		if (progress?.kind !== 'progress') throw new Error('no progress');
 		expect(progress.value(input(v))).toBe(0.5);
-		expect(button('orbit', 'Abort').command(input(v))).toEqual({ type: 'autopilot-disengage', vessel: entityId(1) });
+		expect(button('orbit', 'Abort').command(input(v))).toEqual({
+			type: 'autopilot-disengage',
+			vessel: entityId(1)
+		});
 		expect(statusOf('landing', v).text).toBe('Execute node is flying: abort it first.');
 	});
 
@@ -110,9 +129,16 @@ describe('Guidance Computer panel (plan 332)', () => {
 
 	describe('Rendezvous says the true reason it cannot start (plan 333)', () => {
 		const mu = BODY.mu;
-		const circ = (r: number) => ({ position: { x: r, y: 0, z: 0 }, velocity: { x: 0, y: 0, z: -Math.sqrt(mu / r) } });
+		const circ = (r: number) => ({
+			position: { x: r, y: 0, z: 0 },
+			velocity: { x: 0, y: 0, z: -Math.sqrt(mu / r) }
+		});
 		/** The own vessel at `own`, targeting a vessel whose state is `other` (absolute, body-centred). */
-		const scene = (own: { position: Vec; velocity: Vec }, other: { position: Vec; velocity: Vec }, extra: Partial<VesselSnapshot> = {}) => {
+		const scene = (
+			own: { position: Vec; velocity: Vec },
+			other: { position: Vec; velocity: Vec },
+			extra: Partial<VesselSnapshot> = {}
+		) => {
 			const target = vessel({ id: entityId(2), name: 'Station', ...other, ...extra });
 			const me = vessel({
 				...own,
@@ -138,9 +164,14 @@ describe('Guidance Computer panel (plan 332)', () => {
 		const station = circ(750_000);
 
 		test('climbing from the pad: no stable orbit, Fly Ascent, a button to the Ascent tab', () => {
-			const { me, target } = scene({ position: { x: 630_000, y: 0, z: 0 }, velocity: { x: 0, y: 0, z: -500 } }, station);
+			const { me, target } = scene(
+				{ position: { x: 630_000, y: 0, z: 0 }, velocity: { x: 0, y: 0, z: -500 } },
+				station
+			);
 			const r = rdv(me, target);
-			expect(r.text).toBe('Reach a stable orbit first: periapsis below the surface, needs 70 km+. Fly Ascent.');
+			expect(r.text).toBe(
+				'Reach a stable orbit first: periapsis below the surface, needs 70 km+. Fly Ascent.'
+			);
 			expect(r.tone).toBe('warn');
 			expect(r.action).toEqual({ label: 'Open Ascent', tab: 'ascent' });
 			expect(button('rendezvous', 'Engage').command(r.i)).toBeNull();
@@ -149,9 +180,14 @@ describe('Guidance Computer panel (plan 332)', () => {
 		test('apoapsis up, periapsis in the air: Circularize, a button to the Orbit tab', () => {
 			const rp = 612_000;
 			const a = (rp + 700_000) / 2;
-			const own = { position: { x: rp, y: 0, z: 0 }, velocity: { x: 0, y: 0, z: -Math.sqrt(mu * (2 / rp - 1 / a)) } };
+			const own = {
+				position: { x: rp, y: 0, z: 0 },
+				velocity: { x: 0, y: 0, z: -Math.sqrt(mu * (2 / rp - 1 / a)) }
+			};
 			const r = rdv(scene(own, station).me, scene(own, station).target);
-			expect(r.text).toBe('Reach a stable orbit first: periapsis 12 km, needs 70 km+. Circularize at the apoapsis.');
+			expect(r.text).toBe(
+				'Reach a stable orbit first: periapsis 12 km, needs 70 km+. Circularize at the apoapsis.'
+			);
 			expect(r.action).toEqual({ label: 'Open Orbit', tab: 'orbit' });
 		});
 
@@ -164,8 +200,13 @@ describe('Guidance Computer panel (plan 332)', () => {
 			expect(rdv(away.me, away.target).action).toBeNull();
 			const landed = scene(own, station, { surface: true } as never);
 			expect(rdv(landed.me, landed.target).text).toBe('The target is on the ground.');
-			const low = scene(own, { position: { x: 640_000, y: 0, z: 0 }, velocity: { x: 0, y: 0, z: -900 } });
-			expect(rdv(low.me, low.target).text).toBe('The target is not in a stable orbit: periapsis below the surface, needs 70 km+.');
+			const low = scene(own, {
+				position: { x: 640_000, y: 0, z: 0 },
+				velocity: { x: 0, y: 0, z: -900 }
+			});
+			expect(rdv(low.me, low.target).text).toBe(
+				'The target is not in a stable orbit: periapsis below the surface, needs 70 km+.'
+			);
 		});
 
 		test('a run that stopped too low to phase offers the Orbit tab (plan 333)', () => {
@@ -188,19 +229,29 @@ describe('Guidance Computer panel (plan 332)', () => {
 			const r = rdv(me, target, 3_391.94);
 			expect(r.tone).toBe('info');
 			expect(r.action).toBeNull();
-			expect(button('rendezvous', 'Engage').command(r.i)).toMatchObject({ type: 'autopilot-engage', autopilot: 'guidance.rendezvous' });
+			expect(button('rendezvous', 'Engage').command(r.i)).toMatchObject({
+				type: 'autopilot-engage',
+				autopilot: 'guidance.rendezvous'
+			});
 			const readout = (label: string) => {
 				const n = nodesOf('rendezvous').find((x) => x.kind === 'readout' && x.label === label);
 				return n?.kind === 'readout' ? n.value(r.i) : undefined;
 			};
 			expect(readout('Delta-v left')).toBe(3391.9);
 			// both modes before engaging (plan 371): ETA and delta-v
-			expect(String(readout('Efficient: ETA · delta-v'))).toMatch(/^(\d+ h \d+ min|\d+ min|\d+ s|long wait) · \d+ m\/s$/);
-			expect(String(readout('Fast: ETA · delta-v'))).toMatch(/m\/s \(cap \d+\)$|^none within the cap$/);
+			expect(String(readout('Efficient: ETA · delta-v'))).toMatch(
+				/^(\d+ h \d+ min|\d+ min|\d+ s|long wait) · \d+ m\/s$/
+			);
+			expect(String(readout('Fast: ETA · delta-v'))).toMatch(
+				/m\/s \(cap \d+\)$|^none within the cap$/
+			);
 			const mode = nodesOf('rendezvous').find((x) => x.kind === 'select' && x.label === 'Mode');
 			if (mode?.kind !== 'select') throw new Error('no mode select');
 			expect(mode.value(r.i)).toBe('efficient');
-			expect(mode.command(r.i, 'fast')).toMatchObject({ type: 'autopilot-settings', settings: { mode: 'fast' } });
+			expect(mode.command(r.i, 'fast')).toMatchObject({
+				type: 'autopilot-settings',
+				settings: { mode: 'fast' }
+			});
 			const estimate = Number(readout('Delta-v estimate'));
 			expect(estimate).toBeGreaterThan(50);
 			expect(estimate).toBeLessThan(300);

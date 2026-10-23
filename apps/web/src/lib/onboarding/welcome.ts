@@ -42,7 +42,8 @@ export function modeWelcome(
 	} else if (tech) {
 		first = `Nothing costs money here.${parts}`;
 	} else {
-		first = 'Every part and building is open and nothing costs money: build what you like and fly it.';
+		first =
+			'Every part and building is open and nothing costs money: build what you like and fly it.';
 	}
 	return {
 		mode: preset?.label ?? world.preset,

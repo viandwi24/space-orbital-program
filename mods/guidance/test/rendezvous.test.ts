@@ -36,7 +36,12 @@ const rcs = (first: number, on: number): Part[] =>
 	[0, 1, 2, 3].map((k) => ({
 		index: first + k,
 		part: partId('stock.rcs-block'),
-		parent: { index: on, parentNode: 'surface', node: 'radial', radial: { angle: (k * Math.PI) / 2, y: 0 } }
+		parent: {
+			index: on,
+			parentNode: 'surface',
+			node: 'radial',
+			radial: { angle: (k * Math.PI) / 2, y: 0 }
+		}
 	}));
 
 /** Probe core, a port on top, wheel, battery and RTG, monopropellant with four RCS blocks, a small tank and an engine. */
@@ -81,7 +86,12 @@ const loaded = (r: CommandResult): EntityId => {
 };
 
 /** A state at `angle` along a circular orbit of radius `r` (equatorial, prograde about +Y), tilted by `tilt` about +X. */
-function onOrbit(mu: number, r: number, angle: number, tilt = 0): { position: Vec3; velocity: Vec3 } {
+function onOrbit(
+	mu: number,
+	r: number,
+	angle: number,
+	tilt = 0
+): { position: Vec3; velocity: Vec3 } {
 	const v = Math.sqrt(mu / r);
 	const p = { x: r * Math.cos(angle), y: 0, z: -r * Math.sin(angle) };
 	const u = { x: -v * Math.sin(angle), y: 0, z: -v * Math.cos(angle) };
@@ -119,7 +129,9 @@ async function scene(
 		})
 	);
 	expect(sim.dispatch({ type: 'stage', vessel: a }).ok).toBe(true);
-	expect(sim.dispatch({ type: 'target-set', vessel: a, target: { kind: 'vessel', id: b } }).ok).toBe(true);
+	expect(
+		sim.dispatch({ type: 'target-set', vessel: a, target: { kind: 'vessel', id: b } }).ok
+	).toBe(true);
 	return { sim, a, b, mu };
 }
 
@@ -130,7 +142,11 @@ const vesselOf = (sim: Sim, id: EntityId) => sim.snapshot().vessels.find((v) => 
  * Step until the autopilot holds, ends, or `limit` sim seconds pass. Returns how it went and the
  * distance and relative speed then.
  */
-function run(sim: Sim, id: EntityId, limit: number): { result: string; distance: number; speed: number; log: string[] } {
+function run(
+	sim: Sim,
+	id: EntityId,
+	limit: number
+): { result: string; distance: number; speed: number; log: string[] } {
 	let ended = '';
 	const off = sim.events.on('autopilot:ended', (e) => {
 		if (e.vessel === id) ended = `${e.outcome}: ${e.reason}`;
@@ -145,7 +161,11 @@ function run(sim: Sim, id: EntityId, limit: number): { result: string; distance:
 		const v = vesselOf(sim, id);
 		if (v.autopilot) log = v.autopilot.log;
 		held = v.autopilot?.phase === 'hold' ? held + 1 : 0;
-		if (TRACE && v.autopilot && (v.autopilot.status.slice(0, 18) !== lastStatus || sim.time - lastAt > 20)) {
+		if (
+			TRACE &&
+			v.autopilot &&
+			(v.autopilot.status.slice(0, 18) !== lastStatus || sim.time - lastAt > 20)
+		) {
 			lastStatus = v.autopilot.status.slice(0, 18);
 			lastAt = sim.time;
 			console.log(
@@ -214,7 +234,9 @@ describe('rendezvous helpers', () => {
 		});
 		test('below the floor nothing fits, and the words say how high to go', () => {
 			expect(phasingBurn(at(670_000, 0), at(670_000, 0.5), mu, 670_000, floor)).toBeUndefined();
-			expect(tooLowToPhase(80_000)).toBe('Too low to phase: raise your orbit above 100 km first (Orbit tab).');
+			expect(tooLowToPhase(80_000)).toBe(
+				'Too low to phase: raise your orbit above 100 km first (Orbit tab).'
+			);
 		});
 	});
 
@@ -232,7 +254,9 @@ describe('Rendezvous autopilot (plan 331)', () => {
 	test('same orbit, 20 km apart: ends within 200 m at under 0.5 m/s', async () => {
 		const { sim, a, mu } = await scene(100_000, 20_000 / 700_000, 0);
 		void mu;
-		expect(sim.dispatch({ type: 'autopilot-engage', vessel: a, autopilot: 'guidance.rendezvous' }).ok).toBe(true);
+		expect(
+			sim.dispatch({ type: 'autopilot-engage', vessel: a, autopilot: 'guidance.rendezvous' }).ok
+		).toBe(true);
 		const r = run(sim, a, 6 * 3_600);
 		if (r.result !== 'holding') console.log(r);
 		expect(r.result).toBe('holding');
@@ -243,7 +267,9 @@ describe('Rendezvous autopilot (plan 331)', () => {
 
 	test('the warp to a burn ends about 5 s before it, once the vessel points along it', async () => {
 		const { sim, a } = await scene(100_000, 20_000 / 700_000, 0);
-		expect(sim.dispatch({ type: 'autopilot-engage', vessel: a, autopilot: 'guidance.rendezvous' }).ok).toBe(true);
+		expect(
+			sim.dispatch({ type: 'autopilot-engage', vessel: a, autopilot: 'guidance.rendezvous' }).ok
+		).toBe(true);
 		const stops: number[] = [];
 		const off = sim.events.on('warp:stopped', () => stops.push(sim.time));
 		const start = sim.time;
@@ -265,8 +291,15 @@ describe('Rendezvous autopilot (plan 331)', () => {
 
 	test('stop at 10 m: same orbit, 20 km apart, it holds and creeps in to under 15 m', async () => {
 		const { sim, a } = await scene(100_000, 20_000 / 700_000, 0);
-		sim.dispatch({ type: 'autopilot-settings', vessel: a, autopilot: 'guidance.rendezvous', settings: { standoff: 10 } });
-		expect(sim.dispatch({ type: 'autopilot-engage', vessel: a, autopilot: 'guidance.rendezvous' }).ok).toBe(true);
+		sim.dispatch({
+			type: 'autopilot-settings',
+			vessel: a,
+			autopilot: 'guidance.rendezvous',
+			settings: { standoff: 10 }
+		});
+		expect(
+			sim.dispatch({ type: 'autopilot-engage', vessel: a, autopilot: 'guidance.rendezvous' }).ok
+		).toBe(true);
 		const r = run(sim, a, 6 * 3_600);
 		if (r.result !== 'holding') console.log(r);
 		expect(r.result).toBe('holding');
@@ -286,16 +319,25 @@ describe('Rendezvous autopilot (plan 331)', () => {
 		const flyIt = async (mode: string) => {
 			// the target 50 km higher and 30° behind: the efficient Hohmann waits most of a synodic period
 			const { sim, a } = await scene(150_000, -0.5, 0);
-			sim.dispatch({ type: 'autopilot-settings', vessel: a, autopilot: 'guidance.rendezvous', settings: { mode, cap: 400 } });
+			sim.dispatch({
+				type: 'autopilot-settings',
+				vessel: a,
+				autopilot: 'guidance.rendezvous',
+				settings: { mode, cap: 400 }
+			});
 			const t0 = sim.time;
-			expect(sim.dispatch({ type: 'autopilot-engage', vessel: a, autopilot: 'guidance.rendezvous' }).ok).toBe(true);
+			expect(
+				sim.dispatch({ type: 'autopilot-engage', vessel: a, autopilot: 'guidance.rendezvous' }).ok
+			).toBe(true);
 			const r = run(sim, a, 24 * 3_600);
 			const v = vesselOf(sim, a);
 			const used = Number(v.autopilot?.readouts['Delta-v used']);
 			const took = sim.time - t0;
 			if (r.result !== 'holding') console.log(mode, r);
 			if (process.env.RDV_TRACE) console.log(r.log);
-			console.log(`${mode}: ${r.result} after ${Math.round(took)} s, ${used} m/s, ${r.distance.toFixed(0)} m, ${r.speed.toFixed(2)} m/s`);
+			console.log(
+				`${mode}: ${r.result} after ${Math.round(took)} s, ${used} m/s, ${r.distance.toFixed(0)} m, ${r.speed.toFixed(2)} m/s`
+			);
 			sim.dispose();
 			return { ...r, took, used, log: r.log };
 		};
@@ -315,7 +357,9 @@ describe('Rendezvous autopilot (plan 331)', () => {
 
 	test('50 km higher and 2° inclined: ends within 200 m at under 0.5 m/s', async () => {
 		const { sim, a } = await scene(150_000, 1.2, (2 * Math.PI) / 180);
-		expect(sim.dispatch({ type: 'autopilot-engage', vessel: a, autopilot: 'guidance.rendezvous' }).ok).toBe(true);
+		expect(
+			sim.dispatch({ type: 'autopilot-engage', vessel: a, autopilot: 'guidance.rendezvous' }).ok
+		).toBe(true);
 		const r = run(sim, a, 24 * 3_600);
 		if (r.result !== 'holding') console.log(r);
 		expect(r.result).toBe('holding');
@@ -328,8 +372,12 @@ describe('Rendezvous autopilot (plan 331)', () => {
 	test('short of fuel it aborts with the delta-v it lacks', async () => {
 		const { sim, a } = await scene(150_000, 1.2, (2 * Math.PI) / 180);
 		const tank = vesselOf(sim, a).parts[9]!.id;
-		expect(sim.dispatch({ type: 'debug-set-resource', vessel: a, part: tank, fraction: 0.01 }).ok).toBe(true);
-		expect(sim.dispatch({ type: 'autopilot-engage', vessel: a, autopilot: 'guidance.rendezvous' }).ok).toBe(true);
+		expect(
+			sim.dispatch({ type: 'debug-set-resource', vessel: a, part: tank, fraction: 0.01 }).ok
+		).toBe(true);
+		expect(
+			sim.dispatch({ type: 'autopilot-engage', vessel: a, autopilot: 'guidance.rendezvous' }).ok
+		).toBe(true);
 		const r = run(sim, a, 60);
 		expect(r.result).toStartWith('aborted: Not enough delta-v');
 		sim.dispose();
@@ -339,10 +387,18 @@ describe('Rendezvous autopilot (plan 331)', () => {
 		const { sim, a, b } = await scene(100_000, 1_500 / 700_000, 0);
 		const port = vesselOf(sim, b).ports![0]!.part;
 		sim.dispatch({ type: 'target-set', vessel: a, target: { kind: 'vessel', id: b, part: port } });
-		sim.dispatch({ type: 'autopilot-settings', vessel: a, autopilot: 'guidance.rendezvous', settings: { dock: 'on' } });
-		expect(sim.dispatch({ type: 'autopilot-engage', vessel: a, autopilot: 'guidance.rendezvous' }).ok).toBe(true);
+		sim.dispatch({
+			type: 'autopilot-settings',
+			vessel: a,
+			autopilot: 'guidance.rendezvous',
+			settings: { dock: 'on' }
+		});
+		expect(
+			sim.dispatch({ type: 'autopilot-engage', vessel: a, autopilot: 'guidance.rendezvous' }).ok
+		).toBe(true);
 		const start = sim.time;
-		while (sim.time - start < 1_800 && vesselOf(sim, a).autopilot?.id !== 'autodock.dock') sim.step(0.1);
+		while (sim.time - start < 1_800 && vesselOf(sim, a).autopilot?.id !== 'autodock.dock')
+			sim.step(0.1);
 		const v = vesselOf(sim, a);
 		expect(v.autopilot?.id).toBe('autodock.dock');
 		expect(v.autopilotLast?.id).toBe('guidance.rendezvous');
@@ -354,12 +410,19 @@ describe('Rendezvous autopilot (plan 331)', () => {
 
 	test('the panel shows the target before it engages, and engages and stores its settings', async () => {
 		const { sim, a } = await scene(100_000, 5_000 / 700_000, 0);
-		const nodes = (n: PanelNode): PanelNode[] => (n.kind === 'section' ? n.children.flatMap(nodes) : [n]);
+		const nodes = (n: PanelNode): PanelNode[] =>
+			n.kind === 'section' ? n.children.flatMap(nodes) : [n];
 		const view = GuidancePanel.view;
 		if (view.kind !== 'tabs') throw new Error('not tabs');
 		const all = view.tabs.find((t) => t.id === 'rendezvous')!.children.flatMap(nodes);
 		const input = (): PanelInput =>
-			({ snapshot: sim.snapshot(), vessel: vesselOf(sim, a), altitude: 0, speed: 0, time: sim.time }) as unknown as PanelInput;
+			({
+				snapshot: sim.snapshot(),
+				vessel: vesselOf(sim, a),
+				altitude: 0,
+				speed: 0,
+				time: sim.time
+			}) as unknown as PanelInput;
 		const readout = (label: string) => {
 			const n = all.find((x) => x.kind === 'readout' && x.label === label);
 			return n?.kind === 'readout' ? n.value(input()) : undefined;
@@ -399,15 +462,26 @@ describe('Rendezvous autopilot (plan 331)', () => {
 
 	test('in the air below a stable orbit it refuses with the periapsis and what it needs (plan 333)', async () => {
 		const { sim, a } = await scene(100_000, 0.5, 0, 40_000);
-		const r = sim.dispatch({ type: 'autopilot-engage', vessel: a, autopilot: 'guidance.rendezvous' });
-		expect(r).toEqual({ ok: false, reason: 'Reach a stable orbit first: periapsis 40 km, needs 70 km+. Fly Ascent.' });
+		const r = sim.dispatch({
+			type: 'autopilot-engage',
+			vessel: a,
+			autopilot: 'guidance.rendezvous'
+		});
+		expect(r).toEqual({
+			ok: false,
+			reason: 'Reach a stable orbit first: periapsis 40 km, needs 70 km+. Fly Ascent.'
+		});
 		sim.dispose();
 	});
 
 	test('refuses without a target', async () => {
 		const { sim, a } = await scene(100_000, 0.01, 0);
 		sim.dispatch({ type: 'target-set', vessel: a, target: null });
-		const r = sim.dispatch({ type: 'autopilot-engage', vessel: a, autopilot: 'guidance.rendezvous' });
+		const r = sim.dispatch({
+			type: 'autopilot-engage',
+			vessel: a,
+			autopilot: 'guidance.rendezvous'
+		});
 		expect(r.ok).toBe(false);
 		sim.dispose();
 	});

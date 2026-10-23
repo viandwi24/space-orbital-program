@@ -488,7 +488,8 @@ describe('plan 362 (ADR 0304): presets before deep resolution, a learned start, 
 	test('work time that under-reads by 3x (Apple timestamps) does not raise the level after a drop', () => {
 		const g = new QualityGovernor('high');
 		// the frame at high 100 % costs 33 ms, the work time says 9; lower rungs hold 60 with 6 ms "measured"
-		const cost = (l: GovernorLevel) => (l.preset === 'high' && l.scale === 1 && l.planetScale === 1 ? 33 : 12);
+		const cost = (l: GovernorLevel) =>
+			l.preset === 'high' && l.scale === 1 && l.planetScale === 1 ? 33 : 12;
 		const work = (l: GovernorLevel) => (cost(l) === 33 ? 9 : 4);
 		const run = play(g, 300, cost, { work });
 		expect(run.changes.filter((c) => c.reason === 'measured headroom')).toEqual([]);

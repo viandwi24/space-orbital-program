@@ -205,7 +205,12 @@ describe('tabs, progress, number fields and notices (plan 332, ADR 0287)', () =>
 					label: 'Second',
 					badge: () => 'ON',
 					children: [
-						{ kind: 'progress', label: 'Climb', value: (i) => (i.altitude ?? 0) / 1000, text: () => 'half' },
+						{
+							kind: 'progress',
+							label: 'Climb',
+							value: (i) => (i.altitude ?? 0) / 1000,
+							text: () => 'half'
+						},
 						{
 							kind: 'number',
 							label: 'Altitude',
@@ -216,7 +221,12 @@ describe('tabs, progress, number fields and notices (plan 332, ADR 0287)', () =>
 							value: () => 80,
 							command: (i, v) => ({ type: 'warp', factor: v, vessel: i.vessel!.id })
 						},
-						{ kind: 'button', label: 'Go', tone: 'primary', command: (i) => ({ type: 'stage', vessel: i.vessel!.id }) }
+						{
+							kind: 'button',
+							label: 'Go',
+							tone: 'primary',
+							command: (i) => ({ type: 'stage', vessel: i.vessel!.id })
+						}
 					]
 				}
 			]
@@ -229,9 +239,25 @@ describe('tabs, progress, number fields and notices (plan 332, ADR 0287)', () =>
 		if (!r.ok || r.nodes.kind !== 'tabs') throw new Error('not tabs');
 		expect(r.nodes.active).toBe('b');
 		expect(r.nodes.tabs.map((t) => t.badge)).toEqual([null, 'ON']);
-		expect(r.nodes.tabs[1]!.children[0]).toEqual({ kind: 'progress', label: 'Climb', value: 0.5, text: 'half' });
-		expect(r.nodes.tabs[1]!.children[1]).toMatchObject({ kind: 'number', value: 80, min: 70, max: 500, step: 5, path: 'v.1.1' });
-		expect(r.nodes.tabs[1]!.children[2]).toMatchObject({ kind: 'button', tone: 'primary', enabled: true });
+		expect(r.nodes.tabs[1]!.children[0]).toEqual({
+			kind: 'progress',
+			label: 'Climb',
+			value: 0.5,
+			text: 'half'
+		});
+		expect(r.nodes.tabs[1]!.children[1]).toMatchObject({
+			kind: 'number',
+			value: 80,
+			min: 70,
+			max: 500,
+			step: 5,
+			path: 'v.1.1'
+		});
+		expect(r.nodes.tabs[1]!.children[2]).toMatchObject({
+			kind: 'button',
+			tone: 'primary',
+			enabled: true
+		});
 		expect(r.nodes.tabs[0]!.children).toEqual([
 			{ kind: 'notice', text: 'Target a vessel first.', tone: 'warn', action: null },
 			{ kind: 'notice', text: null, tone: 'info', action: null }
@@ -241,7 +267,9 @@ describe('tabs, progress, number fields and notices (plan 332, ADR 0287)', () =>
 	});
 
 	it('a tab child and a number field route their commands; the number is clamped to its step and range', () => {
-		expect(commandOf(tabbed, 'v.1.2', input(1, 10))).toEqual({ command: { type: 'stage', vessel: 7 } });
+		expect(commandOf(tabbed, 'v.1.2', input(1, 10))).toEqual({
+			command: { type: 'stage', vessel: 7 }
+		});
 		expect(commandOf(tabbed, 'v.1.1', input(1, 10), 123)).toEqual({
 			command: { type: 'warp', factor: 125, vessel: 7 }
 		});
@@ -252,11 +280,15 @@ describe('tabs, progress, number fields and notices (plan 332, ADR 0287)', () =>
 	});
 
 	it('renders the open tab, the active tab first, the notice and the field', () => {
-		const html = render(ModPanel, { props: { panel: tabbed, input: input(1, 10), oncommand: () => {} } }).body;
+		const html = render(ModPanel, {
+			props: { panel: tabbed, input: input(1, 10), oncommand: () => {} }
+		}).body;
 		expect(html).toContain('role="tablist"');
 		expect(html).toContain('Target a vessel first.');
 		expect(html).not.toContain('panel-number-v.1.1');
-		const high = render(ModPanel, { props: { panel: tabbed, input: input(1, 500), oncommand: () => {} } }).body;
+		const high = render(ModPanel, {
+			props: { panel: tabbed, input: input(1, 500), oncommand: () => {} }
+		}).body;
 		expect(high).toContain('data-testid="panel-number-v.1.1"');
 		expect(high).toContain('role="progressbar"');
 		expect(high).toContain('>ON<');
@@ -278,7 +310,8 @@ describe('a notice offers the next step as a button to a tab (plan 333, ADR 0288
 					children: [
 						{
 							kind: 'notice',
-							text: (i) => `Reach orbit first (Δv ${i.deltaV ?? 'none'}, ${i.body?.id ?? 'no body'})`,
+							text: (i) =>
+								`Reach orbit first (Δv ${i.deltaV ?? 'none'}, ${i.body?.id ?? 'no body'})`,
 							tone: () => 'warn',
 							action: () => ({ label: 'Open Second', tab: 'b' })
 						}
@@ -290,9 +323,19 @@ describe('a notice offers the next step as a button to a tab (plan 333, ADR 0288
 	};
 
 	it('the panel input carries the body and the HUD delta-v; the notice its action', () => {
-		const i = panelInputOf(snapshot(1, R + 10), 7 as never, [
-			{ id: 'stock.home' as never, radius: R, mass: 5.29e22, atmosphere: { height: 70_000 } as never }
-		], 1234.5);
+		const i = panelInputOf(
+			snapshot(1, R + 10),
+			7 as never,
+			[
+				{
+					id: 'stock.home' as never,
+					radius: R,
+					mass: 5.29e22,
+					atmosphere: { height: 70_000 } as never
+				}
+			],
+			1234.5
+		);
 		expect(i.deltaV).toBe(1234.5);
 		expect(i.body).toMatchObject({ id: 'stock.home', radius: R, atmosphereHeight: 70_000 });
 		expect(i.body!.mu).toBeCloseTo(6.6743e-11 * 5.29e22, -3);

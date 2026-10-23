@@ -241,4 +241,3 @@ export function createCrewLineup(canvas: HTMLCanvasElement): CrewLineup {
 		}
 	};
 }
-

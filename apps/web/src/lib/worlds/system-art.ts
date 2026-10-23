@@ -101,7 +101,11 @@ export function bodyTint(
 	const hint = HINTS[body.id];
 	const air = body.atmosphere && body.atmosphere.surfacePressure > 0;
 	const look = body.appearance;
-	const atmosphere = air ? (look?.sky ? withAlpha(look.sky, 0.55) : 'rgba(150, 196, 255, 0.55)') : null;
+	const atmosphere = air
+		? look?.sky
+			? withAlpha(look.sky, 0.55)
+			: 'rgba(150, 196, 255, 0.55)'
+		: null;
 	if (hint) return { light: hint.light, dark: hint.dark, atmosphere };
 	// the body's own colours (plan 381, ADR 0318): the cloud deck if it has one, else the ground
 	if (look) {

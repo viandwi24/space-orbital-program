@@ -295,7 +295,9 @@ export class MoonPass {
 			...zoneUniforms(this.terrain),
 			// a craters body's site zones and their centre heights (plan 128, ADR 0125 point 1)
 			...craterZoneUniforms(
-				(this.cratersZones = hills ? [] : cratersZones(options.zones ?? [], radius, this.seed, this.small))
+				(this.cratersZones = hills
+					? []
+					: cratersZones(options.zones ?? [], radius, this.seed, this.small))
 			)
 		};
 		const tint = options.tint ?? [0.135, 0.13, 0.122];

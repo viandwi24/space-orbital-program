@@ -279,7 +279,12 @@ export const STOCK_CREW_LOOKS: readonly CrewLookDefinition[] = [
 	...HAIR.map(([id, title, colour]) =>
 		defineCrewLook({ id: `stock.hair-${id}`, title, kind: 'hair-colour', colour })
 	),
-	defineCrewLook({ id: 'stock.eyes-dark', title: 'Dark eyes', kind: 'eye-colour', colour: 0x2a1a14 })
+	defineCrewLook({
+		id: 'stock.eyes-dark',
+		title: 'Dark eyes',
+		kind: 'eye-colour',
+		colour: 0x2a1a14
+	})
 ];
 
 /** The sheet's eight faces. */
@@ -424,7 +429,10 @@ export const STOCK_CREW_ANIMATIONS: readonly CrewAnimationDefinition[] = [
 		title: 'EVA: floating, arms out',
 		role: 'eva',
 		keys: [
-			{ t: 0, pose: { armLRaise: 0.7, armRRaise: 0.7, legLPitch: 0.15, legRPitch: -0.1, lean: 0.1 } },
+			{
+				t: 0,
+				pose: { armLRaise: 0.7, armRRaise: 0.7, legLPitch: 0.15, legRPitch: -0.1, lean: 0.1 }
+			},
 			{
 				t: 2,
 				pose: {

@@ -152,10 +152,9 @@
 		aria-pressed={vab.section}
 		data-tip="Section: cut away the half of the vessel facing you, to see and click inside"
 		data-testid="tool-section"
-		onclick={() => vab.toggleSection()}
-		>Section<span class="dot" aria-hidden="true"></span></button
+		onclick={() => vab.toggleSection()}>Section<span class="dot" aria-hidden="true"></span></button
 	>
-		<!-- the Hangar's keys (plan 348) -->
+	<!-- the Hangar's keys (plan 348) -->
 	<button
 		type="button"
 		class="toggle"

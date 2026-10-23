@@ -291,7 +291,9 @@ describe('the station names follow the gate of the caller (plan 382)', () => {
 		expect(far.stations).toEqual([
 			{ id: 'site', label: 'Space Center', x: 5, y: 6, showLabel: false }
 		]);
-		expect(projectNetwork(net, project, (body) => body === 'stock.home').stations[0]!.showLabel).toBe(true);
+		expect(
+			projectNetwork(net, project, (body) => body === 'stock.home').stations[0]!.showLabel
+		).toBe(true);
 		expect(projectNetwork(net, project).stations[0]!.showLabel).toBe(true);
 	});
 });

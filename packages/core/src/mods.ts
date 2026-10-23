@@ -382,7 +382,11 @@ export async function resolveMods(
 		const m = bundle.manifest;
 		const owner = owners.get(m.id);
 		if (owner) {
-			reject(m, `plugin id "${m.id}" is already used by ${owner}; a mod cannot replace it`, 'duplicate');
+			reject(
+				m,
+				`plugin id "${m.id}" is already used by ${owner}; a mod cannot replace it`,
+				'duplicate'
+			);
 			continue;
 		}
 		if (pending.some((b) => b.manifest.id === m.id)) {

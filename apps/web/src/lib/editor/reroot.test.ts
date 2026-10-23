@@ -93,7 +93,14 @@ describe('reroot through side links (plan 357, ADR 0301)', () => {
 	it('a fin on the side of the bottom tank becomes the root: the tank hangs on its side by its free node', () => {
 		let s = stack();
 		const [, , tank2] = s.design.parts.map((p) => p.index) as [number, number, number];
-		const t = radialTarget(s.design, singlePart('stock.fin', s.nextIndex), lookup, tank2, 0.8, -0.3)!;
+		const t = radialTarget(
+			s.design,
+			singlePart('stock.fin', s.nextIndex),
+			lookup,
+			tank2,
+			0.8,
+			-0.3
+		)!;
 		s = attachNew(s, content, 'stock.fin', t);
 		const fin = s.design.parts.at(-1)!.index;
 		const r = reroot(s.design, fin, content);
@@ -172,7 +179,11 @@ describe('reroot through side links (plan 357, ADR 0301)', () => {
 		const yawed: VesselDesign = {
 			...d,
 			parts: d.parts.map((p) =>
-				p.index === tank1 ? { ...p, tilt: { x: 0, y: 0.7, z: 0 } } : p.index === tank2 ? { ...p, tilt: undefined } : p
+				p.index === tank1
+					? { ...p, tilt: { x: 0, y: 0.7, z: 0 } }
+					: p.index === tank2
+						? { ...p, tilt: undefined }
+						: p
 			)
 		};
 		const r = reroot(yawed, tank2, content);

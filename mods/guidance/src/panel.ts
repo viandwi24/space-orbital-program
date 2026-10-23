@@ -61,8 +61,15 @@ const flying = (i: PanelInput, ...ids: string[]) => {
 };
 const settingsOf = (i: PanelInput, id: string): Record<string, AutopilotSettingValue> =>
 	i.vessel?.autopilotSettings?.[id] ?? {};
-const setting = (i: PanelInput, id: string, key: string, value: AutopilotSettingValue): Command | null =>
-	i.vessel ? { type: 'autopilot-settings', vessel: i.vessel.id, autopilot: id, settings: { [key]: value } } : null;
+const setting = (
+	i: PanelInput,
+	id: string,
+	key: string,
+	value: AutopilotSettingValue
+): Command | null =>
+	i.vessel
+		? { type: 'autopilot-settings', vessel: i.vessel.id, autopilot: id, settings: { [key]: value } }
+		: null;
 /** The rendezvous readiness from the panel's snapshot and body (plan 333). */
 function rdvReadiness(i: PanelInput): Readiness {
 	const v = i.vessel;
@@ -74,7 +81,8 @@ function rdvReadiness(i: PanelInput): Readiness {
 
 /** On the ground or the water. */
 const grounded = (i: PanelInput): boolean =>
-	!!i.vessel && (i.vessel.surface === true || i.vessel.splashed === true || i.vessel.recovery !== undefined);
+	!!i.vessel &&
+	(i.vessel.surface === true || i.vessel.splashed === true || i.vessel.recovery !== undefined);
 
 /** Apsis altitudes from the snapshot's orbit, m (null when none). */
 function apsides(i: PanelInput): { apo: number | null; peri: number | null } {
@@ -162,7 +170,12 @@ function engage(
 		command: (i) => {
 			if (!i.vessel || blocked(i, id) || i.vessel.autopilot) return null;
 			const p = typeof params === 'function' ? params(i) : params;
-			return { type: 'autopilot-engage', vessel: i.vessel.id, autopilot: id, ...(p ? { params: p } : {}) };
+			return {
+				type: 'autopilot-engage',
+				vessel: i.vessel.id,
+				autopilot: id,
+				...(p ? { params: p } : {})
+			};
 		}
 	};
 }
@@ -170,7 +183,8 @@ const abort = (...ids: string[]): PanelNode => ({
 	kind: 'button',
 	label: 'Abort',
 	tone: 'danger',
-	command: (i) => (i.vessel && flying(i, ...ids) ? { type: 'autopilot-disengage', vessel: i.vessel.id } : null)
+	command: (i) =>
+		i.vessel && flying(i, ...ids) ? { type: 'autopilot-disengage', vessel: i.vessel.id } : null
 });
 const actions = (...nodes: PanelNode[]): PanelNode => ({ kind: 'section', children: nodes });
 
@@ -189,7 +203,9 @@ const ascentTab: PanelNode[] = [
 		},
 		text: (i) => {
 			const a = flying(i, Ascent.id);
-			return a ? `${km(Number(a.readouts.Apoapsis) || 0)} of ${km(Number(a.readouts.Target) || 0)} km` : null;
+			return a
+				? `${km(Number(a.readouts.Apoapsis) || 0)} of ${km(Number(a.readouts.Target) || 0)} km`
+				: null;
 		}
 	},
 	{
@@ -238,12 +254,27 @@ const ascentTab: PanelNode[] = [
 		kind: 'section',
 		title: 'Flight',
 		children: [
-			{ kind: 'readout', label: 'Altitude', unit: 'km', value: reading([Ascent.id], 'Altitude', (i) => km(i.altitude)) },
-			{ kind: 'readout', label: 'Apoapsis', unit: 'km', value: (i) => km(Number(reading([Ascent.id], 'Apoapsis', (j) => apsides(j).apo)(i)) || null) },
-			{ kind: 'readout', label: 'Periapsis', unit: 'km', value: (i) => {
-				const p = reading([Ascent.id], 'Periapsis', (j) => apsides(j).peri)(i);
-				return typeof p === 'number' ? km(p) : null;
-			} },
+			{
+				kind: 'readout',
+				label: 'Altitude',
+				unit: 'km',
+				value: reading([Ascent.id], 'Altitude', (i) => km(i.altitude))
+			},
+			{
+				kind: 'readout',
+				label: 'Apoapsis',
+				unit: 'km',
+				value: (i) => km(Number(reading([Ascent.id], 'Apoapsis', (j) => apsides(j).apo)(i)) || null)
+			},
+			{
+				kind: 'readout',
+				label: 'Periapsis',
+				unit: 'km',
+				value: (i) => {
+					const p = reading([Ascent.id], 'Periapsis', (j) => apsides(j).peri)(i);
+					return typeof p === 'number' ? km(p) : null;
+				}
+			},
 			{ kind: 'readout', label: 'Phase', value: (i) => flying(i, Ascent.id)?.phase ?? 'off' }
 		]
 	},
@@ -262,23 +293,40 @@ const orbitTab: PanelNode[] = [
 		},
 		text: (i) => {
 			const a = flying(i, ...NODE);
-			return a && a.readouts['Delta-v left'] !== undefined ? `${a.readouts['Delta-v left']} m/s left` : null;
+			return a && a.readouts['Delta-v left'] !== undefined
+				? `${a.readouts['Delta-v left']} m/s left`
+				: null;
 		}
 	},
 	{
 		kind: 'section',
 		title: 'Burn',
 		children: [
-			{ kind: 'readout', label: 'Delta-v left', unit: 'm/s', value: reading(NODE, 'Delta-v left', (i) => {
-				const n = i.vessel?.nodes?.[0];
-				return n ? Math.round(n.dv * 10) / 10 : null;
-			}) },
+			{
+				kind: 'readout',
+				label: 'Delta-v left',
+				unit: 'm/s',
+				value: reading(NODE, 'Delta-v left', (i) => {
+					const n = i.vessel?.nodes?.[0];
+					return n ? Math.round(n.dv * 10) / 10 : null;
+				})
+			},
 			{ kind: 'readout', label: 'Burn time', unit: 's', value: reading(NODE, 'Burn time') },
-			{ kind: 'readout', label: 'Pointing error', unit: '°', value: reading(NODE, 'Pointing error') },
-			{ kind: 'readout', label: 'Next node', unit: 's', value: (i) => {
-				const n = i.vessel?.nodes?.[0];
-				return n ? Math.max(0, Math.round(n.time - i.time)) : null;
-			} }
+			{
+				kind: 'readout',
+				label: 'Pointing error',
+				unit: '°',
+				value: reading(NODE, 'Pointing error')
+			},
+			{
+				kind: 'readout',
+				label: 'Next node',
+				unit: 's',
+				value: (i) => {
+					const n = i.vessel?.nodes?.[0];
+					return n ? Math.max(0, Math.round(n.time - i.time)) : null;
+				}
+			}
 		]
 	},
 	actions(engage('Execute node', ExecuteNode.id), abort(...NODE)),
@@ -297,7 +345,11 @@ const orbitTab: PanelNode[] = [
 				value: (i) => String(settingsOf(i, Circularize.id).at ?? 'apoapsis'),
 				command: (i, v) => setting(i, Circularize.id, 'at', v)
 			},
-			{ kind: 'notice', text: (i) => (flying(i, ...NODE) ? null : blocked(i, Circularize.id)), tone: () => 'warn' },
+			{
+				kind: 'notice',
+				text: (i) => (flying(i, ...NODE) ? null : blocked(i, Circularize.id)),
+				tone: () => 'warn'
+			},
 			engage('Circularize', Circularize.id)
 		]
 	}
@@ -326,11 +378,28 @@ function previewOf(i: PanelInput): ModePreview | null {
 	if (previewCache?.key === key) return previewCache.preview;
 	const own = { r: v.position, v: v.velocity };
 	const target = {
-		r: { x: v.position.x + t.position.x, y: v.position.y + t.position.y, z: v.position.z + t.position.z },
-		v: { x: v.velocity.x + t.velocity.x, y: v.velocity.y + t.velocity.y, z: v.velocity.z + t.velocity.z }
+		r: {
+			x: v.position.x + t.position.x,
+			y: v.position.y + t.position.y,
+			z: v.position.z + t.position.z
+		},
+		v: {
+			x: v.velocity.x + t.velocity.x,
+			y: v.velocity.y + t.velocity.y,
+			z: v.velocity.z + t.velocity.z
+		}
 	};
 	const floor = i.body.radius + Math.max(10_000, i.body.atmosphereHeight + 10_000);
-	const preview = previewModes(own, target, t.distance, i.body.mu, floor, i.time, i.deltaV ?? null, cap);
+	const preview = previewModes(
+		own,
+		target,
+		t.distance,
+		i.body.mu,
+		floor,
+		i.time,
+		i.deltaV ?? null,
+		cap
+	);
 	previewCache = { key, preview };
 	return preview;
 }
@@ -347,18 +416,22 @@ const RDV_STEPS = ['plane', 'transfer', 'match', 'close', 'hold'];
 const rdvStep = (phase: string): number =>
 	phase === 'phasing' || phase === 'correct' ? 1 : Math.max(0, RDV_STEPS.indexOf(phase));
 const rendezvousTab: PanelNode[] = [
-	status(RDV, 'Target a vessel or a docking port, then engage: it stops where you set (10–200 m), at rest.', (i) => {
-		const last = i.vessel?.autopilotLast;
-		// the last run stopped too low to phase: the Orbit tab raises it
-		if (last?.id === Rendezvous.id && last.reason.startsWith('Too low to phase'))
-			return { label: 'Open Orbit', tab: 'orbit' };
-		const next = rdvReadiness(i).next;
-		return next === 'ascent'
-			? { label: 'Open Ascent', tab: 'ascent' }
-			: next === 'orbit'
-				? { label: 'Open Orbit', tab: 'orbit' }
-				: null;
-	}),
+	status(
+		RDV,
+		'Target a vessel or a docking port, then engage: it stops where you set (10–200 m), at rest.',
+		(i) => {
+			const last = i.vessel?.autopilotLast;
+			// the last run stopped too low to phase: the Orbit tab raises it
+			if (last?.id === Rendezvous.id && last.reason.startsWith('Too low to phase'))
+				return { label: 'Open Orbit', tab: 'orbit' };
+			const next = rdvReadiness(i).next;
+			return next === 'ascent'
+				? { label: 'Open Ascent', tab: 'ascent' }
+				: next === 'orbit'
+					? { label: 'Open Orbit', tab: 'orbit' }
+					: null;
+		}
+	),
 	{
 		kind: 'progress',
 		label: 'Rendezvous',
@@ -376,14 +449,24 @@ const rendezvousTab: PanelNode[] = [
 		title: 'Target',
 		children: [
 			{ kind: 'readout', label: 'Target', value: (i) => i.vessel?.target?.name ?? null },
-			{ kind: 'readout', label: 'Distance', unit: 'm', value: reading(RDV, 'Distance', (i) => {
-				const t = i.vessel?.target;
-				return t ? Math.round(t.distance * 10) / 10 : null;
-			}) },
-			{ kind: 'readout', label: 'Relative speed', unit: 'm/s', value: reading(RDV, 'Relative speed', (i) => {
-				const t = i.vessel?.target;
-				return t ? Math.round(t.relativeSpeed * 100) / 100 : null;
-			}) },
+			{
+				kind: 'readout',
+				label: 'Distance',
+				unit: 'm',
+				value: reading(RDV, 'Distance', (i) => {
+					const t = i.vessel?.target;
+					return t ? Math.round(t.distance * 10) / 10 : null;
+				})
+			},
+			{
+				kind: 'readout',
+				label: 'Relative speed',
+				unit: 'm/s',
+				value: reading(RDV, 'Relative speed', (i) => {
+					const t = i.vessel?.target;
+					return t ? Math.round(t.relativeSpeed * 100) / 100 : null;
+				})
+			},
 			{ kind: 'readout', label: 'Phase', value: (i) => flying(i, ...RDV)?.phase ?? 'off' }
 		]
 	},
@@ -403,8 +486,16 @@ const rendezvousTab: PanelNode[] = [
 					if (!v || !t || !i.body || rdvReadiness(i).problem) return null;
 					const own = { r: v.position, v: v.velocity };
 					const target = {
-						r: { x: v.position.x + t.position.x, y: v.position.y + t.position.y, z: v.position.z + t.position.z },
-						v: { x: v.velocity.x + t.velocity.x, y: v.velocity.y + t.velocity.y, z: v.velocity.z + t.velocity.z }
+						r: {
+							x: v.position.x + t.position.x,
+							y: v.position.y + t.position.y,
+							z: v.position.z + t.position.z
+						},
+						v: {
+							x: v.velocity.x + t.velocity.x,
+							y: v.velocity.y + t.velocity.y,
+							z: v.velocity.z + t.velocity.z
+						}
 					};
 					return Math.round(rendezvousEstimate(own, target, t.distance, i.body.mu) * 10) / 10;
 				})
@@ -414,7 +505,9 @@ const rendezvousTab: PanelNode[] = [
 				label: 'Delta-v left',
 				unit: 'm/s',
 				// while off: the vessel's delta-v as the HUD's stage stack shows it (ADR 0288)
-				value: reading(RDV, 'Delta-v left', (i) => (i.deltaV == null ? null : Math.round(i.deltaV * 10) / 10))
+				value: reading(RDV, 'Delta-v left', (i) =>
+					i.deltaV == null ? null : Math.round(i.deltaV * 10) / 10
+				)
 			}
 		]
 	},
@@ -450,7 +543,11 @@ const rendezvousTab: PanelNode[] = [
 		title: 'Before you engage',
 		columns: 1,
 		children: [
-			{ kind: 'readout', label: 'Efficient: ETA · delta-v', value: (i) => previewText(i, 'efficient') },
+			{
+				kind: 'readout',
+				label: 'Efficient: ETA · delta-v',
+				value: (i) => previewText(i, 'efficient')
+			},
 			{ kind: 'readout', label: 'Fast: ETA · delta-v', value: (i) => previewText(i, 'fast') },
 			{
 				// the fast mode's delta-v budget; 0 lets it spend up to twice the efficient plan
@@ -492,9 +589,28 @@ const landingTab: PanelNode[] = [
 		kind: 'section',
 		title: 'Descent',
 		children: [
-			{ kind: 'readout', label: 'Height', unit: 'm', value: reading([Land.id], 'Height', (i) => (i.altitude === null ? null : Math.round(i.altitude))) },
-			{ kind: 'readout', label: 'Speed', unit: 'm/s', value: reading([Land.id], 'Speed', (i) => (i.speed === null ? null : Math.round(i.speed * 10) / 10)) },
-			{ kind: 'readout', label: 'Vertical speed', unit: 'm/s', value: reading([Land.id], 'Vertical speed') },
+			{
+				kind: 'readout',
+				label: 'Height',
+				unit: 'm',
+				value: reading([Land.id], 'Height', (i) =>
+					i.altitude === null ? null : Math.round(i.altitude)
+				)
+			},
+			{
+				kind: 'readout',
+				label: 'Speed',
+				unit: 'm/s',
+				value: reading([Land.id], 'Speed', (i) =>
+					i.speed === null ? null : Math.round(i.speed * 10) / 10
+				)
+			},
+			{
+				kind: 'readout',
+				label: 'Vertical speed',
+				unit: 'm/s',
+				value: reading([Land.id], 'Vertical speed')
+			},
 			{ kind: 'readout', label: 'Phase', value: (i) => flying(i, Land.id)?.phase ?? 'off' }
 		]
 	},
@@ -545,7 +661,12 @@ const landingTab: PanelNode[] = [
 					return d === null ? null : kmText(d);
 				}
 			},
-			{ kind: 'readout', label: 'Speed at impact', unit: 'm/s', value: (i) => pathMeta(i, 'speed') },
+			{
+				kind: 'readout',
+				label: 'Speed at impact',
+				unit: 'm/s',
+				value: (i) => pathMeta(i, 'speed')
+			},
 			{
 				kind: 'readout',
 				label: 'Peak heating',
@@ -607,7 +728,11 @@ const landingTab: PanelNode[] = [
 		label: 'Clear target',
 		command: (i) => (landingTargetOf(i) ? pathKey(i, CLEAR_TARGET.id) : null)
 	},
-	{ kind: 'notice', text: () => 'Deploy the landing legs yourself: the computer does not.', tone: () => 'info' },
+	{
+		kind: 'notice',
+		text: () => 'Deploy the landing legs yourself: the computer does not.',
+		tone: () => 'info'
+	},
 	actions(
 		// with a landing target the deorbit waits for it and the descent leans toward it
 		engage('Engage', Land.id, (i) => {
@@ -623,7 +748,11 @@ const logTab: PanelNode[] = [
 		kind: 'notice',
 		text: (i) => {
 			const a = engaged(i);
-			return a ? (a.status ? `${a.title}: ${a.status}` : `${a.title} · ${a.phase}`) : 'Nothing engaged.';
+			return a
+				? a.status
+					? `${a.title}: ${a.status}`
+					: `${a.title} · ${a.phase}`
+				: 'Nothing engaged.';
 		},
 		tone: (i) => (engaged(i) ? 'active' : 'info')
 	},
@@ -672,7 +801,12 @@ export const GuidancePanel = definePanel({
 		tabs: [
 			{ id: 'ascent', label: 'Ascent', badge: badge('ascent'), children: ascentTab },
 			{ id: 'orbit', label: 'Orbit', badge: badge('orbit'), children: orbitTab },
-			{ id: 'rendezvous', label: 'Rendezvous', badge: badge('rendezvous'), children: rendezvousTab },
+			{
+				id: 'rendezvous',
+				label: 'Rendezvous',
+				badge: badge('rendezvous'),
+				children: rendezvousTab
+			},
 			{ id: 'landing', label: 'Landing', badge: badge('landing'), children: landingTab },
 			{ id: 'log', label: 'Log', children: logTab }
 		]

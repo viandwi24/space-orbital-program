@@ -66,8 +66,7 @@ describe('body names on the map (plan 382)', () => {
 		expect(ids).toContain('home');
 		for (const a of labels)
 			for (const b of labels)
-				if (a !== b)
-					expect(Math.abs(a.x - b.x) > 20 || Math.abs(a.y - b.y) >= 15).toBe(true);
+				if (a !== b) expect(Math.abs(a.x - b.x) > 20 || Math.abs(a.y - b.y) >= 15).toBe(true);
 	});
 
 	it('leaves out bodies that are off screen, hidden behind another, or fill the view', () => {
@@ -86,7 +85,12 @@ describe('body names on the map (plan 382)', () => {
 	});
 
 	it('the name sits under the disc', () => {
-		const [l] = placeBodyLabels([{ id: 'home', x: 500, y: 300, radius: 60, hidden: false }], name, W, H);
+		const [l] = placeBodyLabels(
+			[{ id: 'home', x: 500, y: 300, radius: 60, hidden: false }],
+			name,
+			W,
+			H
+		);
 		expect(l!.y).toBeGreaterThan(300 + 60);
 	});
 

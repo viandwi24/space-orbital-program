@@ -119,9 +119,9 @@ describe('saved scripts (ADR 0276 point 6)', () => {
 			name: 'hold',
 			resumed: false
 		});
-		expect(sim.dispatch({ type: 'script-memory', vessel, memory: { phase: 'coast', n: 2 } }).ok).toBe(
-			true
-		);
+		expect(
+			sim.dispatch({ type: 'script-memory', vessel, memory: { phase: 'coast', n: 2 } }).ok
+		).toBe(true);
 		expect(state().script!.memory).toEqual({ phase: 'coast', n: 2 });
 		const big = sim.dispatch({
 			type: 'script-memory',
@@ -152,7 +152,13 @@ describe('saved scripts (ADR 0276 point 6)', () => {
 		expect(again.scripts()).toEqual([
 			{ vessel, name: 'hold', source: 'print(1)', memory: { phase: 'burn' } }
 		]);
-		again.dispatch({ type: 'script-attach', vessel, name: 'hold', source: 'print(1)', resumed: true });
+		again.dispatch({
+			type: 'script-attach',
+			vessel,
+			name: 'hold',
+			source: 'print(1)',
+			resumed: true
+		});
 		expect(again.world.get(vessel, VESSEL)!.script).toMatchObject({
 			memory: { phase: 'burn' },
 			resumed: true
@@ -189,7 +195,9 @@ describe('autopilots are programs too (ADR 0276 with ADR 0271)', () => {
 		const r = sim.dispatch({ type: 'load-vessel', design });
 		if (!r.ok) throw new Error(r.reason);
 		const vessel = r.vessel! as EntityId;
-		expect(sim.dispatch({ type: 'autopilot-engage', vessel, autopilot: 'test.burn' }).ok).toBe(true);
+		expect(sim.dispatch({ type: 'autopilot-engage', vessel, autopilot: 'test.burn' }).ok).toBe(
+			true
+		);
 		const state = () => sim.world.get(vessel, VESSEL)!;
 		return { sim, vessel, state };
 	}
@@ -218,4 +226,3 @@ describe('autopilots are programs too (ADR 0276 with ADR 0271)', () => {
 		sim.dispose();
 	});
 });
-

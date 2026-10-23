@@ -251,7 +251,10 @@ function nodeAt(view: PanelNode, path: string): PanelNode | undefined {
 }
 
 /** A number field's entry: clamped to its range and rounded to its step. */
-export function clampEntry(node: { min: number; max: number; step?: number | null }, v: number): number {
+export function clampEntry(
+	node: { min: number; max: number; step?: number | null },
+	v: number
+): number {
 	const stepped = node.step ? Math.round(v / node.step) * node.step : v;
 	return Math.min(node.max, Math.max(node.min, Number(stepped.toFixed(9))));
 }
@@ -296,7 +299,8 @@ export function commandOf(
 		if (node?.kind === 'button') return { command: node.command(input) };
 		if (node?.kind === 'switch')
 			return { command: node.command(input, typeof on === 'boolean' ? on : !node.value(input)) };
-		if (node?.kind === 'select' && typeof on === 'string') return { command: node.command(input, on) };
+		if (node?.kind === 'select' && typeof on === 'string')
+			return { command: node.command(input, on) };
 		if (node?.kind === 'number' && typeof on === 'number' && Number.isFinite(on))
 			return { command: node.command(input, clampEntry(node, on)) };
 		return { command: null };

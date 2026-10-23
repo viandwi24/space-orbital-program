@@ -277,7 +277,8 @@
 							class:waiting={capturingMod === r.def.id}
 							class:changed={settings.modKeys[r.def.id] !== undefined}
 							class:clash={r.clashes.length > 0}
-							aria-label="{r.def.label}: {r.keys.map(keyLabel).join(' or ') || 'unbound'}. Change key"
+							aria-label="{r.def.label}: {r.keys.map(keyLabel).join(' or ') ||
+								'unbound'}. Change key"
 							data-tip={r.clashes.length > 0 ? 'Also a game key: rebind it to use it' : undefined}
 							data-testid="mod-bind-{r.def.id}"
 							onclick={() => (capturingMod = r.def.id)}
@@ -290,7 +291,8 @@
 							disabled={settings.modKeys[r.def.id] === undefined}
 							aria-label="Reset {r.def.label} to its default"
 							data-tip="Reset to the default"
-							onclick={() => settings.setModKeys(rebindModKey(settings.modKeys, r.def, r.def.defaults))}
+							onclick={() =>
+								settings.setModKeys(rebindModKey(settings.modKeys, r.def, r.def.defaults))}
 							>↺</button
 						>
 					</li>

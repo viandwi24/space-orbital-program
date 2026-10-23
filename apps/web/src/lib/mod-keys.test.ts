@@ -41,10 +41,24 @@ describe('mod keybindings', () => {
 	});
 
 	it('a press sends the mod command, or mod-key for systems', () => {
-		expect(modKeyCommand(ping, null, entityId(3))).toEqual({ type: 'mod-key', key: 'ex.ping', vessel: 3 });
+		expect(modKeyCommand(ping, null, entityId(3))).toEqual({
+			type: 'mod-key',
+			key: 'ex.ping',
+			vessel: 3
+		});
 		const snapshot = {
 			t: 0,
-			vessels: [{ id: entityId(3), mode: 'flight', soi: 'stock.home', position: { x: 1, y: 0, z: 0 }, velocity: { x: 0, y: 0, z: 0 }, orientation: { x: 0, y: 0, z: 0, w: 1 }, parts: [] }],
+			vessels: [
+				{
+					id: entityId(3),
+					mode: 'flight',
+					soi: 'stock.home',
+					position: { x: 1, y: 0, z: 0 },
+					velocity: { x: 0, y: 0, z: 0 },
+					orientation: { x: 0, y: 0, z: 0, w: 1 },
+					parts: []
+				}
+			],
 			bodies: []
 		} as unknown as Snapshot;
 		const input = panelInputOf(snapshot, entityId(3), []);
@@ -53,7 +67,12 @@ describe('mod keybindings', () => {
 			vessel: 3,
 			group: 'stock.gear'
 		});
-		const broken = { ...ping, command: () => { throw new Error('boom'); } };
+		const broken = {
+			...ping,
+			command: () => {
+				throw new Error('boom');
+			}
+		};
 		expect(modKeyCommand(broken, input, null)).toBeNull();
 		// the panel input carries the world query, but not as a cloned field
 		expect(input.world?.vessels().map((v) => v.id)).toEqual([3]);
@@ -78,10 +97,16 @@ describe('mod notices', () => {
 	};
 	it('become toasts: world-wide, or only for the flown vessel', () => {
 		expect(
-			toastForSimEvent({ type: 'mod-notice', plugin: 'ex', text: 'Hello', tone: 'success', vessel: null }, ctx)
+			toastForSimEvent(
+				{ type: 'mod-notice', plugin: 'ex', text: 'Hello', tone: 'success', vessel: null },
+				ctx
+			)
 		).toEqual({ kind: 'success', title: 'Hello', key: 'mod:ex' });
 		expect(
-			toastForSimEvent({ type: 'mod-notice', plugin: 'ex', text: 'Hi', tone: 'info', detail: 'more', vessel: 2 }, ctx)
+			toastForSimEvent(
+				{ type: 'mod-notice', plugin: 'ex', text: 'Hi', tone: 'info', detail: 'more', vessel: 2 },
+				ctx
+			)
 		).toBeNull();
 		expect(toastForSimEvent({ type: 'mod-focus', plugin: 'ex', vessel: 1 }, ctx)).toBeNull();
 	});

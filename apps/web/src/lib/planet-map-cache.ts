@@ -51,7 +51,10 @@ export function browserStore(): PlanetMapStore | null {
 		);
 	return {
 		get: (world) =>
-			run('readonly', (s) => s.get(world) as IDBRequest<{ key: string; map: PlanetMap }[] | undefined>),
+			run(
+				'readonly',
+				(s) => s.get(world) as IDBRequest<{ key: string; map: PlanetMap }[] | undefined>
+			),
 		put: (world, maps) => run('readwrite', (s) => s.put(maps, world)).then(() => undefined)
 	};
 }

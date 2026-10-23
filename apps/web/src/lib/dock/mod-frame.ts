@@ -92,7 +92,9 @@ export function frameMessage(data: unknown): FrameMessage | null {
 		case 'ready':
 			return { kind: 'ready' };
 		case 'command':
-			return m.command && typeof m.command === 'object' && typeof (m.command as { type?: unknown }).type === 'string'
+			return m.command &&
+				typeof m.command === 'object' &&
+				typeof (m.command as { type?: unknown }).type === 'string'
 				? { kind: 'command', command: m.command as Command }
 				: null;
 		case 'resize':

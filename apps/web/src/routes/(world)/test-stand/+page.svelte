@@ -5,13 +5,7 @@
 	 * reliability, experience and grade, static fires, and the anomaly reports with their fixes. Its
 	 * sim runs from the world's newest save (or its start info); every change is saved at once.
 	 */
-	import {
-		GRADES,
-		loadPlugins,
-		type Command,
-		type Grade,
-		type Snapshot
-	} from '@orbital/core';
+	import { GRADES, loadPlugins, type Command, type Grade, type Snapshot } from '@orbital/core';
 	import Stock from '@orbital/mod-stock';
 	import { onMount } from 'svelte';
 	import { referenceTwoStage } from '../../../lib/design';

@@ -6,7 +6,12 @@ import { createSim, type Sim } from '@orbital/sim';
 import { buildMod } from '../../../tools/mod-build/build-mod.ts';
 import { orbitState } from '../../../packages/sim/test/helpers/measure.ts';
 import { probe, rapier } from '../../../packages/sim/test/helpers/vessels.ts';
-import WorldApi, { FleetPanel, FlightLog, TargetNearestKey, type FlightLogValue } from '../src/index.ts';
+import WorldApi, {
+	FleetPanel,
+	FlightLog,
+	TargetNearestKey,
+	type FlightLogValue
+} from '../src/index.ts';
 
 const make = () => createSim({ plugins: [Stock, WorldApi], backendFactory: rapier(16), seed: 5 });
 
@@ -39,8 +44,13 @@ describe('World API sample (plan 343)', () => {
 		run(sim, 0.1);
 
 		// the key: the page sends `mod-key` with the flown vessel
-		expect(sim.dispatch({ type: 'mod-key', key: TargetNearestKey.id, vessel: a })).toMatchObject({ ok: true });
-		expect(sim.snapshot().vessels.find((v) => v.id === a)?.target).toMatchObject({ kind: 'vessel', id: b });
+		expect(sim.dispatch({ type: 'mod-key', key: TargetNearestKey.id, vessel: a })).toMatchObject({
+			ok: true
+		});
+		expect(sim.snapshot().vessels.find((v) => v.id === a)?.target).toMatchObject({
+			kind: 'vessel',
+			id: b
+		});
 		expect(notices.at(-1)).toMatch(/^Target: Beta \(5\.0 km\)$/);
 
 		// a landing (here by the debug tools of a sandbox world)
@@ -69,7 +79,12 @@ describe('World API sample (plan 343)', () => {
 		if (view.kind !== 'section') throw new Error('expected a section');
 		const fleet = view.children[2]!;
 		if (fleet.kind !== 'list') throw new Error('expected a list');
-		expect(fleet.items(input).map((r) => r.name).sort()).toEqual(['landed', 'orbiting']);
+		expect(
+			fleet
+				.items(input)
+				.map((r) => r.name)
+				.sort()
+		).toEqual(['landed', 'orbiting']);
 
 		// saved with the world
 		const resumed = await createSim({

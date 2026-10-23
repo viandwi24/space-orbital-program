@@ -17,12 +17,7 @@ const browser = await chromium.launch({
 	args:
 		gpu === 'swiftshader'
 			? ['--use-gl=angle', '--use-angle=swiftshader', '--ignore-gpu-blocklist']
-			: [
-					`--use-angle=${gpu}`,
-					'--enable-gpu',
-					'--ignore-gpu-blocklist',
-					'--enable-unsafe-webgpu'
-				]
+			: [`--use-angle=${gpu}`, '--enable-gpu', '--ignore-gpu-blocklist', '--enable-unsafe-webgpu']
 });
 const context = await browser.newContext({ viewport: { width: 1600, height: 900 }, baseURL: base });
 const page = await context.newPage();
@@ -37,7 +32,10 @@ page.on('pageerror', (e) => console.log(`[${at()}] pageerror: ${e.stack ?? e.mes
 await page.goto('/worlds');
 // PROBE_CHOICE: the renderer picked in Settings (webgpu|webgl)
 if (process.env.PROBE_CHOICE)
-	await page.evaluate((c) => localStorage.setItem('orbital.graphics.renderer', c), process.env.PROBE_CHOICE);
+	await page.evaluate(
+		(c) => localStorage.setItem('orbital.graphics.renderer', c),
+		process.env.PROBE_CHOICE
+	);
 await page.getByTestId('worlds-create').click();
 const form = page.getByTestId('create-world');
 await form.getByTestId('world-name').fill('Probe');
@@ -52,8 +50,14 @@ while (Date.now() < end) {
 	const state = await page.evaluate(() => {
 		const c = document.querySelector('canvas[data-engine]') as HTMLCanvasElement | null;
 		const loading = document.querySelector('[data-testid="loading-screen"]');
-		const all = [...document.querySelectorAll('canvas')].map((x) => `${x.dataset.testid ?? '?'}:${x.width}x${x.height}`).join(',');
-		const rep = (window as unknown as { __orbitalLoadReport?: () => { data: { backend: string; steps: unknown } } | null }).__orbitalLoadReport?.();
+		const all = [...document.querySelectorAll('canvas')]
+			.map((x) => `${x.dataset.testid ?? '?'}:${x.width}x${x.height}`)
+			.join(',');
+		const rep = (
+			window as unknown as {
+				__orbitalLoadReport?: () => { data: { backend: string; steps: unknown } } | null;
+			}
+		).__orbitalLoadReport?.();
 		const step = document.querySelector('[data-testid="loading-screen"] p.step')?.textContent ?? '';
 		return `${c?.dataset.engine ?? '-'} [${all}] ${rep ? rep.data.backend + ' ' + JSON.stringify(rep.data.steps) : 'no report'} ${step} | ${loading ? (loading as HTMLElement).innerText.replace(/\s+/g, ' ').slice(0, 160) : 'no loading screen'}`;
 	});
@@ -73,7 +77,12 @@ if (process.env.PROBE_DIAG)
 			const race = <T>(p: Promise<T>, ms: number) =>
 				Promise.race([p, new Promise((r) => setTimeout(() => r(`timeout ${ms} ms`), ms))]);
 			const gpu = (navigator as unknown as { gpu?: { requestAdapter(): Promise<unknown> } }).gpu;
-			const adapter = gpu ? await race(gpu.requestAdapter().then((a) => (a ? 'adapter' : 'null')), 5000) : 'no gpu';
+			const adapter = gpu
+				? await race(
+						gpu.requestAdapter().then((a) => (a ? 'adapter' : 'null')),
+						5000
+					)
+				: 'no gpu';
 			const idb = await race(
 				new Promise((res) => {
 					const q = indexedDB.open('orbital-bakes', 1);

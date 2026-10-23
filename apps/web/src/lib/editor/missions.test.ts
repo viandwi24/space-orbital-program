@@ -122,13 +122,20 @@ describe('mission blueprints (plan 286)', () => {
 	it('Kronos V: the capsule and the lander carry ports of one size; the capsule can leave its service module', () => {
 		const design = MISSION_BLUEPRINTS.find((m) => m.id === 'stock.kronos-selene')!.design;
 		const ports = design.parts.filter((p) => modulesOf(p.part).includes('stock.docking-port'));
-		expect(ports.map((p) => p.part)).toEqual(['stock.docking-port-small', 'stock.docking-port-small']);
+		expect(ports.map((p) => p.part)).toEqual([
+			'stock.docking-port-small',
+			'stock.docking-port-small'
+		]);
 		const pod = design.parts[0]!;
-		const shield = design.parts.find((p) => p.parent?.index === pod.index && p.parent.parentNode === 'bottom')!;
+		const shield = design.parts.find(
+			(p) => p.parent?.index === pod.index && p.parent.parentNode === 'bottom'
+		)!;
 		const below = design.parts.find((p) => p.parent?.index === shield.index)!;
 		expect(separates(below.part)).toBe(true);
 		// the lander's engines do not light on the pad (they did, 2026-10-22)
-		const lander = design.parts.filter((p) => p.part === 'stock.lander-descent' || p.part === 'stock.lander-ascent');
+		const lander = design.parts.filter(
+			(p) => p.part === 'stock.lander-descent' || p.part === 'stock.lander-ascent'
+		);
 		for (const l of lander) expect(design.stages[0]!.includes(l.index)).toBe(false);
 	});
 
@@ -156,7 +163,10 @@ describe('mission blueprints (plan 286)', () => {
 
 	it('Kronos V: the port under a boost cover, the tower on the cover; no size mismatch in any system (system audit D6)', () => {
 		const kronos = MISSION_BLUEPRINTS.find((m) => m.id === 'stock.kronos-selene')!;
-		const designs = [kronos.design, ...(kronos.systems ?? []).flatMap((s) => (s.design ? [s.design] : []))];
+		const designs = [
+			kronos.design,
+			...(kronos.systems ?? []).flatMap((s) => (s.design ? [s.design] : []))
+		];
 		expect(designs.length).toBeGreaterThanOrEqual(2);
 		for (const design of designs) {
 			expect(sizeMismatches(design, content.parts as never)).toEqual([]);
@@ -167,7 +177,9 @@ describe('mission blueprints (plan 286)', () => {
 			expect(byIndex.get(cover.parent!.index)!.part).toBe('stock.docking-port-small');
 			// the tower's own joint stays shut; the cover's fires in the tower's stage
 			expect(tower.settings?.['stock.decoupler']?.['staged']).toBe(false);
-			expect(design.stages.some((st) => st.includes(tower.index) && st.includes(cover.index))).toBe(true);
+			expect(design.stages.some((st) => st.includes(tower.index) && st.includes(cover.index))).toBe(
+				true
+			);
 		}
 	});
 });

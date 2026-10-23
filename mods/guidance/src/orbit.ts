@@ -62,15 +62,16 @@ export function orbitOf(r: Vec3, v: Vec3, mu: number): Orbit {
 		let E = Math.acos(cosE);
 		if (radialSpeed < 0) E = 2 * Math.PI - E;
 		const M = E - e * Math.sin(E);
-		toApoapsis = (((Math.PI - M) % (2 * Math.PI)) + 2 * Math.PI) % (2 * Math.PI) / n;
-		toPeriapsis = (((2 * Math.PI - M) % (2 * Math.PI)) + 2 * Math.PI) % (2 * Math.PI) / n;
+		toApoapsis = ((((Math.PI - M) % (2 * Math.PI)) + 2 * Math.PI) % (2 * Math.PI)) / n;
+		toPeriapsis = ((((2 * Math.PI - M) % (2 * Math.PI)) + 2 * Math.PI) % (2 * Math.PI)) / n;
 		if (toApoapsis > period) toApoapsis -= period;
 	}
 	return { a, e, periapsis, apoapsis, toApoapsis, toPeriapsis, radialSpeed };
 }
 
 /** Speed at radius `r` on an orbit of semi-major axis `a` (vis-viva). */
-export const visViva = (mu: number, r: number, a: number): number => Math.sqrt(mu * (2 / r - 1 / a));
+export const visViva = (mu: number, r: number, a: number): number =>
+	Math.sqrt(mu * (2 / r - 1 / a));
 
 /**
  * Seconds to burn `dv` with thrust `thrust` from mass `mass` at exhaust velocity `ve` (the rocket

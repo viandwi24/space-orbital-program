@@ -63,9 +63,13 @@ const flightReady = () =>
 		timeout: 240_000
 	});
 await page.goto('/vab');
-await page.waitForFunction(() => typeof (window as any).__orbitalVab?.loadTwoStage === 'function', null, {
-	timeout: 120_000
-});
+await page.waitForFunction(
+	() => typeof (window as any).__orbitalVab?.loadTwoStage === 'function',
+	null,
+	{
+		timeout: 120_000
+	}
+);
 await page.evaluate(() => (window as any).__orbitalVab.loadTwoStage());
 await page.getByTestId('menu-launch').click();
 const anyway = page.getByRole('button', { name: 'Launch anyway' });
@@ -78,9 +82,13 @@ if (backend !== 'webgpu') {
 	await page.goto(`/flight?renderer=${backend}`);
 	await flightReady();
 }
-await page.waitForFunction(() => !document.body.innerText.includes('Drawing the first frame'), null, {
-	timeout: 240_000
-});
+await page.waitForFunction(
+	() => !document.body.innerText.includes('Drawing the first frame'),
+	null,
+	{
+		timeout: 240_000
+	}
+);
 await page.waitForTimeout(4000);
 await page.keyboard.press('m');
 await page.waitForTimeout(1500);
@@ -161,7 +169,11 @@ for (const id of ids) {
 		async ([id, alt]) => {
 			const o = (window as any).__orbital;
 			await o.send({ type: 'pause', on: false });
-			const r = await (window as any).__orbitalDebug.setOrbit({ body: id, apoapsis: alt, periapsis: alt });
+			const r = await (window as any).__orbitalDebug.setOrbit({
+				body: id,
+				apoapsis: alt,
+				periapsis: alt
+			});
 			if (!r.ok) console.log('setOrbit', id, r.reason);
 		},
 		[id, b.altitude] as const
@@ -170,7 +182,11 @@ for (const id of ids) {
 	await frame(id, b.radius, 280);
 	// the body wakes and bakes its full colour map over a few frames
 	await page.waitForTimeout(Number(process.env.SHOT_WAIT ?? 5000));
-	await page.screenshot({ path: join(out, `381-${backend}-${id.split('.')[1]}.jpg`), type: 'jpeg', quality: 88 });
+	await page.screenshot({
+		path: join(out, `381-${backend}-${id.split('.')[1]}.jpg`),
+		type: 'jpeg',
+		quality: 88
+	});
 	console.log('shot', id);
 }
 

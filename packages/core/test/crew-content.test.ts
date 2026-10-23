@@ -54,13 +54,18 @@ describe('the crew content registries (plan 375, ADR 0313)', () => {
 		expect(() =>
 			loadPlugins([
 				plugin('a', (ctx) => {
-					ctx.crewPortraits.register({ id: 'a.p', title: 'P', image: 'faces/a.gif', outfit: 'a.x' });
+					ctx.crewPortraits.register({
+						id: 'a.p',
+						title: 'P',
+						image: 'faces/a.gif',
+						outfit: 'a.x'
+					});
 				})
 			])
 		).toThrow(/Invalid crew-portrait/);
 	});
 
-	test('a crew-outfit patch recolours another plugin\'s outfit, with provenance', () => {
+	test("a crew-outfit patch recolours another plugin's outfit, with provenance", () => {
 		const { registries, report } = loadPlugins([
 			plugin('base', (ctx) => void ctx.crewOutfits.register(outfit('base.suit'))),
 			plugin(

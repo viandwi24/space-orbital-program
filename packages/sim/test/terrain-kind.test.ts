@@ -64,12 +64,7 @@ const Pebbles = definePlugin({
 /** 60 km from the landing plain: well into the craters. */
 const LONGITUDE = 60_000 / RADIUS;
 
-async function standOn(
-	bodyId: string,
-	longitude = LONGITUDE,
-	latitude = 0,
-	radius = RADIUS
-) {
+async function standOn(bodyId: string, longitude = LONGITUDE, latitude = 0, radius = RADIUS) {
 	const sim = await createSim({
 		plugins: [Stock, Pebbles],
 		backendFactory: rapier(16),

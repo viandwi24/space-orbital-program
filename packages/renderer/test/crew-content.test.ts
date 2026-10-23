@@ -49,7 +49,12 @@ const mod: Plugin = {
 				uses: ['hangar']
 			}
 		});
-		ctx.crewLooks.register({ id: 'troupe.green', title: 'Green', kind: 'eye-colour', colour: 0x2f8a3a });
+		ctx.crewLooks.register({
+			id: 'troupe.green',
+			title: 'Green',
+			kind: 'eye-colour',
+			colour: 0x2f8a3a
+		});
 		ctx.crewPortraits.register({
 			id: 'troupe.face',
 			title: 'Face',

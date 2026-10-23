@@ -59,13 +59,19 @@ await context.addInitScript(
 // The same log for any build (the baseline before plan 370 has no load report): the device's
 // module and pipeline calls, wrapped as the page asks for the device.
 await context.addInitScript(() => {
-	const log = { modules: [] as { label: string; bytes: number; code?: string }[], pipelines: [] as { label: string; mode: string; at: number; ms: number | null }[] };
+	const log = {
+		modules: [] as { label: string; bytes: number; code?: string }[],
+		pipelines: [] as { label: string; mode: string; at: number; ms: number | null }[]
+	};
 	(window as any).__compileLog = log;
 	const keep = localStorage.getItem('orbital.debug.shaderSources') === '1';
 	const gpu = (navigator as any).gpu;
 	if (!gpu) return;
 	const request = GPUAdapter.prototype.requestDevice;
-	GPUAdapter.prototype.requestDevice = async function (this: GPUAdapter, desc?: GPUDeviceDescriptor) {
+	GPUAdapter.prototype.requestDevice = async function (
+		this: GPUAdapter,
+		desc?: GPUDeviceDescriptor
+	) {
 		const device = await request.call(this, desc);
 		const mod = device.createShaderModule.bind(device);
 		device.createShaderModule = (d: GPUShaderModuleDescriptor) => {
@@ -80,7 +86,12 @@ await context.addInitScript(() => {
 		};
 		const later = device.createRenderPipelineAsync.bind(device);
 		device.createRenderPipelineAsync = (d: GPURenderPipelineDescriptor) => {
-			const e = { label: d.label ?? '', mode: 'async', at: performance.now(), ms: null as number | null };
+			const e = {
+				label: d.label ?? '',
+				mode: 'async',
+				at: performance.now(),
+				ms: null as number | null
+			};
 			log.pipelines.push(e);
 			const p = later(d);
 			p.then(() => (e.ms = performance.now() - e.at)).catch(() => {});
@@ -90,8 +101,12 @@ await context.addInitScript(() => {
 	};
 });
 if (process.env.BOOT)
-	await context.addInitScript((b) => localStorage.setItem('orbital.graphics.boot', b), process.env.BOOT);
-if (dump) await context.addInitScript(() => localStorage.setItem('orbital.debug.shaderSources', '1'));
+	await context.addInitScript(
+		(b) => localStorage.setItem('orbital.graphics.boot', b),
+		process.env.BOOT
+	);
+if (dump)
+	await context.addInitScript(() => localStorage.setItem('orbital.debug.shaderSources', '1'));
 
 {
 	const setup = await context.newPage();
@@ -108,21 +123,35 @@ for (let load = 1; load <= loads; load++) {
 	page.on('pageerror', (e) => console.log('  pageerror', e.message));
 	const t0 = Date.now();
 	await page.goto('/flight');
-	await page.waitForFunction(() => (window as any).__orbital?.snapshot?.()?.vessels?.length > 0, null, {
-		timeout: 600_000
-	});
+	await page.waitForFunction(
+		() => (window as any).__orbital?.snapshot?.()?.vessels?.length > 0,
+		null,
+		{
+			timeout: 600_000
+		}
+	);
 	await page.getByTestId('world-loading').waitFor({ state: 'detached', timeout: 600_000 });
 	const loadMs = Date.now() - t0;
 	// the background work after the loading screen (another preset, plan 370)
 	await page.waitForTimeout(Number(process.env.AFTER ?? 8000));
 	if (process.env.SHOTS) {
 		mkdirSync(process.env.SHOTS, { recursive: true });
-		await page.screenshot({ path: join(process.env.SHOTS, `load${load}.jpg`), type: 'jpeg', quality: 80 });
+		await page.screenshot({
+			path: join(process.env.SHOTS, `load${load}.jpg`),
+			type: 'jpeg',
+			quality: 80
+		});
 		// ORBIT=1: also a 100 km orbit (the scaled-space planet, the sky from above)
 		if (process.env.ORBIT) {
-			await page.evaluate(() => (window as any).__orbitalDebug.setOrbit({ apoapsis: 100_000, periapsis: 100_000 }));
+			await page.evaluate(() =>
+				(window as any).__orbitalDebug.setOrbit({ apoapsis: 100_000, periapsis: 100_000 })
+			);
 			await page.waitForTimeout(6000);
-			await page.screenshot({ path: join(process.env.SHOTS, `load${load}-orbit.jpg`), type: 'jpeg', quality: 80 });
+			await page.screenshot({
+				path: join(process.env.SHOTS, `load${load}-orbit.jpg`),
+				type: 'jpeg',
+				quality: 80
+			});
 		}
 	}
 	const report = await page.evaluate(() => (window as any).__orbitalLoadReport?.() ?? null);
@@ -134,7 +163,10 @@ for (let load = 1; load <= loads; load++) {
 		return {
 			modules: mods.length,
 			moduleBytes: mods.reduce((a, m) => a + m.bytes, 0),
-			largest: [...mods].sort((a, b) => b.bytes - a.bytes).slice(0, 12).map((m) => `${m.label} ${Math.round(m.bytes / 1024)} KB`),
+			largest: [...mods]
+				.sort((a, b) => b.bytes - a.bytes)
+				.slice(0, 12)
+				.map((m) => `${m.label} ${Math.round(m.bytes / 1024)} KB`),
 			pipelines: pipes.length,
 			sync: pipes.filter((p) => p.mode === 'sync').length,
 			async: pipes.filter((p) => p.mode === 'async').length,
@@ -149,7 +181,10 @@ for (let load = 1; load <= loads; load++) {
 		mkdirSync(dir, { recursive: true });
 		sources.forEach((s, i) =>
 			writeFileSync(
-				join(dir, `${String(i).padStart(3, '0')}-${s.label.replace(/[^\w.-]+/g, '_').slice(0, 60)}.txt`),
+				join(
+					dir,
+					`${String(i).padStart(3, '0')}-${s.label.replace(/[^\w.-]+/g, '_').slice(0, 60)}.txt`
+				),
 				s.code
 			)
 		);
@@ -164,5 +199,15 @@ await context.close();
 if (out)
 	writeFileSync(
 		out,
-		JSON.stringify({ when: new Date().toISOString(), backend, preset, notes: process.env.MEASURE_NOTES ?? '', runs }, null, 1)
+		JSON.stringify(
+			{
+				when: new Date().toISOString(),
+				backend,
+				preset,
+				notes: process.env.MEASURE_NOTES ?? '',
+				runs
+			},
+			null,
+			1
+		)
 	);

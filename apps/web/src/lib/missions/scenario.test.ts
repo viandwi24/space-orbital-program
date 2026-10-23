@@ -68,12 +68,22 @@ describe('the sample mission pack', () => {
 
 describe('a scenario in a world with its own site (system audit)', () => {
 	it("a `site` vessel stands at the world's primary site, not at `legacy`", () => {
-		const hq = { ...structuredClone(LEGACY_SITE), id: 'space-center', latitude: 0.3, longitude: 1.1 };
+		const hq = {
+			...structuredClone(LEGACY_SITE),
+			id: 'space-center',
+			latitude: 0.3,
+			longitude: 1.1
+		};
 		expect(scenarioSiteOf({ sites: [hq] })).toBe('space-center');
 		expect(scenarioSiteOf(undefined)).toBe('legacy');
 		const { registries } = loadPlugins([Stock]);
 		const start = scenarioStart(
-			{ id: 'x.s', label: 'S', description: 'S', vessels: [{ site: true, design: { formatVersion: 1, name: 'P', parts: [], stages: [] } }] } as never,
+			{
+				id: 'x.s',
+				label: 'S',
+				description: 'S',
+				vessels: [{ site: true, design: { formatVersion: 1, name: 'P', parts: [], stages: [] } }]
+			} as never,
 			registries.bodies,
 			scenarioSiteOf({ sites: [hq] })
 		);

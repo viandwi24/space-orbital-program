@@ -34,8 +34,21 @@ const scene = (extra: Partial<VabScene['parts'][number]> = {}): VabScene => ({
 	groups: [{ id: 'main', x: 0, z: 0 }],
 	nodes: [],
 	parts: [
-		{ key: '0', definition: 'stock.tank-small', position: [0, 0, 0], group: 'main', role: 'solid', ...extra },
-		{ key: '1', definition: 'stock.tank-small', position: [0, -1.2, 0], group: 'main', role: 'solid' }
+		{
+			key: '0',
+			definition: 'stock.tank-small',
+			position: [0, 0, 0],
+			group: 'main',
+			role: 'solid',
+			...extra
+		},
+		{
+			key: '1',
+			definition: 'stock.tank-small',
+			position: [0, -1.2, 0],
+			group: 'main',
+			role: 'solid'
+		}
 	]
 });
 const overlayMaterials = (l: PartLayer, key: string): Material[] => {

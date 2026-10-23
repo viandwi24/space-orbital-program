@@ -141,7 +141,18 @@ async function run(config: string): Promise<Record<string, unknown>> {
 		const at = (p: number): number => sorted[Math.max(0, Math.ceil(p * sorted.length) - 1)]!;
 		const hist: Record<string, number> = {};
 		for (const v of sorted) {
-			const bin = v < 9 ? '<9' : v < 18 ? '9-18' : v < 26 ? '18-26' : v < 35 ? '26-35' : v < 50 ? '35-50' : '>50';
+			const bin =
+				v < 9
+					? '<9'
+					: v < 18
+						? '9-18'
+						: v < 26
+							? '18-26'
+							: v < 35
+								? '26-35'
+								: v < 50
+									? '35-50'
+									: '>50';
 			hist[bin] = (hist[bin] ?? 0) + 1;
 		}
 		const g = gpu.slice().sort((a, b) => a - b);
@@ -197,7 +208,12 @@ async function run(config: string): Promise<Record<string, unknown>> {
 			})
 		: null;
 	if (steps) console.log('steps', config, JSON.stringify(steps));
-	if (process.env.SHOTS) await page.screenshot({ path: `${process.env.SHOTS}/${config.replaceAll(':', '-')}.jpg`, type: 'jpeg', quality: 80 });
+	if (process.env.SHOTS)
+		await page.screenshot({
+			path: `${process.env.SHOTS}/${config.replaceAll(':', '-')}.jpg`,
+			type: 'jpeg',
+			quality: 80
+		});
 	await page.close();
 	return { config, loadMs, ...trace, steps };
 }

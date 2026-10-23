@@ -6,7 +6,9 @@ import { describe, expect, it } from 'vitest';
 import { systemFacts } from './system-facts';
 
 const bodies = (id: string, variant?: string) =>
-	loadPlugins([Stock, Sol], { system: { id, ...(variant ? { variant } : {}) } }).registries.bodies.list();
+	loadPlugins([Stock, Sol], {
+		system: { id, ...(variant ? { variant } : {}) }
+	}).registries.bodies.list();
 
 describe('system facts', () => {
 	const stock = systemFacts(bodies('stock'))!;

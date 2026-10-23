@@ -41,8 +41,14 @@ export const March = defineCrewAnimation({
 	title: 'March',
 	role: 'walk',
 	keys: [
-		{ t: 0, pose: { legLPitch: 0.9, legRPitch: -0.35, armLPitch: -0.6, armRPitch: 0.6, bob: 0.03 } },
-		{ t: 0.5, pose: { legLPitch: -0.35, legRPitch: 0.9, armLPitch: 0.6, armRPitch: -0.6, bob: 0.03 } }
+		{
+			t: 0,
+			pose: { legLPitch: 0.9, legRPitch: -0.35, armLPitch: -0.6, armRPitch: 0.6, bob: 0.03 }
+		},
+		{
+			t: 0.5,
+			pose: { legLPitch: -0.35, legRPitch: 0.9, armLPitch: 0.6, armRPitch: -0.6, bob: 0.03 }
+		}
 	],
 	duration: 1
 });
@@ -89,7 +95,12 @@ export const TealMechanics = definePatch({
 });
 
 export default definePlugin({
-	meta: { id: 'crew-sample', version: '1.0.0', api: '^0.1.111', title: 'Marching band (crew sample)' },
+	meta: {
+		id: 'crew-sample',
+		version: '1.0.0',
+		api: '^0.1.111',
+		title: 'Marching band (crew sample)'
+	},
 	depends: ['stock'],
 	setup(ctx) {
 		ctx.crewOutfits.register(Band);

@@ -3,7 +3,6 @@ import { bootSummary, formatBootLog, readBootLog, storeBootLog } from './boot-lo
 import { importCode, pluginSource, recordOf } from './fixtures';
 import { evaluateMods } from './runtime';
 
-
 describe('the mod loader log (plan 375)', () => {
 	it('lists the boot order, counts per kind, problems by code and patches', async () => {
 		const patch = `ctx.parts.register({ id: 'tuner.thing', title: 'T', mass: 2, shape: { kind: 'cylinder', radius: 0.5, height: 1 } }); ctx.patches.register({ id: 'tuner.thrust', target: 'part', select: { id: 'stock.engine-lv' }, ops: [{ op: 'set', path: 'modules.stock.engine.thrust', value: 230000 }] }); ctx.patches.register({ id: 'tuner.none', target: 'part', select: { id: 'nobody.here' }, ops: [{ op: 'set', path: 'mass', value: 1 }] });`;

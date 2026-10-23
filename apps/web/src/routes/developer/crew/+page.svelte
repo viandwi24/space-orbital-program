@@ -77,8 +77,7 @@
 			.filter((id) => counts.has(id) || patched.some((p) => p.id === id && p.patched > 0))
 			.map((id) => ({ id, count: counts.get(id) ?? 0 }));
 	});
-	const inUse = (id: string, role: string): boolean =>
-		animationFor(role as never)?.id === id;
+	const inUse = (id: string, role: string): boolean => animationFor(role as never)?.id === id;
 	const look = (id: string) => {
 		const a = appearanceOf(id);
 		return skin === 'by-id' ? a : withSkin(a, skin);
@@ -131,7 +130,8 @@
 		if (modFilter) q.set('mod', modFilter);
 		else q.delete('mod');
 		const next = `${location.pathname}${q.size ? `?${q}` : ''}`;
-		if (next !== `${location.pathname}${location.search}`) history.replaceState(history.state, '', next);
+		if (next !== `${location.pathname}${location.search}`)
+			history.replaceState(history.state, '', next);
 	});
 </script>
 
@@ -157,9 +157,7 @@
 			>Animation
 			<select bind:value={animation} data-testid="crew-action">
 				{#each content.animations as a (a.id)}
-					<option value={a.id}
-						>{a.role}: {a.title}{inUse(a.id, a.role) ? ' (in use)' : ''}</option
-					>
+					<option value={a.id}>{a.role}: {a.title}{inUse(a.id, a.role) ? ' (in use)' : ''}</option>
 				{/each}
 			</select>
 		</label>
@@ -267,7 +265,10 @@
 		<h2>Looks <small>{looks.length}</small></h2>
 		<div class="looks">
 			{#each looks as l (l.id)}
-				<span class="look" data-tip="{l.id} · by {byOf(l.id)}{l.weight ? ` · weight ${l.weight}` : ''}">
+				<span
+					class="look"
+					data-tip="{l.id} · by {byOf(l.id)}{l.weight ? ` · weight ${l.weight}` : ''}"
+				>
 					{#if l.kind === 'hair-style'}<span class="sw style">{l.style}</span>{:else}<span
 							class="sw"
 							style:background={hex(l.colour)}
@@ -280,8 +281,8 @@
 		<h2>Portrait images <small>{portraits.length}</small></h2>
 		{#if portraits.length === 0}
 			<p class="hint">
-				None: every face is painted. A mod adds one with <code>ctx.crewPortraits.register</code> and
-				an image in its package.
+				None: every face is painted. A mod adds one with <code>ctx.crewPortraits.register</code> and an
+				image in its package.
 			</p>
 		{:else}
 			<div class="grid">
@@ -291,7 +292,11 @@
 						<figcaption>
 							<strong>{p.def.title}</strong>
 							<code>{p.def.id}</code>
-							<span>by {byOf(p.def.id)} · {p.def.crew ? `crew ${p.def.crew}` : `outfit ${p.def.outfit}`}</span>
+							<span
+								>by {byOf(p.def.id)} · {p.def.crew
+									? `crew ${p.def.crew}`
+									: `outfit ${p.def.outfit}`}</span
+							>
 						</figcaption>
 					</figure>
 				{/each}

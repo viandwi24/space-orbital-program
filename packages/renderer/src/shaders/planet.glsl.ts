@@ -907,14 +907,16 @@ Surface surfaceAt(vec3 nBF, vec3 pl, float footprint, vec3 vSite, float hT, vec3
 	// on core's terrain lattice; their coast shift stays inside the terrain's land margin
 	vec3 qKm = nBF * (uR / 1000.0);
 	float eMid = 0.0;
-${MID_OCTAVES_KM.map((km, k) => `	{
+${MID_OCTAVES_KM.map(
+	(km, k) => `	{
 		float fadeM = clamp((${f(km * 1000)} / lamMin - 1.0) * 1.5, 0.0, 1.0);
 		if (fadeM > 0.0) {
 			float n = noiseT(qKm, ${f(1 / km)}, ${MID_OCTAVE_SALT + k}) - 0.5;
 			eMid += n * 0.7 * gPerM * ${f(km * 1000)} * fadeM;
 			colourNoise += n * fadeM * 0.45;
 		}
-	}`).join('\n')}
+	}`
+).join('\n')}
 	eDetail += clamp(eMid, -${f(MID_COAST_CAP)}, ${f(MID_COAST_CAP)});
 	float e2 = e + eDetail;
 	// the waterline's antialiasing over the coast's own slope: the detail octaves make it 3 to 5 times

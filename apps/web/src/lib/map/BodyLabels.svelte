@@ -7,8 +7,10 @@
 
 <div class="body-labels" aria-hidden="true" data-testid="body-labels">
 	{#each labels as l (l.id)}
-		<span class="name" data-body={l.id} style:transform="translate({l.x}px, {l.y}px) translateX(-50%)"
-			>{l.text}</span
+		<span
+			class="name"
+			data-body={l.id}
+			style:transform="translate({l.x}px, {l.y}px) translateX(-50%)">{l.text}</span
 		>
 	{/each}
 </div>

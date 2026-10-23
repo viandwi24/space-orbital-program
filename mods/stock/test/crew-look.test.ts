@@ -23,6 +23,7 @@ describe("stock's crew content (plan 375, ADR 0313)", () => {
 
 	test('every outfit the game needs has a use', () => {
 		const uses = new Set(registries.crewOutfits.list().flatMap((o) => o.uses ?? []));
-		for (const use of ['pod', 'eva', 'hangar', 'space-center'] as const) expect(uses.has(use)).toBe(true);
+		for (const use of ['pod', 'eva', 'hangar', 'space-center'] as const)
+			expect(uses.has(use)).toBe(true);
 	});
 });

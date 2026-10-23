@@ -396,7 +396,8 @@
 		<div class="rightcol" class:open={vab.drawer === 'stages'} bind:this={right}>
 			{#if sandbox}
 				<p class="sandbox-note">
-					Sandbox: every part, no tech tree, no funds, no launch. Designs go to the developer library.
+					Sandbox: every part, no tech tree, no funds, no launch. Designs go to the developer
+					library.
 				</p>
 			{:else}
 				<LaunchButton {vab} />

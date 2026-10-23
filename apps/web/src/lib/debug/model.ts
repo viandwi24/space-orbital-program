@@ -217,7 +217,10 @@ export function simEventLine(event: SimEventMessage): { level: LogLevel; message
 		case 'program-resumed':
 			return { level: 'info', message: `vessel ${event.vessel}: program resumed` };
 		case 'program-stopped':
-			return { level: 'warn', message: `vessel ${event.vessel}: programs stopped (${event.reason})` };
+			return {
+				level: 'warn',
+				message: `vessel ${event.vessel}: programs stopped (${event.reason})`
+			};
 		case 'mod-notice':
 			return { level: 'info', message: `${event.plugin}: ${event.text}` };
 		case 'mod-focus':

@@ -8,13 +8,7 @@
  * - a pilot, an engineer and a scientist where the economy is on (the others hire a pilot at launch).
  * Only a world started fresh, never a save: an older world keeps what it has.
  */
-import {
-	canPlace,
-	RELIABILITY_RULE,
-	sitesOf,
-	type Cell,
-	type Site
-} from '@orbital/core';
+import { canPlace, RELIABILITY_RULE, sitesOf, type Cell, type Site } from '@orbital/core';
 import type { SimCore } from './core.ts';
 import { newMember } from './crew.ts';
 import { economyOn, ruleOf } from './economy.ts';

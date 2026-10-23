@@ -5,12 +5,7 @@
 	 * a node's detail, and Research. Its sim runs from the world's newest save (or its start info),
 	 * and a research is saved at once.
 	 */
-	import {
-		loadPlugins,
-		techBodiesOf,
-		type Snapshot,
-		type TechBodies
-	} from '@orbital/core';
+	import { loadPlugins, techBodiesOf, type Snapshot, type TechBodies } from '@orbital/core';
 	import Stock from '@orbital/mod-stock';
 	import { onMount } from 'svelte';
 	import { referenceTwoStage } from '../../../lib/design';

@@ -13,7 +13,10 @@ describe('the VAB route file', () => {
 		expect(lines('../../../lib/vab/HangarPage.svelte')).toBeLessThanOrEqual(780);
 	});
 	it('holds no pointer or keyboard handling of its own', () => {
-		const text = readFileSync(new URL('../../../lib/vab/HangarPage.svelte', import.meta.url), 'utf8');
+		const text = readFileSync(
+			new URL('../../../lib/vab/HangarPage.svelte', import.meta.url),
+			'utf8'
+		);
 		expect(text).not.toMatch(/function (pointer|onKey|cycle)/);
 	});
 });

@@ -5,7 +5,14 @@ import { createAscent } from './helpers/ascent.ts';
 import { groundRelativeVelocity, rotateBy } from './helpers/ground.ts';
 import { createLanding, defaultLanding } from './helpers/landing.ts';
 import { altitude, orbitState } from './helpers/measure.ts';
-import { newSim, ORBIT_LANDER_ROOT_TO_FOOT, orbitLander, probe, stack, twoStage } from './helpers/vessels.ts';
+import {
+	newSim,
+	ORBIT_LANDER_ROOT_TO_FOOT,
+	orbitLander,
+	probe,
+	stack,
+	twoStage
+} from './helpers/vessels.ts';
 
 /** Plan 016 / ADR 0024: controlled vessels at rest on the ground go on surface-fixed rails. */
 type TestSim = Awaited<ReturnType<typeof newSim>>;
@@ -241,7 +248,10 @@ describe('a lander', () => {
 		if (!placed.ok) throw new Error(placed.reason);
 		const id = placed.vessel!;
 		sim.dispatch({ type: 'stage', vessel: id });
-		const landing = createLanding(sim, id, { ...defaultLanding, rootToFoot: ORBIT_LANDER_ROOT_TO_FOOT });
+		const landing = createLanding(sim, id, {
+			...defaultLanding,
+			rootToFoot: ORBIT_LANDER_ROOT_TO_FOOT
+		});
 		while (sim.time < 3_000 && landing.phase !== 'done') {
 			sim.step(0.02);
 			landing.update();

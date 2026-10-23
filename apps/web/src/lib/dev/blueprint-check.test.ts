@@ -42,7 +42,13 @@ const card = (id: string, d: VesselDesign): BlueprintCard => ({
 describe('blueprint checks for the Blueprints tab (plan 375)', () => {
 	it('reports parts no loaded plugin registers', () => {
 		const r = checkBlueprint(
-			card('acme.odd', design([['stock.command-pod', null], ['acme.missing-tank', 0, 'bottom', 'top']])),
+			card(
+				'acme.odd',
+				design([
+					['stock.command-pod', null],
+					['acme.missing-tank', 0, 'bottom', 'top']
+				])
+			),
 			input
 		);
 		expect(r.missing).toEqual(['acme.missing-tank']);

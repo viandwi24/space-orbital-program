@@ -52,7 +52,16 @@ describe('panel definitions', () => {
 					badge: () => 'ON',
 					children: [
 						{ kind: 'progress', label: 'Done', value: () => 0.5, text: () => 'half' },
-						{ kind: 'number', label: 'Alt', unit: 'km', min: 70, max: 500, step: 5, value: () => 80, command: () => null },
+						{
+							kind: 'number',
+							label: 'Alt',
+							unit: 'km',
+							min: 70,
+							max: 500,
+							step: 5,
+							value: () => 80,
+							command: () => null
+						},
 						{ kind: 'notice', text: () => 'why', tone: () => 'warn' },
 						{ kind: 'button', label: 'Go', tone: 'primary', command: () => null }
 					]

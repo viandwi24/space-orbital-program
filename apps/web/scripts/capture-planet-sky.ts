@@ -100,9 +100,13 @@ async function openFlight(): Promise<Page> {
 	}, preset);
 	// the e2e launch (`e2e/support.ts`): the Hangar's example through its debug global, Launch, Go
 	await page.goto('/vab');
-	await page.waitForFunction(() => typeof (window as any).__orbitalVab?.loadTwoStage === 'function', null, {
-		timeout: 120_000
-	});
+	await page.waitForFunction(
+		() => typeof (window as any).__orbitalVab?.loadTwoStage === 'function',
+		null,
+		{
+			timeout: 120_000
+		}
+	);
 	await page.evaluate(() => (window as any).__orbitalVab.loadTwoStage());
 	await page.getByTestId('menu-launch').click();
 	const anyway = page.getByRole('button', { name: 'Launch anyway' });
@@ -116,9 +120,13 @@ async function openFlight(): Promise<Page> {
 		await flightReady(page);
 	}
 	// the loading screen (plan 340) lists its steps until the first frame after the warm-up is drawn
-	await page.waitForFunction(() => !document.body.innerText.includes('Drawing the first frame'), null, {
-		timeout: 240_000
-	});
+	await page.waitForFunction(
+		() => !document.body.innerText.includes('Drawing the first frame'),
+		null,
+		{
+			timeout: 240_000
+		}
+	);
 	await page.waitForTimeout(4000);
 	return page;
 }

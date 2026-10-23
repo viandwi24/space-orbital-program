@@ -117,12 +117,10 @@ describe('describeModule', () => {
 describe('describeModule parses a config object once (plan 363)', () => {
 	test('the same raw config is parsed once; a new object, or a bad one, is parsed again', () => {
 		let parses = 0;
-		const config = z
-			.object({ flow: z.number().positive().default(10) })
-			.transform((c) => {
-				parses++;
-				return c;
-			});
+		const config = z.object({ flow: z.number().positive().default(10) }).transform((c) => {
+			parses++;
+			return c;
+		});
 		const mod: ModuleDefinition = {
 			id: 'acme.counted',
 			config,

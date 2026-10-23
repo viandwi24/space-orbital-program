@@ -31,7 +31,7 @@ describe('pick-through by clicking again (plan 378, ADR 0315)', () => {
 		expect(nextPick(c, { x: 90, y: 10, at: 100 }, [...keys])!.keys).not.toBe(c!.keys);
 	});
 
-		it('nothing under the pointer is no pick; the reached part goes first', () => {
+	it('nothing under the pointer is no pick; the reached part goes first', () => {
 		expect(nextPick(null, { x: 0, y: 0, at: 0 }, [])).toBeNull();
 		expect(frontFirst(['1', '4', '6'], '4')).toEqual(['4', '1', '6']);
 	});

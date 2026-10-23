@@ -500,7 +500,8 @@ function vesselCopies(
 		for (const p of design.parts) {
 			const l = before.get(p.index);
 			const fit = l && surfaceLinkOnto(poseOf(l), parts.get(p.part)?.shape, pose, node);
-			if (fit && (!best || Math.abs(fit.gap) < Math.abs(best.fit.gap))) best = { index: p.index, fit };
+			if (fit && (!best || Math.abs(fit.gap) < Math.abs(best.fit.gap)))
+				best = { index: p.index, fit };
 		}
 		if (!best) continue;
 		const touch = mat3Apply(pose.rotation, node.pos);

@@ -31,7 +31,10 @@ describe('stock part realism', () => {
 		for (const id of Object.keys(STOCK_ENGINE_REALISM)) {
 			const p = parts.get(id);
 			expect(p, id).toBeDefined();
-			expect((p!.modules ?? []).some(([m]) => m === 'stock.engine'), id).toBe(true);
+			expect(
+				(p!.modules ?? []).some(([m]) => m === 'stock.engine'),
+				id
+			).toBe(true);
 		}
 	});
 
@@ -61,7 +64,9 @@ describe('stock part realism', () => {
 	it('a tank outside its size class names the dry fraction and the band', () => {
 		const t = { ...asPart('stock.tank-3750'), mass: 4_500 };
 		const [issue] = issuesOf(t);
-		expect(issue).toContain('stock.tank-3750 (modern tank, 3.750 m): dry fraction 11.1 % is outside');
+		expect(issue).toContain(
+			'stock.tank-3750 (modern tank, 3.750 m): dry fraction 11.1 % is outside'
+		);
 	});
 
 	it('the rules are monotone: bigger tanks are leaner, engines follow their target', () => {

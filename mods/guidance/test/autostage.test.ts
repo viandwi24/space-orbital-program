@@ -11,7 +11,12 @@ const engine = (part: number, ignited: boolean, flameout: boolean): PilotEngine 
 	flameout
 });
 /** A pilot with these engines, next stage and crew; counts its `stage` calls. */
-function pilot(time: number, engines: PilotEngine[], next: PilotStage | null | undefined, crew: number[] = []) {
+function pilot(
+	time: number,
+	engines: PilotEngine[],
+	next: PilotStage | null | undefined,
+	crew: number[] = []
+) {
 	const calls = { stage: 0 };
 	const p = {
 		time,
@@ -64,6 +69,8 @@ describe('autostage (plan 360)', () => {
 	});
 
 	test('not within the gap after the last staging', () => {
-		expect(autoStage(pilot(10, [engine(1, false, true)], stage([1], [6])).p, { stagedAt: 9.5 })).toBe(false);
+		expect(
+			autoStage(pilot(10, [engine(1, false, true)], stage([1], [6])).p, { stagedAt: 9.5 })
+		).toBe(false);
 	});
 });

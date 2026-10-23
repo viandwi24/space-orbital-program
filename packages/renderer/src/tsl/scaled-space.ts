@@ -180,7 +180,11 @@ export class ScaledSpaceTSL {
 		).toVar();
 		const row = floor(face.div(3.0));
 		const col = face.sub(row.mul(3.0));
-		const local = clamp(vec2(sx, sy), -1.0, 1.0).mul(0.5).add(0.5).mul(this.uSize).add(SCALED_GUTTER);
+		const local = clamp(vec2(sx, sy), -1.0, 1.0)
+			.mul(0.5)
+			.add(0.5)
+			.mul(this.uSize)
+			.add(SCALED_GUTTER);
 		const at = vec2(col, row)
 			.mul(this.uTile)
 			.add(local)

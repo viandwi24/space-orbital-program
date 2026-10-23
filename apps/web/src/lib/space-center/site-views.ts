@@ -81,7 +81,11 @@ export function homeSiteDraws(
 	for (const live of snapshot.sites ?? []) {
 		const site = sites.find((x) => x.id === live.id);
 		if (!site || (homeBody !== undefined && site.body !== homeBody)) continue;
-		out.push({ place: sitePlace(site), views: siteViews(live, registry, snapshot.day), roads: live.roads ?? [] });
+		out.push({
+			place: sitePlace(site),
+			views: siteViews(live, registry, snapshot.day),
+			roads: live.roads ?? []
+		});
 	}
 	return out;
 }

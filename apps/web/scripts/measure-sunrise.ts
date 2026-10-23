@@ -27,13 +27,19 @@ await context.addInitScript(() => localStorage.setItem('orbital.vab.hideStart', 
 const page = await context.newPage();
 page.on('pageerror', (e) => console.log('pageerror', e.message));
 await page.goto('/vab');
-await page.waitForFunction(() => (window as any).__orbitalVab?.loadBooster, null, { timeout: 90_000 });
+await page.waitForFunction(() => (window as any).__orbitalVab?.loadBooster, null, {
+	timeout: 90_000
+});
 await page.evaluate(() => (window as any).__orbitalVab.loadBooster());
 await page.waitForTimeout(1500);
 await page.goto(`/flight?renderer=${backend}`);
-await page.waitForFunction(() => (window as any).__orbital?.snapshot?.()?.vessels?.length > 0, null, {
-	timeout: 240_000
-});
+await page.waitForFunction(
+	() => (window as any).__orbital?.snapshot?.()?.vessels?.length > 0,
+	null,
+	{
+		timeout: 240_000
+	}
+);
 await page.getByTestId('world-loading').waitFor({ state: 'detached', timeout: 240_000 });
 // the presets the governor can reach warm in the background; it waits for them, and so do the steps here
 const warmed = Date.now();
@@ -78,58 +84,73 @@ for (let i = 0; i < 4; i++) {
 	await page.waitForTimeout(300);
 }
 const steps = (process.env.STEP_TO ?? '').split(',').filter(Boolean);
-const result = await page.evaluate(async ([seconds, steps]) => {
-	const o = (window as any).__orbital;
-	const r = o.renderer();
-	let seen = r.compiles.pipelines.length;
-	const stalls: Array<{ ms: number; t: number; sun: number; level: string; added?: string[] }> = [];
-	let last = performance.now();
-	const t0 = last;
-	let n = 0;
-	let worst = 0;
-	let sunrises = 0;
-	let wasUp: boolean | null = null;
-	// info() reads the GPU name, a stall on WebGL: the sun is read every 30th frame on WebGPU only,
-	// and on a long frame (after it, so it does not add to it)
-	const webgpu = r.debug.counters().renderer === 'webgpu';
-	let sun = Number.NaN;
-	let stepped = 0;
-	while (performance.now() - t0 < seconds * 1000) {
-		if (stepped < steps.length && performance.now() - t0 > ((stepped + 1) * seconds * 1000) / (steps.length + 1)) {
-			r.setPreset(steps[stepped], { governed: true });
-			stepped++;
+const result = await page.evaluate(
+	async ([seconds, steps]) => {
+		const o = (window as any).__orbital;
+		const r = o.renderer();
+		let seen = r.compiles.pipelines.length;
+		const stalls: Array<{ ms: number; t: number; sun: number; level: string; added?: string[] }> =
+			[];
+		let last = performance.now();
+		const t0 = last;
+		let n = 0;
+		let worst = 0;
+		let sunrises = 0;
+		let wasUp: boolean | null = null;
+		// info() reads the GPU name, a stall on WebGL: the sun is read every 30th frame on WebGPU only,
+		// and on a long frame (after it, so it does not add to it)
+		const webgpu = r.debug.counters().renderer === 'webgpu';
+		let sun = Number.NaN;
+		let stepped = 0;
+		while (performance.now() - t0 < seconds * 1000) {
+			if (
+				stepped < steps.length &&
+				performance.now() - t0 > ((stepped + 1) * seconds * 1000) / (steps.length + 1)
+			) {
+				r.setPreset(steps[stepped], { governed: true });
+				stepped++;
+			}
+			await new Promise((res) => requestAnimationFrame(res));
+			const now = performance.now();
+			const d = now - last;
+			last = now;
+			n++;
+			if (webgpu && n % 30 === 0) {
+				sun = r.debug.info().sunElevationDeg as number;
+				const up = sun > -2;
+				if (wasUp === false && up) sunrises++;
+				wasUp = up;
+			}
+			const list = r.compiles.pipelines;
+			const added =
+				list.length > seen
+					? list
+							.slice(seen)
+							.map((p: any) => `${p.label}${p.ms != null ? ' ' + Math.round(p.ms) + 'ms' : ''}`)
+					: undefined;
+			seen = list.length;
+			worst = Math.max(worst, d);
+			if (d > 100 || added) {
+				if (!webgpu) sun = r.debug.info().sunElevationDeg as number;
+				const l = o.level?.();
+				stalls.push({
+					ms: Math.round(d),
+					t: Math.round(o.snapshot()?.t ?? 0),
+					sun: Math.round(sun),
+					level: l ? `${l.preset} ${Math.round(l.scale * 100)}%` : '?',
+					...(added ? { added } : {})
+				});
+			}
 		}
-		await new Promise((res) => requestAnimationFrame(res));
-		const now = performance.now();
-		const d = now - last;
-		last = now;
-		n++;
-		if (webgpu && n % 30 === 0) {
-			sun = r.debug.info().sunElevationDeg as number;
-			const up = sun > -2;
-			if (wasUp === false && up) sunrises++;
-			wasUp = up;
-		}
-		const list = r.compiles.pipelines;
-		const added =
-			list.length > seen
-				? list.slice(seen).map((p: any) => `${p.label}${p.ms != null ? ' ' + Math.round(p.ms) + 'ms' : ''}`)
-				: undefined;
-		seen = list.length;
-		worst = Math.max(worst, d);
-		if (d > 100 || added) {
-			if (!webgpu) sun = r.debug.info().sunElevationDeg as number;
-			const l = o.level?.();
-			stalls.push({
-				ms: Math.round(d),
-				t: Math.round(o.snapshot()?.t ?? 0),
-				sun: Math.round(sun),
-				level: l ? `${l.preset} ${Math.round(l.scale * 100)}%` : '?',
-				...(added ? { added } : {})
-			});
-		}
-	}
-	return { frames: n, worst: Math.round(worst), sunrises, over100: stalls.filter((s) => s.ms > 100).length, stalls };
-}, [seconds, steps] as const);
+		return {
+			frames: n,
+			worst: Math.round(worst),
+			sunrises,
+			over100: stalls.filter((s) => s.ms > 100).length,
+			stalls
+		};
+	},
+	[seconds, steps] as const
+);
 console.log(backend, start, JSON.stringify(result));
 await browser.close();

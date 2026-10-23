@@ -70,7 +70,9 @@ function nextStageOf(core: SimCore, id: EntityId): PilotStage | null {
 	const ignites: EntityId[] = [];
 	const here = (p: EntityId) => core.world.hasEntity(p) && partOf(core, p).vessel === id;
 	const controlled = (side: readonly EntityId[]) =>
-		side.some((p) => partOf(core, p).modules.some((m) => moduleDefOf(core, m.id).controlSource === true));
+		side.some((p) =>
+			partOf(core, p).modules.some((m) => moduleDefOf(core, m.id).controlSource === true)
+		);
 	/** Parts reachable from `start` without the edge `a`–`b`. */
 	const side = (start: EntityId, a: EntityId, b: EntityId): EntityId[] => {
 		const seen = new Set([start]);
@@ -101,7 +103,11 @@ function nextStageOf(core: SimCore, id: EntityId): PilotStage | null {
 			if (info.engine && !info.engine.ignited) ignites.push(partId);
 			const sep = info.separator;
 			// a separator that staging does not fire (plan 241) cuts nothing
-			if (!sep || sep.done || (moduleState(core, partId, m.id) as { staged?: boolean }).staged === false)
+			if (
+				!sep ||
+				sep.done ||
+				(moduleState(core, partId, m.id) as { staged?: boolean }).staged === false
+			)
 				continue;
 			for (const att of partOf(core, partId).attachments.filter((a) => a.node === sep.node)) {
 				const p = side(partId, partId, att.peer);

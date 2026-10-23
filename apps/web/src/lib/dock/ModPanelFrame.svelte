@@ -30,7 +30,8 @@
 
 	const theme = (): Record<string, string> => {
 		const css = getComputedStyle(document.documentElement);
-		const read = (name: string, fallback: string): string => css.getPropertyValue(name).trim() || fallback;
+		const read = (name: string, fallback: string): string =>
+			css.getPropertyValue(name).trim() || fallback;
 		return {
 			text: read('--text-primary', '#e8eef5'),
 			dim: read('--text-dim', '#9aa4b2'),

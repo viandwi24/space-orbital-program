@@ -1,6 +1,12 @@
 import { describe, expect, it } from 'bun:test';
 import { Color, DirectionalLight, FogExp2, Group, HemisphereLight, Scene, SpotLight } from 'three';
-import { ZEN_LIGHTS, applyLook, createStudio, lightLook, type LookTargets } from '../src/vab/studio.ts';
+import {
+	ZEN_LIGHTS,
+	applyLook,
+	createStudio,
+	lightLook,
+	type LookTargets
+} from '../src/vab/studio.ts';
 
 /** Every light in a scene with its kind, and every visible light. */
 const lights = (scene: Scene) => {

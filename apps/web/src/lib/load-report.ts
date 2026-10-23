@@ -40,7 +40,12 @@ export interface LoadReportData {
 	preset: string;
 	presetNow: string;
 	/** Plan 370: the cheap preset drawn first while `preset` compiled in the background, and when it was swapped. */
-	boot?: { preset: string | null; booting: boolean; swappedAfterMs: number | null; lowered: boolean } | null;
+	boot?: {
+		preset: string | null;
+		booting: boolean;
+		swappedAfterMs: number | null;
+		lowered: boolean;
+	} | null;
 	warmPresets: string[];
 	/** Each step's time, ms, in order; `totalMs` from the world's start to the first frame. */
 	steps: { step: LoadStepName; ms: number }[];
@@ -79,7 +84,10 @@ export function stepTimes(
 		return { step, ms: Math.max(0, Math.round(to - from)) };
 	});
 	const start = seen.length ? marks[seen[0]!]! : null;
-	return { steps, totalMs: start !== null && readyAt !== null ? Math.round(readyAt - start) : null };
+	return {
+		steps,
+		totalMs: start !== null && readyAt !== null ? Math.round(readyAt - start) : null
+	};
 }
 
 /** The key of the last load's module list: one per renderer and preset. */
@@ -146,14 +154,19 @@ export function formatLoadReport(r: LoadReportData): string {
 		}`,
 		`Pipelines: ${c.pipelines} (async ${c.async}, sync ${c.sync}${c.pending ? `, ${c.pending} still compiling` : ''}) · modules ${c.modules}, ${kb(c.moduleBytes)} of shader source · timed compiles add up to ${s1(c.timedMs)}`,
 		`By phase: ${c.phases
-			.map((p) => `${p.phase} ${p.pipelines} pipelines, ${s1(p.spanMs)} span, ${s1(p.timedMs)} summed`)
+			.map(
+				(p) => `${p.phase} ${p.pipelines} pipelines, ${s1(p.spanMs)} span, ${s1(p.timedMs)} summed`
+			)
 			.join(' · ')}`,
 		`Changed since the last load: ${
-			r.changedModules === null ? 'no earlier load to compare' : `${r.changedModules} of ${c.modules} modules`
+			r.changedModules === null
+				? 'no earlier load to compare'
+				: `${r.changedModules} of ${c.modules} modules`
 		}`,
 		'Slowest compiles:',
 		...c.slowest.map(
-			(p, i) => `  ${i + 1}. ${p.label || '(no label)'} ${s1(p.ms ?? 0)} · ${kb(p.bytes)} · ${p.phase}`
+			(p, i) =>
+				`  ${i + 1}. ${p.label || '(no label)'} ${s1(p.ms ?? 0)} · ${kb(p.bytes)} · ${p.phase}`
 		),
 		'Largest shaders:',
 		...c.largest.map((m, i) => `  ${i + 1}. ${m.stage} ${m.label || '(no label)'} ${kb(m.bytes)}`),

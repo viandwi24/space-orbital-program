@@ -45,7 +45,8 @@ describe('the night sky (plan 364, ADR 0306)', () => {
 	});
 
 	test('no star is narrower than the floor, brighter ones are wider', () => {
-		for (let m = -2; m <= 8; m += 0.25) expect(starSigmaPx(m)).toBeGreaterThanOrEqual(STAR_SIGMA_MIN_PX);
+		for (let m = -2; m <= 8; m += 0.25)
+			expect(starSigmaPx(m)).toBeGreaterThanOrEqual(STAR_SIGMA_MIN_PX);
 		expect(starSigmaPx(-1)).toBeGreaterThan(starSigmaPx(5));
 		expect(starFlux(0) / starFlux(5)).toBeCloseTo(100, 6);
 	});

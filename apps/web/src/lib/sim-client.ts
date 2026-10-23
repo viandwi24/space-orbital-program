@@ -209,7 +209,9 @@ export function createSimClient(worker: WorkerLike): SimClient {
 		resumeScript(vessel, port) {
 			savedScripts = savedScripts.filter((x) => x.vessel !== vessel);
 			if (!disposed)
-				worker.postMessage({ kind: 'script-start', source: '', vessel, port, resume: true }, [port]);
+				worker.postMessage({ kind: 'script-start', source: '', vessel, port, resume: true }, [
+					port
+				]);
 			else port.close();
 		},
 		stopScript(keep) {

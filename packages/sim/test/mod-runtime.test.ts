@@ -36,7 +36,9 @@ const mod: Plugin = definePlugin({
 	depends: ['stock'],
 	setup(ctx) {
 		ctx.stores.register(counter);
-		ctx.keybindings.register(defineKeybinding({ id: 'test.ping', label: 'Ping', defaults: ['KeyK'] }));
+		ctx.keybindings.register(
+			defineKeybinding({ id: 'test.ping', label: 'Ping', defaults: ['KeyK'] })
+		);
 		ctx.systems.register(
 			defineSystem({
 				id: 'test.watcher',
@@ -153,7 +155,10 @@ describe('world query and commands (plan 343)', () => {
 		expect(ctx.world.vessels().length).toBe(2);
 		expect(ctx.world.nearest(a)?.name).toBe('Beta');
 		expect(ctx.commands.setTarget(a, { kind: 'vessel', id: b })).toMatchObject({ ok: true });
-		expect(sim.snapshot().vessels.find((v) => v.id === a)?.target).toMatchObject({ kind: 'vessel', id: b });
+		expect(sim.snapshot().vessels.find((v) => v.id === a)?.target).toMatchObject({
+			kind: 'vessel',
+			id: b
+		});
 		// the query is rebuilt after a command
 		expect(ctx.world.vessel(a)?.target).toMatchObject({ id: b });
 
@@ -168,7 +173,9 @@ describe('world query and commands (plan 343)', () => {
 			ok: false,
 			reason: 'a mod may not send "crew-hire" (ADR 0292 point 3)'
 		});
-		expect(ctx.commands.send({ type: 'set-rule', rule: 'stock.economy', value: true })).toMatchObject({ ok: false });
+		expect(
+			ctx.commands.send({ type: 'set-rule', rule: 'stock.economy', value: true })
+		).toMatchObject({ ok: false });
 		expect(ctx.commands.focus(99_999 as EntityId)).toMatchObject({ ok: false });
 		sim.dispose();
 	}, 60_000);
@@ -214,8 +221,15 @@ describe('stores (plan 343)', () => {
 		expect(resumed.snapshot().stores?.['test.counter']).toMatchObject({ steps });
 		// a save edited into an invalid value falls back to the initial value
 		save.stores['test.counter'] = { steps: 'many' };
-		save.checksum = (await import('@orbital/core')).simSaveChecksum({ ...save, checksum: undefined });
-		const fallback = await createSim({ plugins: [Stock, mod, intruder], backendFactory: rapier(16), resume: save });
+		save.checksum = (await import('@orbital/core')).simSaveChecksum({
+			...save,
+			checksum: undefined
+		});
+		const fallback = await createSim({
+			plugins: [Stock, mod, intruder],
+			backendFactory: rapier(16),
+			resume: save
+		});
 		expect(fallback.snapshot().stores).toBeUndefined();
 		// another plugin reads it but cannot write it
 		run(resumed, 0.1);
@@ -259,7 +273,9 @@ describe('events and keys (plan 343)', () => {
 		const id = inOrbit(sim, 'Alpha');
 		const focus: unknown[] = [];
 		sim.events.on('mod:focus', (e) => focus.push(e));
-		expect(sim.dispatch({ type: 'mod-key', key: 'test.ping', vessel: id })).toMatchObject({ ok: true });
+		expect(sim.dispatch({ type: 'mod-key', key: 'test.ping', vessel: id })).toMatchObject({
+			ok: true
+		});
 		expect(seen.key).toBe('test.ping');
 		expect(focus).toEqual([{ plugin: 'test', vessel: id }]);
 		expect(sim.dispatch({ type: 'mod-key', key: 'test.nope' })).toMatchObject({ ok: false });
@@ -272,7 +288,9 @@ describe('events and keys (plan 343)', () => {
 		inOrbit(sim, 'Beta', 150_000);
 		inOrbit(sim, 'Gamma', 180_000);
 		run(sim, 0.1);
-		expect(sim.dispatch({ type: 'autopilot-engage', vessel: a, autopilot: 'test.census' })).toMatchObject({ ok: true });
+		expect(
+			sim.dispatch({ type: 'autopilot-engage', vessel: a, autopilot: 'test.census' })
+		).toMatchObject({ ok: true });
 		run(sim, 0.3);
 		expect(seen.census).toBe(2);
 		expect(seen.store).toBe(true);

@@ -29,8 +29,7 @@ export const FLIGHT_LESSONS: readonly Lesson[] = [
 		id: 'ascent-guidance',
 		level: 'flight',
 		title: 'Ascent with the Guidance Computer',
-		summary:
-			`Pathfinder on the pad again: add the Guidance Computer to the dock, set an ${LOW} orbit on its Ascent tab and let it fly the gravity turn, the staging and the circularisation.`,
+		summary: `Pathfinder on the pad again: add the Guidance Computer to the dock, set an ${LOW} orbit on its Ascent tab and let it fly the gravity turn, the staging and the circularisation.`,
 		design: pathfinder,
 		setup: [],
 		blocked: { actions: {}, places: closedPlaces() },

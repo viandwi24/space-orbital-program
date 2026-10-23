@@ -37,9 +37,7 @@ describe('where each viewer item comes from (plan 375)', () => {
 	});
 
 	it('filters by mod: what it registers and what it patches', () => {
-		const shown = [...origins.entries()]
-			.filter(([, o]) => touchedBy(o, 'tuner'))
-			.map(([id]) => id);
+		const shown = [...origins.entries()].filter(([, o]) => touchedBy(o, 'tuner')).map(([id]) => id);
 		expect(shown.sort()).toEqual(['stock.tank-small', 'tuner.box']);
 		expect(touchedBy(origins.get('stock.engine-lv'), 'tuner')).toBe(false);
 		expect(touchedBy(origins.get('stock.engine-lv'), null)).toBe(true);

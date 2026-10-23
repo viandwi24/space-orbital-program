@@ -134,7 +134,13 @@ const orbiterGear = (id: string, title: string, massKg: number, steer: number, r
 		stagingIcon: 'legs'
 	});
 
-export const PartOrbiterGear = orbiterGear('stock.orbiter-gear', 'OrbitX UA-G "Stilt"', 400, 0, 0.45);
+export const PartOrbiterGear = orbiterGear(
+	'stock.orbiter-gear',
+	'OrbitX UA-G "Stilt"',
+	400,
+	0,
+	0.45
+);
 export const PartOrbiterNoseGear = orbiterGear(
 	'stock.orbiter-gear-nose',
 	'OrbitX UA-GN "Stilt" nose gear',

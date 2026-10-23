@@ -70,7 +70,10 @@ const SPENT_DELAY = 0.5;
  *   every burning one.
  * It never drops a part with crew aboard, and stops when no stage is left.
  */
-export function autoStage(pilot: VesselPilot, memory: { stagedAt: number; spentAt?: number }): boolean {
+export function autoStage(
+	pilot: VesselPilot,
+	memory: { stagedAt: number; spentAt?: number }
+): boolean {
 	if (pilot.time - memory.stagedAt < STAGE_GAP) return false;
 	const next = pilot.nextStage;
 	if (next === null) return false; // nothing left to stage
@@ -85,7 +88,8 @@ export function autoStage(pilot: VesselPilot, memory: { stagedAt: number; spentA
 		go =
 			!next ||
 			next.ignites.length > 0 ||
-			(spent.some((e) => drops.has(e.part)) && pilot.engines.some((e) => !e.flameout && !drops.has(e.part)));
+			(spent.some((e) => drops.has(e.part)) &&
+				pilot.engines.some((e) => !e.flameout && !drops.has(e.part)));
 	} else {
 		go =
 			next !== undefined &&
@@ -188,7 +192,8 @@ export function stepNode(pilot: VesselPilot, memory: NodeMemory): AutopilotStep 
 export const ExecuteNode = defineAutopilot<NodeMemory>({
 	id: 'guidance.node',
 	title: 'Execute node',
-	description: 'Points along the next maneuver node, starts half the burn before it and burns it off.',
+	description:
+		'Points along the next maneuver node, starts half the burn before it and burns it off.',
 	start(pilot) {
 		if (!pilot.vessel.nodes?.length) throw new Error('there is no maneuver node');
 		return newNodeMemory();
@@ -221,7 +226,8 @@ export const Circularize = defineAutopilot<CircularizeMemory>({
 	title: 'Circularize',
 	description: 'Plans a node at the apoapsis (or periapsis) that rounds the orbit, then burns it.',
 	start(pilot, params) {
-		const at = (params as { at?: string } | undefined)?.at === 'periapsis' ? 'periapsis' : 'apoapsis';
+		const at =
+			(params as { at?: string } | undefined)?.at === 'periapsis' ? 'periapsis' : 'apoapsis';
 		const f = facts(pilot);
 		if (typeof f === 'string') throw new Error(f);
 		if (!(orbitOf(pilot.vessel.position, pilot.vessel.velocity, f.mu).e < 1))
@@ -273,7 +279,10 @@ const INSERT_DONE = 5_000;
  */
 function localAxes(pilot: VesselPilot, inclination = 0, correction = 0): { up: Vec3; east: Vec3 } {
 	const up = unit(pilot.vessel.position);
-	const spin = pilot.body && length(pilot.body.angularVelocity) > 0 ? pilot.body.angularVelocity : { x: 0, y: 1, z: 0 };
+	const spin =
+		pilot.body && length(pilot.body.angularVelocity) > 0
+			? pilot.body.angularVelocity
+			: { x: 0, y: 1, z: 0 };
 	let east = unit(cross(unit(spin), up));
 	if (length(east) < 0.5) east = unit(cross({ x: 1, y: 0, z: 0 }, up)); // at a pole
 	if (!inclination) return { up, east };
@@ -298,14 +307,16 @@ function maxGThrottle(pilot: VesselPilot, mass: number): number {
 export const Ascent = defineAutopilot<AscentMemory>({
 	id: 'guidance.ascent',
 	title: 'Ascent to orbit',
-	description: 'Launches, flies a gravity turn east, stages when the engines run dry and burns on into orbit.',
+	description:
+		'Launches, flies a gravity turn east, stages when the engines run dry and burns on into orbit.',
 	start(pilot, params) {
 		const f = facts(pilot);
 		if (typeof f === 'string') throw new Error(f);
 		const p = (params ?? {}) as { altitude?: number; shape?: number; inclination?: number };
 		const air = pilot.body?.atmosphereHeight ?? 0;
 		const altitude = p.altitude ?? Math.max(80_000, air + 10_000);
-		if (!(altitude > air)) throw new Error(`the orbit must be above the atmosphere (${air / 1000} km)`);
+		if (!(altitude > air))
+			throw new Error(`the orbit must be above the atmosphere (${air / 1000} km)`);
 		return {
 			...newNodeMemory(),
 			stage: 'launch',
@@ -353,11 +364,13 @@ export const Ascent = defineAutopilot<AscentMemory>({
 			const { up, east } = localAxes(pilot, want, correction);
 			const done = clamp((altitude - 500) / (memory.turnEnd - 500), 0, 1);
 			const pitch = (Math.PI / 2) * (1 - Math.pow(done, memory.shape));
-			pilot.pointAt(unit({
-				x: up.x * Math.sin(pitch) + east.x * Math.cos(pitch),
-				y: up.y * Math.sin(pitch) + east.y * Math.cos(pitch),
-				z: up.z * Math.sin(pitch) + east.z * Math.cos(pitch)
-			}));
+			pilot.pointAt(
+				unit({
+					x: up.x * Math.sin(pitch) + east.x * Math.cos(pitch),
+					y: up.y * Math.sin(pitch) + east.y * Math.cos(pitch),
+					z: up.z * Math.sin(pitch) + east.z * Math.cos(pitch)
+				})
+			);
 			// never above 3 g, as real launchers throttle: a light stack on realistic engines lofts otherwise
 			pilot.throttle(maxGThrottle(pilot, f.mass));
 			// the apoapsis is there: cut and coast up to it (a lofted climb). The turn done below the target
@@ -386,19 +399,29 @@ export const Ascent = defineAutopilot<AscentMemory>({
 			const climb = clamp((2 * (memory.altitude - altitude - vz * tgo)) / (tgo * tgo), -4.9, 4.9);
 			const sine = accel > 0 ? clamp((gEff + climb) / accel, -0.5, 0.95) : 0;
 			const pitch = Math.asin(sine);
-			pilot.pointAt(unit({
-				x: up.x * Math.sin(pitch) + east.x * Math.cos(pitch),
-				y: up.y * Math.sin(pitch) + east.y * Math.cos(pitch),
-				z: up.z * Math.sin(pitch) + east.z * Math.cos(pitch)
-			}));
+			pilot.pointAt(
+				unit({
+					x: up.x * Math.sin(pitch) + east.x * Math.cos(pitch),
+					y: up.y * Math.sin(pitch) + east.y * Math.cos(pitch),
+					z: up.z * Math.sin(pitch) + east.z * Math.cos(pitch)
+				})
+			);
 			const pe = o.periapsis - f.radius;
 			// in orbit near the target, or above the air with the apoapsis well past it (an overshoot)
-			if (pe > air && (pe >= memory.altitude - INSERT_DONE || apo > memory.altitude + 4 * INSERT_DONE)) {
+			if (
+				pe > air &&
+				(pe >= memory.altitude - INSERT_DONE || apo > memory.altitude + 4 * INSERT_DONE)
+			) {
 				pilot.throttle(0);
 				return { phase: 'done', status: 'In orbit', readouts, done: true };
 			}
 			// ease off as the periapsis nears the target
-			pilot.throttle(Math.min(maxGThrottle(pilot, f.mass), clamp((memory.altitude - INSERT_DONE - pe) / 20_000, 0.05, 1)));
+			pilot.throttle(
+				Math.min(
+					maxGThrottle(pilot, f.mass),
+					clamp((memory.altitude - INSERT_DONE - pe) / 20_000, 0.05, 1)
+				)
+			);
 			// no engine burning and nothing left to stage, some seconds after the last stage lit
 			if (thrust <= 0 && pilot.nextStage === null && pilot.time - memory.stagedAt > 5)
 				return { phase: 'insert', abort: 'out of propellant before orbit' };
@@ -413,7 +436,10 @@ export const Ascent = defineAutopilot<AscentMemory>({
 			const up = unit(r);
 			const vz = dot(pilot.vessel.velocity, up);
 			const rr = length(r);
-			const gEff = Math.max(f.mu / (rr * rr) - (dot(pilot.vessel.velocity, pilot.vessel.velocity) - vz * vz) / rr, 0.1);
+			const gEff = Math.max(
+				f.mu / (rr * rr) - (dot(pilot.vessel.velocity, pilot.vessel.velocity) - vz * vz) / rr,
+				0.1
+			);
 			const ra = o.apoapsis;
 			const dvCirc = Math.sqrt(f.mu / ra) - length(cross(r, pilot.vessel.velocity)) / ra;
 			const accel = Math.min(pilot.maxThrust / f.mass, ASCENT_MAX_G * 9.80665);
@@ -434,7 +460,11 @@ export const Ascent = defineAutopilot<AscentMemory>({
 			memory.replans = (memory.replans ?? 0) + 1;
 			memory.planned = false;
 			Object.assign(memory, { ...newNodeMemory(), stagedAt: memory.stagedAt });
-			return { phase: 'circularize', status: 'Circularizing again: the periapsis is in the air', readouts };
+			return {
+				phase: 'circularize',
+				status: 'Circularizing again: the periapsis is in the air',
+				readouts
+			};
 		}
 		return { ...step, readouts: { ...readouts, ...step.readouts } };
 	}
@@ -509,7 +539,10 @@ export function brakeLaw(
 	cosTilt: number
 ): { wanted: number; push: number } {
 	const h = Math.max(0, height);
-	const wanted = Math.max(touchdown, Math.min(Math.sqrt(2 * 0.5 * (accel - g) * h), touchdown + 0.4 * h));
+	const wanted = Math.max(
+		touchdown,
+		Math.min(Math.sqrt(2 * 0.5 * (accel - g) * h), touchdown + 0.4 * h)
+	);
 	return { wanted, push: clamp(g / Math.max(0.3, cosTilt) + 3 * (speed - wanted), 0, accel) };
 }
 
@@ -576,7 +609,8 @@ export const TOUCHDOWN_SPEED = 1.2;
 export const Land = defineAutopilot<LandMemory>({
 	id: 'guidance.land',
 	title: 'Land',
-	description: 'Lowers the periapsis into the ground, then a suicide burn and a slow vertical touchdown.',
+	description:
+		'Lowers the periapsis into the ground, then a suicide burn and a slow vertical touchdown.',
 	rate: 20,
 	start(pilot, params) {
 		const f = facts(pilot);
@@ -622,7 +656,8 @@ export const Land = defineAutopilot<LandMemory>({
 			Speed: Math.round(speed * 10) / 10,
 			'Vertical speed': Math.round(climb * 10) / 10
 		};
-		if (accel <= g) return { phase: memory.stage, abort: 'the engines cannot hold the vessel up here' };
+		if (accel <= g)
+			return { phase: memory.stage, abort: 'the engines cannot hold the vessel up here' };
 		const rotation = pilot.body?.rotation;
 		const target = memory.target && rotation ? memory.target : undefined;
 		// the target's horizontal offset now, and its distance over the ground
@@ -635,7 +670,8 @@ export const Land = defineAutopilot<LandMemory>({
 			readouts['Target distance'] = Math.round(distance);
 			// lean toward it at the speed that covers the distance in the time left, never near the ground
 			const left = Math.max(height, 0) / Math.max(-climb, 5);
-			if (height > LEAN_FLOOR) lean = scale(unit(across), Math.min(LEAN_SPEED, distance / Math.max(left, 1)));
+			if (height > LEAN_FLOOR)
+				lean = scale(unit(across), Math.min(LEAN_SPEED, distance / Math.max(left, 1)));
 		}
 		if (memory.stage === 'deorbit') {
 			const o = orbitOf(r, pilot.vessel.velocity, f.mu);
@@ -645,7 +681,16 @@ export const Land = defineAutopilot<LandMemory>({
 				// the conic falls past the target by the braking distance across the ground
 				const brakeAcross = BRAKE_SHARE * Math.sqrt(Math.max(0, accel * accel - g * g));
 				const beyond = (speed * speed) / (2 * Math.max(brakeAcross, 0.1));
-				const aim = deorbitAim(r, pilot.vessel.velocity, f.mu, f.radius, rotation!, spin, target, beyond);
+				const aim = deorbitAim(
+					r,
+					pilot.vessel.velocity,
+					f.mu,
+					f.radius,
+					rotation!,
+					spin,
+					target,
+					beyond
+				);
 				pilot.pointAt(back);
 				pilot.throttle(0);
 				if (aim) {
@@ -655,7 +700,8 @@ export const Land = defineAutopilot<LandMemory>({
 					if (aim.lead <= 0 && aim.lead > -LATE) memory.burning = true;
 					else {
 						// the lead closes at the orbit's rate less the ground's: warp most of the wait
-						const rate = Math.sqrt(f.mu / length(r) ** 3) - dot(spin, unit(cross(r, pilot.vessel.velocity)));
+						const rate =
+							Math.sqrt(f.mu / length(r) ** 3) - dot(spin, unit(cross(r, pilot.vessel.velocity)));
 						const wait = (aim.lead > 0 ? aim.lead : aim.lead + 2 * Math.PI) / Math.max(rate, 1e-6);
 						if (!memory.warped && wait > 120) {
 							memory.warped = true;
@@ -667,7 +713,8 @@ export const Land = defineAutopilot<LandMemory>({
 							readouts
 						};
 					}
-				} else return { phase: 'deorbit', status: 'Waiting for a path down to the target', readouts };
+				} else
+					return { phase: 'deorbit', status: 'Waiting for a path down to the target', readouts };
 			}
 			const rp = target ? f.radius - DEORBIT_DEPTH * Math.max(0, length(r) - f.radius) : f.radius;
 			if (o.periapsis < rp) {
@@ -695,7 +742,8 @@ export const Land = defineAutopilot<LandMemory>({
 			pilot.throttle(0);
 			// with a target the brake starts once stopping across the ground takes the distance left, or
 			// when the fall itself needs it (its vertical speed); without one, on the total speed
-			const late = target !== undefined && length(horizontal) >= Math.sqrt(2 * brakeH * goalDistance);
+			const late =
+				target !== undefined && length(horizontal) >= Math.sqrt(2 * brakeH * goalDistance);
 			const fall = target ? (climb * climb) / (2 * Math.max(0.85 * accel - g, 0.1)) : stop;
 			if (height > fall * 1.1 + 30 && !late) {
 				return { phase: 'coast', status: `Burn in ${Math.round(height - stop)} m`, readouts };
@@ -711,16 +759,24 @@ export const Land = defineAutopilot<LandMemory>({
 			const descent = DESCENT_SHARE * (accel - g);
 			// come down no faster than the crossing takes: reach the ground as the target is reached
 			const crossing = length(horizontal) / Math.max(brakeH, 0.1);
-			const down = Math.max(td, Math.min(Math.sqrt(2 * descent * h), td + 0.4 * h, h / Math.max(crossing, 1)));
+			const down = Math.max(
+				td,
+				Math.min(Math.sqrt(2 * descent * h), td + 0.4 * h, h / Math.max(crossing, 1))
+			);
 			// the distance left over the time the descent profile takes, never faster than stops on it
 			const timeLeft = Math.max(1, Math.sqrt((2 * h) / Math.max(descent, 0.1)));
 			const across =
-				h > TOUCHDOWN_AREA ? Math.min(Math.sqrt(2 * brakeH * goalDistance), goalDistance / timeLeft) : 0;
+				h > TOUCHDOWN_AREA
+					? Math.min(Math.sqrt(2 * brakeH * goalDistance), goalDistance / timeLeft)
+					: 0;
 			// the vertical first (gravity and the descent profile), then what thrust is left goes across
 			const vertical = clamp(g + VELOCITY_GAIN * (-down - climb), 0, accel);
 			const sideways = sub(scale(unit(toGoal), across), horizontal);
 			const room = Math.sqrt(Math.max(0, accel * accel - vertical * vertical));
-			const command = add(scale(up, vertical), scale(unit(sideways), Math.min(room, VELOCITY_GAIN * length(sideways))));
+			const command = add(
+				scale(up, vertical),
+				scale(unit(sideways), Math.min(room, VELOCITY_GAIN * length(sideways)))
+			);
 			const dir = unit(command);
 			pilot.pointAt(dir);
 			const off = angleBetween(noseOf(pilot), dir);

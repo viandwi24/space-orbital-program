@@ -146,7 +146,7 @@ describe('the system art gallery', () => {
 });
 
 describe('the variant home (system audit)', () => {
-	it("each declared variant carries its home, which Create World puts the Space Center on", () => {
+	it('each declared variant carries its home, which Create World puts the Space Center on', () => {
 		const sol = systems.find((s) => s.id === 'sol')!;
 		expect(sol.variants.map((v) => v.home)).toEqual(sol.variants.map(() => 'sol.earth'));
 	});

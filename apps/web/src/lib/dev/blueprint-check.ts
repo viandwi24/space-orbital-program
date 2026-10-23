@@ -69,7 +69,8 @@ export function sizeMismatches(
 		if (!parent || !def || !parentDef) continue;
 		const size = nodeSize(def, link.node);
 		const parentSize = nodeSize(parentDef, link.parentNode);
-		if (size === undefined || parentSize === undefined || nodeSizesMatch(size, parentSize)) continue;
+		if (size === undefined || parentSize === undefined || nodeSizesMatch(size, parentSize))
+			continue;
 		out.push({
 			part: p.index,
 			partId: p.part,
@@ -118,7 +119,9 @@ export function checkBlueprint(card: BlueprintCard, input: CheckInput): Blueprin
 		};
 	}
 	const defOf = (id: string): PartDefinition | undefined => input.lookups.parts.get(id);
-	const missing = [...new Set(design.parts.map((p) => p.part as string).filter((id) => !defOf(id)))];
+	const missing = [
+		...new Set(design.parts.map((p) => p.part as string).filter((id) => !defOf(id)))
+	];
 	if (missing.length > 0) {
 		return { ...base, missing, sizes: [], checks: [], stats: null, verdict: 'errors' };
 	}

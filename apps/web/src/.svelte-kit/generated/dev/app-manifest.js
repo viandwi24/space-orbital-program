@@ -2,10 +2,6 @@
 export const immutable = [];
 export const prerendered = [];
 
-export const assets = [
-	
-];
+export const assets = [];
 
-export const routes = [
-	
-];
+export const routes = [];

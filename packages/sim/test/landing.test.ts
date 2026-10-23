@@ -20,7 +20,10 @@ async function land() {
 	const id = placed.vessel!;
 	const start = sim.snapshot().vessels[0]!;
 	sim.dispatch({ type: 'stage', vessel: id }); // light the engine
-	const landing = createLanding(sim, id, { ...defaultLanding, rootToFoot: ORBIT_LANDER_ROOT_TO_FOOT });
+	const landing = createLanding(sim, id, {
+		...defaultLanding,
+		rootToFoot: ORBIT_LANDER_ROOT_TO_FOOT
+	});
 	let peak = 0; // hottest part skin over the whole descent, K (plan 014)
 	for (let i = 0; sim.time < 3_000 && landing.phase !== 'done'; i++) {
 		sim.step(0.02);

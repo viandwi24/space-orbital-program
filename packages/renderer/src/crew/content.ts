@@ -57,12 +57,13 @@ export const FALLBACK_OUTFIT: CrewOutfitDefinition = Object.freeze<CrewOutfitDef
 	harness: false
 });
 
-export const FALLBACK_EXPRESSION: CrewExpressionDefinition = Object.freeze<CrewExpressionDefinition>({
-	id: 'crew.neutral',
-	title: 'Neutral',
-	eyes: { left: 'open', right: 'open' },
-	mouth: 'smile'
-});
+export const FALLBACK_EXPRESSION: CrewExpressionDefinition =
+	Object.freeze<CrewExpressionDefinition>({
+		id: 'crew.neutral',
+		title: 'Neutral',
+		eyes: { left: 'open', right: 'open' },
+		mouth: 'smile'
+	});
 
 const EMPTY: CrewContent = {
 	outfits: [],
@@ -196,8 +197,6 @@ export function poseFor(
 
 /** A mod's portrait image for a member (by crew id) or an outfit; the crew match wins. */
 export function portraitImageOf(crewId: string | undefined, outfit: string): string | undefined {
-	const byCrew = crewId
-		? lastMatching(current.portraits, (p) => p.def.crew === crewId)
-		: undefined;
+	const byCrew = crewId ? lastMatching(current.portraits, (p) => p.def.crew === crewId) : undefined;
 	return (byCrew ?? lastMatching(current.portraits, (p) => p.def.outfit === outfit))?.url;
 }

@@ -59,12 +59,26 @@ const orbiting = vessel(1, {
 			modules: { 'stock.command': { on: true } },
 			temperature: 290,
 			resources: [
-				{ resource: 'stock.electric-charge', amount: 40, capacity: 50, rate: 0, timeToEmpty: null, locked: false }
+				{
+					resource: 'stock.electric-charge',
+					amount: 40,
+					capacity: 50,
+					rate: 0,
+					timeToEmpty: null,
+					locked: false
+				}
 			]
 		}
 	],
 	resources: [
-		{ resource: 'stock.electric-charge', amount: 40, capacity: 50, rate: 0, timeToEmpty: null, locked: false }
+		{
+			resource: 'stock.electric-charge',
+			amount: 40,
+			capacity: 50,
+			rate: 0,
+			timeToEmpty: null,
+			locked: false
+		}
 	],
 	crew: [{ member: 'c1', part: entityId(11), abilities: {} }]
 });
@@ -75,7 +89,12 @@ const near = vessel(2, {
 	orbit: { a: R + 100_000, e: 0.001, i: 0, raan: 0, argp: 0, m0: 0, epoch: 0 }
 });
 const landed = vessel(3, { type: 'lander', surface: true, position: { x: R, y: 0, z: 0 } });
-const pad = vessel(4, { type: 'ship', position: { x: 0, y: R, z: 0 }, recovery: { value: 1, factor: 1, distance: 0, credit: 1 }, launchedAt: undefined });
+const pad = vessel(4, {
+	type: 'ship',
+	position: { x: 0, y: R, z: 0 },
+	recovery: { value: 1, factor: 1, distance: 0, credit: 1 },
+	launchedAt: undefined
+});
 const debris = vessel(5, { type: 'debris', position: { x: R + 30_000, y: 0, z: 0 } });
 const atMoon = vessel(6, {
 	soi: bodyId('test.moon'),
@@ -102,11 +121,38 @@ const snapshot: Snapshot = {
 	stores: { 'ex.count': 3 },
 	day: 2,
 	crew: [
-		{ id: 'c1', name: 'Val', profession: 'pilot', traits: [], xp: 1, level: 0, status: 'assigned', vessel: entityId(1), places: [] },
-		{ id: 'c2', name: 'Bob', profession: 'scientist', traits: [], xp: 0, level: 0, status: 'available', places: [] }
+		{
+			id: 'c1',
+			name: 'Val',
+			profession: 'pilot',
+			traits: [],
+			xp: 1,
+			level: 0,
+			status: 'assigned',
+			vessel: entityId(1),
+			places: []
+		},
+		{
+			id: 'c2',
+			name: 'Bob',
+			profession: 'scientist',
+			traits: [],
+			xp: 0,
+			level: 0,
+			status: 'available',
+			places: []
+		}
 	],
 	economy: { enabled: true, funds: 1000, science: 5, reputation: 2 },
-	sites: [{ id: 'stock.ksc', buildings: [{ id: 'b', kind: 'stock.pad', cell: { i: 0, j: 0 }, rotation: 0, level: 1, state: 'active' }], roads: [] }]
+	sites: [
+		{
+			id: 'stock.ksc',
+			buildings: [
+				{ id: 'b', kind: 'stock.pad', cell: { i: 0, j: 0 }, rotation: 0, level: 1, state: 'active' }
+			],
+			roads: []
+		}
+	]
 };
 
 describe('World Query (plan 343, ADR 0292)', () => {
@@ -127,14 +173,23 @@ describe('World Query (plan 343, ADR 0292)', () => {
 
 	test('filters by type, situation, SOI, distance and debris', () => {
 		expect(w.vessels({ type: 'station' }).map((v) => v.name)).toEqual(['Station']);
-		expect(w.vessels({ situation: ['landed', 'prelaunch'] }).map((v) => Number(v.id))).toEqual([3, 4]);
+		expect(w.vessels({ situation: ['landed', 'prelaunch'] }).map((v) => Number(v.id))).toEqual([
+			3, 4
+		]);
 		expect(w.vessels({ soi: 'test.moon' }).map((v) => Number(v.id))).toEqual([6]);
-		expect(w.vessels({ near: { of: entityId(1), within: 1_000 }, except: entityId(1) }).map((v) => Number(v.id))).toEqual([2]);
+		expect(
+			w
+				.vessels({ near: { of: entityId(1), within: 1_000 }, except: entityId(1) })
+				.map((v) => Number(v.id))
+		).toEqual([2]);
 		expect(w.vessels({ noDebris: true }).some((v) => v.type === 'debris')).toBe(false);
 		expect(w.nearest(entityId(1))?.id).toBe(entityId(2));
 		expect(w.distance(entityId(1), entityId(2))).toBeCloseTo(500, 6);
 		// across SOIs: the moon's offset counts
-		expect(w.distance(entityId(1), entityId(6))).toBeCloseTo(12_000_000 + 230_000 - (R + 100_000), 0);
+		expect(w.distance(entityId(1), entityId(6))).toBeCloseTo(
+			12_000_000 + 230_000 - (R + 100_000),
+			0
+		);
 		expect(w.findVessel('Station')?.id).toBe(entityId(2));
 	});
 
@@ -189,7 +244,10 @@ describe('stores (ADR 0292 point 4)', () => {
 describe('events catalogue (ADR 0292 point 5)', () => {
 	test('every EventMap key has an entry, once', () => {
 		const source = readFileSync(new URL('../src/events.ts', import.meta.url), 'utf8');
-		const body = source.slice(source.indexOf('export interface EventMap'), source.indexOf('export type EventHandler'));
+		const body = source.slice(
+			source.indexOf('export interface EventMap'),
+			source.indexOf('export type EventHandler')
+		);
 		const keys = [...body.matchAll(/^\t'([a-z-]+:[a-z-]+)':/gm)].map((m) => m[1]);
 		const names = SIM_EVENTS.map((e) => e.name);
 		expect(keys.length).toBeGreaterThan(50);

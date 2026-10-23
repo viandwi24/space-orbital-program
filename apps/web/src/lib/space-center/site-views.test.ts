@@ -89,7 +89,14 @@ describe('siteViews', () => {
 });
 
 describe('homeSiteDraws (plan 384, ADR 0321)', () => {
-	const pad = { id: 'pad', kind: 'stock.launchpad-s', cell: { i: 0, j: 0 }, rotation: 0 as const, level: 0, state: 'active' as const };
+	const pad = {
+		id: 'pad',
+		kind: 'stock.launchpad-s',
+		cell: { i: 0, j: 0 },
+		rotation: 0 as const,
+		level: 0,
+		state: 'active' as const
+	};
 	const sites = [
 		{ id: 'space-center', body: 'stock.home', latitude: 0.1, longitude: 0.2 },
 		{ id: 'branch-1', body: 'stock.home', latitude: 0.5, longitude: -1.2 },

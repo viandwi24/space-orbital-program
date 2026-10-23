@@ -114,7 +114,10 @@ const pattern = process.env.CALLERS ? new RegExp(process.env.CALLERS) : null;
 const chains = (n: any, stack: string[]): void => {
 	const here = [...stack, name(n.callFrame)];
 	if (pattern && pattern.test(n.callFrame.functionName) && n.selfSize > 0) {
-		const outside = here.filter((f) => !pattern.test(f)).slice(-4).join(' < ');
+		const outside = here
+			.filter((f) => !pattern.test(f))
+			.slice(-4)
+			.join(' < ');
 		callers.set(outside, (callers.get(outside) ?? 0) + n.selfSize);
 	}
 	for (const c of n.children ?? []) chains(c, here);

@@ -186,9 +186,19 @@ export const ACTIONS = [
 	// Plan 216 (ADR 0206): keys the KSP profile has, for the plans that wire them
 	flight('Parts', 'gear', 'Landing gear up or down', 'KeyG'),
 	flight('Parts', 'lights', 'Lights on or off', 'KeyU'),
-	flight('Fly', 'abort', 'Abort: stop programs, cut the engines and fire the Abort group', 'Backspace'),
+	flight(
+		'Fly',
+		'abort',
+		'Abort: stop programs, cut the engines and fire the Abort group',
+		'Backspace'
+	),
 	// plan 320 (ADR 0276 point 5): the player's kill switch for autopilots and scripts
-	flight('Fly', 'programStop', 'Stop the programs (autopilot, script) flying this vessel', 'Delete'),
+	flight(
+		'Fly',
+		'programStop',
+		'Stop the programs (autopilot, script) flying this vessel',
+		'Delete'
+	),
 	flight('Fly', 'precision', 'Fine control', 'CapsLock'),
 	flight('RCS', 'rcsToggle', 'RCS on or off', 'KeyR'),
 	flight('RCS', 'translateForward', 'Translate forward', 'KeyH'),
@@ -812,7 +822,11 @@ export const BINDING_GROUPS: readonly BindingGroup[] = [
 			{ actions: [], fixed: ['Ctrl+Z', 'Ctrl+Y'], text: 'Undo, redo' },
 			{ actions: [], fixed: ['Ctrl+S'], text: 'Save to the library' },
 			{ actions: [], fixed: ['Esc'], text: 'Let go of the part, clear the selection' },
-			{ actions: [], fixed: ['Right click'], text: 'Let go of the carried part (right drag: orbit)' },
+			{
+				actions: [],
+				fixed: ['Right click'],
+				text: 'Let go of the carried part (right drag: orbit)'
+			},
 			{ actions: ['hangarHelp'], text: 'This list' }
 		]
 	},

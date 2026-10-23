@@ -30,7 +30,15 @@ const entry = (id: string, outcome: LoadLogEntry['outcome'] = 'ready'): LoadLogE
 	error: null,
 	report: {
 		when: '2026-10-22T10:00:00.000Z',
-		env: { userAgent: 'UA', platform: 'Windows', cores: 8, memoryGB: 8, angle: 'ANGLE D3D11', build: 'b.js', origin: 'o' },
+		env: {
+			userAgent: 'UA',
+			platform: 'Windows',
+			cores: 8,
+			memoryGB: 8,
+			angle: 'ANGLE D3D11',
+			build: 'b.js',
+			origin: 'o'
+		},
 		backend: 'webgpu',
 		gpu: 'gpu',
 		preset: 'high',
@@ -50,7 +58,14 @@ describe('load log (plan 370)', () => {
 	it('keeps pipelines slowest first, failures marked', () => {
 		const list = pipelineList([pipe('a', 5), pipe('b', 50), pipe('c', null, true)]);
 		expect(list.map((p) => p.label)).toEqual(['b', 'a', 'c']);
-		expect(list[2]).toEqual({ label: 'c', mode: 'async', bytes: 2048, ms: null, phase: 'programs', failed: true });
+		expect(list[2]).toEqual({
+			label: 'c',
+			mode: 'async',
+			bytes: 2048,
+			ms: null,
+			phase: 'programs',
+			failed: true
+		});
 	});
 
 	it('replaces an entry by id in place and keeps the last 20', () => {
@@ -70,7 +85,9 @@ describe('load log (plan 370)', () => {
 	it('formats an entry and a list line', () => {
 		const e = { ...entry('x', 'left'), lowered: true };
 		const text = formatLoadLog(e);
-		expect(text).toContain('outcome: left while loading at step programs · continued with lower quality');
+		expect(text).toContain(
+			'outcome: left while loading at step programs · continued with lower quality'
+		);
 		expect(text).toContain('9000 ms · async · 2 KB · programs · planet');
 		const line = summaryLine(e);
 		expect(line.total).toBe('left while loading');
@@ -94,7 +111,9 @@ describe('load log (plan 370)', () => {
 		expect(bootPresetFor({ ...base, preset: 'low' })).toBeUndefined();
 		expect(bootPresetFor({ ...base, backend: 'webgl' })).toBeUndefined();
 		expect(bootPresetFor({ ...base, platform: 'macOS', userAgent: 'Macintosh' })).toBeUndefined();
-		expect(bootPresetFor({ ...base, platform: 'macOS', userAgent: 'Macintosh', override: 'low' })).toBe('low');
+		expect(
+			bootPresetFor({ ...base, platform: 'macOS', userAgent: 'Macintosh', override: 'low' })
+		).toBe('low');
 		expect(bootPresetFor({ ...base, override: 'off' })).toBeUndefined();
 	});
 });

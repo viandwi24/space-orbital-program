@@ -36,7 +36,11 @@ const stack = (name: string, parts: string[], stages: number[][]): VesselDesign 
 
 /** One engine, one tank: for node and circularize burns. */
 const tug = (): VesselDesign =>
-	stack('Tug', ['stock.command-pod', 'stock.reaction-wheel', 'stock.tank-small', 'stock.engine-lv'], [[3]]);
+	stack(
+		'Tug',
+		['stock.command-pod', 'stock.reaction-wheel', 'stock.tank-small', 'stock.engine-lv'],
+		[[3]]
+	);
 /** The reference two-stage rocket (pod, wheel, tank, engine, decoupler, tank, engine). */
 const twoStage = (): VesselDesign =>
 	stack(
@@ -121,8 +125,13 @@ describe('Guidance Computer (plan 321)', () => {
 		);
 		expect(sim.dispatch({ type: 'stage', vessel: id }).ok).toBe(true);
 		const at = sim.time + 90;
-		expect(sim.dispatch({ type: 'node-set', vessel: id, time: at, prograde: 300, normal: 0, radial: 0 }).ok).toBe(true);
-		expect(sim.dispatch({ type: 'autopilot-engage', vessel: id, autopilot: 'guidance.node' }).ok).toBe(true);
+		expect(
+			sim.dispatch({ type: 'node-set', vessel: id, time: at, prograde: 300, normal: 0, radial: 0 })
+				.ok
+		).toBe(true);
+		expect(
+			sim.dispatch({ type: 'autopilot-engage', vessel: id, autopilot: 'guidance.node' }).ok
+		).toBe(true);
 		let worst = 0;
 		const ended = fly(sim, id, 300, () => {
 			const node = vesselOf(sim, id)?.nodes?.[0];
@@ -170,7 +179,12 @@ describe('Guidance Computer (plan 321)', () => {
 		);
 		sim.dispatch({ type: 'stage', vessel: id });
 		expect(
-			sim.dispatch({ type: 'autopilot-engage', vessel: id, autopilot: 'guidance.circularize', params: { at: 'apoapsis' } }).ok
+			sim.dispatch({
+				type: 'autopilot-engage',
+				vessel: id,
+				autopilot: 'guidance.circularize',
+				params: { at: 'apoapsis' }
+			}).ok
 		).toBe(true);
 		const ended = fly(sim, id, 900);
 		expect(ended).toMatch(/^done/);
@@ -184,7 +198,12 @@ describe('Guidance Computer (plan 321)', () => {
 		const mu = muOf(sim, 'stock.home');
 		const id = loaded(sim.dispatch({ type: 'load-vessel', design: twoStage() }));
 		expect(
-			sim.dispatch({ type: 'autopilot-engage', vessel: id, autopilot: 'guidance.ascent', params: { altitude: 80_000 } }).ok
+			sim.dispatch({
+				type: 'autopilot-engage',
+				vessel: id,
+				autopilot: 'guidance.ascent',
+				params: { altitude: 80_000 }
+			}).ok
 		).toBe(true);
 		let lastT = -100;
 		const ended = fly(sim, id, 1_500, (t) => {
@@ -230,14 +249,28 @@ describe('Guidance Computer (plan 321)', () => {
 			sim.dispatch({
 				type: 'load-vessel',
 				design: lander(),
-				placement: { kind: 'state', ...start, orientation: { x: 0, y: 0, z: -0.7071068, w: 0.7071068 } }
+				placement: {
+					kind: 'state',
+					...start,
+					orientation: { x: 0, y: 0, z: -0.7071068, w: 0.7071068 }
+				}
 			})
 		);
 		sim.dispatch({ type: 'stage', vessel: id });
 		const leg = vesselOf(sim, id)!.parts.find((p) => p.definition === 'stock.landing-legs')!;
-		expect(sim.dispatch({ type: 'action', vessel: id, part: leg.id, module: 'stock.landing-leg', action: 'deploy' }).ok).toBe(true);
+		expect(
+			sim.dispatch({
+				type: 'action',
+				vessel: id,
+				part: leg.id,
+				module: 'stock.landing-leg',
+				action: 'deploy'
+			}).ok
+		).toBe(true);
 		const parts = vesselOf(sim, id)!.parts.length;
-		expect(sim.dispatch({ type: 'autopilot-engage', vessel: id, autopilot: 'guidance.land' }).ok).toBe(true);
+		expect(
+			sim.dispatch({ type: 'autopilot-engage', vessel: id, autopilot: 'guidance.land' }).ok
+		).toBe(true);
 		let contact = Infinity;
 		const ended = fly(sim, id, 900, () => {
 			const s = vesselOf(sim, id);
@@ -265,39 +298,72 @@ describe('Guidance Computer (plan 321)', () => {
 				sim.dispatch({
 					type: 'load-vessel',
 					design: lander(),
-					placement: { kind: 'state', ...start, orientation: { x: 0, y: 0, z: -0.7071068, w: 0.7071068 } }
+					placement: {
+						kind: 'state',
+						...start,
+						orientation: { x: 0, y: 0, z: -0.7071068, w: 0.7071068 }
+					}
 				})
 			);
 			if (fill < 1) {
 				const tank = vesselOf(sim, id)!.parts.find((p) => p.definition === 'stock.tank-medium')!;
-				expect(sim.dispatch({ type: 'debug-set-resource', vessel: id, part: tank.id, fraction: fill }).ok).toBe(true);
+				expect(
+					sim.dispatch({ type: 'debug-set-resource', vessel: id, part: tank.id, fraction: fill }).ok
+				).toBe(true);
 			}
 			sim.dispatch({ type: 'stage', vessel: id });
 			const leg = vesselOf(sim, id)!.parts.find((p) => p.definition === 'stock.landing-legs')!;
-			sim.dispatch({ type: 'action', vessel: id, part: leg.id, module: 'stock.landing-leg', action: 'deploy' });
+			sim.dispatch({
+				type: 'action',
+				vessel: id,
+				part: leg.id,
+				module: 'stock.landing-leg',
+				action: 'deploy'
+			});
 			// the target: 150° along the orbit (prograde about +Y), in the moon's own axes now
 			const moon = () => sim.snapshot().bodies.find((b) => b.id === 'stock.cinder')!;
-			const conj = (q: { x: number; y: number; z: number; w: number }) => ({ x: -q.x, y: -q.y, z: -q.z, w: q.w });
+			const conj = (q: { x: number; y: number; z: number; w: number }) => ({
+				x: -q.x,
+				y: -q.y,
+				z: -q.z,
+				w: q.w
+			});
 			const ahead = (150 * Math.PI) / 180;
-			const fixed = rotate(conj(moon().rotation), { x: Math.cos(ahead), y: 0, z: -Math.sin(ahead) });
+			const fixed = rotate(conj(moon().rotation), {
+				x: Math.cos(ahead),
+				y: 0,
+				z: -Math.sin(ahead)
+			});
 			const target = { body: 'stock.cinder', ...latLonOf(fixed) };
 			expect(
-				sim.dispatch({ type: 'autopilot-engage', vessel: id, autopilot: 'guidance.land', params: { target } }).ok
+				sim.dispatch({
+					type: 'autopilot-engage',
+					vessel: id,
+					autopilot: 'guidance.land',
+					params: { target }
+				}).ok
 			).toBe(true);
 			let lastLog = -1e9;
 			const ended = fly(sim, id, 4_000, (t) => {
 				const ap = vesselOf(sim, id)?.autopilot;
-				if (process.env.LAND_TRACE && ap && t - lastLog > (ap.phase === 'brake' || ap.phase === 'touchdown' ? 2 : 10)) {
+				if (
+					process.env.LAND_TRACE &&
+					ap &&
+					t - lastLog > (ap.phase === 'brake' || ap.phase === 'touchdown' ? 2 : 10)
+				) {
 					lastLog = t;
 					console.log(Math.round(t), ap.phase, ap.status, JSON.stringify(ap.readouts));
 				}
 			});
-			if (!ended.startsWith('done')) console.log(`targeted landing, tank ${fill * 100} %: ${ended}`);
+			if (!ended.startsWith('done'))
+				console.log(`targeted landing, tank ${fill * 100} %: ${ended}`);
 			expect(ended).toMatch(/^done/);
 			const s = vesselOf(sim, id)!;
 			const here = rotate(conj(moon().rotation), s.position);
 			const miss = surfaceDistance(here, pointAt(target.lat, target.lon, MOON_RADIUS), MOON_RADIUS);
-			console.log(`targeted landing, tank ${fill * 100} %: ${ended}, ${Math.round(miss)} m from the target`);
+			console.log(
+				`targeted landing, tank ${fill * 100} %: ${ended}, ${Math.round(miss)} m from the target`
+			);
 			expect(miss).toBeLessThan(1_000);
 			sim.dispose();
 		}, 300_000);
@@ -313,7 +379,14 @@ describe('Guidance Computer (plan 321)', () => {
 			})
 		);
 		sim.dispatch({ type: 'stage', vessel: id });
-		sim.dispatch({ type: 'node-set', vessel: id, time: sim.time + 40, prograde: 600, normal: 0, radial: 0 });
+		sim.dispatch({
+			type: 'node-set',
+			vessel: id,
+			time: sim.time + 40,
+			prograde: 600,
+			normal: 0,
+			radial: 0
+		});
 		sim.dispatch({ type: 'autopilot-engage', vessel: id, autopilot: 'guidance.node' });
 		let burning = false;
 		while (!burning && sim.time < 200) {

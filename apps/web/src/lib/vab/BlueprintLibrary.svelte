@@ -111,8 +111,7 @@
 									class:off={!b.fits}
 									data-tip={b.fits
 										? 'Designed for this world’s system'
-										: 'Not designed for this world’s system: it may fall short'}
-									>{b.systems}</span
+										: 'Not designed for this world’s system: it may fall short'}>{b.systems}</span
 								>
 							</span>
 							<p>{b.summary}</p>

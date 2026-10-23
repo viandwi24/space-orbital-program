@@ -56,10 +56,16 @@ export function thrustAtPressure(curve: EngineInfo['thrust'], pressure: number):
  * one parse per pair is enough (zod's parse was about a fifth of a frame's allocations). A config built
  * fresh each time (Hangar settings merged in) simply misses the cache.
  */
-const configCache = new WeakMap<ModuleDefinition, WeakMap<object, ReturnType<typeof parseModuleConfig>>>();
+const configCache = new WeakMap<
+	ModuleDefinition,
+	WeakMap<object, ReturnType<typeof parseModuleConfig>>
+>();
 const noConfigCache = new WeakMap<ModuleDefinition, ReturnType<typeof parseModuleConfig>>();
 
-function parsedConfig(module: ModuleDefinition, rawConfig: unknown): ReturnType<typeof parseModuleConfig> {
+function parsedConfig(
+	module: ModuleDefinition,
+	rawConfig: unknown
+): ReturnType<typeof parseModuleConfig> {
 	if (rawConfig === undefined || rawConfig === null) {
 		let hit = noConfigCache.get(module);
 		if (!hit) {

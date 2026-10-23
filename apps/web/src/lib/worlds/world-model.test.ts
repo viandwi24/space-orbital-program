@@ -162,7 +162,10 @@ describe('catch-up offer', () => {
 
 describe('missing mods (system audit)', () => {
 	it('a retired built-in mod (Trajectories, now in Guidance) is not reported missing', () => {
-		const loaded = new Map([['stock', '1.0.0'], ['guidance', '1.0.0']]);
+		const loaded = new Map([
+			['stock', '1.0.0'],
+			['guidance', '1.0.0']
+		]);
 		expect(usesMissingMod([{ id: 'stock' }, { id: 'trajectories' }], loaded)).toBe(false);
 		expect(usesMissingMod([{ id: 'stock' }, { id: 'someone.rovers' }], loaded)).toBe(true);
 	});

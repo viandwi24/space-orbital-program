@@ -58,8 +58,8 @@
 			</div>
 		{:else}
 			<p class="dim">
-				No crew to choose: hire in the <a href={resolve('/(world)/astronauts')}>Astronaut Complex</a>.
-				At launch the first free astronaut takes the pod.
+				No crew to choose: hire in the <a href={resolve('/(world)/astronauts')}>Astronaut Complex</a
+				>. At launch the first free astronaut takes the pod.
 			</p>
 		{/if}
 	</details>

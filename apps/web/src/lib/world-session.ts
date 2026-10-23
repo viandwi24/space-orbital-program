@@ -108,7 +108,10 @@ export function createWorldSession(
 			snapshot = s;
 		});
 		changed();
-		next.ready.then(() => resumeSaved(next), () => {});
+		next.ready.then(
+			() => resumeSaved(next),
+			() => {}
+		);
 		return next;
 	}
 

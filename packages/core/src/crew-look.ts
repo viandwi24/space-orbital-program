@@ -309,7 +309,9 @@ export function crewPoseAt(
 	const last = keys[keys.length - 1]!;
 	const duration = animation.duration ?? last.t;
 	const loop = animation.loop !== false && duration > 0;
-	const time = loop ? (((t + ctx.seed * 0.37) % duration) + duration) % duration : Math.min(t, last.t);
+	const time = loop
+		? (((t + ctx.seed * 0.37) % duration) + duration) % duration
+		: Math.min(t, last.t);
 	let a = keys[0]!;
 	let b = keys[1]!;
 	let span = b.t - a.t;

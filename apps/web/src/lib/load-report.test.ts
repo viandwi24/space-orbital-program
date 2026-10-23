@@ -1,12 +1,22 @@
 import { describe, expect, it } from 'vitest';
 import { summarize } from '@orbital/renderer/compile-report';
-import { changedSince, formatLoadReport, moduleKey, remember, stepTimes, type LoadReportData } from './load-report';
+import {
+	changedSince,
+	formatLoadReport,
+	moduleKey,
+	remember,
+	stepTimes,
+	type LoadReportData
+} from './load-report';
 
 const mod = (hash: string, bytes = 100) => ({ label: 'planet', stage: 'fragment', bytes, hash });
 
 describe('load report (plan 370)', () => {
 	it('times each step until the next one, and the total until ready', () => {
-		const t = stepTimes({ sim: 0, device: 1000, programs: 1500, views: 41_500, frame: 42_000 }, 42_100);
+		const t = stepTimes(
+			{ sim: 0, device: 1000, programs: 1500, views: 41_500, frame: 42_000 },
+			42_100
+		);
 		expect(t.steps).toEqual([
 			{ step: 'sim', ms: 1000 },
 			{ step: 'device', ms: 500 },
@@ -15,7 +25,10 @@ describe('load report (plan 370)', () => {
 			{ step: 'frame', ms: 100 }
 		]);
 		expect(t.totalMs).toBe(42_100);
-		expect(stepTimes({ device: 10 }, null)).toEqual({ steps: [{ step: 'device', ms: 0 }], totalMs: null });
+		expect(stepTimes({ device: 10 }, null)).toEqual({
+			steps: [{ step: 'device', ms: 0 }],
+			totalMs: null
+		});
 	});
 
 	it('counts the modules a previous load did not have', () => {
@@ -36,9 +49,20 @@ describe('load report (plan 370)', () => {
 	});
 
 	it('formats a report a player can paste', () => {
-		const compile = summarize([mod('a', 300_000)], [
-			{ label: 'renderPipeline_planet-pass-tsl_1', mode: 'async', bytes: 300_000, ms: 12_300, phase: 'programs', at: 0, pending: false }
-		]);
+		const compile = summarize(
+			[mod('a', 300_000)],
+			[
+				{
+					label: 'renderPipeline_planet-pass-tsl_1',
+					mode: 'async',
+					bytes: 300_000,
+					ms: 12_300,
+					phase: 'programs',
+					at: 0,
+					pending: false
+				}
+			]
+		);
 		const data: LoadReportData = {
 			when: '2026-10-22T10:00:00.000Z',
 			env: {

@@ -339,11 +339,7 @@ const shell = (m: ShaderMaterial): Twin => {
 		const flick = sin(uTime.mul(41.0).add(wN.x.mul(7.0)).add(wN.y.mul(5.0)))
 			.mul(0.12)
 			.add(0.88);
-		const depth = clamp(
-			uTip.sub(vAxial).div(max(uLength, 1e-3)),
-			0.0,
-			1.0
-		);
+		const depth = clamp(uTip.sub(vAxial).div(max(uLength, 1e-3)), 0.0, 1.0);
 		const tail = smoothstep(0.3, 0.8, depth).oneMinus();
 		const hot = mix(uTint, mix(uTint, vec3(1.0), 0.3), smoothstep(0.55, 1.0, uIntensity));
 		const a = uIntensity.mul(windward).mul(rim.mul(0.5).add(0.1)).mul(flick).mul(tail);

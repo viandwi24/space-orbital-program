@@ -32,7 +32,13 @@ import type { Catalog } from './messages';
 import { modelProviders } from './mods/asset-models';
 import type { SimClient } from './sim-client';
 import { primePlanetMaps, storePlanetMaps } from './planet-map-cache';
-import { bootPresetFor, pipelineList, readLoadLogs, writeLoadLog, type LoadOutcome } from './load-log';
+import {
+	bootPresetFor,
+	pipelineList,
+	readLoadLogs,
+	writeLoadLog,
+	type LoadOutcome
+} from './load-log';
 import { activeWorldId } from './worlds/worlds';
 import {
 	changedSince,
@@ -440,8 +446,7 @@ class WorldRenderer {
 		if (this.deviceTimer) clearTimeout(this.deviceTimer);
 		this.deviceTimer = setTimeout(() => {
 			this.deviceTimer = null;
-			if (generation !== this.generation || (this.step !== 'sim' && this.step !== 'device'))
-				return;
+			if (generation !== this.generation || (this.step !== 'sim' && this.step !== 'device')) return;
 			// a WebGL renderer that exists is starting, only slowly (software GL blocks the page while
 			// it bakes); a timer that fired late means the page was busy, so it waits again
 			if (this.renderer && this.backend === 'webgl') return;

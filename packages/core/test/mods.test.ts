@@ -237,11 +237,14 @@ describe('rejection codes for the loader log (plan 375)', () => {
 		const out = await run([
 			bundle({ id: 'old', api: '^9.0' }, source({ id: 'old', api: '^9.0' })),
 			bundle({ id: 'needy', dependencies: { nowhere: '^1.0.0' } }, source({ id: 'needy' })),
+			bundle({ id: 'boom' }, source({ id: 'boom', setup: "throw new Error('kaboom in setup');" })),
 			bundle(
-				{ id: 'boom' },
-				source({ id: 'boom', setup: "throw new Error('kaboom in setup');" })
-			),
-			bundle({ id: 'clash' }, source({ id: 'clash', setup: "ctx.parts.register({ id: 'base.rock', title: 'Again', mass: 1 });" }))
+				{ id: 'clash' },
+				source({
+					id: 'clash',
+					setup: "ctx.parts.register({ id: 'base.rock', title: 'Again', mass: 1 });"
+				})
+			)
 		]);
 		const byId = new Map(out.rejected.map((r) => [r.id, r]));
 		expect(byId.get('old')?.code).toBe('api');

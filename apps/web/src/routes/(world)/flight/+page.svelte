@@ -41,11 +41,7 @@
 		type PanelInput
 	} from '@orbital/core';
 	import MissionsPanel from '../../../lib/missions/MissionsPanel.svelte';
-	import {
-		missionWorldOf,
-		trackerView,
-		type MissionWorld
-	} from '../../../lib/missions/tracker';
+	import { missionWorldOf, trackerView, type MissionWorld } from '../../../lib/missions/tracker';
 	import Dock from '../../../lib/dock/Dock.svelte';
 	import ModPanel from '../../../lib/dock/ModPanel.svelte';
 	import PanelLibrary from '../../../lib/dock/PanelLibrary.svelte';

@@ -14,12 +14,7 @@ import {
 	type LinkBadge,
 	type ScreenNetwork
 } from './comms/network-model';
-import {
-	placeBodyLabels,
-	projectBodies,
-	siteLabelsShown,
-	type BodyLabel
-} from './map/body-labels';
+import { placeBodyLabels, projectBodies, siteLabelsShown, type BodyLabel } from './map/body-labels';
 import {
 	bodyPole,
 	calendarOf,

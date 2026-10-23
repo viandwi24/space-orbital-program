@@ -92,18 +92,32 @@ describe('the main line in the world it is read in (system audit D3)', () => {
 		})) as unknown as Objectives;
 
 	it('a Sol world names the Earth, the Moon and its air; the line ends after the Moon', () => {
-		const sol = loadPlugins([Stock, Sol], { system: { id: 'sol', variant: 'rescaled' } }).registries;
+		const sol = loadPlugins([Stock, Sol], {
+			system: { id: 'sol', variant: 'rescaled' }
+		}).registries;
 		const world = missionWorldOf(sol.bodies.list(), 'sol.earth')!;
 		expect(world.moon).toBe('sol.moon');
 		const space = trackerView(missions, done(['stock.first-launch']), label, world);
 		expect(space.offered[0]!.briefing).toBe(
 			`Climb above the atmosphere: ${Math.round(world.air / 1000)} km over Earth.`
 		);
-		const flyby = trackerView(missions, done(['stock.first-launch', 'stock.space', 'stock.orbit']), label, world);
+		const flyby = trackerView(
+			missions,
+			done(['stock.first-launch', 'stock.space', 'stock.orbit']),
+			label,
+			world
+		);
 		expect(flyby.offered[0]!.briefing).toContain("Moon's sphere of influence");
 		const after = trackerView(
 			missions,
-			done(['stock.first-launch', 'stock.space', 'stock.orbit', 'stock.moon-flyby', 'stock.moon-landing', 'stock.moon-return']),
+			done([
+				'stock.first-launch',
+				'stock.space',
+				'stock.orbit',
+				'stock.moon-flyby',
+				'stock.moon-landing',
+				'stock.moon-return'
+			]),
 			label,
 			world
 		);
@@ -116,7 +130,14 @@ describe('the main line in the world it is read in (system audit D3)', () => {
 		expect(space.offered[0]!.briefing).toBe('Climb above the atmosphere: 70 km over Home.');
 		const after = trackerView(
 			missions,
-			done(['stock.first-launch', 'stock.space', 'stock.orbit', 'stock.moon-flyby', 'stock.moon-landing', 'stock.moon-return']),
+			done([
+				'stock.first-launch',
+				'stock.space',
+				'stock.orbit',
+				'stock.moon-flyby',
+				'stock.moon-landing',
+				'stock.moon-return'
+			]),
 			label,
 			world
 		);

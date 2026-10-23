@@ -90,7 +90,12 @@ export function stepOverrides(core: SimCore): void {
 }
 
 /** End the vessel's script, if any, with `reason`; forgets overrides when no program is left. */
-export function detachScript(core: SimCore, vessel: EntityId, v: VesselState, reason: string): boolean {
+export function detachScript(
+	core: SimCore,
+	vessel: EntityId,
+	v: VesselState,
+	reason: string
+): boolean {
 	const script = v.script;
 	if (!script) return false;
 	delete v.script;
@@ -100,7 +105,12 @@ export function detachScript(core: SimCore, vessel: EntityId, v: VesselState, re
 }
 
 /** Disengage the vessel's autopilot (ADR 0271) for `program-stop`: `autopilot:ended`, outcome `disengaged`. */
-export function stopAutopilot(core: SimCore, vessel: EntityId, v: VesselState, reason: string): void {
+export function stopAutopilot(
+	core: SimCore,
+	vessel: EntityId,
+	v: VesselState,
+	reason: string
+): void {
 	if (v.autopilot) endAutopilot(core, vessel, 'disengaged', reason);
 }
 
@@ -114,7 +124,13 @@ export function savedScripts(core: SimCore): Array<{
 	const out = [];
 	for (const id of core.world.query([VESSEL])) {
 		const s = core.world.get(id, VESSEL)!.script;
-		if (s) out.push({ vessel: id, name: s.name, source: s.source, memory: JSON.parse(JSON.stringify(s.memory)) });
+		if (s)
+			out.push({
+				vessel: id,
+				name: s.name,
+				source: s.source,
+				memory: JSON.parse(JSON.stringify(s.memory))
+			});
 	}
 	return out;
 }

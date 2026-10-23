@@ -90,7 +90,8 @@ export const ENGINE_KINDS: Record<EngineKind, EngineKindRule> = {
 		ispSeaLevel: { min: 0, max: 300 },
 		twr: { min: 35, max: 75, target: 58 },
 		costFactor: 1.2,
-		references: 'J-2 421/200 s, 1 033 kN, 1 788 kg (TWR 59); RL10A-4-2 451 s (59); RL10B-2 465 s (37)'
+		references:
+			'J-2 421/200 s, 1 033 kN, 1 788 kg (TWR 59); RL10A-4-2 451 s (59); RL10B-2 465 s (37)'
 	},
 	'hypergolic-early': {
 		label: 'early storable (nitric acid / UDMH)',
@@ -244,7 +245,8 @@ export function engineCost(kind: EngineKind, thrust: number): number {
  * heavier structure does not move its price. The rate keeps stock's 1.25 m tanks at their old prices.
  */
 export const TANK_COST_PER_KG = 375 / 4_450;
-export const tankCost = (propellantKg: number): number => Math.round(propellantKg * TANK_COST_PER_KG);
+export const tankCost = (propellantKg: number): number =>
+	Math.round(propellantKg * TANK_COST_PER_KG);
 
 /** Propellant of a 0.9 : 1.1 fuel/oxidizer load of `fuel` units, kg (5 kg per unit each). */
 export const lfoxKg = (fuel: number): number => (fuel + Math.round((fuel * 11) / 9)) * 5;
@@ -412,7 +414,10 @@ export function realismIssues(
 					);
 			} else {
 				const twr = engine.thrust / (part.mass * G0);
-				const band = r.bells && r.bells > 1 ? { min: rule.twr.min / CLUSTER_STRUCTURE, max: rule.twr.max } : rule.twr;
+				const band =
+					r.bells && r.bells > 1
+						? { min: rule.twr.min / CLUSTER_STRUCTURE, max: rule.twr.max }
+						: rule.twr;
 				if (!inBand(twr, band))
 					out.push(
 						`${part.id} (${r.kind}, like ${r.counterpart}): thrust-to-weight ${twr.toFixed(1)} is outside ${band.min.toFixed(0)}–${band.max} (${rule.references})`

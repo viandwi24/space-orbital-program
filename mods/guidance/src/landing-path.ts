@@ -27,12 +27,20 @@ import {
 	type SystemContext,
 	type WorldVessel
 } from '@orbital/sdk';
-import { latLonOf, pointAt, predict, surfaceDistance, type Prediction, type Vec3 } from './predict.ts';
+import {
+	latLonOf,
+	pointAt,
+	predict,
+	surfaceDistance,
+	type Prediction,
+	type Vec3
+} from './predict.ts';
 
 export const PATH = defineOverlay({
 	id: 'guidance.path',
 	title: 'Guidance: predicted landing path',
-	description: 'The predicted path through the air to the ground, the impact point and the landing target.',
+	description:
+		'The predicted path through the air to the ground, the impact point and the landing target.',
 	// on; the rules below and the Landing tab's toggle decide when there is something to draw
 	defaultOn: true
 });
@@ -118,12 +126,16 @@ export function visibility(
 ): Visibility {
 	const mode = pathModeOf(settings);
 	if (mode === 'off' || !p?.impact) return HIDDEN;
-	if (v.situation === 'prelaunch' || v.situation === 'landed' || v.situation === 'splashed') return HIDDEN;
+	if (v.situation === 'prelaunch' || v.situation === 'landed' || v.situation === 'splashed')
+		return HIDDEN;
 	if (mode === 'always') return { flight: 1, map: true };
 	if (v.situation !== 'flying' && v.situation !== 'sub-orbital') return HIDDEN;
 	if (v.autopilot !== LAND && v.autopilot?.startsWith('guidance.')) return HIDDEN; // another program's flight
 	const height = v.radarAltitude ?? v.altitude ?? 0;
-	return { flight: Math.min(1, Math.max(0, (height - FADE_FROM) / (FADE_TO - FADE_FROM))), map: true };
+	return {
+		flight: Math.min(1, Math.max(0, (height - FADE_FROM) / (FADE_TO - FADE_FROM))),
+		map: true
+	};
 }
 
 // ---------------------------------------------------------------------------------------------
@@ -134,7 +146,10 @@ const RATE = 5;
 const MAX_VESSELS = 2;
 
 /** What one vessel's prediction needs from the world, or null (unknown body, no mass). */
-export function predictionFor(ctx: Pick<SystemContext, 'world'>, v: WorldVessel): Prediction | null {
+export function predictionFor(
+	ctx: Pick<SystemContext, 'world'>,
+	v: WorldVessel
+): Prediction | null {
 	const body = ctx.world.body(v.soi);
 	if (!body || body.radius === 0 || !v.mass) return null;
 	return predict({
@@ -225,8 +240,11 @@ export function arcPieces(
 }
 
 export const clock = (s: number): string =>
-	s < 60 ? `${Math.round(s)} s` : `${Math.floor(s / 60)}:${String(Math.round(s % 60)).padStart(2, '0')}`;
-export const kmText = (m: number): string => (m < 1000 ? `${Math.round(m)} m` : `${(m / 1000).toFixed(1)} km`);
+	s < 60
+		? `${Math.round(s)} s`
+		: `${Math.floor(s / 60)}:${String(Math.round(s % 60)).padStart(2, '0')}`;
+export const kmText = (m: number): string =>
+	m < 1000 ? `${Math.round(m)} m` : `${(m / 1000).toFixed(1)} km`;
 
 /** One vessel's shapes for the views it shows in, and its numbers for the Landing tab. */
 function shapesOf(
@@ -247,7 +265,11 @@ function shapesOf(
 	let ground: Vec3 | null = null;
 	if (target && target.body === v.soi) {
 		// drawn at the impact's radius, so it sits on the ground near it
-		ground = pointAt(target.lat, target.lon, Math.hypot(impact.position.x, impact.position.y, impact.position.z));
+		ground = pointAt(
+			target.lat,
+			target.lon,
+			Math.hypot(impact.position.x, impact.position.y, impact.position.z)
+		);
 		meta[`error:${v.id}`] = Math.round(surfaceDistance(ground, impact.position, body.radius));
 	}
 	/** The shapes for one view at an opacity. */
@@ -261,7 +283,14 @@ function shapesOf(
 			width: 2
 		}));
 		out.push(
-			{ ...common, kind: 'marker', position: impact.position, style: 'cross', color: COLORS.impact, size: 24 },
+			{
+				...common,
+				kind: 'marker',
+				position: impact.position,
+				style: 'cross',
+				color: COLORS.impact,
+				size: 24
+			},
 			{
 				...common,
 				kind: 'label',
@@ -273,7 +302,14 @@ function shapesOf(
 		if (ground) {
 			const error = meta[`error:${v.id}`] as number;
 			out.push(
-				{ ...common, kind: 'marker', position: ground, style: 'target', color: COLORS.target, size: 26 },
+				{
+					...common,
+					kind: 'marker',
+					position: ground,
+					style: 'target',
+					color: COLORS.target,
+					size: 26
+				},
 				{
 					...common,
 					kind: 'polyline',
@@ -282,14 +318,23 @@ function shapesOf(
 					width: 1.5,
 					dash: { on: 60, off: 40 }
 				},
-				{ ...common, kind: 'label', position: ground, color: COLORS.target, text: `Target · ${kmText(error)} off` }
+				{
+					...common,
+					kind: 'label',
+					position: ground,
+					color: COLORS.target,
+					text: `Target · ${kmText(error)} off`
+				}
 			);
 		}
 		return out;
 	};
 	// one set for both views when they look the same, else one per view
 	if (seen.map && seen.flight >= 1) return drawn(['flight', 'map'], 1);
-	return [...(seen.flight > 0 ? drawn(['flight'], seen.flight) : []), ...(seen.map ? drawn(['map'], 1) : [])];
+	return [
+		...(seen.flight > 0 ? drawn(['flight'], seen.flight) : []),
+		...(seen.map ? drawn(['map'], 1) : [])
+	];
 }
 
 /** Sim time of the last prediction, per running sim (its event bus). Not saved: overlays are not. */
@@ -347,7 +392,10 @@ export const Predictor = defineSystem({
 				return;
 			}
 			ctx.store(LandingTarget).set({ body: v.soi, ...latLonOf(p.impact.position) });
-			ctx.notify('Landing target set at the predicted impact', { tone: 'success', vessel: e.vessel });
+			ctx.notify('Landing target set at the predicted impact', {
+				tone: 'success',
+				vessel: e.vessel
+			});
 			redraw();
 		}
 	}
@@ -370,7 +418,11 @@ export const landingTargetOf = (i: PanelInput): LandingTargetValue | null => {
 	const s = LandingTarget.schema.safeParse(i.world?.store(LandingTarget.id));
 	return s.success ? s.data : null;
 };
-export const pathKey = (i: PanelInput, id: string, data?: Record<string, number | string | boolean>): Command => ({
+export const pathKey = (
+	i: PanelInput,
+	id: string,
+	data?: Record<string, number | string | boolean>
+): Command => ({
 	type: 'mod-key',
 	key: id,
 	...(i.vessel ? { vessel: i.vessel.id as EntityId } : {}),

@@ -476,7 +476,8 @@ export function flowRows(
 export const kindsFor = (
 	kinds: readonly BuildingDefinition[],
 	home: boolean
-): BuildingDefinition[] => kinds.filter((k) => !k.placement || (k.placement !== 'off-world') === home);
+): BuildingDefinition[] =>
+	kinds.filter((k) => !k.placement || (k.placement !== 'off-world') === home);
 
 /**
  * The first valid cell for `kind` near a site's centre (a base has no 3D view yet, ADR 0125 point 7):

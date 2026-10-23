@@ -88,7 +88,12 @@ export function financeView(input: FinanceInput): FinanceView | null {
 		const amount = chargeOn(strategyUpkeepCharge(s), PERIOD, rule) ?? 0;
 		if (amount !== 0) lines.push({ label: `${s.label} (strategy)`, amount });
 	}
-	const loan = economy.loan ?? { owed: 0, limit: LOAN.limit, interest: LOAN.interest, everyDays: PERIOD };
+	const loan = economy.loan ?? {
+		owed: 0,
+		limit: LOAN.limit,
+		interest: LOAN.interest,
+		everyDays: PERIOD
+	};
 	if (loan.owed > 0) lines.push({ label: 'Loan interest', amount: -loan.owed * loan.interest });
 	const agency = String(rule('stock.agency-type') ?? '');
 	return {

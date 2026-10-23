@@ -20,7 +20,12 @@ const lookup = registries.parts;
 
 function stack(): EditorState {
 	let s = createEditor(emptyDesign(), content);
-	for (const part of ['stock.command-pod', 'stock.tank-small', 'stock.tank-small', 'stock.engine-lv']) {
+	for (const part of [
+		'stock.command-pod',
+		'stock.tank-small',
+		'stock.tank-small',
+		'stock.engine-lv'
+	]) {
 		const last = s.design.parts.at(-1);
 		const targets = attachTargets(s.design, singlePart(part, s.nextIndex), lookup);
 		const t = last
@@ -44,7 +49,12 @@ function sideBoosters(angles: number[]): EditorState {
 	let s = stack();
 	const tank = s.design.parts[2]!.index;
 	for (const angle of angles) {
-		s = attachNew(s, content, 'stock.radial-decoupler', radialAt(s, 'stock.radial-decoupler', tank, angle, 0));
+		s = attachNew(
+			s,
+			content,
+			'stock.radial-decoupler',
+			radialAt(s, 'stock.radial-decoupler', tank, angle, 0)
+		);
 		const dec = of(s.design, 'stock.radial-decoupler').at(-1)!;
 		const outer = attachTargets(s.design, singlePart('stock.booster', s.nextIndex), lookup).find(
 			(t) => t.parent?.index === dec.index && t.parent.parentNode === 'outer'
@@ -103,10 +113,16 @@ describe('symmetry pivot (plan 357)', () => {
 		expect(of(out.design, 'stock.fin')).toHaveLength(2);
 		const single = sideBoosters([0]);
 		const one = of(single.design, 'stock.booster')[0]!.index;
-		const lone = attachNew(single, content, 'stock.fin', radialAt(single, 'stock.fin', one, 0.4, -0.5), {
-			count: 2,
-			pivot: 'vessel'
-		});
+		const lone = attachNew(
+			single,
+			content,
+			'stock.fin',
+			radialAt(single, 'stock.fin', one, 0.4, -0.5),
+			{
+				count: 2,
+				pivot: 'vessel'
+			}
+		);
 		const fins = of(lone.design, 'stock.fin');
 		expect(fins).toHaveLength(1);
 		expect(fins[0]!.symmetry).toBeUndefined();

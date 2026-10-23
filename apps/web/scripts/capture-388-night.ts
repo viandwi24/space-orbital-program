@@ -43,7 +43,10 @@ await form.getByRole('radio', { name: 'Sandbox', exact: true }).click();
 await form.getByTestId('world-create').click();
 await page.getByTestId('world-enter').click();
 await page.waitForURL('**/space-center');
-await page.locator('[data-testid^="sc-row-"]').first().waitFor({ state: 'attached', timeout: 90_000 });
+await page
+	.locator('[data-testid^="sc-row-"]')
+	.first()
+	.waitFor({ state: 'attached', timeout: 90_000 });
 await page
 	.getByRole('button', { name: 'Skip' })
 	.click({ timeout: 5_000 })

@@ -86,7 +86,8 @@ describe('small-body terrain (ADR 0320)', () => {
 
 	test('the moon rule would make a 9 km body one flat plain; the small shape has relief all over it', () => {
 		// within 2.9 km of the landing site (the plain is 10 km wide at least)
-		for (const n of samples.filter((n) => n.x > 0.95).slice(0, 200)) expect(moonHeight(n, R, 41)).toBe(MOON_SHAPE.base);
+		for (const n of samples.filter((n) => n.x > 0.95).slice(0, 200))
+			expect(moonHeight(n, R, 41)).toBe(MOON_SHAPE.base);
 		const h = samples.map((n) => field.heightAt(n));
 		const mean = h.reduce((a, b) => a + b, 0) / h.length;
 		const sd = Math.sqrt(h.reduce((a, b) => a + (b - mean) ** 2, 0) / h.length);

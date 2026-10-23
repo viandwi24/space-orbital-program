@@ -54,7 +54,9 @@ const shot = async (page: Page, name: string, wait = 1500): Promise<void> => {
 	console.log(`wrote ${name}.png`);
 };
 
-const browser = await chromium.launch({ args: ['--use-angle=swiftshader', '--enable-unsafe-swiftshader'] });
+const browser = await chromium.launch({
+	args: ['--use-angle=swiftshader', '--enable-unsafe-swiftshader']
+});
 const page = await browser.newPage({ viewport: { width: 1600, height: 1000 } });
 await page.goto(`${base}/developer`);
 if (process.env.MOD) {
@@ -69,7 +71,9 @@ await page.waitForSelector('[data-ready="true"]', { timeout: 60_000 });
 await shot(page, '3-parts', 3000);
 await page.goto(`${base}/developer/crew`);
 await shot(page, '4-crew-lineup', 8000);
-await page.evaluate(() => document.querySelector('[data-testid="crew-viewer"]')?.scrollTo(0, 99999));
+await page.evaluate(() =>
+	document.querySelector('[data-testid="crew-viewer"]')?.scrollTo(0, 99999)
+);
 await shot(page, '5-crew-lists');
 await page.goto(`${base}/developer/blueprints`);
 await page.waitForSelector('[data-testid="blueprint-summary"]', { timeout: 60_000 });

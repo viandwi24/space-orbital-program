@@ -10,13 +10,7 @@
  * The last boot's log is kept in `localStorage` for `/developer/mods`.
  * Pure but `storeBootLog`, `readBootLog` and `noteAssetProblem`, which touch storage.
  */
-import type {
-	LoadReport,
-	ModProblemCode,
-	PatchReport,
-	Plugin,
-	RegistryKind
-} from '@orbital/core';
+import type { LoadReport, ModProblemCode, PatchReport, Plugin, RegistryKind } from '@orbital/core';
 import type { ModRecord } from './store';
 
 export const BOOT_LOG_KEY = 'orbital.modBootLog';
@@ -234,7 +228,8 @@ export function formatBootLog(log: ModBootLog): string {
 		`Mod loader log · ${log.at} · mod API ${log.api}`,
 		`Boot order: ${log.order.join(' → ') || '(none)'}`
 	];
-	if (log.error) lines.push(`BOOT FAILED: ${log.error.message}`, ...(log.error.stack ? [log.error.stack] : []));
+	if (log.error)
+		lines.push(`BOOT FAILED: ${log.error.message}`, ...(log.error.stack ? [log.error.stack] : []));
 	lines.push('');
 	for (const m of log.mods) {
 		const head = `${m.state.toUpperCase().padEnd(9)} ${m.id} ${m.version} (${m.source}, api ${m.api})`;
@@ -277,8 +272,7 @@ export function bootSummary(log: ModBootLog): {
 		loaded: log.mods.filter((m) => m.state === 'loaded').length,
 		failed: log.mods.filter((m) => m.state === 'failed' || m.state === 'untrusted').length,
 		disabled: log.mods.filter((m) => m.state === 'disabled').length,
-		warnings:
-			log.mods.reduce((n, m) => n + m.warnings.length, 0) + log.assets.length
+		warnings: log.mods.reduce((n, m) => n + m.warnings.length, 0) + log.assets.length
 	};
 }
 
@@ -292,7 +286,10 @@ export const modBootLog = (): ModBootLog | null => current;
 type KeyValue = Pick<Storage, 'getItem' | 'setItem'>;
 const browserStorage = (): KeyValue | undefined => globalThis.localStorage;
 
-export function storeBootLog(log: ModBootLog, storage: KeyValue | undefined = browserStorage()): void {
+export function storeBootLog(
+	log: ModBootLog,
+	storage: KeyValue | undefined = browserStorage()
+): void {
 	current = log;
 	try {
 		storage?.setItem(BOOT_LOG_KEY, JSON.stringify(log));

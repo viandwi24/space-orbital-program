@@ -25,8 +25,7 @@
 	onclick={(e) => vab.launch(false, e.shiftKey)}
 >
 	<span class="word">Launch</span><span class="sr-only">. {tip}</span>
-	{#if vab.warnings > 0 && !vab.launchBlocked}<span class="caution" aria-hidden="true"
-		></span>{/if}
+	{#if vab.warnings > 0 && !vab.launchBlocked}<span class="caution" aria-hidden="true"></span>{/if}
 </button>
 
 <style>

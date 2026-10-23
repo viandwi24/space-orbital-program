@@ -29,8 +29,28 @@ import {
 	type VesselPilot,
 	type VesselSnapshot
 } from '@orbital/sdk';
-import { exhaustVelocity, facts, newNodeMemory, noseOf, stepNode, type NodeMemory } from './autopilots.ts';
-import { add, angleBetween, burnTime, clamp, cross, dot, length, orbitOf, scale, sub, unit, visViva } from './orbit.ts';
+import {
+	exhaustVelocity,
+	facts,
+	newNodeMemory,
+	noseOf,
+	stepNode,
+	type NodeMemory
+} from './autopilots.ts';
+import {
+	add,
+	angleBetween,
+	burnTime,
+	clamp,
+	cross,
+	dot,
+	length,
+	orbitOf,
+	scale,
+	sub,
+	unit,
+	visViva
+} from './orbit.ts';
 
 const DEG = Math.PI / 180;
 /** Relative inclination above which the plane is matched first, rad. */
@@ -101,14 +121,7 @@ const ELECTRIC_CHARGE = 'stock.electric-charge';
 const RCS_ACCEL_GUESS = 0.2;
 
 export type RendezvousStage =
-	| 'plan'
-	| 'plane'
-	| 'transfer'
-	| 'phasing'
-	| 'correct'
-	| 'match'
-	| 'close'
-	| 'hold';
+	'plan' | 'plane' | 'transfer' | 'phasing' | 'correct' | 'match' | 'close' | 'hold';
 
 export interface RendezvousMemory extends NodeMemory {
 	stage: RendezvousStage;
@@ -241,13 +254,16 @@ export function readiness(
 	targetVessel: VesselSnapshot | undefined,
 	body: ReadinessBody | null | undefined
 ): Readiness {
-	if (!target || target.kind !== 'vessel') return { problem: 'Target a vessel or a docking port first.' };
-	if (own.uncontrolled) return { problem: `The vessel takes no commands (${own.uncontrolled.replace('no-', 'no ')}).` };
+	if (!target || target.kind !== 'vessel')
+		return { problem: 'Target a vessel or a docking port first.' };
+	if (own.uncontrolled)
+		return { problem: `The vessel takes no commands (${own.uncontrolled.replace('no-', 'no ')}).` };
 	if (targetVessel && targetVessel.soi !== own.soi)
 		return {
 			problem: `The target orbits ${bodyName(targetVessel.soi)}; you orbit ${bodyName(own.soi)}. A rendezvous needs both around one body.`
 		};
-	if (grounded(own)) return { problem: 'On the ground: fly Ascent to orbit first.', next: 'ascent' };
+	if (grounded(own))
+		return { problem: 'On the ground: fly Ascent to orbit first.', next: 'ascent' };
 	if (!body) return { problem: null };
 	const safe = stableAltitude(body);
 	const o = orbitOf(own.position, own.velocity, body.mu);
@@ -262,7 +278,11 @@ export function readiness(
 		};
 	}
 	if (targetVessel && grounded(targetVessel)) return { problem: 'The target is on the ground.' };
-	const t = orbitOf(add(own.position, target.position), add(own.velocity, target.velocity), body.mu);
+	const t = orbitOf(
+		add(own.position, target.position),
+		add(own.velocity, target.velocity),
+		body.mu
+	);
 	if (!(t.e < 1)) return { problem: 'The target is on an escape path.' };
 	const tPeri = t.periapsis - body.radius;
 	if (tPeri < safe)
@@ -273,8 +293,17 @@ export function readiness(
 }
 
 /** The delta-v estimate from two states about one body (plan 333: the panel shows it while off), m/s. */
-export function rendezvousEstimate(own: StateVector, target: StateVector, distance: number, mu: number): number {
-	return estimateNeeded(own, { state: target, p: sub(target.r, own.r), u: sub(own.v, target.v), d: distance }, mu);
+export function rendezvousEstimate(
+	own: StateVector,
+	target: StateVector,
+	distance: number,
+	mu: number
+): number {
+	return estimateNeeded(
+		own,
+		{ state: target, p: sub(target.r, own.r), u: sub(own.v, target.v), d: distance },
+		mu
+	);
 }
 
 /** Delta-v the burning engines have left, m/s (ADR 0286 point 4). */
@@ -291,7 +320,8 @@ const rcsLeft = (pilot: VesselPilot): boolean => {
 };
 
 const period = (a: number, mu: number): number => 2 * Math.PI * Math.sqrt((a * a * a) / mu);
-const at = (s: StateVector, mu: number, dt: number): StateVector => propagateUniversal(s.r, s.v, mu, dt);
+const at = (s: StateVector, mu: number, dt: number): StateVector =>
+	propagateUniversal(s.r, s.v, mu, dt);
 
 /** Add a node with the burn `burn` (inertial axes) at the state `there`. */
 function addBurn(pilot: VesselPilot, time: number, there: StateVector, burn: Vec3): void {
@@ -322,7 +352,8 @@ export function aimBurn(
 	flight: number,
 	guess: Vec3 = { x: 0, y: 0, z: 0 }
 ): { burn: Vec3; miss: number } {
-	const missOf = (dv: Vec3): Vec3 => sub(propagateUniversal(before.r, add(before.v, dv), mu, flight).r, aim);
+	const missOf = (dv: Vec3): Vec3 =>
+		sub(propagateUniversal(before.r, add(before.v, dv), mu, flight).r, aim);
 	let dv: Vec3 = guess;
 	let m0 = missOf(dv);
 	for (let k = 0; k < 10 && length(m0) > 1; k++) {
@@ -334,7 +365,9 @@ export function aimBurn(
 		].map((e) => scale(sub(missOf(add(dv, e)), m0), 1 / h));
 		const j = (i: number, c: number): number => [cols[c]!.x, cols[c]!.y, cols[c]!.z][i]!;
 		// (JᵀJ + λI) x = -Jᵀ m0
-		const jtj = [0, 1, 2].map((a) => [0, 1, 2].map((b) => [0, 1, 2].reduce((s, i) => s + j(i, a) * j(i, b), 0)));
+		const jtj = [0, 1, 2].map((a) =>
+			[0, 1, 2].map((b) => [0, 1, 2].reduce((s, i) => s + j(i, a) * j(i, b), 0))
+		);
 		const trace = jtj[0]![0]! + jtj[1]![1]! + jtj[2]![2]!;
 		for (let i = 0; i < 3; i++) jtj[i]![i]! += 1e-6 * trace + 1e-12;
 		const mv = [m0.x, m0.y, m0.z];
@@ -500,7 +533,8 @@ export function previewModes(
 	}
 	let cap = capSetting > 0 ? capSetting : 2 * dv;
 	if (left !== null) cap = Math.min(cap, 0.9 * left);
-	const f = distance < CLOSE_RANGE ? null : fastIntercept(own, target, mu, now, floor, cap - CLOSE_DV);
+	const f =
+		distance < CLOSE_RANGE ? null : fastIntercept(own, target, mu, now, floor, cap - CLOSE_DV);
 	return {
 		efficient: { eta, dv },
 		fast: f ? { eta: f.tca - now + CLOSE_TIME, dv: f.total + CLOSE_DV, cap } : null
@@ -544,10 +578,18 @@ export const standoffFor = (pilot: VesselPilot, m: Pick<RendezvousMemory, 'stand
 	Math.max(m.standoff, keepOutOf(pilot) + 2);
 
 /** Close enough to the standoff to hold there, m. */
-const arrivedWithin = (standoff: number): number => Math.min(HOLD_DISTANCE, standoff + Math.max(5, 0.3 * standoff));
+const arrivedWithin = (standoff: number): number =>
+	Math.min(HOLD_DISTANCE, standoff + Math.max(5, 0.3 * standoff));
 
-export function newRendezvousMemory(pilot: VesselPilot, params: RendezvousParams = {}): RendezvousMemory {
-	const standoff = clamp(Number(params.standoff ?? STANDOFF) || STANDOFF, MIN_STANDOFF, HOLD_DISTANCE);
+export function newRendezvousMemory(
+	pilot: VesselPilot,
+	params: RendezvousParams = {}
+): RendezvousMemory {
+	const standoff = clamp(
+		Number(params.standoff ?? STANDOFF) || STANDOFF,
+		MIN_STANDOFF,
+		HOLD_DISTANCE
+	);
 	return {
 		...newNodeMemory(false),
 		stage: 'plan',
@@ -602,7 +644,9 @@ export function rendezvousProblem(pilot: VesselPilot): string | null {
 
 const flight = (pilot: VesselPilot): Record<string, number | string> => {
 	const t = pilot.target;
-	return t ? { Distance: round(t.distance, 0.1), 'Relative speed': round(t.relativeSpeed, 0.01) } : {};
+	return t
+		? { Distance: round(t.distance, 0.1), 'Relative speed': round(t.relativeSpeed, 0.01) }
+		: {};
 };
 
 /** One step of the rendezvous. */
@@ -740,7 +784,8 @@ function plan(
 	}
 	const oOwn = orbitOf(own.r, own.v, mu);
 	const oT = orbitOf(target.state.r, target.state.v, mu);
-	if (!(oOwn.e < 1) || !(oT.e < 1)) return { phase: 'plan', abort: 'Both must be in closed orbits.' };
+	if (!(oOwn.e < 1) || !(oT.e < 1))
+		return { phase: 'plan', abort: 'Both must be in closed orbits.' };
 	const turn = period(oOwn.a, mu);
 	const floor = radius + Math.max(10_000, (pilot.body?.atmosphereHeight ?? 0) + 10_000);
 	const planned = (stage: RendezvousStage, next: RendezvousStage, line: string): AutopilotStep => {
@@ -781,10 +826,18 @@ function plan(
 	const horizon = Math.max(1.5 * turn, m.arrival > now ? m.arrival - now + 0.25 * turn : 0);
 	const ownAt = (t: number) => at(own, mu, t - now);
 	const targetAt = (t: number) => at(target.state, mu, t - now);
-	const ca = closestApproach(ownAt, targetAt, now + LEAD, now + horizon, Math.ceil((horizon / turn) * 180));
-	const correctionsLeft = m.arrival > now + 600 && m.corrections < (m.fast ? FAST_CORRECTIONS : MAX_CORRECTIONS);
+	const ca = closestApproach(
+		ownAt,
+		targetAt,
+		now + LEAD,
+		now + horizon,
+		Math.ceil((horizon / turn) * 180)
+	);
+	const correctionsLeft =
+		m.arrival > now + 600 && m.corrections < (m.fast ? FAST_CORRECTIONS : MAX_CORRECTIONS);
 	if (ca.distance < INTERCEPT || (ca.distance < FAR_MATCH && m.arrival > now && !correctionsLeft)) {
-		const early = Math.sqrt(Math.max(0, MATCH_AHEAD ** 2 - ca.distance ** 2)) / Math.max(ca.relativeSpeed, 0.1);
+		const early =
+			Math.sqrt(Math.max(0, MATCH_AHEAD ** 2 - ca.distance ** 2)) / Math.max(ca.relativeSpeed, 0.1);
 		const tm = Math.max(now + LEAD, ca.t - Math.min(early, 0.1 * turn));
 		const o = ownAt(tm);
 		addBurn(pilot, tm, o, sub(targetAt(tm).v, o.v));
@@ -815,7 +868,8 @@ function plan(
 	}
 
 	// 3. a new transfer
-	if (m.plans >= MAX_PLANS) return { phase: 'plan', abort: 'Could not find an intercept with the target.' };
+	if (m.plans >= MAX_PLANS)
+		return { phase: 'plan', abort: 'Could not find an intercept with the target.' };
 	m.plans++;
 	m.corrections = 0;
 	if (m.fast) {
@@ -853,7 +907,8 @@ function plan(
 	}
 	if (oOwn.e > 0.02) {
 		// round the orbit at the apsis nearer the target's radius first
-		const apsis = Math.abs(oOwn.apoapsis - oT.a) < Math.abs(oOwn.periapsis - oT.a) ? 'apoapsis' : 'periapsis';
+		const apsis =
+			Math.abs(oOwn.apoapsis - oT.a) < Math.abs(oOwn.periapsis - oT.a) ? 'apoapsis' : 'periapsis';
 		m.circAt = apsis;
 		m.plans--;
 		return { phase: 'plan', status: `rounding the orbit at the ${apsis} first` };
@@ -877,14 +932,24 @@ function plan(
 	pilot.addNode(tb, dv, 0, 0);
 	m.circAt = oT.a > rb ? 'apoapsis' : 'periapsis';
 	m.arrival = -1;
-	return planned('transfer', 'plan', `the Hohmann window is far off: to the target's orbit first (${dv.toFixed(1)} m/s)`);
+	return planned(
+		'transfer',
+		'plan',
+		`the Hohmann window is far off: to the target's orbit first (${dv.toFixed(1)} m/s)`
+	);
 }
 
 /**
  * RCS translation toward the relative velocity `want` (own minus target, inertial), sized by the
  * learned acceleration (as Auto Dock does); returns the error, m/s.
  */
-function translate(pilot: VesselPilot, m: RendezvousMemory, u: Vec3, want: Vec3, dt: number): number {
+function translate(
+	pilot: VesselPilot,
+	m: RendezvousMemory,
+	u: Vec3,
+	want: Vec3,
+	dt: number
+): number {
 	if (m.lastDemand && m.lastVelocity && dt > 0) {
 		const d2 = dot(m.lastDemand, m.lastDemand);
 		if (d2 > 0.04) {
@@ -952,7 +1017,12 @@ function engine(
 }
 
 /** Collision course: the vessel's straight path enters the keep-out sphere and it cannot stop before. */
-function collision(pilot: VesselPilot, m: RendezvousMemory, mass: number, target: Target): string | null {
+function collision(
+	pilot: VesselPilot,
+	m: RendezvousMemory,
+	mass: number,
+	target: Target
+): string | null {
 	const { p, u, d } = target;
 	const closing = dot(u, unit(p));
 	if (closing <= 0) return null;
@@ -962,11 +1032,19 @@ function collision(pilot: VesselPilot, m: RendezvousMemory, mass: number, target
 	if (miss > keepOut) return null;
 	const accel = Math.max(pilot.maxThrust / mass, rcsLeft(pilot) && !m.noRcs ? m.accel : 0);
 	const stop = accel > 0 ? (closing * closing) / (2 * accel) : Infinity;
-	return stop > d - keepOut ? `Collision course: ${closing.toFixed(1)} m/s toward the target, ${Math.round(d)} m away.` : null;
+	return stop > d - keepOut
+		? `Collision course: ${closing.toFixed(1)} m/s toward the target, ${Math.round(d)} m away.`
+		: null;
 }
 
 /** The close phase: toward the target, slowing to a stop at the standoff. */
-function close(pilot: VesselPilot, m: RendezvousMemory, mass: number, target: Target, dt: number): AutopilotStep {
+function close(
+	pilot: VesselPilot,
+	m: RendezvousMemory,
+	mass: number,
+	target: Target,
+	dt: number
+): AutopilotStep {
 	const { p, u, d } = target;
 	const crash = collision(pilot, m, mass, target);
 	if (crash) return { phase: 'close', abort: crash };
@@ -975,7 +1053,11 @@ function close(pilot: VesselPilot, m: RendezvousMemory, mass: number, target: Ta
 	if (d <= arrivedWithin(standoff) && speed < HOLD_SPEED) {
 		pilot.throttle(0);
 		pilot.translate(0, 0, 0);
-		return toStage(m, 'hold', `${Math.round(d)} m from the target at ${speed.toFixed(2)} m/s: holding`);
+		return toStage(
+			m,
+			'hold',
+			`${Math.round(d)} m from the target at ${speed.toFixed(2)} m/s: holding`
+		);
 	}
 	const dir = unit(p);
 	const useRcs = d < RCS_RANGE && rcsLeft(pilot) && !m.noRcs;
@@ -987,7 +1069,11 @@ function close(pilot: VesselPilot, m: RendezvousMemory, mass: number, target: Ta
 	const gap = Math.max(0, d - standoff);
 	const wanted =
 		gap > 0
-			? Math.min(clamp(d / (m.fast ? 60 : 120), 0.5, m.fast ? 100 : 50), gap / (m.fast ? 15 : 30), Math.sqrt(2 * brake * gap))
+			? Math.min(
+					clamp(d / (m.fast ? 60 : 120), 0.5, m.fast ? 100 : 50),
+					gap / (m.fast ? 15 : 30),
+					Math.sqrt(2 * brake * gap)
+				)
 			: 0;
 	const want = scale(dir, wanted);
 	let error: number;
@@ -998,7 +1084,16 @@ function close(pilot: VesselPilot, m: RendezvousMemory, mass: number, target: Ta
 		error = translate(pilot, m, u, want, dt);
 	} else {
 		pilot.translate(0, 0, 0);
-		error = engine(pilot, m, mass, u, want, Math.max(0.5, 0.15 * wanted), Math.max(0.1, 0.03 * wanted), dir);
+		error = engine(
+			pilot,
+			m,
+			mass,
+			u,
+			want,
+			Math.max(0.5, 0.15 * wanted),
+			Math.max(0.1, 0.03 * wanted),
+			dir
+		);
 	}
 	return {
 		phase: 'close',
@@ -1008,7 +1103,13 @@ function close(pilot: VesselPilot, m: RendezvousMemory, mass: number, target: Ta
 }
 
 /** Hold at the standoff; hand over to Auto Dock when asked. */
-function hold(pilot: VesselPilot, m: RendezvousMemory, mass: number, target: Target, dt: number): AutopilotStep {
+function hold(
+	pilot: VesselPilot,
+	m: RendezvousMemory,
+	mass: number,
+	target: Target,
+	dt: number
+): AutopilotStep {
 	const { p, u, d } = target;
 	const standoff = standoffFor(pilot, m);
 	if (d > arrivedWithin(standoff) + Math.max(10, 0.2 * standoff))
@@ -1047,7 +1148,11 @@ function hold(pilot: VesselPilot, m: RendezvousMemory, mass: number, target: Tar
 			m.dockTriedAt = pilot.time;
 			pilot.translate(0, 0, 0);
 			if (pilot.engage('autodock.dock'))
-				return { phase: 'hold', status: 'Handed over to Auto Dock', log: 'handed over to Auto Dock' };
+				return {
+					phase: 'hold',
+					status: 'Handed over to Auto Dock',
+					log: 'handed over to Auto Dock'
+				};
 			log.push('Auto Dock did not start (see its panel): holding');
 		}
 	}

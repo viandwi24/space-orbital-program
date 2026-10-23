@@ -72,9 +72,9 @@
 
 <h1>Mod loader log</h1>
 <p class="lead">
-	What the game booted when this page loaded: the built-in plugins, then the mods installed and turned
-	on in <a href={resolve('/mods')}>Mods</a>. A world boots the same list. The last boot's log is kept in
-	this browser.
+	What the game booted when this page loaded: the built-in plugins, then the mods installed and
+	turned on in <a href={resolve('/mods')}>Mods</a>. A world boots the same list. The last boot's log
+	is kept in this browser.
 </p>
 
 {#if !log}
@@ -117,7 +117,9 @@
 	<section aria-labelledby="order">
 		<h2 id="order">Boot order</h2>
 		<ol class="order">
-			{#each log.order as id, i (id)}<li><span class="dim">{i + 1}.</span> <code>{id}</code></li>{/each}
+			{#each log.order as id, i (id)}<li>
+					<span class="dim">{i + 1}.</span> <code>{id}</code>
+				</li>{/each}
 		</ol>
 	</section>
 
@@ -136,7 +138,9 @@
 						<span class="state">{m.state}</span>
 						<strong>{m.title}</strong>
 						<code class="dim">{m.id} {m.version}</code>
-						<span class="dim">{m.source === 'builtin' ? 'built in' : 'installed'} · api {m.api}</span>
+						<span class="dim"
+							>{m.source === 'builtin' ? 'built in' : 'installed'} · api {m.api}</span
+						>
 						{#if m.index !== undefined}<span class="dim">#{m.index + 1}</span>{/if}
 					</div>
 					{#if m.problem}
@@ -156,7 +160,8 @@
 							{#each Object.entries(m.counts).sort((a, b) => b[1] - a[1]) as [kind, n] (kind)}
 								{@const to = VIEWER[kind]}
 								{#if to}
-									<a class="count" href="{devHref(to)}?mod={encodeURIComponent(m.id)}">{n} {kind}</a>
+									<a class="count" href="{devHref(to)}?mod={encodeURIComponent(m.id)}">{n} {kind}</a
+									>
 								{:else}
 									<span class="count">{n} {kind}</span>
 								{/if}

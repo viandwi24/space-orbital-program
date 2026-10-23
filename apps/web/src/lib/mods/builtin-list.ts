@@ -16,8 +16,10 @@ export interface BuiltinModRow {
 const DESCRIPTIONS: Readonly<Record<string, string>> = {
 	stock: 'The stock parts, modules, resources, bodies, buildings and tech tree.',
 	sol: 'The real solar system, for worlds that choose it.',
-	autodock: 'An autopilot that docks with the targeted docking port; a program you can take over or stop.',
-	guidance: 'MechJeb-style autopilots: execute the next maneuver node, circularize, ascent to orbit, land on a target with the predicted landing path, rendezvous with a target.'
+	autodock:
+		'An autopilot that docks with the targeted docking port; a program you can take over or stop.',
+	guidance:
+		'MechJeb-style autopilots: execute the next maneuver node, circularize, ascent to orbit, land on a target with the predicted landing path, rendezvous with a target.'
 };
 
 export function builtinModRows(plugins: readonly Plugin[]): BuiltinModRow[] {

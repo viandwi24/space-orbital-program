@@ -43,7 +43,7 @@
 		{
 			path: '/developer/mods',
 			title: 'Mods (loader log)',
-			text: 'What the last page load booted, in order: each mod\'s result, errors with their stack, patches, and what each registered.'
+			text: "What the last page load booted, in order: each mod's result, errors with their stack, patches, and what each registered."
 		}
 	] as const;
 
@@ -92,75 +92,76 @@
 />
 
 <h1>Developer</h1>
-	<p class="lead">
-		What this browser recorded while loading worlds: the graphics backend, how long each step and each
-		shader took, and whether the browser had compiled the shaders before. Kept here only, the last 20
-		loads.
-	</p>
+<p class="lead">
+	What this browser recorded while loading worlds: the graphics backend, how long each step and each
+	shader took, and whether the browser had compiled the shaders before. Kept here only, the last 20
+	loads.
+</p>
 
-	<section aria-labelledby="dev-tools">
-		<h2 id="dev-tools">Developer tools</h2>
-		<p class="dim">
-			For mod authors and debugging; no world is loaded. Every tool reads the same plugins a world
-			loads: the built-in ones and the mods installed and turned on in this browser.
-		</p>
-		<ul class="tools">
-			{#each TOOLS.filter((t) => shownTabs().some((s) => s.path === t.path)) as t (t.path)}
+<section aria-labelledby="dev-tools">
+	<h2 id="dev-tools">Developer tools</h2>
+	<p class="dim">
+		For mod authors and debugging; no world is loaded. Every tool reads the same plugins a world
+		loads: the built-in ones and the mods installed and turned on in this browser.
+	</p>
+	<ul class="tools">
+		{#each TOOLS.filter((t) => shownTabs().some((s) => s.path === t.path)) as t (t.path)}
+			<li>
+				<a href={devHref(t.path)}>{t.title}</a>
+				<span class="dim">{t.text}</span>
+			</li>
+		{/each}
+	</ul>
+</section>
+
+<section aria-labelledby="load-logs">
+	<h2 id="load-logs">Load logs</h2>
+	{#if logs.length === 0}
+		<p class="dim" data-testid="developer-no-logs">No world was loaded in this browser yet.</p>
+	{:else}
+		<div class="actions">
+			<Button
+				onclick={() =>
+					void copy(logs.map(formatLoadLog).join('\n\n----\n\n'), `${logs.length} logs`)}
+				data-testid="developer-copy-all">Copy all as text</Button
+			>
+			<Button
+				onclick={() =>
+					downloadText(JSON.stringify(logs, null, 1), `orbital-load-logs-${stamp()}.json`)}
+				data-testid="developer-download-all">Download all .json</Button
+			>
+			<Button variant="danger" onclick={clear} data-testid="developer-clear">Clear logs</Button>
+		</div>
+		<ul class="logs" data-testid="developer-logs">
+			{#each logs as log (log.id)}
+				{@const s = summaryLine(log)}
 				<li>
-					<a href={devHref(t.path)}>{t.title}</a>
-					<span class="dim">{t.text}</span>
+					<details>
+						<summary>
+							<span class="when">{s.when}</span>
+							<span class="tag">{s.backend}</span>
+							<span class="total" class:bad={log.outcome !== 'ready'}
+								>{log.outcome === 'ready' ? s.total : OUTCOME[log.outcome]}</span
+							>
+							<span class="dim">{log.report.compile.pipelines} shaders · slowest {s.slowest}</span>
+							{#if log.lowered}<span class="tag">lower quality</span>{/if}
+						</summary>
+						<div class="actions">
+							<Button onclick={() => void copy(formatLoadLog(log), 'the log')}>Copy as text</Button>
+							<Button
+								onclick={() =>
+									downloadText(JSON.stringify(log, null, 1), `orbital-load-log-${log.id}.json`)}
+								>Download .json</Button
+							>
+						</div>
+						<pre>{formatLoadLog(log)}</pre>
+					</details>
 				</li>
 			{/each}
 		</ul>
-	</section>
-
-	<section aria-labelledby="load-logs">
-		<h2 id="load-logs">Load logs</h2>
-		{#if logs.length === 0}
-			<p class="dim" data-testid="developer-no-logs">No world was loaded in this browser yet.</p>
-		{:else}
-			<div class="actions">
-				<Button
-					onclick={() => void copy(logs.map(formatLoadLog).join('\n\n----\n\n'), `${logs.length} logs`)}
-					data-testid="developer-copy-all">Copy all as text</Button
-				>
-				<Button
-					onclick={() => downloadText(JSON.stringify(logs, null, 1), `orbital-load-logs-${stamp()}.json`)}
-					data-testid="developer-download-all">Download all .json</Button
-				>
-				<Button variant="danger" onclick={clear} data-testid="developer-clear">Clear logs</Button>
-			</div>
-			<ul class="logs" data-testid="developer-logs">
-				{#each logs as log (log.id)}
-					{@const s = summaryLine(log)}
-					<li>
-						<details>
-							<summary>
-								<span class="when">{s.when}</span>
-								<span class="tag">{s.backend}</span>
-								<span class="total" class:bad={log.outcome !== 'ready'}
-									>{log.outcome === 'ready' ? s.total : OUTCOME[log.outcome]}</span
-								>
-								<span class="dim">{log.report.compile.pipelines} shaders · slowest {s.slowest}</span>
-								{#if log.lowered}<span class="tag">lower quality</span>{/if}
-							</summary>
-							<div class="actions">
-								<Button onclick={() => void copy(formatLoadLog(log), 'the log')}>Copy as text</Button>
-								<Button
-									onclick={() =>
-										downloadText(JSON.stringify(log, null, 1), `orbital-load-log-${log.id}.json`)}
-									>Download .json</Button
-								>
-							</div>
-							<pre>{formatLoadLog(log)}</pre>
-						</details>
-					</li>
-				{/each}
-			</ul>
-		{/if}
-		{#if note}<p class="dim" role="status">{note}</p>{/if}
-	</section>
-
+	{/if}
+	{#if note}<p class="dim" role="status">{note}</p>{/if}
+</section>
 
 <style>
 	h1 {

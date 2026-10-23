@@ -27,7 +27,9 @@ export function modKeyRows(
 	const keysOf = (d: KeybindingDefinition): readonly string[] =>
 		(overrides[d.id] ?? d.defaults).filter(bindableKey);
 	const owners = new Map<string, number>();
-	for (const d of defs) for (const k of keysOf(d)) owners.set(`${d.mode ?? 'flight'}:${k}`, (owners.get(`${d.mode ?? 'flight'}:${k}`) ?? 0) + 1);
+	for (const d of defs)
+		for (const k of keysOf(d))
+			owners.set(`${d.mode ?? 'flight'}:${k}`, (owners.get(`${d.mode ?? 'flight'}:${k}`) ?? 0) + 1);
 	return defs.map((def) => {
 		const mode = def.mode ?? 'flight';
 		const keys = keysOf(def);

@@ -53,8 +53,9 @@ export interface BlueprintSystem {
 }
 
 /** The systems a blueprint lists, or stock alone when it lists none. */
-export const blueprintSystems = (b: Pick<BlueprintDefinition, 'systems'>): readonly BlueprintSystem[] =>
-	b.systems ?? [{ system: 'stock' }];
+export const blueprintSystems = (
+	b: Pick<BlueprintDefinition, 'systems'>
+): readonly BlueprintSystem[] => b.systems ?? [{ system: 'stock' }];
 
 const matches = (s: BlueprintSystem, system: string, variant?: string): boolean =>
 	s.system === system && (s.variant === undefined || s.variant === variant);

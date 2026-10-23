@@ -103,7 +103,12 @@ const LEVEL_COS = 0.87;
  * The control part's roll about the nose from local `up` (rad, positive turning the top toward the
  * right wing), or undefined when the nose is near the vertical and up has no direction across it.
  */
-function rollFromUp(orientation: Quat, noseBody: Vec3, topBody: Vec3, up: Vec3): number | undefined {
+function rollFromUp(
+	orientation: Quat,
+	noseBody: Vec3,
+	topBody: Vec3,
+	up: Vec3
+): number | undefined {
 	const nose = qRotate(orientation, noseBody);
 	const across = (v: Vec3): Vec3 | undefined => {
 		const p = sub(v, scale(nose, dot(v, nose)));

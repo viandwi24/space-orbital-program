@@ -145,8 +145,7 @@ export function resolveSiteChoice(
 	seed: number
 ): SiteChoice | null {
 	const template = catalog.siteTemplates.find((t) => t.id === templateId);
-	const home =
-		catalog.bodies.find((b) => b.id === catalog.home) ?? homeOf(catalog.bodies);
+	const home = catalog.bodies.find((b) => b.id === catalog.home) ?? homeOf(catalog.bodies);
 	if (!template || !home) return null;
 	const spot = resolveSiteTemplate(template, { seed, radius: home.radius });
 	return {

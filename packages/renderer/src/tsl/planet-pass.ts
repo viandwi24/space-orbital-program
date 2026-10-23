@@ -310,7 +310,9 @@ export class PlanetPassTSL {
 	private standInCleared = false;
 	/** The sun's shadow map, or the cleared stand-in while there is none (1 × 1). */
 	private shadowTexture(): unknown {
-		const t = this.planet.material.uniforms.uShadowMap!.value as { image?: { width?: number } } | null;
+		const t = this.planet.material.uniforms.uShadowMap!.value as {
+			image?: { width?: number };
+		} | null;
 		return t && (t.image?.width ?? 0) > 1 ? t : this.shadowStandIn.depthTexture;
 	}
 	private baked = false;
@@ -1186,10 +1188,18 @@ export class PlanetPassTSL {
 					};
 					const d4 = tri(DETAIL_TILE.rock).toVar();
 					const d2 = tri(DETAIL_TILE.grass).toVar();
-					const k = (v: N, c: number): N => v.sub(0.5).mul(2 * c).add(1.0);
+					const k = (v: N, c: number): N =>
+						v
+							.sub(0.5)
+							.mul(2 * c)
+							.add(1.0);
 					const soft = mix(k(d2.y, DETAIL_CONTRAST.grass), k(d2.z, DETAIL_CONTRAST.sand), wDesert);
 					const mult = mix(
-						mix(mix(soft, k(d4.x, DETAIL_CONTRAST.rock), wRock), k(d2.z, DETAIL_CONTRAST.sand), wBeach),
+						mix(
+							mix(soft, k(d4.x, DETAIL_CONTRAST.rock), wRock),
+							k(d2.z, DETAIL_CONTRAST.sand),
+							wBeach
+						),
 						k(d4.w, DETAIL_CONTRAST.snow),
 						wSnow.mul(smoothstep(0.0, 1.0, float(1.0).sub(slope.mul(2.0))))
 					);

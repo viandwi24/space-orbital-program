@@ -61,7 +61,10 @@ export const Logger = defineSystem({
 			ctx
 				.store(FlightLog)
 				.update((log) =>
-					push({ ...log, soiChanges: log.soiChanges + 1 }, `${v?.name ?? e.vessel}: ${e.from} → ${e.to}`)
+					push(
+						{ ...log, soiChanges: log.soiChanges + 1 },
+						`${v?.name ?? e.vessel}: ${e.from} → ${e.to}`
+					)
 				);
 		},
 		'mod:key': (e, ctx) => {

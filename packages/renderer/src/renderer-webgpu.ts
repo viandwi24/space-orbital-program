@@ -44,7 +44,10 @@ const deferred = (): { promise: Promise<void>; resolve: () => void } => {
 	return { promise, resolve };
 };
 
-type GetForRender = (renderObject: { object?: unknown }, promises?: Promise<unknown>[] | null) => unknown;
+type GetForRender = (
+	renderObject: { object?: unknown },
+	promises?: Promise<unknown>[] | null
+) => unknown;
 
 /** Steps `LaunchSite.warmVegetation` takes for the three presets' sets (as in renderer.ts). */
 const VEGETATION_STEPS = 34;
@@ -96,7 +99,11 @@ export function createWebGPURenderer(
 	let preset: GraphicsPreset = booting ? config.bootPreset! : requested;
 	/** The preset whose map, terrain, part detail and shadow sizes the world keeps (`setPreset`'s `governed`, ADR 0310). */
 	let resources: GraphicsPreset = preset;
-	const bootInfo: { preset: GraphicsPreset | null; swappedAfterMs: number | null; lowered: boolean } = {
+	const bootInfo: {
+		preset: GraphicsPreset | null;
+		swappedAfterMs: number | null;
+		lowered: boolean;
+	} = {
 		preset: booting ? preset : null,
 		swappedAfterMs: null,
 		lowered: false

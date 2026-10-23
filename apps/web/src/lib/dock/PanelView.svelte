@@ -57,18 +57,20 @@
 	<PanelTabs {node} {onaction} />
 {:else if node.kind === 'progress'}
 	{#if node.value !== null || node.text !== null}<div class="wide">
-		<span class="k">{node.label}{#if node.text}<span class="v">{node.text}</span>{/if}</span>
-		<div
-			class="bar"
-			role="progressbar"
-			aria-label={node.label}
-			aria-valuemin="0"
-			aria-valuemax="100"
-			aria-valuenow={node.value === null ? undefined : Math.round(node.value * 100)}
-		>
-			<div class="fill" style="width: {node.value === null ? 0 : node.value * 100}%"></div>
-		</div>
-	</div>{/if}
+			<span class="k"
+				>{node.label}{#if node.text}<span class="v">{node.text}</span>{/if}</span
+			>
+			<div
+				class="bar"
+				role="progressbar"
+				aria-label={node.label}
+				aria-valuemin="0"
+				aria-valuemax="100"
+				aria-valuenow={node.value === null ? undefined : Math.round(node.value * 100)}
+			>
+				<div class="fill" style="width: {node.value === null ? 0 : node.value * 100}%"></div>
+			</div>
+		</div>{/if}
 {:else if node.kind === 'number'}
 	<label class="field">
 		<span class="k">{node.label}</span>

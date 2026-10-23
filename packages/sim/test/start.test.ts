@@ -24,7 +24,9 @@ const kinds = (sim: Awaited<ReturnType<typeof make>>) =>
 describe('a new world starts with what its rules need', () => {
 	test('Sandbox: the Astronaut Complex and R&D (the lesson world visits both); no Test Stand, no crew to start', async () => {
 		const sim = await make('stock.sandbox');
-		expect(kinds(sim)).toEqual(expect.arrayContaining(['stock.astronaut-complex', 'stock.research']));
+		expect(kinds(sim)).toEqual(
+			expect.arrayContaining(['stock.astronaut-complex', 'stock.research'])
+		);
 		expect(kinds(sim)).not.toContain('stock.test-stand');
 		expect(sim.snapshot().crew ?? []).toEqual([]);
 		sim.dispose();

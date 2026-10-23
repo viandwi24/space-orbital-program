@@ -817,7 +817,11 @@ export class VabController {
 	constructor(options: { sandbox?: boolean } = {}) {
 		this.sandbox = options.sandbox === true;
 		this.keys = this.sandbox
-			? { draft: 'orbital.dev.design', library: 'orbital.dev.library.current', look: LOOK_KEYS.sandbox }
+			? {
+					draft: 'orbital.dev.design',
+					library: 'orbital.dev.library.current',
+					look: LOOK_KEYS.sandbox
+				}
 			: { draft: undefined, library: undefined, look: LOOK_KEYS.world };
 		this.look = readLook(this.keys.look, this.sandbox ? 'zen' : 'normal');
 		const text = loadDraft(this.keys.draft);
@@ -2294,7 +2298,9 @@ export class VabController {
 	/** A part chosen in the pick list. */
 	pickFromList(index: number): void {
 		this.selected = index;
-		this.pickList = this.pickList ? { ...this.pickList, i: this.pickList.parts.indexOf(index) } : null;
+		this.pickList = this.pickList
+			? { ...this.pickList, i: this.pickList.parts.indexOf(index) }
+			: null;
 		this.say(`Selected ${this.titleOfPart(index)}.`);
 	}
 	toggleSection(): void {
@@ -2315,7 +2321,9 @@ export class VabController {
 		this.lastClick = { x: e.clientX, y: e.clientY, at: now };
 		const index = Number(key);
 		const double =
-			last !== null && now - last.at < 350 && Math.hypot(e.clientX - last.x, e.clientY - last.y) < 6;
+			last !== null &&
+			now - last.at < 350 &&
+			Math.hypot(e.clientX - last.x, e.clientY - last.y) < 6;
 		if (double) {
 			const before = this.entered;
 			this.stepInside({ kind: 'double', index });
@@ -2339,7 +2347,8 @@ export class VabController {
 		const rect = this.canvas?.getBoundingClientRect();
 		// the list shows from the second click at the spot and stays while it cycles
 		// (nextPick keeps the same key list when the click is again at the spot)
-		const cycling = c !== null && prevCycle !== null && c.keys === prevCycle.keys && c.keys.length > 1;
+		const cycling =
+			c !== null && prevCycle !== null && c.keys === prevCycle.keys && c.keys.length > 1;
 		this.pickList =
 			c && cycling && rect
 				? { x: e.clientX - rect.left, y: e.clientY - rect.top, parts: c.keys.map(Number), i: c.i }

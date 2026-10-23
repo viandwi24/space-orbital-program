@@ -123,12 +123,7 @@ function liquidTank(id: string, title: string, size: number, height: number, fue
 }
 
 /** 2.5 m, about 4.5 t full (plan 210). */
-export const PartTankWideShort = wideTank(
-	'stock.tank-wide-short',
-	'Wide Tank, Short',
-	1.1,
-	360
-);
+export const PartTankWideShort = wideTank('stock.tank-wide-short', 'Wide Tank, Short', 1.1, 360);
 /** 2.5 m, about 18 t full (plan 210). */
 export const PartTankWide = wideTank('stock.tank-wide', 'Wide Tank', 3.75, 1_440);
 

@@ -12,20 +12,38 @@ const panel: Pick<PanelDefinition, 'view'> = {
 				kind: 'pick',
 				label: 'Pick target',
 				hint: 'Click the ground',
-				command: (_i, p) => ({ type: 'mod-key', key: 'm.pick', data: { body: p.body, y: p.direction.y } })
+				command: (_i, p) => ({
+					type: 'mod-key',
+					key: 'm.pick',
+					data: { body: p.body, y: p.direction.y }
+				})
 			}
 		]
 	}
 };
-const input = { snapshot: { t: 0, vessels: [], bodies: [] }, vessel: null, altitude: null, speed: null, time: 0 } as unknown as PanelInput;
+const input = {
+	snapshot: { t: 0, vessels: [], bodies: [] },
+	vessel: null,
+	altitude: null,
+	speed: null,
+	time: 0
+} as unknown as PanelInput;
 
 describe('pick node', () => {
 	it('shows as a button with its hint; its command gets the pick', () => {
 		const r = evaluatePanel(panel, input, new Map());
 		if (!r.ok || r.nodes.kind !== 'section') throw new Error('not shown');
-		expect(r.nodes.children[0]).toMatchObject({ kind: 'button', label: 'Pick target', enabled: true, pick: 'Click the ground', path: 'v.0' });
+		expect(r.nodes.children[0]).toMatchObject({
+			kind: 'button',
+			label: 'Pick target',
+			enabled: true,
+			pick: 'Click the ground',
+			path: 'v.0'
+		});
 		expect(isPick(panel, 'v.0')).toBe(true);
-		expect(pickCommand(panel, 'v.0', input, { body: 'stock.home', direction: { x: 0, y: 1, z: 0 } })).toEqual({
+		expect(
+			pickCommand(panel, 'v.0', input, { body: 'stock.home', direction: { x: 0, y: 1, z: 0 } })
+		).toEqual({
 			command: { type: 'mod-key', key: 'm.pick', data: { body: 'stock.home', y: 1 } }
 		});
 	});

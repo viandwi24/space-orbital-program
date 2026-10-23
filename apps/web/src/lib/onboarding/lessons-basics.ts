@@ -162,8 +162,7 @@ export const BASIC_LESSONS: readonly Lesson[] = [
 		id: 'orbit',
 		level: 'basics',
 		title: 'Orbit by hand',
-		summary:
-			`Pathfinder on the pad: lift off, turn east early, drop the booster, push the apoapsis to ${LOW}, then circularise at the top.`,
+		summary: `Pathfinder on the pad: lift off, turn east early, drop the booster, push the apoapsis to ${LOW}, then circularise at the top.`,
 		design: pathfinder,
 		setup: [],
 		blocked: { actions: {}, places: closedPlaces() },
@@ -202,8 +201,7 @@ export const BASIC_LESSONS: readonly Lesson[] = [
 				point: 'dock-tab-host.orbit',
 				title: `Apoapsis to ${LOW}`,
 				text: `Burn until Ap in the Orbit panel passes ${LOW}, then cut with {key:throttleCut}. Above ${AIR} there is no air to slow you.`,
-				touchText:
-					`Burn until Ap in the Orbit panel passes ${LOW}, then tap Cut. Above ${AIR} there is no air to slow you.`,
+				touchText: `Burn until Ap in the Orbit panel passes ${LOW}, then tap Cut. Above ${AIR} there is no air to slow you.`,
 				actions: ['throttleCut'],
 				targets: { panels: ['host.orbit'] },
 				done: (o) => (o.apoapsis ?? 0) >= 78_000 && o.throttle < 0.05
@@ -213,8 +211,7 @@ export const BASIC_LESSONS: readonly Lesson[] = [
 				point: 'hud-warp',
 				title: 'Circularise',
 				text: `Coast to the top: {key:warpUp} speeds up time and {key:warpDown} slows it again. A few seconds before Ap, point prograde and burn until Pe is above ${AIR} too.`,
-				touchText:
-					`Coast to the top (the warp buttons speed up time). A few seconds before Ap, point prograde and burn until Pe is above ${AIR} too.`,
+				touchText: `Coast to the top (the warp buttons speed up time). A few seconds before Ap, point prograde and burn until Pe is above ${AIR} too.`,
 				actions: ['warpUp', 'sasPrograde'],
 				done: (o) => (o.periapsis ?? -Infinity) >= HOME_AIR
 			}

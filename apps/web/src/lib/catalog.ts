@@ -44,12 +44,16 @@ export function partLookup(catalog: Catalog): PartLookup {
 /** `system`: the world's system and variant (plan 124); the stock system by default. */
 /** The loaded mods' keybindings (plan 343), for the Controls settings outside a world. */
 export function loadKeybindings(system: SystemChoice = STOCK_CHOICE): KeybindingDefinition[] {
-	return loadPlugins([...BUILTIN_PLUGINS, ...activePlugins()], { system }).registries.keybindings.list();
+	return loadPlugins([...BUILTIN_PLUGINS, ...activePlugins()], {
+		system
+	}).registries.keybindings.list();
 }
 
 /** The loaded mods' overlays (plan 347), for Settings → Overlays outside a world. */
 export function loadOverlays(system: SystemChoice = STOCK_CHOICE): OverlayDefinition[] {
-	return loadPlugins([...BUILTIN_PLUGINS, ...activePlugins()], { system }).registries.overlays.list();
+	return loadPlugins([...BUILTIN_PLUGINS, ...activePlugins()], {
+		system
+	}).registries.overlays.list();
 }
 
 export function loadContent(

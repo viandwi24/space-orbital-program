@@ -252,7 +252,10 @@ describe('stock blueprints in every system (plan 380)', () => {
 				console.log(`[blueprint-systems] ${c.id} | ${key} | ${outcome} | ${note}`);
 				// ORBITAL_FLIGHT_REPORT=<file> keeps the table (the log shows failures only)
 				if (process.env.ORBITAL_FLIGHT_REPORT)
-					appendFileSync(process.env.ORBITAL_FLIGHT_REPORT, `${c.id} | ${key} | ${outcome} | ${note}\n`);
+					appendFileSync(
+						process.env.ORBITAL_FLIGHT_REPORT,
+						`${c.id} | ${key} | ${outcome} | ${note}\n`
+					);
 				expect(outcome).toBe(expected);
 			}, 900_000);
 		}

@@ -43,7 +43,9 @@ export function techColumns(
 	const tiers = new Map<number, NodeView[]>();
 	for (const n of [...nodes].sort((a, b) => a.cost - b.cost || a.label.localeCompare(b.label))) {
 		const done = isResearched(n, researched);
-		const reason = done ? undefined : researchProblem(n, byId, researched, milestones, science, bodies);
+		const reason = done
+			? undefined
+			: researchProblem(n, byId, researched, milestones, science, bodies);
 		const view: NodeView = {
 			id: n.id,
 			label: n.label,

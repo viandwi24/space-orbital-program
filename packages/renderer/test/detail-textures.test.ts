@@ -6,7 +6,8 @@ describe('ground detail maps (plan 364)', () => {
 		const img = detailImage();
 		expect(img.length).toBe(DETAIL_SIZE * DETAIL_SIZE * 4);
 		const mean = [0, 0, 0, 0];
-		for (let i = 0; i < img.length; i++) mean[i & 3]! += img[i]! / 255 / (DETAIL_SIZE * DETAIL_SIZE);
+		for (let i = 0; i < img.length; i++)
+			mean[i & 3]! += img[i]! / 255 / (DETAIL_SIZE * DETAIL_SIZE);
 		for (const m of mean) expect(Math.abs(m - 0.5)).toBeLessThan(0.01);
 	});
 

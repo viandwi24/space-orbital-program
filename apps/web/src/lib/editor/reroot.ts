@@ -42,11 +42,7 @@ export type RerootResult =
 
 type Entry = VesselDesign['parts'][number];
 
-export function reroot(
-	design: VesselDesign,
-	index: number,
-	content: StagingContent
-): RerootResult {
+export function reroot(design: VesselDesign, index: number, content: StagingContent): RerootResult {
 	const parts = content.parts;
 	const byIndex = new Map(design.parts.map((p) => [p.index, p]));
 	const start = byIndex.get(index);
@@ -56,7 +52,11 @@ export function reroot(
 	if (!layout) return { ok: false, reason: 'path' };
 	// the path from the new root up to the old one
 	const path: Entry[] = [];
-	for (let p: Entry | undefined = start; p; p = p.parent ? byIndex.get(p.parent.index) : undefined) {
+	for (
+		let p: Entry | undefined = start;
+		p;
+		p = p.parent ? byIndex.get(p.parent.index) : undefined
+	) {
 		if (p.link) return { ok: false, reason: 'connector' };
 		if (p.parent) path.push(p);
 	}

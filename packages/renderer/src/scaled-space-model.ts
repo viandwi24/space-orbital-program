@@ -15,7 +15,8 @@ export function scaledSpaceSize(s: Pick<PresetSettings, 'terrainSize' | 'mapWidt
 }
 
 /** GPU bytes of the bake: two RGBA8 cube maps with their mip chains (4/3). */
-export const scaledSpaceBytes = (size: number): number => Math.round(2 * 6 * size * size * 4 * (4 / 3));
+export const scaledSpaceBytes = (size: number): number =>
+	Math.round(2 * 6 * size * size * 4 * (4 / 3));
 
 /**
  * Metres a texel spans on a planet of radius `r` (m), taken at a face's centre (2 r / size) less a

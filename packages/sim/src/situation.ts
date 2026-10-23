@@ -30,4 +30,3 @@ export function vesselSituationNow(core: SimCore, id: EntityId): VesselSituation
 	}
 	return classifySituation(facts);
 }
-

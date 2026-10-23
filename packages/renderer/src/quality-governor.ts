@@ -524,8 +524,7 @@ export class QualityGovernor {
 				}
 				const from = this.level.preset;
 				const level = this.drop(1, text);
-				if (level)
-					this.judder = { share, scene: this.scene, samePreset: level.preset === from };
+				if (level) this.judder = { share, scene: this.scene, samePreset: level.preset === from };
 				return level;
 			}
 		}

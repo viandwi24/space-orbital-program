@@ -101,7 +101,10 @@ describe('quick launch (Shift+Launch)', () => {
 	});
 
 	it("an aircraft takes the runway; the running sim's buildings win over the record", () => {
-		const hq = site([at('pad-s', 'stock.launchpad-s', -1, -1), at('runway', 'stock.runway', 10, 0)]);
+		const hq = site([
+			at('pad-s', 'stock.launchpad-s', -1, -1),
+			at('runway', 'stock.runway', 10, 0)
+		]);
 		const runway = facilitiesOf(hq, buildings).find((f) => f.kind === 'runway')!;
 		expect(quickLaunchPlacement([hq], buildings, true)).toEqual(placementOf(hq, runway));
 		const live = [{ id: hq.id, buildings: [at('pad-m', 'stock.launchpad-m', 4, 2, 1)] }];
