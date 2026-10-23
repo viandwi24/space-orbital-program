@@ -12,7 +12,9 @@ import type {
 	Vec3,
 	VesselApi
 } from '@orbital/core';
-import { add, length } from '@orbital/kepler';
+import { add, length, scale } from '@orbital/kepler';
+import { motionOf, orientationOf } from './orbit.ts';
+import { resolveTarget } from './target.ts';
 import { ambientAt } from './atmosphere.ts';
 import { frameOfPart, moduleDefOf, moduleState, partOf, vesselOf, type SimCore } from './core.ts';
 import { airVelocityAt, bodyOfFrame, centreOfMassInPart, partTransform } from './frames.ts';
@@ -162,6 +164,22 @@ export function makeContext(core: SimCore, partId: EntityId, moduleId: string): 
 			store: (item) => storeData(core, part.vessel, item),
 			used: () => dataUse(core, part.vessel).used,
 			capacity: () => dataUse(core, part.vessel).capacity
+		},
+		sibling(otherId) {
+			const other = part.modules.find((m) => m.id === otherId);
+			if (!other) return undefined;
+			const def = moduleDefOf(core, otherId);
+			return def.snapshot?.(moduleState(core, partId, otherId) as never);
+		},
+		targetDirection() {
+			const v = vesselOf(core, part.vessel);
+			const t = resolveTarget(core, v);
+			const away = t ? t.position : scale(motionOf(core, v).r, -1);
+			const l = length(away);
+			if (!(l > 0)) return undefined;
+			const body = qConj(orientationOf(core, v));
+			const local = qRotate(body, scale(away, 1 / l));
+			return isTurned(part) ? qRotate(qConj(partRotation(part)), local) : local;
 		},
 		situation: () => vesselSituation(core, part.vessel),
 		science: {

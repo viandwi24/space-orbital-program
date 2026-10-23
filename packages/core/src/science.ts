@@ -53,6 +53,8 @@ export interface ExperimentDefinition {
 	mass?: number;
 	/** Fraction of the value a transmission credits (kind `data`). */
 	transmitFactor: number;
+	/** Conditions of a run beyond the situation (plan 298), see the schema. */
+	needs?: { open?: string; pointing?: number };
 }
 
 export const situationDefinitionSchema = z.object({
@@ -79,7 +81,19 @@ export const experimentDefinitionSchema = z
 		power: z.number().nonnegative().optional(),
 		bits: z.number().positive().optional(),
 		mass: z.number().positive().optional(),
-		transmitFactor: z.number().min(0).max(1)
+		transmitFactor: z.number().min(0).max(1),
+		/**
+		 * Conditions of a run beyond the situation (plan 298): `open` names a module of the same part
+		 * whose snapshot says `open: true` (an aperture door), `pointing` the angle in degrees the
+		 * part's forward axis (+Y) may be off its target, which is the vessel's set target, else the
+		 * body it orbits.
+		 */
+		needs: z
+			.object({
+				open: z.string().min(1).optional(),
+				pointing: z.number().positive().max(90).optional()
+			})
+			.optional()
 	})
 	.refine((e) => e.kind !== 'data' || e.bits !== undefined, 'a data experiment needs bits')
 	.refine((e) => e.kind !== 'sample' || e.mass !== undefined, 'a sample experiment needs a mass');

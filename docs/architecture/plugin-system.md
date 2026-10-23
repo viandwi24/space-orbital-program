@@ -315,6 +315,10 @@ Since API 0.1.116 (plan 380, ADR 0317), `BlueprintDefinition.systems` lists the 
 
 JSON data files (`part.json`, `resource.json`) that reference module ids by string are accepted and validated with the same zod schemas. Same registry, no second system.
 
+## Experiment conditions (API 0.1.120, plan 298, ADR 0331)
+
+`ExperimentDefinition.needs` (optional) adds conditions to a run beyond its situation: `open` names a module of the same part whose snapshot says `open: true`, `pointing` the angle in degrees the part's +Y axis may be off its target. `VesselApi.sibling(moduleId)` returns another module's snapshot on the same part, and `VesselApi.targetDirection()` the unit direction from the vessel to its target in the part frame (the set target, else the body it orbits), on rails as well as in flight. Both are optional in test fakes.
+
 ## Card art for presets and system variants (API 0.1.101, plan 317, ADR 0273)
 
 `PresetDefinition` and `SystemVariantDefinition` take two optional fields:

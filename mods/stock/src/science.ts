@@ -184,7 +184,9 @@ export const ExperimentObservation = defineExperiment({
 	duration: 30,
 	power: 0.5,
 	bits: 256 * KBIT,
-	transmitFactor: 0.8
+	transmitFactor: 0.8,
+	// the aperture door open and the tube within 5° of its target (plan 298, ADR 0331)
+	needs: { open: 'stock.animate', pointing: 5 }
 });
 /** Plan 298: a magnetometer on a boom: the field around a body, from high orbit. */
 export const ExperimentMagnetometer = defineExperiment({
@@ -245,11 +247,34 @@ const HOLDS_SAMPLE = 'holds a sample';
 const HOLDS_RESULT = 'holds a result: transmit or reset it';
 const SPENT = 'spent: reset it first';
 const NO_POWER = 'no electric charge';
+const DOOR_CLOSED = 'the aperture door is closed';
+const NO_TARGET = 'no target to point at';
 
 function experimentOf(ctx: ModuleContext<ExperimentConfig, ExperimentState>): ExperimentDefinition {
 	const def = ctx.registries.experiments.get(ctx.config.experiment);
 	if (!def) throw new Error(`stock.experiment: unknown experiment "${ctx.config.experiment}"`);
 	return def;
+}
+
+/** Why a run cannot go on (plan 298): an aperture door shut, or the part pointing off its target. */
+function needsProblem(
+	ctx: ModuleContext<ExperimentConfig, ExperimentState>,
+	def: ExperimentDefinition
+): string | null {
+	const needs = def.needs;
+	if (!needs) return null;
+	if (needs.open !== undefined) {
+		const door = ctx.vessel.sibling?.(needs.open) as { open?: boolean } | undefined;
+		if (door?.open !== true) return DOOR_CLOSED;
+	}
+	if (needs.pointing !== undefined) {
+		const toward = ctx.vessel.targetDirection?.();
+		if (!toward) return NO_TARGET;
+		const off = (Math.acos(Math.max(-1, Math.min(1, toward.y))) * 180) / Math.PI;
+		if (off > needs.pointing)
+			return `pointing ${off.toFixed(0)}° off its target; needs within ${needs.pointing}°`;
+	}
+	return null;
 }
 
 const wrongSituation = (now: string | undefined, def: ExperimentDefinition): string =>
@@ -295,6 +320,9 @@ function advance(ctx: ModuleContext<ExperimentConfig, ExperimentState>, dt: numb
 	const { state, vessel } = ctx;
 	if (state.status !== 'RUNNING' && state.status !== 'PAUSED') return;
 	const def = experimentOf(ctx);
+	// a run that loses its door or its pointing stops, as one that leaves its situation does (plan 298)
+	const lost = needsProblem(ctx, def);
+	if (lost !== null) return set(state, 'INVALID', lost, 0);
 	const need = (def.power ?? 0) * dt;
 	if (need > 0 && vessel.resources.withdraw(ElectricCharge.id, need) < need * (1 - 1e-9)) {
 		return set(state, 'PAUSED', NO_POWER);
@@ -370,6 +398,8 @@ export const ModuleExperiment = defineModule({
 			if (now === undefined || !def.situations.includes(now)) {
 				return set(state, 'INVALID', wrongSituation(now, def), 0);
 			}
+			const missing = needsProblem(ctx, def);
+			if (missing !== null) return set(state, 'INVALID', missing, 0);
 			set(state, 'RUNNING', null, 0);
 		},
 		/** A held result is shown by the host from the snapshot (`result`); the sim keeps it as it is. */
