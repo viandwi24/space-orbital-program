@@ -453,17 +453,18 @@ export function createLutSky(atm: Atmosphere): LutSky {
 		};
 	};
 
-	const pass = (frag: N) => {
+	const pass = (frag: N, name: string) => {
 		const m = new MeshBasicNodeMaterial();
+		m.name = name;
 		// raw output, as the tables are data, not colour
 		m.fragmentNode = frag();
 		m.depthTest = false;
 		m.depthWrite = false;
 		return { m, q: new QuadMesh(m) };
 	};
-	const transPass = pass(transFrag);
-	const msPass = pass(msFrag);
-	const viewPass = pass(viewFrag);
+	const transPass = pass(transFrag, 'lut-sky-transmittance');
+	const msPass = pass(msFrag, 'lut-sky-multiscatter');
+	const viewPass = pass(viewFrag, 'lut-sky-view');
 	const run = (renderer: WebGPURenderer, rt: RenderTarget, p: { q: QuadMesh }): void => {
 		const prev = renderer.getRenderTarget();
 		renderer.setRenderTarget(rt);

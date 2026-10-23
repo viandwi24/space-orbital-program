@@ -268,8 +268,9 @@ export class TerrainTSL {
 			this.patchPass = cached.patch;
 			return;
 		}
-		const pass = (frag: N) => {
+		const pass = (name: string, frag: N) => {
 			const m = new MeshBasicNodeMaterial();
+			m.name = name;
 			// raw output: a colour node would have its alpha replaced by the opacity (g2 lost)
 			m.fragmentNode = frag;
 			m.depthTest = false;
@@ -297,6 +298,7 @@ export class TerrainTSL {
 		};
 		// the atlas: face f's tile is columns [f (N + 2), (f + 1)(N + 2)), its texel i at st = 2 (i - 0.5) / N - 1
 		this.cubePass = pass(
+			'terrain-cube-bake',
 			Fn(() => {
 				const dir = atlasBakeDirection(cubeSize);
 				const { h0, g } = texel(normalize(dir), this.uTexel);
@@ -306,6 +308,7 @@ export class TerrainTSL {
 		);
 		if (patchSize > 0) {
 			this.patchPass = pass(
+				'terrain-patch-bake',
 				Fn(() => {
 					const st = uv().mul(2.0).sub(1.0);
 					const n = normalize(

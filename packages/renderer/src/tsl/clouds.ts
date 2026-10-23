@@ -214,7 +214,8 @@ export class CloudMapTSL {
 	});
 	private readonly cover = uniform(0.42);
 	private baked = -1;
-	private readonly material = new MeshBasicNodeMaterial();
+	// named for the load report (plan 370)
+	private readonly material = Object.assign(new MeshBasicNodeMaterial(), { name: 'cloud-map-bake' });
 	private readonly quad: QuadMesh;
 
 	constructor(radius: number) {

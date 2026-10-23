@@ -179,6 +179,7 @@ const plume = (m: ShaderMaterial): Twin => {
 	const syncs: (() => void)[] = [];
 	const u = linker(m, syncs);
 	const twin = new MeshBasicNodeMaterial();
+	twin.name = `twin-${m.name || m.type}`;
 	withState(twin, m, syncs);
 	const t = positionGeometry.y;
 	const r = mix(u('uExitR'), u('uMaxR'), smoothstep(0.0, 0.5, t))
@@ -231,6 +232,7 @@ const sprite = (m: ShaderMaterial): Twin => {
 	const syncs: (() => void)[] = [];
 	const u = linker(m, syncs);
 	const twin = new MeshBasicNodeMaterial();
+	twin.name = `twin-${m.name || m.type}`;
 	withState(twin, m, syncs);
 	billboard(
 		twin,
@@ -252,6 +254,7 @@ const field = (m: ShaderMaterial, kind: 'smoke' | 'fire'): Twin => {
 	const syncs: (() => void)[] = [];
 	const u = linker(m, syncs);
 	const twin = new MeshBasicNodeMaterial();
+	twin.name = `twin-${m.name || m.type}`;
 	withState(twin, m, syncs);
 	const iPos = attribute('iPos', 'vec3');
 	const centre = cameraViewMatrix.mul(vec4(iPos, 1.0));
@@ -307,6 +310,7 @@ const shell = (m: ShaderMaterial): Twin => {
 	const syncs: (() => void)[] = [];
 	const u = linker(m, syncs);
 	const twin = new MeshBasicNodeMaterial();
+	twin.name = `twin-${m.name || m.type}`;
 	withState(twin, m, syncs);
 	const vAxial = varying(positionGeometry.y);
 	const uIntensity = u('uIntensity');
@@ -343,6 +347,7 @@ const trail = (m: ShaderMaterial): Twin => {
 	const syncs: (() => void)[] = [];
 	const u = linker(m, syncs);
 	const twin = new MeshBasicNodeMaterial();
+	twin.name = `twin-${m.name || m.type}`;
 	withState(twin, m, syncs);
 	const aCentre = attribute('aCentre', 'vec3');
 	const aSide = attribute('aSide', 'float');
@@ -377,6 +382,7 @@ const groundGlow = (m: ShaderMaterial): Twin => {
 	const syncs: (() => void)[] = [];
 	const u = linker(m, syncs);
 	const twin = new MeshBasicNodeMaterial();
+	twin.name = `twin-${m.name || m.type}`;
 	withState(twin, m, syncs);
 	const vUv = varying(positionGeometry.xy);
 	const uGain = u('uGain');
@@ -394,6 +400,7 @@ const siteSteam = (m: ShaderMaterial, o: Object3D): Twin | null => {
 	const syncs: (() => void)[] = [];
 	const u = linker(m, syncs);
 	const twin = new MeshBasicNodeMaterial();
+	twin.name = `twin-${m.name || m.type}`;
 	withState(twin, m, syncs);
 	const im = instanceMatrixOf(mesh as never, syncs);
 	const centre = modelViewMatrix.mul(im.mul(vec4(0.0, 0.0, 0.0, 1.0)));
@@ -436,6 +443,7 @@ const line = (
 	}
 ): Twin => {
 	const twin = new MeshBasicNodeMaterial();
+	twin.name = `twin-${m.name || m.type}`;
 	// a segment's quad winds either way (its side follows the segment's screen direction): both drawn
 	twin.side = DoubleSide;
 	const uColor = uniform(new Color().copy(m.color));
@@ -526,6 +534,7 @@ const wxNoise = (x: N): N => {
 /** A standard node material with the original's properties, kept in step with the ones that change. */
 const standardTwin = (m: Material): { twin: MeshStandardNodeMaterial; sync(): void } => {
 	const twin = new MeshStandardNodeMaterial();
+	twin.name = `twin-${m.name || m.type}`;
 	const skip = new Set([
 		'uuid',
 		'id',
@@ -657,6 +666,7 @@ const highlight = (m: ShaderMaterial): Twin => {
 	const syncs: (() => void)[] = [];
 	const u = linker(m, syncs);
 	const twin = new MeshBasicNodeMaterial();
+	twin.name = `twin-${m.name || m.type}`;
 	withState(twin, m, syncs);
 	const f = pow(
 		max(abs(dot(normalize(normalView), normalize(positionView.negate()))).oneMinus(), 0.0),

@@ -234,8 +234,9 @@ export class MoonTSL {
 				generateMipmaps: false
 			});
 		this.patches = { mid: patch('mid'), fine: patch('fine') };
-		const pass_ = (frag: N) => {
+		const pass_ = (name: string, frag: N) => {
 			const m = new MeshBasicNodeMaterial();
+			m.name = name;
 			m.fragmentNode = frag;
 			m.depthTest = false;
 			m.depthWrite = false;
@@ -243,6 +244,7 @@ export class MoonTSL {
 		};
 		const size = this.cubeSize;
 		this.cubePass = pass_(
+			'moon-cube-bake',
 			Fn(() => {
 				// (hi, lo): hi a multiple of 16 m, so half floats keep centimetres
 				const h = this.height(normalize(atlasBakeDirection(size))).toVar();
@@ -251,6 +253,7 @@ export class MoonTSL {
 			})()
 		);
 		this.patchPass = pass_(
+			'moon-patch-bake',
 			Fn(() => {
 				const st = uv().mul(2.0).sub(1.0);
 				const n = normalize(
@@ -1002,6 +1005,7 @@ export function skyShellTwin(sm: ShaderMaterial): { material: Material; sync(): 
 	const sun = link('uSunBody');
 	const radius = link('uRadius');
 	const m = new MeshBasicNodeMaterial();
+	m.name = 'moon-sky-shell';
 	const vBody = varying(positionGeometry, 'vBody');
 	m.colorNode = Fn(() => {
 		const ro = cam;
