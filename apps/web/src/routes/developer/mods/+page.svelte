@@ -111,7 +111,7 @@
 	<section aria-labelledby="order">
 		<h2 id="order">Boot order</h2>
 		<ol class="order">
-			{#each log.order as id (id)}<li><code>{id}</code></li>{/each}
+			{#each log.order as id, i (id)}<li><span class="dim">{i + 1}.</span> <code>{id}</code></li>{/each}
 		</ol>
 	</section>
 
@@ -260,7 +260,8 @@
 		flex-wrap: wrap;
 		gap: 4px 18px;
 		margin: 0;
-		padding-left: 1.2rem;
+		padding: 0;
+		list-style: none;
 	}
 	.mods,
 	.plain {

@@ -129,7 +129,9 @@
 	// a lesson world teaches its own lesson, not the first flight (plan 229)
 	// svelte-ignore state_referenced_locally
 	const inLesson = !sandbox && runningLesson() !== null;
-	const tutorialStep = $derived(inLesson ? null : currentStep(settings.tutorial, 'vab'));
+	const tutorialStep = $derived(
+		inLesson || sandbox ? null : currentStep(settings.tutorial, 'vab')
+	);
 
 	// A lesson in the Hangar (plan 344, ADR 0293 point 3) reads the design, the checks and the Library.
 	$effect(() => {
