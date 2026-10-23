@@ -37,6 +37,22 @@ describe('the build menu', () => {
 		expect(menu.flatMap((c) => c.cards).every((k) => k.generator !== null)).toBe(true);
 	});
 
+	it('keeps the HQ kinds to the home Space Center: a branch launches, it does not run the agency (ADR 0327)', () => {
+		const of = (id: string) => buildings.find((b) => b.id === id)!;
+		const branch = { ...home, branch: true };
+		for (const id of [
+			'stock.hangar',
+			'stock.mission-center',
+			'stock.astronaut-complex',
+			'stock.research',
+			'stock.administration'
+		]) {
+			expect(buildReason(of(id), home)).toBeNull();
+			expect(buildReason(of(id), branch)).toBe('Only at the home Space Center');
+		}
+		expect(buildReason(of('stock.launchpad-s'), branch)).toBeNull();
+	});
+
 	it('says why a card cannot be built: place, body, then funds', () => {
 		const pad = registries.buildings.get('stock.launchpad-s')!;
 		expect(buildReason(pad, home)).toBeNull();

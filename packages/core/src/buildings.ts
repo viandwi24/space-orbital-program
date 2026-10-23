@@ -47,8 +47,12 @@ export interface BuildingDefinition {
 	provides: string[];
 	/** Allowed body ids; absent = any. */
 	bodies?: string[];
-	/** The home body only, or other bodies only (plan 128, ADR 0125 point 3); absent = anywhere. */
-	placement?: 'home' | 'off-world';
+	/**
+	 * The home body only, or other bodies only (plan 128, ADR 0125 point 3); `hq`: the home
+	 * Space Center only, never a branch, for a building whose capacity the agency reads there
+	 * (player-journey audit Q7, ADR 0327); absent = anywhere.
+	 */
+	placement?: 'home' | 'hq' | 'off-world';
 	/** Metres from the footprint centre that no other building may enter. */
 	hazardRadius?: number;
 	visual: { kind: 'generator'; generator: string } | { kind: 'asset'; path: string };
@@ -80,7 +84,7 @@ export const buildingDefinitionSchema = z
 			.min(1),
 		provides: z.array(z.string().min(1)),
 		bodies: z.array(z.string().min(1)).optional(),
-		placement: z.enum(['home', 'off-world']).optional(),
+		placement: z.enum(['home', 'hq', 'off-world']).optional(),
 		hazardRadius: z.number().positive().optional(),
 		category: definitionIdSchema.optional(),
 		description: z.string().optional(),
@@ -313,6 +317,11 @@ export function canPlace(
 	const home = site.home ?? true;
 	if (def.placement === 'home' && !home) {
 		reasons.push({ code: 'placement', message: `${def.label} is built on the home planet only` });
+	} else if (def.placement === 'hq' && (!home || site.branch === true)) {
+		reasons.push({
+			code: 'placement',
+			message: `${def.label} is built at the home Space Center only: the agency reads its capacity there`
+		});
 	} else if (def.placement === 'off-world' && home) {
 		reasons.push({ code: 'placement', message: `${def.label} is built on other bodies only` });
 	}

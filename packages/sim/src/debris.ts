@@ -85,6 +85,7 @@ export function spawnQueuedDebris(core: SimCore): void {
 		vessel.soi = source.soi;
 		if (source.owner) vessel.owner = source.owner;
 		if (source.launchedAt !== undefined) vessel.launchedAt = source.launchedAt;
+		if (source.launchLatitude !== undefined) vessel.launchLatitude = source.launchLatitude;
 		placeAtState(core, id, position, velocity, t.rotation);
 		enterFlight(core, id, frame);
 		// `spawnVessel` announces it (`vessel:created`)

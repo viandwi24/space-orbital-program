@@ -208,6 +208,11 @@ export interface VesselState {
 	 * ground. Absent while the vessel waits on the pad; MET counts from it.
 	 */
 	launchedAt?: number;
+	/**
+	 * Latitude of the site it was launched from, rad (player-journey audit Q7, ADR 0327): what a
+	 * polar contract checks. Absent for a vessel not placed at a site; pieces that split off keep it.
+	 */
+	launchLatitude?: number;
 	/** "Control from here" (plan 221): the part whose nose SAS and the navball follow; the root when absent. */
 	controlPart?: EntityId;
 	/** The engaged autopilot (plan 310, ADR 0271); absent without one. Saved with the vessel. */

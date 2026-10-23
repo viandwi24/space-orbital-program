@@ -438,6 +438,7 @@ function splitAt(
 		name: (controlled(newSide) ? splitName : debrisName)(vessel.name, vesselNames(core)),
 		...(vessel.design ? { design: vessel.design } : {}),
 		...(vessel.launchedAt !== undefined ? { launchedAt: vessel.launchedAt } : {}),
+		...(vessel.launchLatitude !== undefined ? { launchLatitude: vessel.launchLatitude } : {}),
 		mode: vessel.mode,
 		soi: vessel.soi,
 		root: newRoot,

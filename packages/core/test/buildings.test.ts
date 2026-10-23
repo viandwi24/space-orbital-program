@@ -93,6 +93,18 @@ describe('canPlace', () => {
 		).toEqual(['body']);
 	});
 
+	test('an HQ building stands at the home Space Center only, not at a branch (ADR 0327)', () => {
+		const hq = new Map([['t.lab', { ...shed, id: 't.lab', placement: 'hq' as const }]]);
+		const reg = { get: (id: string) => hq.get(id) };
+		expect(canPlace(empty(), reg, 't.lab', { i: 0, j: 0 }, 0).ok).toBe(true);
+		expect(reasons(canPlace(empty({ branch: true }), reg, 't.lab', { i: 0, j: 0 }, 0))).toContain(
+			'placement'
+		);
+		expect(reasons(canPlace(empty({ home: false }), reg, 't.lab', { i: 0, j: 0 }, 0))).toEqual([
+			'placement'
+		]);
+	});
+
 	test('an entrance with no way to a road; a valid one returns the completed road cells', () => {
 		// A road row at j = -5; the shed's door (south, middle) at (1, -1) faces (1, -2).
 		const roads = [-2, -1, 0, 1, 2, 3].map((i) => ({ i, j: -5 }));

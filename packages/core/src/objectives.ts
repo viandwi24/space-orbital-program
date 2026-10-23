@@ -44,6 +44,8 @@ export interface ObjectiveVesselView {
 	ports?: number;
 	/** The vessel took another in by docking. */
 	docked?: boolean;
+	/** Latitude of the site it was launched from, rad (ADR 0327); absent when not launched from a site. */
+	launchLatitude?: number;
 }
 
 export interface ObjectiveView {

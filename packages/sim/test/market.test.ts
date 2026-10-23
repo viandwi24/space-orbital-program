@@ -63,14 +63,21 @@ describe('production (ADR 0124 point 5)', () => {
 	});
 
 	test('a day that ends in debt makes nothing', async () => {
-		// a company has no budget: the plant's cost leaves 1 000 funds, and the first upkeep day goes negative
+		// a company with the plant built and 1 000 left; its month nets 0 (services +6 000, operations
+		// −3 200, upkeep −2 800; ADRs 0322 and 0324), so a 2 000 debit (debug) puts it in debt until a loan
 		const sim = await make({ 'stock.agency-type': 'company', 'stock.starting-funds': 81_000 });
 		plant(sim);
+		expect(sim.dispatch({ type: 'debug-mode', on: true }).ok).toBe(true);
+		expect(sim.dispatch({ type: 'debug-grant', funds: -2_000 }).ok).toBe(true);
+		expect(funds(sim)).toBe(-1_000);
 		const made: Array<{ funds: number; lf: number }> = [];
 		sim.events.on('world:tick', () => made.push({ funds: funds(sim), lf: stored(sim, LF) }));
-		days(sim, 40);
-		// some days end in debt (the first upkeep day), others not (production resumes as charges allow)
+		days(sim, 20);
+		expect(sim.dispatch({ type: 'loan-take', amount: 25_000 }).ok).toBe(true);
+		days(sim, 20);
+		// days in debt make nothing; once the loan clears the debt, production resumes
 		expect(made.some((d) => d.funds < 0)).toBe(true);
+		expect(made.some((d) => d.funds >= 0)).toBe(true);
 		for (let i = 1; i < made.length; i++) {
 			const step = made[i]!.lf - made[i - 1]!.lf;
 			expect(step).toBe(made[i]!.funds < 0 ? 0 : 200);

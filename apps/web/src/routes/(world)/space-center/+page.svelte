@@ -146,7 +146,8 @@
 			body: siteInfo.body,
 			funds,
 			bodyName: bodyLabel,
-			hqPending: siteInfo.kind === 'branch' && !hqReady(site?.buildings ?? [], buildingRegistry)
+			hqPending: siteInfo.kind === 'branch' && !hqReady(site?.buildings ?? [], buildingRegistry),
+			branch: siteInfo.kind === 'branch'
 		})
 	);
 	const thumbnail = (card: BuildCard): Promise<string> | null =>

@@ -280,6 +280,46 @@ export const ContractSatellite = defineContractTemplate({
 	}
 });
 
+/** A polar customer's launch site: this far from the equator (ADR 0327). */
+export const POLAR_LAUNCH_LATITUDE = (30 * Math.PI) / 180;
+
+/**
+ * A polar satellite (player-journey audit Q7, ADR 0327): an orbit near 90° (polar) or 98° (a
+ * Sun-synchronous kind), and the customer wants it launched from a site at 30° latitude or more, so
+ * an equatorial Space Center cannot take it alone: a branch is what it needs. The pay is what an
+ * equatorial launch would cost with its plane change.
+ */
+export const ContractPolarSatellite = defineContractTemplate({
+	id: 'stock.contract-polar-satellite',
+	label: 'Polar satellite',
+	tier: 2,
+	generate: (ctx) => {
+		if (!has(ctx, ORBIT_HOME(ctx))) return null;
+		const peri = round(ctx.home.radius * (0.2 + 0.3 * ctx.random()), 10_000);
+		const apo = round(peri + ctx.home.radius * 0.1 * ctx.random(), 10_000);
+		const inclination = ((ctx.random() < 0.5 ? 90 : 98) * Math.PI) / 180;
+		const v = circular(ctx.home, peri);
+		const deltaV = ascent(ctx.home, peri) + 2 * v * Math.sin(inclination / 2);
+		return {
+			key: `polar-satellite:${ctx.home.id}:${peri}:${apo}:${Math.round((inclination * 180) / Math.PI)}`,
+			title: `A polar satellite at ${km(peri)} by ${km(apo)}, ${deg(inclination)} inclined`,
+			brief: `Put a vessel with an antenna and a source of power on an orbit of ${ctx.home.label}: periapsis ${km(peri)} and apoapsis ${km(apo)} (each within 10 %), inclination ${deg(inclination)} (within 2°). The customer's range rules ask for a launch from a site at ${deg(POLAR_LAUNCH_LATITUDE)} latitude or more, north or south: Found a branch there from the Space Center.`,
+			objectives: {
+				objective: 'stock.satellite',
+				params: {
+					periapsis: peri,
+					apoapsis: apo,
+					inclination,
+					minLaunchLatitude: POLAR_LAUNCH_LATITUDE
+				}
+			},
+			...money(ctx, deltaV, 2),
+			deadline: days(ctx, 120),
+			deltaV
+		};
+	}
+});
+
 export const ContractStation = defineContractTemplate({
 	id: 'stock.contract-station',
 	label: 'Space station',
@@ -330,6 +370,7 @@ export const STOCK_CONTRACT_TEMPLATES = [
 	ContractPlanetFlyby,
 	ContractRescue,
 	ContractSatellite,
+	ContractPolarSatellite,
 	ContractStation,
 	ContractDocking
 ] as const;

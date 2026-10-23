@@ -151,7 +151,11 @@ export const ObjectiveRescue = defineObjective({
 	}
 });
 
-/** A satellite: in the given orbit (±`tolerance` on Ap and Pe, ±`inclinationTolerance`) with an antenna and power. */
+/**
+ * A satellite: in the given orbit (±`tolerance` on Ap and Pe, ±`inclinationTolerance`) with an antenna
+ * and power; with `minLaunchLatitude`, launched from a site at that latitude or more, north or south
+ * (ADR 0327).
+ */
 export const ObjectiveSatellite = defineObjective({
 	id: 'stock.satellite',
 	label: 'Place a satellite',
@@ -164,7 +168,13 @@ export const ObjectiveSatellite = defineObjective({
 		/** Fraction of each altitude (default 0.1). */
 		tolerance: z.number().positive().max(1).optional(),
 		/** rad (default 2°). */
-		inclinationTolerance: z.number().positive().optional()
+		inclinationTolerance: z.number().positive().optional(),
+		/** rad; the vessel's launch site must be this far from the equator (ADR 0327). */
+		minLaunchLatitude: z
+			.number()
+			.positive()
+			.max(Math.PI / 2)
+			.optional()
 	}),
 	evaluate: (p, view) => {
 		const body = bodyOf(view, p.body);
@@ -181,7 +191,9 @@ export const ObjectiveSatellite = defineObjective({
 				v.inclination !== null &&
 				Math.abs(v.inclination - p.inclination) <= di &&
 				v.antenna === true &&
-				v.power === true,
+				v.power === true &&
+				(p.minLaunchLatitude === undefined ||
+					(v.launchLatitude !== undefined && Math.abs(v.launchLatitude) >= p.minLaunchLatitude)),
 			(v) => (orbiting(v, body) ? 0.5 : 0)
 		);
 	}
