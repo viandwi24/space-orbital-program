@@ -142,16 +142,21 @@ describe('the monogram tile', () => {
 });
 
 describe('the loader log (plan 375)', () => {
-	it('maps its registry kinds to the card counts, programs from the registries', () => {
-		const counts = countsFromLog(
-			[
-				{
-					id: 'acme',
-					counts: { part: 2, 'crew-outfit': 1, 'crew-look': 2, body: 1, module: 9, blueprint: 1 }
+	it('maps its registry kinds to the card counts, autopilots as programs', () => {
+		const counts = countsFromLog([
+			{
+				id: 'acme',
+				counts: {
+					part: 2,
+					'crew-outfit': 1,
+					'crew-look': 2,
+					body: 1,
+					module: 9,
+					blueprint: 1,
+					autopilot: 3
 				}
-			],
-			new Map([['acme', { programs: 3, parts: 99 }]])
-		);
+			}
+		]);
 		expect(counts.get('acme')).toEqual({ parts: 2, crew: 3, world: 1, blueprints: 1, programs: 3 });
 	});
 

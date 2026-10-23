@@ -96,13 +96,9 @@ export function countKeyOfKind(kind: string): CountKey | null {
 	return null;
 }
 
-/**
- * The counts from the loader log (ADR 0312 point 3, read from plan 375's boot log), with the kinds
- * the log does not list (autopilots, which are not a `RegistryKind`) taken from `extra`.
- */
+/** The counts from the loader log (ADR 0312 point 3, read from plan 375's boot log). */
 export function countsFromLog(
-	mods: readonly { id: string; counts: Partial<Record<string, number>> }[],
-	extra: ReadonlyMap<string, Partial<Record<CountKey, number>>> = new Map()
+	mods: readonly { id: string; counts: Partial<Record<string, number>> }[]
 ): Map<string, Partial<Record<CountKey, number>>> {
 	const out = new Map<string, Partial<Record<CountKey, number>>>();
 	for (const m of mods) {
@@ -112,9 +108,6 @@ export function countsFromLog(
 			if (key && n) row[key] = (row[key] ?? 0) + n;
 		}
 		out.set(m.id, row);
-	}
-	for (const [id, row] of extra) {
-		if (row.programs) out.set(id, { ...(out.get(id) ?? {}), programs: row.programs });
 	}
 	return out;
 }
