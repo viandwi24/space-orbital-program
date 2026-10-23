@@ -44,6 +44,7 @@ import { PlanetPass } from './planet.ts';
 import { PRESETS, settingsFor, shadowSizeAt, type GraphicsPreset } from './presets.ts';
 import { fitShadow } from './shadow-fit.ts';
 import { liftAboveTerrain } from './terrain-patch.ts';
+import { GroundRocks } from './ground-rocks.ts';
 import { LaunchSite, SiteBuildings } from './site-meshes.ts';
 import { DEG, dot, length, rotate, rotateInverse, sub, vec } from './vec.ts';
 
@@ -124,6 +125,8 @@ export class Environment {
 	readonly atmosphere: Atmosphere;
 	readonly planet: PlanetPass;
 	readonly site: LaunchSite;
+	/** Rocks away from the site (plan 402). */
+	readonly rocks: GroundRocks;
 	readonly sunLight: DirectionalLight;
 	readonly hemisphere: HemisphereLight;
 	readonly fog: FogExp2;
@@ -195,6 +198,12 @@ export class Environment {
 			settings.tufts,
 			config.siteBuildings === true
 		);
+		this.rocks = new GroundRocks(
+			body.radius,
+			this.terrain,
+			this.worldTerrain.zones ?? [],
+			this.worldTerrain.seed
+		);
 		this.sunLight = new DirectionalLight(0xffffff, this.atmosphere.sunIrradiance);
 		this.sunLight.name = 'sun';
 		this.sunLight.shadow.bias = SHADOW_BIAS;
@@ -207,6 +216,7 @@ export class Environment {
 			this.planet.mesh,
 			this.planet.edgeMesh,
 			this.site.root,
+			this.rocks.root,
 			this.sunLight,
 			this.sunLight.target,
 			this.hemisphere
@@ -312,6 +322,7 @@ export class Environment {
 		const s = settingsFor(this.preset, this.resources);
 		this.planet.setQuality(s);
 		this.site.setTrees(s.trees, s.tufts);
+		this.rocks.setQuality(s.rocks);
 		const shadows = s.shadowMapSize > 0;
 		this.sunLight.castShadow = shadows;
 		const wanted = shadowSizeAt(this.shadowMapSide(), this.viewRatio);
@@ -413,6 +424,14 @@ export class Environment {
 			siteLongitude: this.config.site.longitude
 		});
 		this.site.place(bodyRender, bodyRotation);
+		// rocks only where the camera is over the home planet's own ground
+		if (input.mapView || input.airless || input.air) this.rocks.root.visible = false;
+		else
+			this.rocks.update(
+				rotateInverse(bodyRotation, sub(cameraRender, bodyRender)),
+				bodyRender,
+				bodyRotation
+			);
 		this.site.setDetail(Math.hypot(frame.camToSite.x, frame.camToSite.y, frame.camToSite.z));
 		this.site.animate({
 			dt: input.dt,

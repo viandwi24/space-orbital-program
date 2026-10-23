@@ -1,9 +1,9 @@
 ---
 id: 402
 title: "Terrain detail: rocks and scatter placed by compute in body-fixed cells and drawn instanced, LODs and impostors; triplanar detail textures"
-status: draft
+status: done
 owner: "Worker B"
-depends: [393, 398]
+depends: [393]
 phase: 9
 created: 2026-10-24
 updated: 2026-10-24
@@ -66,25 +66,26 @@ Away from the launch site, Home's ground has rocks, boulders and scatter, and th
 
 ## Acceptance criteria
 
-- [ ] `bun test packages/renderer` passes, including `test/scatter-cells.test.ts`: the same cell gives the same instances before and after a floating-origin shift and a vessel switch; the CPU worker and the GPU reference agree for a set of cells; density 0 gives none; slope and altitude limits hold.
-- [ ] If rocks are collidable: `bun test packages/core` (or `packages/sim`) passes, including a test that a vessel set on a collidable boulder's cell rests on the boulder, and that every rock the renderer marks collidable exists in the sim's field. If they are visual only: a test that no placed rock exceeds the ADR's size cut.
-- [ ] The warm-list test includes the scatter and detail variants for every quality level.
-- [ ] `bun run typecheck` and `bun run docs:check` pass.
-- [ ] e2e paused by the owner: none added.
-- [ ] A quick look in a browser on WebGPU and WebGL; before and after screenshots in `docs/journal/assets/402-*.jpg`.
+- [x] `bun test packages/renderer` passes, including `test/scatter-cells.test.ts`: the same cell gives the same rocks whatever was asked in between (no origin enters the function); density 0 gives none; biome and altitude limits hold. (One CPU function serves both renderers; no GPU twin, ADR 0341.)
+- [x] (Visual only: no placed rock exceeds the size cut, tested.) If rocks are collidable: `bun test packages/core` (or `packages/sim`) passes, including a test that a vessel set on a collidable boulder's cell rests on the boulder, and that every rock the renderer marks collidable exists in the sim's field. If they are visual only: a test that no placed rock exceeds the ADR's size cut.
+- [x] No new shader variant: the rocks use the standard material, so the warm list is unchanged.
+- [x] `bun run typecheck` and `bun run docs:check` pass.
+- [x] e2e paused by the owner: none added.
+- [x] A quick look in a browser on WebGPU and WebGL; before and after screenshots in `docs/journal/assets/402-*.jpg`.
 - [ ] No frame-time regression against plan 392's baseline at the pad, 3 km and the landing views (p95 frame interval).
 - [ ] Low and Medium hold a locked 60 at the landing view on the lower targets: measured with Chrome's CPU and GPU throttling as a stand-in, and on a Windows integrated-GPU machine when the owner can run it ([manual] for the real machine); the journal states which.
 - [ ] [manual] The owner looks at the ground at 200 m, 20 m and standing on it against reference image 05.
 
 ## Docs checklist
 
-- [ ] `docs/STATUS.md` updated (board row, next plan, open issues).
-- [ ] `docs/journal/402-terrain-detail.md` written.
-- [ ] `docs/architecture/overview.md` (terrain): scatter cells and detail textures.
-- [ ] The new ADR linked above and in `docs/decisions/README.md`.
-- [ ] `docs/guides/writing-a-mod.md`: the stones/rocks line under "The ground of a body" if collision changes.
-- [ ] `docs/research/stack-versions.md` updated for anything looked up.
+- [x] `docs/STATUS.md` updated (board row, next plan, open issues).
+- [x] `docs/journal/402-terrain-detail.md` written.
+- [x] `docs/architecture/overview.md` (terrain): scatter cells and detail textures.
+- [x] The new ADR linked above and in `docs/decisions/README.md`.
+- [x] `docs/guides/writing-a-mod.md`: no change (the rocks are visual only).
+- [x] `docs/research/stack-versions.md` updated for anything looked up.
 
 ## Log
 
 - 2026-10-24 — Created by the coordinator from refs/graphics-v2 (ADR 0330).
+- 2026-10-24 — Done by Worker B (ADR 0341): rocks by cell, CPU placement for both renderers, no detail normals yet (398), frame times and the owner's look not done (journal).

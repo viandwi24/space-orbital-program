@@ -81,6 +81,11 @@ export interface PresetSettings {
 	plasma: 'low' | 'medium' | 'high';
 	/** Engine plumes (plan 400): Low draws the inner flame and the nozzle glow, no diamonds and no cluster light; Medium adds the outer flame, the diamonds and the cluster light; High is for the volumetric layer (plan 400 follow-up). */
 	plume: 'low' | 'medium' | 'high';
+	/**
+	 * Rocks on the ground away from the launch site (plan 402, ADR 0339): the share of the lattice's
+	 * rocks drawn (0 = none) and the farthest one, m. Low none; Medium half of them, near; High all.
+	 */
+	rocks: { density: number; range: number };
 	/** The sea (plan 401): Low the analytic waves with the sky reflection; Medium adds the scrolled detail normals; High is for the 64² FFT on WebGPU (plan 401 follow-up). */
 	ocean: 'low' | 'medium' | 'high';
 }
@@ -136,6 +141,7 @@ export const PRESETS: Readonly<Record<GraphicsPreset, PresetSettings>> = {
 		mapWidth: 512,
 		trees: 250,
 		tufts: 0,
+		rocks: { density: 0, range: 0 },
 		terrainSize: 512,
 		terrainSteps: 48,
 		terrainRefineSteps: 24,
@@ -173,6 +179,7 @@ export const PRESETS: Readonly<Record<GraphicsPreset, PresetSettings>> = {
 		mapWidth: 1024,
 		trees: 900,
 		tufts: 10000,
+		rocks: { density: 0.5, range: 90 },
 		terrainSize: 768,
 		terrainSteps: 80,
 		terrainRefineSteps: 32,
@@ -210,6 +217,7 @@ export const PRESETS: Readonly<Record<GraphicsPreset, PresetSettings>> = {
 		mapWidth: 1024,
 		trees: 2000,
 		tufts: 28000,
+		rocks: { density: 1, range: 220 },
 		terrainSize: 1024,
 		terrainSteps: 128,
 		terrainRefineSteps: 40,

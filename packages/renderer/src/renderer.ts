@@ -90,6 +90,8 @@ export interface RendererDebug {
 	applyPreset(name: string): boolean;
 	/** Force the device pixel ratio (frame-time measurements at exactly 1920x1080), or `null` for the default. */
 	setPixelRatio(ratio: number | null): void;
+	/** Rocks on the ground now: placed, drawn near and far, and whether the group is shown (plan 402). */
+	groundRocks(): { count: number; visible: boolean; near: number; far: number };
 	/** Force the skin temperature of every part (K) for glow screenshots, or `null` for the snapshot values. */
 	setPartTemperature(kelvin: number | null): void;
 	/** Aim the flight camera at the n-th part with this definition id (`null` = the root part). */
