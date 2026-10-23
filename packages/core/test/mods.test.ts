@@ -198,7 +198,12 @@ describe('resolveMods through the blob importer', () => {
 			bundle({ id: 'ok' })
 		]);
 		expect(r.rejected).toEqual([
-			{ id: 'bad', version: '1.0.0', reason: expect.stringContaining('boom') }
+			expect.objectContaining({
+				id: 'bad',
+				version: '1.0.0',
+				reason: expect.stringContaining('boom'),
+				code: 'setup'
+			})
 		]);
 		expect(r.plugins.map((p) => p.meta.id)).toEqual(['ok']);
 	});
@@ -224,5 +229,28 @@ describe('resolveMods through the blob importer', () => {
 	test('a mod whose own api range is not satisfied by the plugin meta is caught by the loader', async () => {
 		const r = await run([bundle({ id: 'm' }, source({ id: 'm', api: '^9' }))]);
 		expect(r.rejected[0]!.reason).toContain('requires mod API "^9"');
+	});
+});
+
+describe('rejection codes for the loader log (plan 375)', () => {
+	test('an API mismatch, a missing dependency and a throwing setup each say what they are', async () => {
+		const out = await run([
+			bundle({ id: 'old', api: '^9.0' }, source({ id: 'old', api: '^9.0' })),
+			bundle({ id: 'needy', dependencies: { nowhere: '^1.0.0' } }, source({ id: 'needy' })),
+			bundle(
+				{ id: 'boom' },
+				source({ id: 'boom', setup: "throw new Error('kaboom in setup');" })
+			),
+			bundle({ id: 'clash' }, source({ id: 'clash', setup: "ctx.parts.register({ id: 'base.rock', title: 'Again', mass: 1 });" }))
+		]);
+		const byId = new Map(out.rejected.map((r) => [r.id, r]));
+		expect(byId.get('old')?.code).toBe('api');
+		expect(byId.get('needy')?.code).toBe('dependency');
+		const boom = byId.get('boom');
+		expect(boom?.code).toBe('setup');
+		expect(boom?.reason).toContain('kaboom in setup');
+		expect(boom?.stack).toContain('kaboom in setup');
+		expect(byId.get('clash')?.code).toBe('content');
+		expect(out.rejected.every((r) => typeof r.code === 'string')).toBe(true);
 	});
 });

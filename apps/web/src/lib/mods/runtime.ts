@@ -5,24 +5,28 @@
  * synchronously. The set is fixed for the life of the page: changes need a reload.
  */
 import {
+	API_VERSION,
 	importModBundle,
 	installModSdk,
 	loadPlugins,
 	modPackageFingerprint,
 	resolveMods,
 	type ModBundle,
+	type LoadReport,
+	type ModProblemCode,
 	type PatchReport,
 	type Plugin
 } from '@orbital/core';
 import * as sdk from '@orbital/sdk';
 import { BUILTIN_PLUGINS } from '../builtins';
+import { buildBootLog, storeBootLog, type ModBootLog } from './boot-log';
 import type { ModRecord, ModStore } from './store';
 
 export type ModState =
 	| { kind: 'loaded' }
 	| { kind: 'disabled' }
-	/** Enabled but not booted: it threw, clashed, or needs something missing. */
-	| { kind: 'failed'; reason: string }
+	/** Enabled but not booted: it threw, clashed, or needs something missing (`code`: what kind, plan 375). */
+	| { kind: 'failed'; reason: string; code?: ModProblemCode; stack?: string }
 	/** Enabled but its code is not what the player trusted. */
 	| { kind: 'untrusted'; reason: string };
 
@@ -41,6 +45,12 @@ export interface ModRuntime {
 	partAssets: Map<string, Uint8Array>;
 	/** Every data patch of the booted set, in apply order, with what it changed (plan 079). */
 	patches: PatchReport[];
+	/** The booted set's load report (built-ins and mods), or null when it did not boot (plan 375). */
+	report: LoadReport | null;
+	/** Decoded assets of the booted mods, by mod id then path (plan 375: portraits). */
+	assets: ReadonlyMap<string, ReadonlyMap<string, Uint8Array>>;
+	/** The loader log of this evaluation (plan 375). */
+	log: ModBootLog | null;
 }
 
 const EMPTY: ModRuntime = {
@@ -48,13 +58,18 @@ const EMPTY: ModRuntime = {
 	plugins: [],
 	bundles: [],
 	partAssets: new Map(),
-	patches: []
+	patches: [],
+	report: null,
+	assets: new Map(),
+	log: null
 };
 let current: ModRuntime = EMPTY;
 
 export interface EvaluateOptions {
 	importModule?: (code: string) => Promise<unknown>;
 	builtin?: readonly Plugin[];
+	/** Boot installed mods the player turned off too (the developer viewers' switch, plan 375). */
+	includeDisabled?: boolean;
 }
 
 /** Decide what runs for `records`. Pure of storage; the sdk is installed for the importer. */
@@ -66,7 +81,7 @@ export async function evaluateMods(
 	const states = new Map<string, ModState>();
 	const candidates: ModBundle[] = [];
 	for (const record of records) {
-		if (!record.enabled) {
+		if (!record.enabled && !options.includeDisabled) {
 			states.set(record.id, { kind: 'disabled' });
 			continue;
 		}
@@ -88,7 +103,13 @@ export async function evaluateMods(
 		builtin: options.builtin ?? [...BUILTIN_PLUGINS],
 		importModule: options.importModule ?? importModBundle
 	});
-	for (const r of resolved.rejected) states.set(r.id, { kind: 'failed', reason: r.reason });
+	for (const r of resolved.rejected)
+		states.set(r.id, {
+			kind: 'failed',
+			reason: r.reason,
+			code: r.code,
+			...(r.stack ? { stack: r.stack } : {})
+		});
 	for (const m of resolved.accepted) states.set(m.id, { kind: 'loaded' });
 	const bootedIds = new Set(resolved.accepted.map((m) => m.id));
 	const partAssets = new Map<string, Uint8Array>();
@@ -100,12 +121,24 @@ export async function evaluateMods(
 	// The booted set loads once more, headless, for what its patches changed: the same list and
 	// order the sim boots, so the mod manager shows what a flight will use.
 	const builtin = options.builtin ?? [...BUILTIN_PLUGINS];
-	let patches: PatchReport[] = [];
+	let report: LoadReport | null = null;
+	let bootError: unknown;
 	try {
-		patches = loadPlugins([...builtin, ...resolved.plugins]).report.patches;
-	} catch {
-		patches = [];
+		report = loadPlugins([...builtin, ...resolved.plugins]).report;
+	} catch (e) {
+		bootError = e;
 	}
+	const assets = new Map<string, ReadonlyMap<string, Uint8Array>>();
+	for (const [mod, decoded] of resolved.assets)
+		assets.set(mod, new Map([...decoded].map(([path, a]) => [path, a.bytes])));
+	const log = buildBootLog({
+		api: API_VERSION,
+		builtin,
+		records,
+		states,
+		...(report ? { report } : {}),
+		...(bootError !== undefined ? { error: bootError } : {})
+	});
 	return {
 		entries: records.map((record) => ({
 			record,
@@ -114,7 +147,10 @@ export async function evaluateMods(
 		plugins: resolved.plugins,
 		bundles: candidates.filter((b) => bootedIds.has(b.manifest.id)),
 		partAssets,
-		patches
+		patches: report?.patches ?? [],
+		report,
+		assets,
+		log
 	};
 }
 
@@ -125,8 +161,28 @@ export async function initModRuntime(
 ): Promise<ModRuntime> {
 	try {
 		current = await evaluateMods(await store.list(), options);
-	} catch {
+		if (current.log) storeBootLog(current.log);
+	} catch (e) {
 		current = EMPTY; // a store that cannot be read means stock only; the game still starts
+		const builtin = options.builtin ?? [...BUILTIN_PLUGINS];
+		let report: LoadReport | undefined;
+		try {
+			report = loadPlugins(builtin).report;
+		} catch {
+			report = undefined;
+		}
+		storeBootLog(
+			buildBootLog({
+				api: API_VERSION,
+				builtin,
+				records: [],
+				states: new Map(),
+				...(report ? { report } : {}),
+				error: new Error(
+					`the installed mods could not be read (${e instanceof Error ? e.message : String(e)})`
+				)
+			})
+		);
 	}
 	return current;
 }

@@ -251,11 +251,37 @@ export interface PartAssetRef {
 	lod?: number;
 }
 
+/**
+ * What kind of problem rejected a mod (plan 375): the loader log groups and explains by it.
+ * - `api`: the mod wants another mod API version.
+ * - `dependency`: a dependency is missing, disabled or the wrong version.
+ * - `duplicate`: its plugin id is taken.
+ * - `manifest`: the manifest and the code disagree.
+ * - `import`: the code could not be evaluated or does not export a plugin.
+ * - `setup`: its `setup` threw.
+ * - `content`: a definition it registers is invalid or clashes.
+ * - `assets`: its assets are invalid, or a part names an asset the package lacks.
+ * - `cycle`: mods that depend on each other.
+ */
+export type ModProblemCode =
+	| 'api'
+	| 'dependency'
+	| 'duplicate'
+	| 'manifest'
+	| 'import'
+	| 'setup'
+	| 'content'
+	| 'assets'
+	| 'cycle';
+
 export interface RejectedMod {
 	id: string;
 	version: string;
 	/** Shown to the player. */
 	reason: string;
+	code: ModProblemCode;
+	/** The thrown error's stack, where an error was thrown (import, setup, content). */
+	stack?: string;
 }
 
 export interface ResolveModsOptions {
@@ -279,6 +305,20 @@ export interface ResolvedMods {
 }
 
 const message = (e: unknown): string => (e instanceof Error ? e.message : String(e));
+/** The deepest stack of an error and its causes: a setup failure's stack is the mod's own. */
+function stackOf(e: unknown): string | undefined {
+	let best: string | undefined;
+	for (let at: unknown = e, i = 0; at instanceof Error && i < 5; at = at.cause, i++) {
+		if (at.stack) best = at.stack;
+	}
+	return best;
+}
+/** Sorts a loader error into a problem code. */
+function codeOf(e: unknown): ModProblemCode {
+	const text = message(e);
+	if (/setup failed|async setup/.test(text)) return 'setup';
+	return 'content';
+}
 
 function isPlugin(value: unknown): value is Plugin {
 	if (typeof value !== 'object' || value === null) return false;
@@ -316,8 +356,9 @@ export async function resolveMods(
 	const owners = new Map<string, string>(
 		options.builtin.map((p) => [p.meta.id, 'a built-in plugin'])
 	);
-	const reject = (m: ModManifest, reason: string): void => {
-		rejected.push({ id: m.id, version: m.version, reason });
+	const reject = (m: ModManifest, reason: string, code: ModProblemCode, error?: unknown): void => {
+		const stack = error === undefined ? undefined : stackOf(error);
+		rejected.push({ id: m.id, version: m.version, reason, code, ...(stack ? { stack } : {}) });
 	};
 
 	// Cheap, static checks first; dependency waits are resolved in passes below.
@@ -326,24 +367,25 @@ export async function resolveMods(
 		const m = bundle.manifest;
 		const owner = owners.get(m.id);
 		if (owner) {
-			reject(m, `plugin id "${m.id}" is already used by ${owner}; a mod cannot replace it`);
+			reject(m, `plugin id "${m.id}" is already used by ${owner}; a mod cannot replace it`, 'duplicate');
 			continue;
 		}
 		if (pending.some((b) => b.manifest.id === m.id)) {
 			const first = pending.find((b) => b.manifest.id === m.id)!.manifest;
 			reject(
 				m,
-				`duplicate plugin id "${m.id}": mod "${first.id}" ${first.version} and mod "${m.id}" ${m.version} are both installed`
+				`duplicate plugin id "${m.id}": mod "${first.id}" ${first.version} and mod "${m.id}" ${m.version} are both installed`,
+				'duplicate'
 			);
 			continue;
 		}
 		try {
 			if (!satisfies(apiVersion, m.api)) {
-				reject(m, `requires mod API "${m.api}" but this game provides ${apiVersion}`);
+				reject(m, `requires mod API "${m.api}" but this game provides ${apiVersion}`, 'api');
 				continue;
 			}
 		} catch (e) {
-			reject(m, `invalid api range: ${message(e)}`);
+			reject(m, `invalid api range: ${message(e)}`, 'api');
 			continue;
 		}
 		pending.push(bundle);
@@ -368,7 +410,7 @@ export async function resolveMods(
 				if (failure) break;
 			}
 			if (failure) {
-				reject(m, failure);
+				reject(m, failure, 'dependency');
 				progress = true;
 				continue;
 			}
@@ -382,7 +424,7 @@ export async function resolveMods(
 			if (bundle.assets) {
 				const checked = await decodeAssets(bundle.assets);
 				if (!checked.ok) {
-					reject(m, `its assets are not valid: ${checked.errors.join('; ')}`);
+					reject(m, `its assets are not valid: ${checked.errors.join('; ')}`, 'assets');
 					continue;
 				}
 				decoded = checked.assets;
@@ -393,19 +435,20 @@ export async function resolveMods(
 				const ns = await options.importModule(bundle.code);
 				const candidate = (ns as { default?: unknown } | null)?.default;
 				if (!isPlugin(candidate)) {
-					reject(m, 'the code does not default-export a plugin (definePlugin(...))');
+					reject(m, 'the code does not default-export a plugin (definePlugin(...))', 'import');
 					continue;
 				}
 				plugin = candidate;
 			} catch (e) {
-				reject(m, `could not be loaded: ${message(e)}`);
+				reject(m, `could not be loaded: ${message(e)}`, 'import', e);
 				continue;
 			}
 			const meta = plugin.meta;
 			if (meta.id !== m.id || meta.version !== m.version) {
 				reject(
 					m,
-					`the manifest says ${m.id} ${m.version} but the code is plugin "${meta.id}" ${meta.version}`
+					`the manifest says ${m.id} ${m.version} but the code is plugin "${meta.id}" ${meta.version}`,
+					'manifest'
 				);
 				continue;
 			}
@@ -413,7 +456,7 @@ export async function resolveMods(
 				const trial = loadPlugins([...options.builtin, ...plugins, plugin], { apiVersion });
 				const off = trial.report.disabled.find((d) => d.id === m.id);
 				if (off) {
-					reject(m, off.reason);
+					reject(m, off.reason, /mod API/.test(off.reason) ? 'api' : 'dependency');
 					continue;
 				}
 				// A part's `visual.asset` must name a file the package ships: a typo is the mod's error,
@@ -438,12 +481,12 @@ export async function resolveMods(
 					if (missing) break;
 				}
 				if (missing) {
-					reject(m, missing);
+					reject(m, missing, 'assets');
 					continue;
 				}
 				partAssets.push(...refs);
 			} catch (e) {
-				reject(m, message(e));
+				reject(m, message(e), codeOf(e), e);
 				continue;
 			}
 			plugins.push(plugin);
@@ -459,7 +502,7 @@ export async function resolveMods(
 		const cycle = Object.keys(m.dependencies).filter((d) =>
 			pending.some((b) => b.manifest.id === d)
 		);
-		reject(m, `depends on mods that wait for each other: ${cycle.join(', ')}`);
+		reject(m, `depends on mods that wait for each other: ${cycle.join(', ')}`, 'cycle');
 	}
 	return { plugins, accepted, rejected, partAssets, assets: assetsById };
 }

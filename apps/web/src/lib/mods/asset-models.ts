@@ -8,6 +8,7 @@
  */
 import { asset } from '$app/paths';
 import type { PartModelProvider } from '@orbital/renderer';
+import { noteAssetProblem } from './boot-log';
 import { activePartAssets } from './runtime';
 
 let providers: PartModelProvider[] = [];
@@ -28,12 +29,18 @@ export async function prepareModelProviders(
 		});
 		await provider.preload([...assets.keys()]);
 		for (const [part, reason] of provider.failures) {
+			noteAssetProblem({ mod: part.split('.')[0] ?? part, what: `model of part "${part}"`, message: reason });
 			log(
 				`Mod model for "${part}" could not be loaded (${reason}); the part is drawn with its fallback look.`
 			);
 		}
 		providers = [provider];
 	} catch (e) {
+		noteAssetProblem({
+			mod: '(all)',
+			what: 'mod models',
+			message: e instanceof Error ? e.message : String(e)
+		});
 		log(`Mod models could not be prepared: ${e instanceof Error ? e.message : String(e)}`);
 	}
 }

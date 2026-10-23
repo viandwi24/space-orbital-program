@@ -499,7 +499,7 @@
 			</p>
 		{:else if tab === 'info'}
 			<p class="tools">
-				<a href={resolve('/dev/parts')} target="_blank" rel="noopener">Part viewer</a> (a new tab: every
+				<a href={resolve('/developer/parts')} target="_blank" rel="noopener">Part viewer</a> (a new tab: every
 				part on its own, its nodes and colliders, no world loaded)
 			</p>
 			<dl class="info" data-testid="debug-info">

@@ -2,11 +2,11 @@
 	import { resolve } from '$app/paths';
 	import { onMount } from 'svelte';
 	import { GAME_NAME } from '../../lib/public/about';
-	import MenuShell from '../../lib/ui/MenuShell.svelte';
-	import PageHead from '../../lib/ui/PageHead.svelte';
 	import PageMeta from '../../lib/ui/PageMeta.svelte';
 	import Button from '../../lib/ui/Button.svelte';
 	import { downloadText } from '../../lib/download';
+	import { shownTabs } from '../../lib/dev/tabs';
+	import { devHref } from '../../lib/dev/href';
 	import {
 		clearLoadLogs,
 		formatLoadLog,
@@ -19,6 +19,34 @@
 	 * The Developer page (plan 370, the owner's request of 2026-10-22): every stored world load's log
 	 * (newest first) to read, copy or download, and the developer tools that need no world.
 	 */
+	const TOOLS = [
+		{
+			path: '/developer/parts',
+			title: 'Parts',
+			text: 'Every part on its own: turn, zoom, wireframe, attach nodes, colliders, deploy states, size classes side by side, and which mod adds or patches it.'
+		},
+		{
+			path: '/developer/crew',
+			title: 'Crew',
+			text: 'The crew character: every outfit, look, expression, animation and portrait the plugins register.'
+		},
+		{
+			path: '/developer/hangar',
+			title: 'Hangar (sandbox)',
+			text: 'The Hangar without a world: every part, no tech tree and no funds, its own library.'
+		},
+		{
+			path: '/developer/blueprints',
+			title: 'Blueprints',
+			text: 'Every blueprint with its checks, missing parts and size mismatches; open one in the sandbox.'
+		},
+		{
+			path: '/developer/mods',
+			title: 'Mods (loader log)',
+			text: 'What the last page load booted, in order: each mod\'s result, errors with their stack, patches, and what each registered.'
+		}
+	] as const;
+
 	let logs = $state.raw<LoadLogEntry[]>([]);
 	let note = $state('');
 	onMount(() => {
@@ -54,13 +82,28 @@
 	description="Load logs of the worlds opened in this browser and the developer tools."
 />
 
-<MenuShell wide>
-	<PageHead title="Developer" />
+<h1>Developer</h1>
 	<p class="lead">
 		What this browser recorded while loading worlds: the graphics backend, how long each step and each
 		shader took, and whether the browser had compiled the shaders before. Kept here only, the last 20
 		loads.
 	</p>
+
+	<section aria-labelledby="dev-tools">
+		<h2 id="dev-tools">Developer tools</h2>
+		<p class="dim">
+			For mod authors and debugging; no world is loaded. Every tool reads the same plugins a world
+			loads: the built-in ones and the mods installed and turned on in this browser.
+		</p>
+		<ul class="tools">
+			{#each TOOLS.filter((t) => shownTabs().some((s) => s.path === t.path)) as t (t.path)}
+				<li>
+					<a href={devHref(t.path)}>{t.title}</a>
+					<span class="dim">{t.text}</span>
+				</li>
+			{/each}
+		</ul>
+	</section>
 
 	<section aria-labelledby="load-logs">
 		<h2 id="load-logs">Load logs</h2>
@@ -109,26 +152,13 @@
 		{#if note}<p class="dim" role="status">{note}</p>{/if}
 	</section>
 
-	<section aria-labelledby="dev-tools">
-		<h2 id="dev-tools">Developer tools</h2>
-		<p class="dim">For mod authors and debugging; no world is loaded.</p>
-		<ul class="tools">
-			<li>
-				<a href={resolve('/dev/parts')}>Part viewer</a>
-				<span class="dim"
-					>Every part on its own: turn, zoom, wireframe, attach nodes, colliders, deploy states and
-					size classes side by side.</span
-				>
-			</li>
-			<li>
-				<a href={resolve('/dev/crew')}>Crew viewer</a>
-				<span class="dim">The crew character in its poses and outfits.</span>
-			</li>
-		</ul>
-	</section>
-</MenuShell>
 
 <style>
+	h1 {
+		margin: 0 0 1rem;
+		font-size: var(--t-display);
+		font-weight: 300;
+	}
 	h2 {
 		margin: var(--s-6) 0 var(--s-3);
 		font-size: var(--t-lg);
