@@ -104,12 +104,31 @@
 			</span>
 		{/if}
 	{/if}
+	{#if vab.readOnly}
+		<span class="chip warn" role="status" data-testid="read-only"
+			><Icon name="alert" size={16} />{vab.readOnly.title} is read-only: it uses {vab.readOnly.locks
+				.map((l) => l.title)
+				.join(', ')} from the tech tree.
+			<button type="button" class="link" onclick={() => vab.makeEditableCopy()}
+				>Make an editable copy</button
+			></span
+		>
+	{/if}
 	{#if vab.notice}
 		<span class="chip warn" role="alert"><Icon name="alert" size={16} />{vab.notice}</span>
 	{/if}
 </div>
 
 <style>
+	.link {
+		background: none;
+		border: none;
+		color: inherit;
+		font: inherit;
+		text-decoration: underline;
+		cursor: pointer;
+		margin-left: 0.4rem;
+	}
 	.context {
 		display: flex;
 		flex-wrap: wrap;

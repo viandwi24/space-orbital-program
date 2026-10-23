@@ -159,7 +159,7 @@ import {
 } from '../editor/state';
 import { designStats, situationAt, type Environment } from '../editor/stats';
 import { stagingModelFromDesign } from '../delta-v';
-import { designLocks, NO_TREE, type WorldTech } from '../tech/world-tech';
+import { designLocks, NO_TREE, type DesignLock, type WorldTech } from '../tech/world-tech';
 import { destinationsOf } from '../editor/trip';
 import { tripView } from '../editor/trip-view';
 import {
@@ -177,6 +177,9 @@ import {
 	type LibraryStore
 } from './library';
 import { indexedDbStore, requestPersistence } from './library-idb';
+import { indexedDbThumbs, memoryThumbs, thumbKey, type ThumbStore } from './thumbnail-cache';
+import { checklistOf, type ChecklistItem } from '../editor/blueprint-checklist';
+import type { VesselItem } from '../launch/vessel-library';
 import { MOVE_FINE, MOVE_STEP, ROTATE_FINE, ROTATE_STEP, snapTo, toolKeyEffect } from './tool-keys';
 import { nextPlacement, SNAP_PX } from './placement-pick';
 import { frontFirst, nextPick, type PickCycle } from './pick-cycle';
@@ -295,7 +298,32 @@ export class VabController {
 	}
 
 	// --- state -----------------------------------------------------------------------------------------------
-	editor = $state.raw<EditorState>(createEditor(emptyDesign(), this.editorContent));
+	private editorState = $state.raw<EditorState>(createEditor(emptyDesign(), this.editorContent));
+	/**
+	 * A blueprint with parts the world's tech tree has not unlocked opens read-only (plan 312): every
+	 * edit is refused until the player makes an editable copy; a launch is refused by the locks
+	 * check as before.
+	 */
+	readOnly = $state.raw<{ title: string; locks: DesignLock[] } | null>(null);
+	get editor(): EditorState {
+		return this.editorState;
+	}
+	set editor(next: EditorState) {
+		if (this.readOnly) {
+			this.notice = `${this.readOnly.title} is read-only: it uses parts your tech tree has not unlocked. Make an editable copy to change it.`;
+			return;
+		}
+		this.editorState = next;
+	}
+	/** Lifts the read-only mode: the design stays, locked parts and all, and the checks keep it from launching. */
+	makeEditableCopy(): void {
+		if (!this.readOnly) return;
+		const title = this.readOnly.title;
+		this.readOnly = null;
+		this.libraryId = null;
+		saveLibraryId(null, this.keys.library);
+		this.say(`${title} is now an editable copy; the locked parts still keep it from launching.`);
+	}
 	/** A live preview of a radial slider drag; committed on release. */
 	preview = $state.raw<EditorState | null>(null);
 	armed = $state.raw<Armed | null>(null);
@@ -385,6 +413,11 @@ export class VabController {
 	/** Every blueprint card: learn, famous missions, mods (plan 285, ADR 0263). */
 	readonly blueprints = $derived(allBlueprints(this.loaded.blueprints, this.system));
 	private readonly blueprintThumbs = new Map<string, string | null>();
+	private readonly thumbKeys = new Map<string, string>();
+	private readonly thumbAsked = new Set<string>();
+	private thumbRev = $state(0);
+	private readonly thumbStore: ThumbStore =
+		typeof indexedDB === 'undefined' ? memoryThumbs() : indexedDbThumbs();
 	vesselEntries = $state.raw<LibraryEntry[]>([]);
 	assemblyEntries = $state.raw<LibraryEntry[]>([]);
 	libraryId = $state<string | null>(null);
@@ -1134,6 +1167,7 @@ export class VabController {
 		this.selected = null;
 		this.libraryId = id;
 		saveLibraryId(id, this.keys.library);
+		this.readOnly = null;
 		this.editor = replaceDesign(this.editor, this.editorContent, entry.design);
 		this.saveState = 'idle';
 		this.libraryOpen = false;
@@ -1927,6 +1961,7 @@ export class VabController {
 		this.libraryId = null;
 		saveLibraryId(null, this.keys.library);
 		this.saveState = 'idle';
+		this.readOnly = null;
 		this.editor = replaceDesign(this.editor, this.editorContent, emptyDesign());
 		this.say('Started a new vessel.');
 	}
@@ -1957,7 +1992,12 @@ export class VabController {
 		this.selected = null;
 		this.libraryId = null;
 		saveLibraryId(null, this.keys.library);
-		this.editor = replaceDesign(this.editor, this.editorContent, card.build(this.editorContent));
+		this.readOnly = null;
+		const design = card.build(this.editorContent);
+		this.editor = replaceDesign(this.editor, this.editorContent, design);
+		// locked parts: the blueprint opens read-only (plan 312)
+		const locks = designLocks(design, this.techNodes, this.registriesParts, this.tech);
+		if (locks.length > 0) this.readOnly = { title: card.title, locks };
 		this.blueprintsOpen = false;
 		this.view?.frame();
 		this.say(`Loaded ${card.title}${card.inspiredBy ? `, inspired by ${card.inspiredBy}` : ''}.`);
@@ -1966,16 +2006,74 @@ export class VabController {
 		const found = resolveBlueprintId(id, this.blueprints);
 		return found === undefined ? undefined : this.blueprints.find((b) => b.id === found);
 	}
-	/** A card's picture, drawn once from the Hangar's view and kept (plan 285); null without a view. */
+	/**
+	 * A card's picture (plan 285, 312): from memory, else from the IndexedDB cache (read in the
+	 * background, the card redraws when it lands), else drawn once from the Hangar's view and cached.
+	 * The key holds the blueprint, a hash of the design it builds, the system and its variant.
+	 */
 	blueprintThumbnail(id: string): string | null {
-		// a blueprint may have its own design per system (plan 380)
-		const key = `${id}@${this.system.id}:${this.system.variant ?? ''}`;
-		if (this.blueprintThumbs.has(key)) return this.blueprintThumbs.get(key)!;
+		void this.thumbRev; // the card reads again when a cached picture arrives
 		const card = this.cardOf(id);
-		if (!card || !this.view) return null;
+		if (!card) return null;
+		const memo = `${id}@${this.system.id}:${this.system.variant ?? ''}`;
+		let key = this.thumbKeys.get(memo);
+		if (key === undefined) {
+			key = thumbKey(id, card.build(this.editorContent), this.system);
+			this.thumbKeys.set(memo, key);
+		}
+		const kept = this.blueprintThumbs.get(key);
+		if (kept) return kept;
+		if (!this.thumbAsked.has(key)) {
+			this.thumbAsked.add(key);
+			void this.thumbStore.get(key).then((r) => {
+				if (r && !this.blueprintThumbs.has(key!)) {
+					this.blueprintThumbs.set(key!, r.url);
+					this.thumbRev++;
+				}
+			});
+		}
+		if (!this.view) return null;
 		const url = this.assemblyThumbnail(card.build(this.editorContent));
 		this.blueprintThumbs.set(key, url);
+		if (url) void this.thumbStore.put({ key, url, at: Date.now() });
 		return url;
+	}
+	/**
+	 * The saved vessels or sub-assemblies as the Launch page's library lists them (plan 312, reusing
+	 * `launch/vessel-library.ts` for the dedupe, search and sort).
+	 */
+	savedItems(kind: 'vessel' | 'assembly'): VesselItem[] {
+		const entries = kind === 'vessel' ? this.vesselEntries : this.assemblyEntries;
+		const items: VesselItem[] = [];
+		for (const e of entries) {
+			if (!e.ok) continue;
+			const stats = designStats(e.design, this.content, 'sea-level', this.gravity);
+			items.push({
+				key: e.record.id,
+				name: e.record.name,
+				from: 'library',
+				design: e.design,
+				wet: stats.wetMass,
+				cost: designCost(e.design, this.content).total,
+				seats: e.design.parts.reduce((n, p) => n + (this.lookup.get(p.part)?.crewCapacity ?? 0), 0),
+				parts: stats.partCount,
+				updatedAt: e.record.updatedAt,
+				thumbnail: e.record.thumbnail
+			});
+		}
+		return items;
+	}
+	/** The completeness checklist of a card (plan 312). */
+	blueprintChecklist(id: string): ChecklistItem[] {
+		const card = this.cardOf(id);
+		return card ? checklistOf(card.build(this.editorContent), this.lookup, card) : [];
+	}
+	/** The parts of a card the world's tech tree has not unlocked (plan 312). */
+	blueprintLocks(id: string): DesignLock[] {
+		const card = this.cardOf(id);
+		return card
+			? designLocks(card.build(this.editorContent), this.techNodes, this.registriesParts, this.tech)
+			: [];
 	}
 	/** The card read-outs (plan 285). */
 	blueprintStats(id: string): BlueprintStats | null {

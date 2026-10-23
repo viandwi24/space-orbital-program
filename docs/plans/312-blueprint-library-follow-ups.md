@@ -1,8 +1,8 @@
 ---
 id: 312
 title: "Blueprint Library follow-ups: labels, completeness checklist, thumbnail cache, career locks"
-status: draft
-owner: ""
+status: done
+owner: "Worker C"
 depends: [285, 346, 350]
 phase: 0
 created: 2026-10-21
@@ -60,3 +60,4 @@ The rest of ADR 0263 that plan 285 left:
 
 - 2026-10-24 — Rewritten by the coordinator after an audit against main @ 4c546c02: still valid; removed the stale Out line (stock owns the blueprints as data since 1df414aa, ADR 0316, plan 379); the thumbnail cache key must include the system (plan 380); noted the overlap of the "My designs" tab with plans 346 and 350; depends add 346, 350 and 379.
 - 2026-10-21 — Drafted from plan 285's leftovers.
+- 2026-10-24 — Done (Worker C): the checklist, the IndexedDB thumbnail cache, read-only for locked blueprints, the My designs and Sub-assemblies tabs on `launch/vessel-library.ts`, a detail panel. The leader lines on the 3D view are not drawn; journal 312.
