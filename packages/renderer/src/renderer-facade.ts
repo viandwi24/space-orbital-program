@@ -41,6 +41,7 @@ export type SceneFacade = Pick<
 	| 'project'
 	| 'setSiteView'
 	| 'setSiteFocus'
+	| 'setSiteCamera'
 	| 'setSiteBuildings'
 	| 'setSiteGhost'
 	| 'pickSite'
@@ -113,6 +114,7 @@ export function sceneFacade(model: SceneModel): SceneFacade {
 		project: (world) => model.project(world),
 		setSiteView: (on, site) => model.setSiteView(on, site),
 		setSiteFocus: (p, options) => model.setSiteFocus(p, options),
+		setSiteCamera: (view, options) => model.setSiteCamera(view, options),
 		setSiteBuildings: (list, roads, site) => model.setSiteBuildings(list, roads, site),
 		setSiteGhost: (g) => model.setSiteGhost(g),
 		pickSite: (x, y) => model.pickSite(x, y),

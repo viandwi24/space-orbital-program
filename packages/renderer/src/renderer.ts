@@ -48,6 +48,16 @@ const VEGETATION_SLICE_MAX_MS = 12;
 export { MIN_RENDER_SCALE } from './renderer-facade.ts';
 export type { RendererBackend } from './backend.ts';
 
+/** A compass view of the site (plan 387): see `Scene.setSiteCamera`. */
+export interface SiteCameraView {
+	focus: { east: number; north: number; up: number };
+	/** rad, clockwise from north: where the camera stands, seen from the focus. */
+	azimuth: number;
+	/** rad above the horizon. */
+	elevation: number;
+	distance: number;
+}
+
 export interface RendererConfig extends SceneConfig {
 	/**
 	 * WebGPU: presets whose frames are drawn at load besides the start preset (plan 362, ADR 0304), so a
@@ -284,6 +294,11 @@ export interface Renderer {
 		p: { east: number; north: number; up?: number } | null,
 		options?: { distance?: number; animate?: boolean }
 	): void;
+	/**
+	 * Site view (plan 387, ADR 0326): the camera to a compass view of the site, easing along the
+	 * shortest arc unless `animate` is false; see `Scene.setSiteCamera`.
+	 */
+	setSiteCamera(view: SiteCameraView, options?: { animate?: boolean }): void;
 	/**
 	 * A site's buildings and roads (ADR 0117). `site` names another home site (a branch, ADR 0321):
 	 * its buildings stand at its own place; absent is the primary site.

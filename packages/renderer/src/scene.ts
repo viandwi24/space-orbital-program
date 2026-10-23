@@ -53,6 +53,7 @@ import { LampPool, type LampLight } from './lamps.ts';
 import { WaterlineEffects, waterlineCrossings, type WaterlinePart } from './effects/waterline.ts';
 import {
 	FLIGHT_RIG_LIMITS,
+	PITCH_MARGIN,
 	applyRigInput,
 	initialRig,
 	rigOffset,
@@ -294,6 +295,15 @@ export class SceneModel {
 	/** Site view (plan 259): where the orbit camera looks, as an offset from the site centre, and where it is easing to. */
 	private siteFocusNow: Vec3 = ZERO;
 	private siteFocusTo: Vec3 = ZERO;
+	/** A compass view still to be turned into the rig (it needs the camera frame), plan 387. */
+	private siteCamPending: {
+		azimuth: number;
+		elevation: number;
+		distance: number;
+		animate: boolean;
+	} | null = null;
+	/** Where the rig eases to in site view (plan 387); a drag or the wheel cancels it. */
+	private siteRigTo: RigState | null = null;
 	/** The last vessel the flight camera followed, for when it is gone (plan 257). */
 	private lastFollowed: VesselSnapshot | undefined;
 	private insets = { top: 0, right: 0, bottom: 0, left: 0 };
@@ -1023,12 +1033,16 @@ export class SceneModel {
 			const unset = this.mapRig.distance === 0;
 			const next = applyRigInput(this.mapRig, this.mapLimits, input);
 			this.mapRig = unset ? { ...next, distance: 0 } : next;
-		} else
+		} else {
+			// the player's drag or wheel takes over from a site flight (plan 387)
+			this.siteRigTo = null;
+			this.siteCamPending = null;
 			this.flightRig = applyRigInput(
 				this.flightRig,
 				this.siteView ? SITE_RIG_LIMITS : FLIGHT_RIG_LIMITS,
 				input
 			);
+		}
 		this.cameraDirty = true;
 	}
 	/**
@@ -1429,7 +1443,11 @@ export class SceneModel {
 	prepareFrame(dt: number, force = false): void {
 		this.stepInsets(dt);
 		if (!this.frameState) return;
-		if (this.siteView) this.stepSiteFocus(dt);
+		if (this.siteView) {
+			this.resolveSiteCamera();
+			this.stepSiteRig(dt);
+			this.stepSiteFocus(dt);
+		}
 		if (this.cameraDirty && this.lastView) {
 			this.placeCamera(this.lastView.active, this.lastView.anchorBody, this.lastView.bodyWorld);
 			this.cameraDirty = false;
@@ -1805,6 +1823,94 @@ export class SceneModel {
 		if (options.animate === false) this.siteFocusNow = this.siteFocusTo;
 		if (options.distance !== undefined && this.flightRig.distance > options.distance)
 			this.flightRig = { ...this.flightRig, distance: options.distance };
+		this.cameraDirty = true;
+	}
+
+	/**
+	 * Site view (plan 387, ADR 0326): look at `view.focus` from a compass azimuth (clockwise from
+	 * north, where the camera stands), an elevation and a distance. The rig eases there along the
+	 * shortest arc (about 0.6 s), or jumps with `animate: false`.
+	 */
+	setSiteCamera(
+		view: {
+			focus: { east: number; north: number; up: number };
+			azimuth: number;
+			elevation: number;
+			distance: number;
+		},
+		options: { animate?: boolean } = {}
+	): void {
+		if (!this.siteView) return;
+		const animate = options.animate !== false;
+		this.setSiteFocus(view.focus, { animate });
+		this.siteCamPending = {
+			azimuth: view.azimuth,
+			elevation: view.elevation,
+			distance: view.distance,
+			animate
+		};
+		this.cameraDirty = true;
+	}
+
+	/** The pending compass view as a rig in the camera frame, once the frame is known. */
+	private resolveSiteCamera(): void {
+		const p = this.siteCamPending;
+		if (!p || !this.cameraFrame) return;
+		const vb = this.environment.viewBuildings;
+		const o = vb.siteToWorld({ east: 0, north: 0, up: 0 });
+		const axis = (q: { east: number; north: number; up: number }): Vec3 => {
+			const w = vb.siteToWorld(q);
+			return normalize({ x: w.x - o.x, y: w.y - o.y, z: w.z - o.z });
+		};
+		const e = axis({ east: 1, north: 0, up: 0 });
+		const n = axis({ east: 0, north: 1, up: 0 });
+		const u = axis({ east: 0, north: 0, up: 1 });
+		const ce = Math.sin(p.azimuth) * Math.cos(p.elevation);
+		const cn = Math.cos(p.azimuth) * Math.cos(p.elevation);
+		const cu = Math.sin(p.elevation);
+		const world = {
+			x: e.x * ce + n.x * cn + u.x * cu,
+			y: e.y * ce + n.y * cn + u.y * cu,
+			z: e.z * ce + n.z * cn + u.z * cu
+		};
+		const local = rotateInverse(this.cameraFrame, world);
+		const max = Math.PI / 2 - PITCH_MARGIN;
+		const target: RigState = {
+			yaw: Math.atan2(local.x, local.z),
+			pitch: Math.max(-max, Math.min(max, Math.asin(Math.max(-1, Math.min(1, local.y))))),
+			distance: Math.min(
+				SITE_RIG_LIMITS.maxDistance,
+				Math.max(SITE_RIG_LIMITS.minDistance, p.distance)
+			)
+		};
+		this.siteCamPending = null;
+		if (p.animate) this.siteRigTo = target;
+		else {
+			this.flightRig = target;
+			this.siteRigTo = null;
+		}
+		this.cameraDirty = true;
+	}
+
+	/** Eases the rig towards `siteRigTo`: yaw the short way round, distance in log space. */
+	private stepSiteRig(dt: number): void {
+		const to = this.siteRigTo;
+		if (!to) return;
+		const from = this.flightRig;
+		const turn = ((((to.yaw - from.yaw) % (2 * Math.PI)) + 3 * Math.PI) % (2 * Math.PI)) - Math.PI;
+		const k = 1 - Math.exp(-Math.max(dt, 0) * 6);
+		const done =
+			Math.abs(turn) < 1e-3 &&
+			Math.abs(to.pitch - from.pitch) < 1e-3 &&
+			Math.abs(Math.log(to.distance / from.distance)) < 1e-3;
+		this.flightRig = done
+			? { ...to, yaw: from.yaw + turn }
+			: {
+					yaw: from.yaw + turn * k,
+					pitch: from.pitch + (to.pitch - from.pitch) * k,
+					distance: from.distance * Math.exp(Math.log(to.distance / from.distance) * k)
+				};
+		if (done) this.siteRigTo = null;
 		this.cameraDirty = true;
 	}
 
