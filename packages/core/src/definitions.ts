@@ -575,6 +575,12 @@ export interface ModuleDefinition<In = unknown, Out = In, State = unknown> {
 	 */
 	hollow?: Bivariant<(config: Out) => boolean>;
 	/**
+	 * Rations a part with this module carries, in crew-days per seat (player-journey audit Q2, ADR
+	 * 0323): from launch they keep its crew before carried consumables are drawn, as a KSP pod does.
+	 * Massless. Pure function of the config.
+	 */
+	rations?: Bivariant<(config: Out) => number>;
+	/**
 	 * A robotic joint (plan 306, ADR 0269): where the module's moving side is now. Pure; null while
 	 * the module moves nothing.
 	 */

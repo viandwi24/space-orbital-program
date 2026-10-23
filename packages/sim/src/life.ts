@@ -133,6 +133,31 @@ function endShortage(
 }
 
 /**
+ * When the vessel's own rations run out (ADR 0323): from launch, each crewed part's seats times its
+ * modules' `rations` crew-days (a stock pod: `POD_RATION_DAYS`), shared by the crew aboard. Infinite before launch (on the pad);
+ * null without a command seat.
+ */
+export function rationsEnd(core: SimCore, vesselId: EntityId, crew: number): number | null {
+	if (crew <= 0) return null;
+	const vessel = vesselOf(core, vesselId);
+	let crewDays = 0;
+	for (const id of vessel.parts) {
+		const part = partOf(core, id);
+		const seats = partDefOf(core, part).crewCapacity ?? 0;
+		if (seats <= 0) continue;
+		let perSeat = 0;
+		for (const m of part.modules) {
+			const def = moduleDefOf(core, m.id);
+			if (def.rations) perSeat = Math.max(perSeat, def.rations(m.config));
+		}
+		crewDays += seats * perSeat;
+	}
+	if (crewDays <= 0) return null;
+	if (vessel.launchedAt === undefined) return Number.POSITIVE_INFINITY;
+	return vessel.launchedAt + (crewDays / crew) * crewDay(core);
+}
+
+/**
  * Life support of one vessel over [t0, t1] (ADR 0181 point 2): piecewise linear, cut at each
  * run-out, so a run-out is dated exactly whatever the step.
  */
@@ -149,6 +174,13 @@ function lifeSupport(
 		for (const m of members) delete m.shortages;
 		return;
 	}
+	// the pod's own rations come first (ADR 0323): nothing is drawn, nothing runs short
+	const rations = rationsEnd(core, vesselId, members.length);
+	if (rations !== null && rations >= t1) {
+		for (const m of members) delete m.shortages;
+		return;
+	}
+	if (rations !== null && rations > t0) t0 = rations;
 	const vessel = vesselOf(core, vesselId);
 	const root = vessel.root;
 	const rates = ratesOf(core, vesselId, mode, members.length);
@@ -308,17 +340,19 @@ export function lifeSupportSnapshot(
 	if (n === 0) return undefined;
 	const vessel = vesselOf(core, vesselId);
 	const rates = ratesOf(core, vesselId, mode, n);
+	const end = rationsEnd(core, vesselId, n);
+	const rationsLeft = end === null ? 0 : Math.max(0, end - core.t);
 	const consumables = rates.consumables.map(({ resource, rate }) => {
 		const amount = amountAvailable(core, vessel, vessel.root, resource);
-		return { resource, amount, rate, timeLeft: rate > 0 ? amount / rate : Infinity };
+		return { resource, amount, rate, timeLeft: rationsLeft + (rate > 0 ? amount / rate : Infinity) };
 	});
 	if (rates.scrub) {
 		const amount = amountAvailable(core, vessel, vessel.root, CHARGE_RESOURCE);
 		const rate = rates.scrub.charge;
-		const timeLeft = rates.scrub.short ? 0 : rate > 0 ? amount / rate : Infinity;
+		const timeLeft = rationsLeft + (rates.scrub.short ? 0 : rate > 0 ? amount / rate : Infinity);
 		consumables.push({ resource: CO2, amount, rate, timeLeft });
 	}
-	return { mode, crew: n, consumables };
+	return { mode, crew: n, consumables, ...(end === null ? {} : { rationsLeft }) };
 }
 
 /** The condition fields of a member for `VesselSnapshot.crew`, and the performance factor. */

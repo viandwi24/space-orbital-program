@@ -308,3 +308,4 @@ An ADR records one decision, its context, and its consequences. ADRs are **appen
 | 0320 | [Small-body terrain and body names on the map](0320-small-body-terrain-and-map-body-names.md) | accepted | 2026-10-23 |
 | 0321 | [Every home site's buildings are drawn at their own place](0321-one-site-mesh-per-site.md) | accepted | 2026-10-23 |
 | 0322 | [A new world's start: the core buildings and a Career crew](0322-a-new-worlds-start.md) | accepted | 2026-10-23 |
+| 0323 | [A pod's own rations](0323-a-pods-own-rations.md) | accepted | 2026-10-23 |

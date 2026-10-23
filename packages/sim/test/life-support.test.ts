@@ -36,7 +36,8 @@ const fixture = (days: number): Plugin =>
 				shape,
 				attach,
 				modules: [
-					['stock.command', undefined],
+					// no rations of its own (ADR 0323): these tests measure the carried consumables
+					['stock.command', { rationDays: 0 }],
 					[
 						'stock.resource-container',
 						{
@@ -270,4 +271,36 @@ describe('condition (ADR 0181 points 4 to 7)', () => {
 		expect(glocs).toHaveLength(3);
 		sim.dispose();
 	});
+});
+
+describe("a pod's own rations (player-journey audit Q2, ADR 0323)", () => {
+	test('a Career crew in the stock pod is fed for 4 home days from launch, then the shortage starts', async () => {
+		const sim = await createSim({
+			plugins: [Stock],
+			backendFactory: rapier(16),
+			world: world('stock.career')
+		});
+		const member = sim.snapshot().crew![0]!.id;
+		const r = sim.dispatch({
+			type: 'load-vessel',
+			design: stack('Pod', ['stock.command-pod'], []),
+			placement: { kind: 'state', ...orbitState(sim, 200_000) } as never,
+			crew: [{ member, part: 0 }]
+		});
+		if (!r.ok) throw new Error(r.reason);
+		// the crew's day: the home body's rotation (crew.ts `crewDay`)
+		const day = sim.registries.bodies.get(sim.home)!.rotationPeriod;
+		const life0 = life(sim, r.vessel!)!;
+		expect(life0.rationsLeft).toBeCloseTo(4 * day, 0);
+		expect(life0.consumables[0]!.timeLeft).toBeCloseTo(4 * day, 0);
+		const shortages: number[] = [];
+		sim.events.on('crew:shortage', (e) => shortages.push(e.time));
+		while (sim.time < 4 * day - 600) warpStep(sim);
+		expect(shortages).toEqual([]);
+		expect(sim.snapshot().crew!.find((c) => c.id === member)!.status).toBe('assigned');
+		while (sim.time < 4 * day + 600) warpStep(sim);
+		expect(shortages.length).toBeGreaterThan(0);
+		expect(shortages[0]!).toBeCloseTo(4 * day, -1);
+		sim.dispose();
+	}, 120_000);
 });

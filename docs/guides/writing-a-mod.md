@@ -362,6 +362,7 @@ ctx.contractTemplates.register(defineContractTemplate({
 
 ### Life support (API 0.1.46, plan 107, ADR 0181)
 
+- **A pod's own rations (API 0.1.117, ADR 0323):** a module may declare `rations: (config) => crewDaysPerSeat`. From launch, the part's seats times that many crew-days keep its crew before any carried consumable is drawn. They are massless and don't refill on EVA. Stock's `stock.command` gives 4 a seat; set `rationDays` in its config to change it, or 0 for none.
 - **Carry consumables** in any container: `[ModuleResourceContainer, { contents: { 'stock.supplies': { capacity: 9 } } }]` is three crew-days for three people. With life support `simple` the crew draw supplies. With `full` they draw `stock.oxygen`, `stock.water` and `stock.food` instead, one unit each per person per day.
 - **A scrubber.** With `full`, someone must scrub the CO2. Use `['stock.scrubber', { crew: 2, charge: 8 }]` on your part, or give your own module `scrubber: (config) => ({ crew, charge })`. `charge` is EC per served person per day.
 - The vessel snapshot predicts the time left for each consumable. A run-out starts a grace period, and then the world's death rule applies.

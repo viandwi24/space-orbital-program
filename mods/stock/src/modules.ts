@@ -41,10 +41,19 @@ const resourceKey = z.string().regex(/^[a-z][a-z0-9-]*(?:\.[a-z][a-z0-9-]*)+$/, 
  * Marks a part as a control source: a vessel is controllable while it contains a command part.
  * No config, no state.
  */
+/**
+ * Crew-days of rations a stock command seat carries (player-journey audit Q2, ADR 0323): from
+ * launch the pod keeps its crew this long before carried supplies are drawn, as KSP's pods do.
+ * Four home days are a full Earth day in the stock system.
+ */
+export const POD_RATION_DAYS = 4;
+
 export const commandConfigSchema = z
 	.object({
 		/** The assist level this part gives, 0 to 3 (plan 260); the Hangar's build settings write it. */
-		sasLevel: z.int().min(0).max(3).default(3)
+		sasLevel: z.int().min(0).max(3).default(3),
+		/** Crew-days of rations per seat (player-journey audit Q2, ADR 0323); 0 for none. */
+		rationDays: z.number().nonnegative().optional()
 	})
 	.default({ sasLevel: 3 });
 
@@ -56,6 +65,8 @@ export const ModuleCommand = defineModule({
 	controlSource: true,
 	// a save from before plan 260 stored the part without a config: full assist, as it was
 	sasLevel: (config) => config?.sasLevel ?? 3,
+	// a few days for each seat, from launch (ADR 0323)
+	rations: (config) => config?.rationDays ?? POD_RATION_DAYS,
 	describe: (config) => ({
 		category: 'command',
 		readouts: [

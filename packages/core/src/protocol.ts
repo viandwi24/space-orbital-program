@@ -413,6 +413,11 @@ export interface VesselSnapshot {
 		mode: 'simple' | 'full';
 		crew: number;
 		consumables: Array<{ resource: string; amount: number; rate: number; timeLeft: number }>;
+		/**
+		 * Seconds of the pod's own rations left (ADR 0323), already in each `timeLeft`; absent
+		 * without a command seat. Infinite before launch.
+		 */
+		rationsLeft?: number;
 	};
 	/** Experiments aboard (plan 103): state, reason and progress; the vessel's situation. */
 	science?: {
