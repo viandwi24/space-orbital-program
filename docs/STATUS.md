@@ -286,6 +286,7 @@
 <<<<<<< HEAD
 | 375 | [Developer tools](plans/375-developer-tools.md) | done | developer tools session | ADRs 0311, 0313; API 0.1.111. One developer shell (Back, Main menu, tabs Overview/Parts/Crew/Hangar/Blueprints/Mods); the mod loader log (problem codes and stacks, patches, counts per kind, asset failures; kept in the browser); viewers boot the game's plugin set (switch for turned-off mods) and name each item's provider and patchers; crew looks and moves come from plugins (5 registries, image assets, package format 3, `examples/mod-crew-sample`); the Hangar's Zen studio look (no shader built on a switch); a sandbox Hangar and a Blueprints tab with checks. Journal 375. |
 | 381 | [The wider stock system](plans/381-stock-system-expansion.md) | done | stock system expansion session | ADR 0318. Owner request 2026-10-23. Kiln, Vesper, Ochre (Mote, Flick), Vagrant, Tempest (Forge, Rime, Bastion, Husk), Glim; `BodyDefinition.appearance`; colour maps, bands, clouds, rings, sky colours; moon pass built when near; Ochre/Tempest missions; Δv map in research/stock-system.md |
+| 383 | [A compact Flight navball module](plans/383-compact-navball.md) | done | ui-v3 session | ADR 0319. Owner request 2026-10-23. Ball 144/128 px by default (was 180/144), the module about 20 % smaller with tighter gaps and smaller SAS and mode buttons (24 px hit area kept); Settings → Interface → Compact navball. Journal 383. |
 | 379 | [The web app's own content moves into plugins](plans/379-stock-content-out-of-the-web-app.md) | draft | — | ADR 0311's later rows: learn and mission blueprints, lessons, loading shots. |
 =======
 | 375 | [Developer tools](plans/375-developer-tools.md) | done | developer tools session | ADRs 0311, 0313, 0316; API 0.1.112 (stock owns the blueprints, follow-up). One developer shell (Back, Main menu, tabs Overview/Parts/Crew/Hangar/Blueprints/Mods); the mod loader log (problem codes and stacks, patches, counts per kind, asset failures; kept in the browser); viewers boot the game's plugin set (switch for turned-off mods) and name each item's provider and patchers; crew looks and moves come from plugins (5 registries, image assets, package format 3, `examples/mod-crew-sample`); the Hangar's Zen studio look (no shader built on a switch); a sandbox Hangar and a Blueprints tab with checks. Journal 375. |
@@ -406,6 +407,7 @@ The owner takes the remaining performance work on the M5; the M2 handles the fix
 
 ## Recent journal entries
 
+- [383 — Compact navball](journal/383-compact-navball.md)
 - [375 — Developer tools](journal/375-developer-tools.md)
 - [377 — Space Center tour](journal/377-space-center-tour.md)
 - [378 — Hangar nested editing](journal/378-hangar-nested-editing.md)
