@@ -157,7 +157,12 @@
 		return () => (lessonVab.state = null);
 	});
 	/** The empty Hangar's featured blueprints (plan 285); the rest are in the Library. */
-	const FEATURED = ['learn.two-stage', 'kronos-selene', 'wayfarer-shuttle', 'trailblazer-rover'];
+	const FEATURED = [
+		'stock.two-stage',
+		'stock.kronos-selene',
+		'stock.wayfarer-shuttle',
+		'stock.trailblazer-rover'
+	];
 	/** The welcome card carries the first step's words; the guide card waits for the first part. */
 	const emptyHangar = $derived(
 		vab.editor.design.parts.length === 0 && !vab.armed && vab.editor.loose.length === 0

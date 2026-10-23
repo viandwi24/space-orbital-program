@@ -1,10 +1,12 @@
-/** Famous-mission blueprints (plan 286): they build, resolve, lift off and pass the pre-flight checks. */
+/**
+ * Famous-mission blueprints (plan 286), as stock registers them (ADR 0316): they resolve, lift off
+ * and pass the pre-flight checks.
+ */
 import { loadPlugins, resolveVesselDesign } from '@orbital/core';
 import Stock from '@orbital/mod-stock';
 import { describe, expect, it } from 'vitest';
 import type { ContentLookups } from '../delta-v';
 import { checkDesign, sizeMismatches } from './checks';
-import { MISSION_BLUEPRINTS } from './missions';
 import { stabilityOf } from './stability';
 import { designStats } from './stats';
 
@@ -14,19 +16,20 @@ const content: ContentLookups = {
 	modules: registries.modules,
 	resources: registries.resources
 };
+const MISSION_BLUEPRINTS = registries.blueprints.list().filter((b) => b.collection === 'missions');
 const home = registries.bodies.get('stock.home')!;
 const g = (6.6743e-11 * home.mass) / (home.radius * home.radius);
 
 describe('mission blueprints (plan 286)', () => {
 	it('has the owner’s mission set', () => {
 		expect(MISSION_BLUEPRINTS.map((m) => m.id)).toEqual([
-			'kronos-selene',
-			'wayfarer-shuttle',
-			'horizon-station',
-			'moonwatch-orbiter',
-			'horizon-telescope',
-			'aurora-satellite',
-			'trailblazer-rover'
+			'stock.kronos-selene',
+			'stock.wayfarer-shuttle',
+			'stock.horizon-station',
+			'stock.moonwatch-orbiter',
+			'stock.horizon-telescope',
+			'stock.aurora-satellite',
+			'stock.trailblazer-rover'
 		]);
 	});
 
@@ -34,7 +37,7 @@ describe('mission blueprints (plan 286)', () => {
 		const indonesian =
 			/\b(ulang|alik|stasiun|cakrawala|teleskop|satelit|peneliti|pengorbit|penjelajah|roket|misi|bulan|dan|yang|untuk|dengan)\b/i;
 		for (const m of MISSION_BLUEPRINTS) {
-			for (const text of [m.title, m.inspiredBy, m.summary, m.build(content).name]) {
+			for (const text of [m.title, m.inspiredBy ?? '', m.summary, m.design.name]) {
 				expect(indonesian.test(text), text).toBe(false);
 			}
 		}
@@ -42,7 +45,7 @@ describe('mission blueprints (plan 286)', () => {
 
 	for (const mission of MISSION_BLUEPRINTS) {
 		it(`${mission.title}: builds, resolves, lifts off and has no blocking pre-flight check`, () => {
-			const design = mission.build(content);
+			const design = mission.design;
 			const resolved = resolveVesselDesign(design, content.parts);
 			expect(resolved.ok, JSON.stringify(resolved.ok ? '' : resolved.errors)).toBe(true);
 			const stats = designStats(design, content, 'sea-level', g);
@@ -73,7 +76,7 @@ describe('mission blueprints (plan 286)', () => {
 	// owner, 2026-10-21: Horizon Station's RCS said "no propellant"
 	it('every blueprint with RCS thrusters carries monopropellant for them', () => {
 		for (const mission of MISSION_BLUEPRINTS) {
-			const design = mission.build(content);
+			const design = mission.design;
 			let rcs = false;
 			let mono = 0;
 			for (const p of design.parts) {
@@ -97,7 +100,7 @@ describe('mission blueprints (plan 286)', () => {
 
 	it('a payload in a bay or the petals sits on a decoupler or a port, so it can leave', () => {
 		for (const mission of MISSION_BLUEPRINTS) {
-			const design = mission.build(content);
+			const design = mission.design;
 			for (const p of design.parts) {
 				if (p.parent?.parentNode !== 'inner') continue;
 				expect(separates(p.part), `${mission.id}: ${p.part} in a bay`).toBe(true);
@@ -107,7 +110,7 @@ describe('mission blueprints (plan 286)', () => {
 
 	it('every engine fires in some stage', () => {
 		for (const mission of MISSION_BLUEPRINTS) {
-			const design = mission.build(content);
+			const design = mission.design;
 			const staged = new Set(design.stages.flat());
 			for (const p of design.parts) {
 				if (!modulesOf(p.part).includes('stock.engine')) continue;
@@ -117,7 +120,7 @@ describe('mission blueprints (plan 286)', () => {
 	});
 
 	it('Kronos V: the capsule and the lander carry ports of one size; the capsule can leave its service module', () => {
-		const design = MISSION_BLUEPRINTS.find((m) => m.id === 'kronos-selene')!.build(content);
+		const design = MISSION_BLUEPRINTS.find((m) => m.id === 'stock.kronos-selene')!.design;
 		const ports = design.parts.filter((p) => modulesOf(p.part).includes('stock.docking-port'));
 		expect(ports.map((p) => p.part)).toEqual(['stock.docking-port-small', 'stock.docking-port-small']);
 		const pod = design.parts[0]!;
@@ -130,14 +133,14 @@ describe('mission blueprints (plan 286)', () => {
 	});
 
 	it('Horizon Station has five berths, two free 1.25 m ones after staging, and no size mismatch', () => {
-		const design = MISSION_BLUEPRINTS.find((m) => m.id === 'horizon-station')!.build(content);
+		const design = MISSION_BLUEPRINTS.find((m) => m.id === 'stock.horizon-station')!.design;
 		const ports = design.parts.filter((p) => modulesOf(p.part).includes('stock.docking-port'));
 		expect(ports).toHaveLength(5);
 		expect(sizeMismatches(design, content.parts as never)).toEqual([]);
 	});
 
 	it('Wayfarer: the orbiter has propellant of its own once the tank drops', () => {
-		const design = MISSION_BLUEPRINTS.find((m) => m.id === 'wayfarer-shuttle')!.build(content);
+		const design = MISSION_BLUEPRINTS.find((m) => m.id === 'stock.wayfarer-shuttle')!.design;
 		const stats = designStats(design, content, 'vacuum', g);
 		const orbiterBurn = stats.report!.stages.find((s) =>
 			s.parts.some((i) => design.parts.find((p) => p.index === i)?.part === 'stock.orbiter-aft')
@@ -147,8 +150,8 @@ describe('mission blueprints (plan 286)', () => {
 
 	it('only Kronos V keeps a size mismatch (its escape tower over the small port, jettisoned)', () => {
 		for (const mission of MISSION_BLUEPRINTS) {
-			const n = sizeMismatches(mission.build(content), content.parts as never).length;
-			expect(n, mission.id).toBe(mission.id === 'kronos-selene' ? 1 : 0);
+			const n = sizeMismatches(mission.design, content.parts as never).length;
+			expect(n, mission.id).toBe(mission.id === 'stock.kronos-selene' ? 1 : 0);
 		}
 	});
 });

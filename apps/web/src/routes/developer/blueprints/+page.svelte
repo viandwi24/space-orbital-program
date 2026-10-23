@@ -87,8 +87,8 @@
 <h1>Blueprints</h1>
 <p class="lead">
 	Every blueprint the Hangar's Library offers, built against the loaded plugins and checked the way
-	the Hangar checks a design. The learn and famous-mission cards are still built into the game (ADR
-	0311 lists their move to stock); a mod's come from <code>ctx.blueprints</code>.
+	the Hangar checks a design. All come from <code>ctx.blueprints</code>: stock registers the learn
+	examples and the famous missions (ADR 0316), and a mod adds its own.
 </p>
 
 <div class="bar">

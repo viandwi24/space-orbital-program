@@ -37,7 +37,7 @@ function extent(design: ReturnType<(typeof cards)[number]['build']>) {
 	return { height: hi - lo, reach };
 }
 
-const cards = allBlueprints();
+const cards = allBlueprints(registries.blueprints.list());
 
 describe('the Hangar fits every blueprint (owner, 2026-10-21)', () => {
 	for (const card of cards) {

@@ -169,7 +169,7 @@ const SHOTS: Record<string, Shot> = {
 	'shuttle-bay': {
 		page: '/flight',
 		moment: true,
-		blueprint: 'wayfarer-shuttle',
+		blueprint: 'stock.wayfarer-shuttle',
 		place: async (p) => {
 			await debug(p, 'setOrbit', { apoapsis: 110_000, periapsis: 110_000 });
 			await command(p, { type: 'throttle', value: 0 });
@@ -294,7 +294,7 @@ async function save(page: Page, name: string): Promise<void> {
 for (const name of names) {
 	const shot = SHOTS[name];
 	if (!shot) throw new Error(`unknown shot "${name}"`);
-	if (shot.page === '/flight') await loadBlueprint(shot.blueprint ?? 'kronos-selene');
+	if (shot.page === '/flight') await loadBlueprint(shot.blueprint ?? 'stock.kronos-selene');
 	const page = await open(shot.page);
 	if (shot.place) {
 		await shot.place(page);

@@ -301,3 +301,4 @@ An ADR records one decision, its context, and its consequences. ADRs are **appen
 | 0313 | [The crew content API: outfits, looks, expressions, animations and portraits from plugins](0313-crew-content-api.md) | accepted | 2026-10-23 |
 | 0314 | [The Space Center tour, and the tour building's refund](0314-space-center-tour-and-the-tour-building-refund.md) | accepted | 2026-10-23 |
 | 0315 | [Hangar nested editing: outline selection, inside mode, a section cut, pick-through](0315-hangar-nested-editing.md) | accepted | 2026-10-23 |
+| 0316 | [Stock owns the blueprints: designs baked from the Hangar's builders](0316-stock-owns-the-blueprints.md) | accepted | 2026-10-23 |

@@ -1085,3 +1085,9 @@ ctx.blueprints.register(
 ```
 
 The Library shows its picture, goal and crew, parts, mass, Δv and liftoff TWR, and loads it into the Hangar.
+
+Since API 0.1.112 (ADR 0316) stock registers the game's own blueprints the same way: the learn examples and the famous missions, with ids such as `stock.two-stage` and `stock.kronos-selene`.
+- `collection: 'learn'` or `'missions'` files a card beside them. Without it, a card goes under "Mod".
+- `goal` may also be `deep-space`.
+- Stock's designs are generated from the Hangar's builders (`apps/web/scripts/bake-stock-blueprints.ts`), and a test keeps them equal.
+- Developer → Blueprints checks every registered blueprint and opens it in the sandbox Hangar.

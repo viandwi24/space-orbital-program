@@ -4,6 +4,7 @@
  */
 import { definePlugin } from '@orbital/sdk';
 import { HomeBody, MoonBody, SunBody } from './bodies.ts';
+import { STOCK_BLUEPRINTS } from './blueprints.generated.ts';
 import {
 	STOCK_CREW_ANIMATIONS,
 	STOCK_CREW_EXPRESSIONS,
@@ -188,6 +189,8 @@ export const Stock = definePlugin({
 		for (const mode of STOCK_FAILURE_MODES) ctx.failureModes.register(mode);
 		for (const trait of STOCK_CREW_TRAITS) ctx.crewTraits.register(trait);
 		ctx.crewNames.register(STOCK_CREW_NAMES);
+		// the Hangar Library's learn examples and famous missions (ADR 0316)
+		for (const blueprint of STOCK_BLUEPRINTS) ctx.blueprints.register(blueprint);
 		// how crew look and move (plan 375, ADR 0313)
 		for (const outfit of STOCK_CREW_OUTFITS) ctx.crewOutfits.register(outfit);
 		for (const look of STOCK_CREW_LOOKS) ctx.crewLooks.register(look);
@@ -300,6 +303,7 @@ export * from './eva.ts';
 export * from './panels.ts';
 export * from './lights.ts';
 export * from './crew-look.ts';
+export { STOCK_BLUEPRINTS } from './blueprints.generated.ts';
 export * from './paint.ts';
 export * from './solar.ts';
 export * from './rcs.ts';

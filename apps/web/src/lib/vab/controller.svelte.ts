@@ -4,8 +4,13 @@
  * state (an immutable value replaced per edit, ADR 0029), the 3D view, pointer and keyboard
  * handling, the vessel library (ADR 0041) and the derived read-outs.
  */
-import { MISSION_BLUEPRINTS } from '../editor/missions';
-import { allBlueprints, blueprintStats, type BlueprintStats } from '../editor/blueprints';
+import {
+	allBlueprints,
+	blueprintStats,
+	resolveBlueprintId,
+	type BlueprintCard,
+	type BlueprintStats
+} from '../editor/blueprints';
 import { openModules, seeThroughOf, shellsOf } from '../editor/inside';
 import { partRows } from '../editor/part-list';
 import { resolve } from '$app/paths';
@@ -41,7 +46,7 @@ import {
 	type WorldReliability
 } from '../reliability/reliability-model';
 import { modelProviders } from '../mods/asset-models';
-import { emptyDesign, parseDesign, serialiseDesign, starterRocket } from '../design';
+import { emptyDesign, parseDesign, serialiseDesign } from '../design';
 import {
 	initialGraphicsPreset,
 	onGraphicsChange,
@@ -68,7 +73,6 @@ import {
 } from '../editor/groups';
 import type { ControlRow } from '../vessel-panel/vessel-model';
 import { loadDraft, loadFlag, loadLibraryId, saveDraft, saveFlag, saveLibraryId } from '../storage';
-import { asparagusRocket, boosterRocket, glider, moonShot } from '../editor/examples';
 import { assemblyFromSubtree } from '../editor/assembly';
 import { blocksLaunch, checkDesign } from '../editor/checks';
 import { partsLimit } from '../capacity';
@@ -1834,59 +1838,29 @@ export class VabController {
 		this.editor = replaceDesign(this.editor, this.editorContent, emptyDesign());
 		this.say('Started a new vessel.');
 	}
+	/** The examples the e2e helpers and captures load (`__orbitalVab`), from stock's blueprints (ADR 0316). */
 	loadExample(): void {
-		this.disarm();
-		this.selected = null;
-		this.libraryId = null;
-		saveLibraryId(null, this.keys.library);
-		this.editor = replaceDesign(this.editor, this.editorContent, starterRocket());
-		this.view?.frame();
-		this.say('Loaded the two-stage example, with a parachute for the way home.');
+		this.loadBlueprint('stock.two-stage');
 	}
 	loadBoosterExample(): void {
-		this.disarm();
-		this.selected = null;
-		this.libraryId = null;
-		saveLibraryId(null, this.keys.library);
-		this.editor = replaceDesign(this.editor, this.editorContent, boosterRocket(this.editorContent));
-		this.view?.frame();
-		this.say('Loaded the booster rocket: 23 parts with four boosters and four fins.');
+		this.loadBlueprint('stock.boosters');
 	}
 	loadMoonExample(): void {
-		this.disarm();
-		this.selected = null;
-		this.libraryId = null;
-		saveLibraryId(null, this.keys.library);
-		this.editor = replaceDesign(this.editor, this.editorContent, moonShot());
-		this.view?.frame();
-		this.say('Loaded the moon shot: a core with four boosters under a lander. Pick a trip below.');
+		this.loadBlueprint('stock.moon-shot');
 	}
 	loadAsparagusExample(): void {
-		this.disarm();
-		this.selected = null;
-		this.libraryId = null;
-		saveLibraryId(null, this.keys.library);
-		this.editor = replaceDesign(
-			this.editor,
-			this.editorContent,
-			asparagusRocket(this.editorContent)
-		);
-		this.view?.frame();
-		this.say('Loaded the asparagus rocket: four boosters with fuel lines and struts.');
+		this.loadBlueprint('stock.asparagus');
 	}
 	loadGliderExample(): void {
-		this.disarm();
-		this.selected = null;
-		this.libraryId = null;
-		saveLibraryId(null, this.keys.library);
-		this.editor = replaceDesign(this.editor, this.editorContent, glider(this.editorContent));
-		this.view?.frame();
-		this.say('Loaded the glider: a pod and tank with two wings and a tail.');
+		this.loadBlueprint('stock.glider');
 	}
-	/** Load any Library blueprint (plan 285). */
+	/** Load any Library blueprint (plan 285), by its id or its id from before ADR 0316. */
 	loadBlueprint(id: string): void {
-		const card = this.blueprints.find((b) => b.id === id);
-		if (!card) return;
+		const card = this.cardOf(id);
+		if (!card) {
+			this.notice = `No plugin registers the blueprint "${id}".`;
+			return;
+		}
 		this.disarm();
 		this.selected = null;
 		this.libraryId = null;
@@ -1896,10 +1870,14 @@ export class VabController {
 		this.view?.frame();
 		this.say(`Loaded ${card.title}${card.inspiredBy ? `, inspired by ${card.inspiredBy}` : ''}.`);
 	}
+	private cardOf(id: string): BlueprintCard | undefined {
+		const found = resolveBlueprintId(id, this.blueprints);
+		return found === undefined ? undefined : this.blueprints.find((b) => b.id === found);
+	}
 	/** A card's picture, drawn once from the Hangar's view and kept (plan 285); null without a view. */
 	blueprintThumbnail(id: string): string | null {
 		if (this.blueprintThumbs.has(id)) return this.blueprintThumbs.get(id)!;
-		const card = this.blueprints.find((b) => b.id === id);
+		const card = this.cardOf(id);
 		if (!card || !this.view) return null;
 		const url = this.assemblyThumbnail(card.build(this.editorContent));
 		this.blueprintThumbs.set(id, url);
@@ -1907,20 +1885,12 @@ export class VabController {
 	}
 	/** The card read-outs (plan 285). */
 	blueprintStats(id: string): BlueprintStats | null {
-		const card = this.blueprints.find((b) => b.id === id);
+		const card = this.cardOf(id);
 		return card ? blueprintStats(card.build(this.editorContent), this.content, this.gravity) : null;
 	}
-	/** Load a famous-mission blueprint (plan 286). */
+	/** Load a famous-mission blueprint (plan 286): stock's since ADR 0316, old bare ids still work. */
 	loadMission(id: string): void {
-		const mission = MISSION_BLUEPRINTS.find((m) => m.id === id);
-		if (!mission) return;
-		this.disarm();
-		this.selected = null;
-		this.libraryId = null;
-		saveLibraryId(null, this.keys.library);
-		this.editor = replaceDesign(this.editor, this.editorContent, mission.build(this.editorContent));
-		this.view?.frame();
-		this.say(`Loaded ${mission.title}, inspired by ${mission.inspiredBy}.`);
+		this.loadBlueprint(id);
 	}
 	toggleContrast(): void {
 		this.highContrast = !this.highContrast;
