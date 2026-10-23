@@ -451,7 +451,7 @@ export const MoteBody = defineBody({
 		argp: 0,
 		m0: 0.6
 	}),
-	terrain: { kind: 'craters', seed: 37 },
+	terrain: { kind: 'craters', seed: 37, small: true },
 	appearance: { palette: ['#857868', '#51473f', '#ab9a87'], pattern: 'mottled' },
 	science: { spaceHigh: km(30), multiplier: 5 }
 });
@@ -470,7 +470,7 @@ export const FlickBody = defineBody({
 		argp: 90 * DEG,
 		m0: 2.4
 	}),
-	terrain: { kind: 'craters', seed: 41 },
+	terrain: { kind: 'craters', seed: 41, small: true },
 	appearance: { palette: ['#8b8075', '#5a5048', '#b0a293'], pattern: 'mottled' },
 	science: { spaceHigh: km(30), multiplier: 5.5 }
 });
@@ -727,7 +727,7 @@ export const VagrantBody = defineBody({
 	rotation: { pole: tiltedPole(VAGRANT_ORBIT, 40 * DEG, 50 * DEG) },
 	parent: 'stock.sun',
 	orbit: VAGRANT_ORBIT,
-	terrain: { kind: 'craters', seed: 71 },
+	terrain: { kind: 'craters', seed: 71, small: true },
 	appearance: { palette: ['#6e665e', '#46403a', '#958a7f'], pattern: 'mottled' },
 	science: { spaceHigh: km(20), multiplier: 8 }
 });

@@ -22,6 +22,8 @@
 	} from '../../../lib/vessel-panel/vessel-model';
 	import { commsTab, type ScreenNetwork } from '../../../lib/comms/network-model';
 	import NetworkLayer from '../../../lib/comms/NetworkLayer.svelte';
+	import BodyLabels from '../../../lib/map/BodyLabels.svelte';
+	import type { BodyLabel } from '../../../lib/map/body-labels';
 	import { categoriesOf } from '../../../lib/editor/categories';
 	import { loadPlugins } from '@orbital/core';
 	import Stock from '@orbital/mod-stock';
@@ -499,6 +501,8 @@
 	let markers = $state<MapMarkers>();
 	/** The Network layer in map view (plan 115, ADR 0158). */
 	let mapNetwork = $state.raw<ScreenNetwork | null>(null);
+	/** The names of the bodies in the map (plan 382). */
+	let mapBodyLabels = $state.raw<BodyLabel[] | null>(null);
 	/** A replay's ghost over this flight (plan 131, ADR 0159 point 7). */
 	let ghostFrame = $state.raw<ScreenGhost | null>(null);
 	let ghostInput = $state<HTMLInputElement>();
@@ -1105,6 +1109,8 @@
 				}
 				const net = f.network ?? null;
 				if (JSON.stringify(net) !== JSON.stringify(mapNetwork)) mapNetwork = net;
+				const bl = f.bodyLabels ?? null;
+				if (JSON.stringify(bl) !== JSON.stringify(mapBodyLabels)) mapBodyLabels = bl;
 				const g = f.ghost ?? null;
 				if (JSON.stringify(g) !== JSON.stringify(ghostFrame)) ghostFrame = g;
 				targetMarks?.place(f.target ?? null);
@@ -1787,6 +1793,7 @@
 				stations: mapFilters.filters.stations ? mapNetwork.stations : []
 			}}
 		/>{/if}
+	{#if mapBodyLabels && mapFilters.filters.labels}<BodyLabels labels={mapBodyLabels} />{/if}
 	{#if ghostFrame}<GhostLayer ghost={ghostFrame} />{/if}
 	<input
 		bind:this={ghostInput}

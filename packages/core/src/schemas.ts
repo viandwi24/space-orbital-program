@@ -86,7 +86,12 @@ export const resourceDefinitionSchema = z.object({
  */
 export const bodyTerrainSchema = z.discriminatedUnion('kind', [
 	z.object({ kind: z.literal('hills'), seed: z.int().min(0).max(2_147_483_647).optional() }),
-	z.object({ kind: z.literal('craters'), seed: z.int().min(0).max(999).optional() })
+	z.object({
+		kind: z.literal('craters'),
+		seed: z.int().min(0).max(999).optional(),
+		/** A small body (ADR 0319): lumpy, craters scaled to the radius, no landing plain. For rocks of a few km. */
+		small: z.boolean().optional()
+	})
 ]);
 
 /** An sRGB colour as `#rrggbb`. */

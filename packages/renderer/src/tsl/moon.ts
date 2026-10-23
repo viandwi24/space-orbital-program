@@ -17,7 +17,9 @@ import {
 	LAKE_SHAPE as LAKE,
 	MOON_SHAPE as S,
 	SEA_LEVEL,
-	STONES
+	SMALL_SHAPE,
+	STONES,
+	type CratersZone
 } from '@orbital/core';
 import {
 	AdditiveBlending,
@@ -390,6 +392,7 @@ export class MoonTSL {
 			return h;
 		};
 		const zones = this.pass.craterZoneList;
+		if (this.pass.small) return this.withZones(this.smallCratersHeight(craterLayer), zones);
 		const fn = Fn(([n]: N[]) => {
 			const relief = smoothstep(S.plainFrom, S.plainTo, acos(clamp(n.x, -1.0, 1.0)).mul(R)).toVar();
 			const h = float(S.base).toVar();
@@ -403,6 +406,59 @@ export class MoonTSL {
 					.mul(2 * S.hillAmplitude);
 				h.assign(relief.mul(sum.add(hills)).add(S.base));
 			});
+			for (const z of zones) {
+				const a = acos(
+					clamp(dot(n, vec3(z.direction.x, z.direction.y, z.direction.z)), -1.0, 1.0)
+				).mul(R);
+				const t = smoothstep(z.flatRadius, z.flatRadius + z.blendWidth, a);
+				h.assign(h.sub(z.height).mul(t).add(z.height));
+			}
+			return h;
+		});
+		return (n: N): N => fn(n);
+	}
+
+	/**
+	 * A small body's height (ADR 0319, the twin of core's `moonHeight` with `small`): the five crater layers at
+	 * shares of the radius, two octaves of lumps, clamped. The radius is a build-time constant here, like the seed.
+	 */
+	private smallCratersHeight(
+		craterLayer: (q: N, cellKm: number, rMin: number, rSpan: number, salt: number) => N
+	): (n: N) => N {
+		const R = this.R;
+		const km = R / 1000;
+		const seedShift = Math.imul(this.pass.seed, CRATERS_SEED_SALT);
+		const p = SMALL_SHAPE;
+		return Fn(([n]: N[]) => {
+			const q = n.mul(km).toVar();
+			const sum = float(0.0).toVar();
+			S.scales.forEach((s, i) => {
+				sum.addAssign(
+					craterLayer(q, p.cells[i]! * km, s.radius[0], s.radius[1], s.salt + seedShift)
+				);
+			});
+			const lumps = noiseT(q, 1 / (p.lump.wavelength * km), S.hillSalt + seedShift, int(0))
+				.sub(0.5)
+				.mul(2 * p.lump.amplitude * R)
+				.add(
+					noiseT(
+						q,
+						1 / (p.lumpFine.wavelength * km),
+						S.hillSalt + p.lumpFine.salt + seedShift,
+						int(0)
+					)
+						.sub(0.5)
+						.mul(2 * p.lumpFine.amplitude * R)
+				);
+			return clamp(sum.add(lumps).add(p.base * R), 0.0, p.maxShare * R);
+		}) as unknown as (n: N) => N;
+	}
+
+	/** The site zones of a craters body on top of a raw height function. */
+	private withZones(raw: (n: N) => N, zones: readonly CratersZone[]): (n: N) => N {
+		const R = this.R;
+		const fn = Fn(([n]: N[]) => {
+			const h = raw(n).toVar();
 			for (const z of zones) {
 				const a = acos(
 					clamp(dot(n, vec3(z.direction.x, z.direction.y, z.direction.z)), -1.0, 1.0)

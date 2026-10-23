@@ -49,6 +49,25 @@ export const MOON_SHAPE = {
 	plainTo: 42_000
 } as const;
 
+/**
+ * The shape of a small body (a rock of a few kilometres, `terrain.small`, ADR 0319): everything scales with the
+ * radius instead of kilometres, because the moon's lattices (70 km down to 1.3 km) and its 10 to 42 km landing plain
+ * are larger than the whole body: it would be one flat plain. Two octaves of lumps make it irregular, the same five
+ * crater lattices as the moon run at shares of the radius, and nothing is flattened. Heights stay in
+ * `[0, SMALL_SHAPE.maxShare * radius]` (the reference sphere is the lowest ground).
+ */
+export const SMALL_SHAPE = {
+	/** Level of the undisturbed ground above the reference sphere, share of the radius. */
+	base: 0.24,
+	/** Lumps: amplitude (share of the radius) and wavelength (radii), a broad one and a finer one. */
+	lump: { amplitude: 0.16, wavelength: 1.5 },
+	lumpFine: { amplitude: 0.05, wavelength: 0.6, salt: 1 },
+	/** Lattice cell edge of each of the five crater scales, in radii. */
+	cells: [0.9, 0.5, 0.28, 0.15, 0.08] as const,
+	/** Every height is clamped to this share of the radius. */
+	maxShare: 0.6
+} as const;
+
 const clamp = (v: number, lo: number, hi: number): number => Math.min(hi, Math.max(lo, v));
 const smoothstep = (e0: number, e1: number, x: number): number => {
 	const t = clamp((x - e0) / (e1 - e0), 0, 1);
@@ -81,16 +100,20 @@ export const CRATERS_SEED_SALT = 977;
  * of `radius`. `seed` (0 = the stock moon) moves every lattice, so a body of another seed has its own
  * craters and hills on the same shape (ADR 0067).
  */
-export function moonHeight(n: Vec3, radius: number, seed = 0): number {
+export function moonHeight(n: Vec3, radius: number, seed = 0, small = false): number {
 	const s = MOON_SHAPE;
 	const shift = seed * CRATERS_SEED_SALT;
 	const km = radius / 1000;
 	const q = { x: n.x * km, y: n.y * km, z: n.z * km };
-	const arc = radius * Math.acos(clamp(n.x, -1, 1)); // the landing site is latitude 0, longitude 0: +X
-	const relief = smoothstep(s.plainFrom, s.plainTo, arc);
+	// the landing site is latitude 0, longitude 0: +X; a small body has no plain
+	const relief = small
+		? 1
+		: smoothstep(s.plainFrom, s.plainTo, radius * Math.acos(clamp(n.x, -1, 1)));
 	if (relief <= 0) return s.base;
 	let h = 0;
-	for (const scale of s.scales) {
+	for (const [i, layer] of s.scales.entries()) {
+		const cellKm = small ? SMALL_SHAPE.cells[i]! * km : layer.cellKm;
+		const scale = { ...layer, cellKm };
 		const fx = q.x / scale.cellKm;
 		const fy = q.y / scale.cellKm;
 		const fz = q.z / scale.cellKm;
@@ -117,6 +140,20 @@ export function moonHeight(n: Vec3, radius: number, seed = 0): number {
 			}
 		}
 	}
+	if (small) {
+		const p = SMALL_SHAPE;
+		const lumps =
+			p.lump.amplitude *
+				radius *
+				(terrainNoise(q, 1 / (p.lump.wavelength * km), s.hillSalt + shift) - 0.5) *
+				2 +
+			p.lumpFine.amplitude *
+				radius *
+				(terrainNoise(q, 1 / (p.lumpFine.wavelength * km), s.hillSalt + p.lumpFine.salt + shift) -
+					0.5) *
+				2;
+		return clamp(p.base * radius + h + lumps, 0, p.maxShare * radius);
+	}
 	const hills =
 		s.hillAmplitude * (terrainNoise(q, 1 / s.hillWavelengthKm, s.hillSalt + shift) - 0.5) * 2;
 	return s.base + relief * (h + hills);
@@ -127,6 +164,8 @@ export interface MoonTerrainOptions {
 	radius: number;
 	/** Crater field seed, 0 to `CRATERS_MAX_SEED` (default 0: the stock moon). */
 	seed?: number;
+	/** A small body (ADR 0319): lumpy, with craters scaled to the radius. */
+	small?: boolean;
 	/** Flat zones of the sites on this body (plan 128, ADR 0125 point 1); absent: none. */
 	zones?: readonly TerrainZone[];
 }
@@ -144,7 +183,8 @@ export interface CratersZone {
 export function cratersZones(
 	zones: readonly TerrainZone[],
 	radius: number,
-	seed = 0
+	seed = 0,
+	small = false
 ): CratersZone[] {
 	return zones.map((z) => {
 		const direction = latLonDirection(z.latitude, z.longitude);
@@ -152,7 +192,7 @@ export function cratersZones(
 			direction,
 			flatRadius: z.flatRadius,
 			blendWidth: z.blendWidth,
-			height: moonHeight(direction, radius, seed)
+			height: moonHeight(direction, radius, seed, small)
 		};
 	});
 }
@@ -165,9 +205,10 @@ export function zonedMoonHeight(
 	n: Vec3,
 	radius: number,
 	seed: number,
-	zones: readonly CratersZone[]
+	zones: readonly CratersZone[],
+	small = false
 ): number {
-	let h = moonHeight(n, radius, seed);
+	let h = moonHeight(n, radius, seed, small);
 	for (const z of zones) {
 		const d = n.x * z.direction.x + n.y * z.direction.y + n.z * z.direction.z;
 		const arc = radius * Math.acos(clamp(d, -1, 1));
@@ -180,16 +221,18 @@ export function zonedMoonHeight(
 /** The terrain field of a craters body; the landing plain is at latitude 0, longitude 0. */
 export function createMoonTerrainField(options: MoonTerrainOptions): TerrainField {
 	const seed = options.seed ?? 0;
+	const small = options.small ?? false;
+	const maxHeight = small ? SMALL_SHAPE.maxShare * options.radius : MOON_MAX_HEIGHT;
 	if (!options.zones || options.zones.length === 0) {
 		return {
-			maxHeight: MOON_MAX_HEIGHT,
-			heightAt: (direction) => moonHeight(direction, options.radius, seed)
+			maxHeight,
+			heightAt: (direction) => moonHeight(direction, options.radius, seed, small)
 		};
 	}
-	const zones = cratersZones(options.zones, options.radius, seed);
+	const zones = cratersZones(options.zones, options.radius, seed, small);
 	return {
-		maxHeight: MOON_MAX_HEIGHT,
-		heightAt: (direction) => zonedMoonHeight(direction, options.radius, seed, zones)
+		maxHeight,
+		heightAt: (direction) => zonedMoonHeight(direction, options.radius, seed, zones, small)
 	};
 }
 

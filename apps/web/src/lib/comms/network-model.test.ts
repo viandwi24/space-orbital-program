@@ -8,6 +8,7 @@ import {
 	linkText,
 	linkState,
 	networkLines,
+	projectNetwork,
 	WEAK_MARGIN_DB,
 	networkStations,
 	rateText
@@ -264,5 +265,33 @@ describe('comms on the page (plan 115)', () => {
 		});
 		net.licences = [{ band: 'stock.s', channel: 2 }];
 		expect(commsTab(s, 2, 'Probe')!.licence).toBeNull();
+	});
+});
+
+describe('the station names follow the gate of the caller (plan 382)', () => {
+	const net = {
+		network: {
+			stations: [
+				{
+					id: 'site',
+					label: 'Space Center',
+					body: 'stock.home',
+					position: { x: 0, y: 0, z: 0 },
+					range: 1
+				}
+			],
+			vessels: []
+		},
+		vessels: [],
+		bodies: []
+	} as never;
+	const project = () => ({ x: 5, y: 6, hidden: false });
+	it('the marker stays and the name is hidden when the gate says the body is far', () => {
+		const far = projectNetwork(net, project, () => false);
+		expect(far.stations).toEqual([
+			{ id: 'site', label: 'Space Center', x: 5, y: 6, showLabel: false }
+		]);
+		expect(projectNetwork(net, project, (body) => body === 'stock.home').stations[0]!.showLabel).toBe(true);
+		expect(projectNetwork(net, project).stations[0]!.showLabel).toBe(true);
 	});
 });

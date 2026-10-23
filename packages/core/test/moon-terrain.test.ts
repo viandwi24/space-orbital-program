@@ -5,6 +5,7 @@ import {
 	MOON_MAX_HEIGHT,
 	MOON_MAX_SLOPE,
 	MOON_SHAPE,
+	SMALL_SHAPE,
 	moonHeight,
 	createRng,
 	type Vec3
@@ -74,5 +75,59 @@ describe('moon terrain', () => {
 		}
 		console.log(`moon steepest slope ${worst.toFixed(3)}`);
 		expect(worst).toBeLessThanOrEqual(MOON_MAX_SLOPE);
+	});
+});
+
+describe('small-body terrain (ADR 0319)', () => {
+	const R = 9_000;
+	const rng = createRng(11);
+	const samples = Array.from({ length: 4_000 }, () => randomDirection(() => rng.next()));
+	const field = createMoonTerrainField({ radius: R, seed: 41, small: true });
+
+	test('the moon rule would make a 9 km body one flat plain; the small shape has relief all over it', () => {
+		// within 2.9 km of the landing site (the plain is 10 km wide at least)
+		for (const n of samples.filter((n) => n.x > 0.95).slice(0, 200)) expect(moonHeight(n, R, 41)).toBe(MOON_SHAPE.base);
+		const h = samples.map((n) => field.heightAt(n));
+		const mean = h.reduce((a, b) => a + b, 0) / h.length;
+		const sd = Math.sqrt(h.reduce((a, b) => a + (b - mean) ** 2, 0) / h.length);
+		expect(sd).toBeGreaterThan(0.03 * R);
+		expect(Math.max(...h) - Math.min(...h)).toBeGreaterThan(0.25 * R);
+	});
+
+	test('every height is inside [0, maxShare * radius], deterministic, and the field says so', () => {
+		const max = SMALL_SHAPE.maxShare * R;
+		expect(field.maxHeight).toBe(max);
+		for (const n of samples) {
+			const h = field.heightAt(n);
+			expect(h).toBeGreaterThanOrEqual(0);
+			expect(h).toBeLessThanOrEqual(max);
+			expect(field.heightAt(n)).toBe(h);
+		}
+	});
+
+	test('craters scale with the radius: a body twice as large has the same shape twice as big', () => {
+		const big = createMoonTerrainField({ radius: 2 * R, seed: 41, small: true });
+		for (const n of samples.slice(0, 300)) {
+			const a = field.heightAt(n);
+			const b = big.heightAt(n);
+			expect(Math.abs(2 * a - b)).toBeLessThan(1e-6 * R + 1e-9 * b);
+		}
+	});
+
+	test('another seed is another rock, and the slope stays walkable', () => {
+		const other = createMoonTerrainField({ radius: R, seed: 42, small: true });
+		let differ = 0;
+		let worst = 0;
+		const step = 10 / R;
+		for (const n of samples.slice(0, 1_500)) {
+			if (Math.abs(other.heightAt(n) - field.heightAt(n)) > 10) differ++;
+			const e = unit(-n.z, 0, n.x);
+			const a = field.heightAt(unit(n.x + e.x * step, n.y, n.z + e.z * step));
+			const b = field.heightAt(unit(n.x - e.x * step, n.y, n.z - e.z * step));
+			worst = Math.max(worst, Math.abs(a - b) / (2 * 10));
+		}
+		expect(differ).toBeGreaterThan(1_000);
+		console.log(`small body worst slope ${worst.toFixed(3)}`);
+		expect(worst).toBeLessThan(1);
 	});
 });

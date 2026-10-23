@@ -38,6 +38,10 @@ export function hillsSeedOf(
 	return ((h ^ worldSeed) >>> 0) % 2_147_483_647;
 }
 
+/** Whether a craters body is a small one (ADR 0319): lumpy, craters scaled to the radius. */
+export const cratersSmallOf = (body: Pick<BodyDefinition, 'terrain'>): boolean =>
+	body.terrain?.kind === 'craters' && body.terrain.small === true;
+
 /** The craters seed of a body (0 when it names none). */
 export const cratersSeedOf = (body: Pick<BodyDefinition, 'terrain'>): number =>
 	body.terrain?.kind === 'craters' ? (body.terrain.seed ?? 0) : 0;
@@ -63,6 +67,7 @@ export function createBodyTerrainField(
 			return createMoonTerrainField({
 				radius: body.radius,
 				seed: body.terrain.seed ?? 0,
+				...(body.terrain.small ? { small: true } : {}),
 				...(world?.zones && world.zones.length > 0 ? { zones: world.zones } : {})
 			});
 		case undefined:

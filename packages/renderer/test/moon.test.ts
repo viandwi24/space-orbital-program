@@ -3,6 +3,7 @@ import { describe, expect, test } from 'bun:test';
 import {
 	CRATERS_SEED_SALT,
 	MOON_SHAPE,
+	SMALL_SHAPE,
 	moonHeight,
 	type BodyId,
 	type EntityId,
@@ -85,7 +86,7 @@ describe('the GLSL twin carries the constants of the TypeScript height function'
 	test('every scale, salt and profile constant of MOON_SHAPE is in the source', () => {
 		for (const s of MOON_SHAPE.scales) {
 			expect(moonHeightGLSL).toContain(
-				`craterLayer(q, ${Number.isInteger(s.cellKm) ? `${s.cellKm}.0` : s.cellKm}`
+				`craterLayer(q, mix(${Number.isInteger(s.cellKm) ? `${s.cellKm}.0` : s.cellKm}, `
 			);
 			expect(moonHeightGLSL).toContain(`, ${s.salt} + seedShift);`);
 		}
@@ -305,6 +306,24 @@ describe('the terrain kind decides the pass (plan 052, ADR 0067)', () => {
 		expect(seeded.seed).toBe(7);
 		stock.dispose();
 		seeded.dispose();
+	});
+
+	test('a small body is its own relief: the pass follows the sim field and the shader reads uSmall (ADR 0319)', () => {
+		const small = new MoonPass('d', 9_000, { seed: 41, small: true });
+		const plain = new MoonPass('e', 9_000, { seed: 41 });
+		const n = normalize({ x: -0.4, y: 0.5, z: 0.77 });
+		expect(small.small).toBe(true);
+		expect(small.groundHeight(n)).toBe(moonHeight(n, 9_000, 41, true));
+		expect(plain.groundHeight(n)).toBe(moonHeight(n, 9_000, 41));
+		expect(small.groundHeight(n)).not.toBe(plain.groundHeight(n));
+		expect(moonHeightGLSL).toContain('uniform float uSmall;');
+		for (const [i, c] of SMALL_SHAPE.cells.entries()) {
+			expect(moonHeightGLSL).toContain(`${Number.isInteger(c) ? `${c}.0` : c} * radKm, uSmall)`);
+			expect(i).toBeLessThan(5);
+		}
+		expect(moonHeightGLSL).toContain(`${SMALL_SHAPE.maxShare} * radius`);
+		small.dispose();
+		plain.dispose();
 	});
 
 	test('the seed reaches the bake shaders', () => {

@@ -385,6 +385,7 @@ export const networkStations = (snapshot: Pick<Snapshot, 'network'> | null) =>
 	(snapshot?.network?.stations ?? []).map((s) => ({
 		id: s.id,
 		label: s.label,
+		body: s.body,
 		position: s.position
 	}));
 
@@ -397,13 +398,15 @@ export interface ScreenNetwork {
 		y2: number;
 		state: LinkState;
 	}>;
-	stations: Array<{ id: string; label: string; x: number; y: number }>;
+	stations: Array<{ id: string; label: string; x: number; y: number; showLabel: boolean }>;
 }
 
 /** The Network layer in CSS pixels: lines whose ends are on screen, and the visible stations. */
 export function projectNetwork(
 	snapshot: Pick<Snapshot, 'network' | 'vessels' | 'bodies'> | null,
-	project: (system: Vec3) => { x: number; y: number; hidden?: boolean } | null
+	project: (system: Vec3) => { x: number; y: number; hidden?: boolean } | null,
+	/** Whether the names of the stations on this body are shown (plan 382): default all. */
+	showLabels: (body: string) => boolean = () => true
 ): ScreenNetwork {
 	const lines: ScreenNetwork['lines'] = [];
 	for (const l of networkLines(snapshot)) {
@@ -423,7 +426,13 @@ export function projectNetwork(
 	for (const s of networkStations(snapshot)) {
 		const p = project(s.position);
 		if (p && !p.hidden)
-			stations.push({ id: s.id, label: s.label, x: Math.round(p.x), y: Math.round(p.y) });
+			stations.push({
+				id: s.id,
+				label: s.label,
+				x: Math.round(p.x),
+				y: Math.round(p.y),
+				showLabel: showLabels(s.body)
+			});
 	}
 	return { lines, stations };
 }

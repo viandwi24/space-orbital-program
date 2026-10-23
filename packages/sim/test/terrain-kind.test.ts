@@ -18,6 +18,7 @@ import { createSim } from '../src/index.ts';
 import { rapier, stack } from './helpers/vessels.ts';
 
 const RADIUS = 120_000;
+const ROCK_RADIUS = 9_000;
 const orbit = { a: 9_000_000, e: 0, i: 0, raan: 0, argp: 0, m0: 2, epoch: 0 };
 const body = (id: string, extra: object) =>
 	defineBody({
@@ -35,6 +36,18 @@ const Pebbles = definePlugin({
 	setup(ctx) {
 		ctx.bodies.register(body('test.pebble', { terrain: { kind: 'craters', seed: 7 } }));
 		ctx.bodies.register(body('test.smooth', {}));
+		// ADR 0319: a rock of a few kilometres with the small-body relief
+		ctx.bodies.register(
+			defineBody({
+				id: 'test.rock',
+				mass: 3e7 / GRAVITATIONAL_CONSTANT,
+				radius: ROCK_RADIUS,
+				rotationPeriod: 30_000,
+				parent: 'stock.home',
+				orbit,
+				terrain: { kind: 'craters', seed: 9, small: true }
+			})
+		);
 		// Plan 059: a second planet with the home planet's hills, without and with an atmosphere.
 		ctx.bodies.register(
 			body('test.hills', { terrain: { kind: 'hills', seed: LEGACY_TERRAIN_SEED } })
@@ -51,7 +64,12 @@ const Pebbles = definePlugin({
 /** 60 km from the landing plain: well into the craters. */
 const LONGITUDE = 60_000 / RADIUS;
 
-async function standOn(bodyId: string, longitude = LONGITUDE) {
+async function standOn(
+	bodyId: string,
+	longitude = LONGITUDE,
+	latitude = 0,
+	radius = RADIUS
+) {
 	const sim = await createSim({
 		plugins: [Stock, Pebbles],
 		backendFactory: rapier(16),
@@ -63,13 +81,13 @@ async function standOn(bodyId: string, longitude = LONGITUDE) {
 	const placed = sim.dispatch({
 		type: 'load-vessel',
 		design: stack('Pod', ['stock.command-pod'], []),
-		placement: { kind: 'surface', body: bodyId as never, latitude: 0, longitude }
+		placement: { kind: 'surface', body: bodyId as never, latitude, longitude }
 	});
 	if (!placed.ok) throw new Error(placed.reason);
 	for (let i = 0; i < 500; i++) sim.step(0.02);
 	const v = sim.snapshot().vessels[0];
 	if (!v) throw new Error(`the vessel was lost: ${reasons.join(', ')}`);
-	const altitude = length(v.position) - RADIUS;
+	const altitude = length(v.position) - radius;
 	sim.dispose();
 	return { terrainHeight: v.terrainHeight, altitude };
 }
@@ -85,6 +103,22 @@ describe('terrain kind per body in the sim', () => {
 		expect(Math.abs(own - stock)).toBeGreaterThan(5); // a seed is its own ground
 		const r = await standOn('test.pebble');
 		// the vessel has settled a few millimetres from the placed spot
+		expect(Math.abs(r.terrainHeight! - own)).toBeLessThan(0.05);
+		expect(r.altitude).toBeGreaterThan(own);
+		expect(r.altitude).toBeLessThan(own + 15);
+	}, 30_000);
+
+	test('a small body stands the lander on its lumpy, cratered ground, with no plain at the landing site (ADR 0319)', async () => {
+		const field = createBodyTerrainField({
+			radius: ROCK_RADIUS,
+			terrain: { kind: 'craters', seed: 9, small: true }
+		})!;
+		// the moon's rule would make this body one flat plain at the base level; the small one has relief everywhere
+		const here = latLonDirection(0.3, 0.4);
+		const own = field.heightAt(here);
+		expect(own).toBeGreaterThan(0);
+		expect(own).toBeLessThan(field.maxHeight);
+		const r = await standOn('test.rock', 0.4, 0.3, ROCK_RADIUS);
 		expect(Math.abs(r.terrainHeight! - own)).toBeLessThan(0.05);
 		expect(r.altitude).toBeGreaterThan(own);
 		expect(r.altitude).toBeLessThan(own + 15);

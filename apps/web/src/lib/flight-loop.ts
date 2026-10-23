@@ -580,6 +580,7 @@ export function startFlight(options: FlightOptions): Flight {
 			bodies: c.bodies,
 			...(c.epoch ? { epoch: c.epoch } : {}),
 			project: (world) => renderer?.project(world) ?? null,
+			size: () => ({ width: canvas.clientWidth, height: canvas.clientHeight }),
 			rendezvous: () => targetView?.info ?? null,
 			...(resume ? { resume } : {})
 		});

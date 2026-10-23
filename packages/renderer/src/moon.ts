@@ -226,6 +226,8 @@ export class MoonPass {
 	readonly radius: number;
 	/** The crater field seed of the body (ADR 0067). */
 	readonly seed: number;
+	/** A small body (ADR 0319): lumpy, craters scaled to the radius. */
+	readonly small: boolean;
 	/** The ground the pass draws (ADR 0090). */
 	readonly kind: GroundKind;
 	private readonly spec: GroundSpec;
@@ -263,6 +265,8 @@ export class MoonPass {
 		options: {
 			tint?: [number, number, number];
 			seed?: number;
+			/** A small craters body (ADR 0319). */
+			small?: boolean;
 			kind?: GroundKind;
 			/** A hills body's seed and flat zones (plan 071, ADR 0121 point 1); default the Legacy terrain. */
 			terrain?: WorldTerrainSpec;
@@ -276,6 +280,7 @@ export class MoonPass {
 	) {
 		this.radius = radius;
 		this.seed = options.seed ?? 0;
+		this.small = options.small ?? false;
 		this.kind = options.kind ?? 'craters';
 		this.spec = GROUND_SPECS[this.kind];
 		// no zones on the body: the Legacy zone, as core's field does (ADR 0142 point 6)
@@ -290,7 +295,7 @@ export class MoonPass {
 			...zoneUniforms(this.terrain),
 			// a craters body's site zones and their centre heights (plan 128, ADR 0125 point 1)
 			...craterZoneUniforms(
-				(this.cratersZones = hills ? [] : cratersZones(options.zones ?? [], radius, this.seed))
+				(this.cratersZones = hills ? [] : cratersZones(options.zones ?? [], radius, this.seed, this.small))
 			)
 		};
 		const tint = options.tint ?? [0.135, 0.13, 0.122];
@@ -348,6 +353,7 @@ export class MoonPass {
 				uRadius: this.shared.uRadius!,
 				uFace: u(0),
 				uSeed: u(this.seed),
+				uSmall: u(this.small ? 1 : 0),
 				uMap: this.shared.uMap!,
 				uSiteDir: u(new Vector3(1, 0, 0)),
 				...zones
@@ -361,6 +367,7 @@ export class MoonPass {
 			uniforms: {
 				uRadius: this.shared.uRadius!,
 				uSeed: u(this.seed),
+				uSmall: u(this.small ? 1 : 0),
 				uMap: this.shared.uMap!,
 				uSiteDir: u(new Vector3(1, 0, 0)),
 				uPatchC: u(new Vector3()),
@@ -645,7 +652,7 @@ export class MoonPass {
 			this.hillsField ??= createTerrainField({ radius: this.radius, ...this.terrain });
 			return this.hillsField.heightAt(direction);
 		}
-		return zonedMoonHeight(direction, this.radius, this.seed, this.cratersZones);
+		return zonedMoonHeight(direction, this.radius, this.seed, this.cratersZones, this.small);
 	}
 
 	/** Steps of the shadow march (`SHADOW_STEPS` of the graphics preset). */

@@ -12,7 +12,7 @@
 	{#each network.stations as s (s.id)}
 		<g class="station" transform="translate({s.x} {s.y})">
 			<path d="M0 -5 L5 4 L-5 4 Z" />
-			<text x="8" y="4">{s.label}</text>
+			{#if s.showLabel}<text x="8" y="4">{s.label}</text>{/if}
 		</g>
 	{/each}
 </svg>

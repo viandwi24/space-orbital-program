@@ -11,7 +11,8 @@ import {
 	LAKE_SHAPE as LAKE,
 	MAX_TERRAIN_ZONES,
 	MOON_SHAPE as S,
-	SEA_LEVEL
+	SEA_LEVEL,
+	SMALL_SHAPE as SM
 } from '@orbital/core';
 import { STONES } from '@orbital/core';
 import {
@@ -35,16 +36,18 @@ float noiseT(vec3 q, float freq, int salt) {
 }
 `;
 
+// a small body (ADR 0319) runs the same layers with the cell edge a share of the radius: one program, `uSmall` picks
 const layers = S.scales
 	.map(
-		(s) =>
-			`h += craterLayer(q, ${f(s.cellKm)}, ${f(s.radius[0])}, ${f(s.radius[1])}, ${s.salt} + seedShift);`
+		(s, i) =>
+			`h += craterLayer(q, mix(${f(s.cellKm)}, ${f(SM.cells[i]!)} * radKm, uSmall), ${f(s.radius[0])}, ${f(s.radius[1])}, ${s.salt} + seedShift);`
 	)
 	.join('\n\t');
 
 /** `moonHeight(n, radius)`: metres above the reference sphere of the unit body-fixed direction. */
 export const moonHeightGLSL = /* glsl */ `
 uniform int uSeed;
+uniform float uSmall;
 ${hashNoiseGLSL}
 ${noiseGLSL}
 float craterProfile(float x, float r) {
@@ -76,12 +79,18 @@ float craterLayer(vec3 q, float cellKm, float rMin, float rSpan, int salt) {
 	return h;
 }
 float moonHeightRaw(vec3 n, float radius) {
-	float relief = smoothstep(${f(S.plainFrom)}, ${f(S.plainTo)}, radius * acos(clamp(n.x, -1.0, 1.0)));
+	float relief = mix(smoothstep(${f(S.plainFrom)}, ${f(S.plainTo)}, radius * acos(clamp(n.x, -1.0, 1.0))), 1.0, uSmall);
 	if (relief <= 0.0) return ${f(S.base)};
 	int seedShift = uSeed * ${CRATERS_SEED_SALT};
-	vec3 q = n * (radius / 1000.0);
+	float radKm = radius / 1000.0;
+	vec3 q = n * radKm;
 	float h = 0.0;
 	${layers}
+	if (uSmall > 0.5) {
+		float lumps = ${f(SM.lump.amplitude)} * radius * (noiseT(q, 1.0 / (${f(SM.lump.wavelength)} * radKm), ${S.hillSalt} + seedShift) - 0.5) * 2.0
+			+ ${f(SM.lumpFine.amplitude)} * radius * (noiseT(q, 1.0 / (${f(SM.lumpFine.wavelength)} * radKm), ${S.hillSalt + SM.lumpFine.salt} + seedShift) - 0.5) * 2.0;
+		return clamp(${f(SM.base)} * radius + h + lumps, 0.0, ${f(SM.maxShare)} * radius);
+	}
 	float hills = ${f(S.hillAmplitude)} * (noiseT(q, 1.0 / ${f(S.hillWavelengthKm)}, ${S.hillSalt} + seedShift) - 0.5) * 2.0;
 	return ${f(S.base)} + relief * (h + hills);
 }

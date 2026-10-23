@@ -15,6 +15,12 @@ import {
 	type ScreenNetwork
 } from './comms/network-model';
 import {
+	placeBodyLabels,
+	projectBodies,
+	siteLabelsShown,
+	type BodyLabel
+} from './map/body-labels';
+import {
 	bodyPole,
 	calendarOf,
 	discoveryDossier,
@@ -249,6 +255,8 @@ export interface FrameData {
 	} | null;
 	/** The Network layer in map view (plan 115, ADR 0158); null outside it. */
 	network?: ScreenNetwork | null;
+	/** The names of the bodies in map view (plan 382); null outside it. */
+	bodyLabels?: BodyLabel[] | null;
 	/** A replay's ghost (plan 131): its track in map view and where it is now. */
 	ghost?: ScreenGhost | null;
 	/** Maneuver nodes and handles in px (plan 045); filled in by the flight loop. */
@@ -281,6 +289,8 @@ export interface HudControllerOptions {
 	 * through the camera that is drawn; `null` behind the camera or while there is no renderer.
 	 */
 	project: (world: Vec3) => Point | null;
+	/** The canvas box, px: the body names are placed inside it (plan 382); without it, none are drawn. */
+	size?: () => { width: number; height: number };
 	/** Wall clock in ms (the render loop's `now`); toasts expire against it. */
 	now?: () => number;
 	/**
@@ -398,6 +408,7 @@ export function createHudController(options: HudControllerOptions): HudControlle
 		}));
 	}
 	const calendar = calendarOf(bodies);
+	const bodyRadii = new Map(bodies.map((b) => [String(b.id), b.radius]));
 	const epoch: Epoch = options.epoch ?? { day: 0, fraction: 0 };
 	const name = displayVesselName(design);
 	/** The snapshot's altitude is the root part's; the HUD shows the height of the vessel's base. */
@@ -653,11 +664,26 @@ export function createHudController(options: HudControllerOptions): HudControlle
 					}))
 				};
 			}
-			const network = map && s ? projectNetwork(s, options.project) : null;
+			// the bodies' names and, with them, whether the Space Center's is shown (plan 382)
+			const screenBodies =
+				map && s
+					? projectBodies(
+							s.bodies.map((b) => ({ id: String(b.id), position: b.position })),
+							bodyRadii,
+							options.project
+						)
+					: [];
+			const network =
+				map && s
+					? projectNetwork(s, options.project, (body) => siteLabelsShown(screenBodies, body))
+					: null;
+			const box = options.size?.();
+			const bodyLabels =
+				map && box ? placeBodyLabels(screenBodies, bodyLabel, box.width, box.height) : null;
 			if (s && firstT === null) firstT = s.t;
 			const ghostFrame =
 				ghost && s ? projectGhost(ghost, s, s.t - (firstT ?? s.t), map, options.project) : null;
-			return { navball, map: marks, network, ghost: ghostFrame };
+			return { navball, map: marks, network, bodyLabels, ghost: ghostFrame };
 		},
 		model(now, localThrottle) {
 			const v = find();
