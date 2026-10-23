@@ -353,7 +353,7 @@ ctx.contractTemplates.register(defineContractTemplate({
 - **A scrubber.** With `full`, someone must scrub the CO2. Use `['stock.scrubber', { crew: 2, charge: 8 }]` on your part, or give your own module `scrubber: (config) => ({ crew, charge })`. `charge` is EC per served person per day.
 - The vessel snapshot predicts the time left for each consumable. A run-out starts a grace period, and then the world's death rule applies.
 
-### How crew look and move (API 0.1.110, plan 375, ADR 0313)
+### How crew look and move (API 0.1.111, plan 375, ADR 0313)
 
 The crew character (ADR 0291) is drawn from what plugins register, and stock registers its own through the same five registries. `examples/mod-crew-sample` uses each of them. It adds:
 - a band outfit for the Hangar crew;
@@ -1043,7 +1043,7 @@ visual: {
 ```
 
 - **Ship it.** Put `.glb` files under `my-mod/assets/` (packed at their path inside that folder), or add `my-mod/assets.ts` whose default export is a function returning `{ 'models/x.glb': bytes }`; the sample generates its model there with `tools/mod-build/glb.ts` (a small GLB and PNG writer), so it needs no binary art. The package then has `formatVersion` 2 and an `assets` table; every file has its own SHA-256 and the package fingerprint covers them, so a changed byte means "install it again to review it". A package without models stays format 1.
-- **Images** (API 0.1.110, plan 375): `.png` and `.webp` files under `assets/` are packed too (format 3), at most 512 KB each; they are crew portraits for now (see "How crew look and move").
+- **Images** (API 0.1.111, plan 375): `.png` and `.webp` files under `assets/` are packed too (format 3), at most 512 KB each; they are crew portraits for now (see "How crew look and move").
 - **Limits** (checked at install, before the prompt, and named by file): models are `.glb` (glTF 2.0 binary) only; 2 MiB per file, 6 MiB and 32 files per package; at most 50 000 triangles, 32 mesh nodes (draw calls), 8 textures, 4 animations and 20 000 keyframes per model; textures PNG, JPEG or KTX2 (`KHR_texture_basisu`, API 0.1.62) embedded in the file; no external or data URIs; no Draco, Meshopt, WebP or AVIF (export plain triangles). A part whose `visual.asset` names a file your package does not carry makes the mod fail to load with the part and file named.
 - **Author in the part frame.** Origin at the part's centre, +Y up, metres, the same frame as `shape` and `attach`. The model should sit inside the shape, and its faces should be where the attach nodes are (`top` at the highest face, `bottom` at the lowest). The game does not rescale or move it; where it does not fit (sticks out by more than 5 cm or a tenth of the length, far smaller than the shape, a node off its face) it logs a warning once per part on the console.
 - **Moving parts.** Name a node `moving` and give the visual an `articulation`: the node turns about its own origin (put the origin at the gimbal point); a gimballed engine's plume follows it.

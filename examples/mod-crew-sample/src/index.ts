@@ -89,7 +89,7 @@ export const TealMechanics = definePatch({
 });
 
 export default definePlugin({
-	meta: { id: 'crew-sample', version: '1.0.0', api: '^0.1.110', title: 'Marching band (crew sample)' },
+	meta: { id: 'crew-sample', version: '1.0.0', api: '^0.1.111', title: 'Marching band (crew sample)' },
 	depends: ['stock'],
 	setup(ctx) {
 		ctx.crewOutfits.register(Band);
