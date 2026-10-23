@@ -38,6 +38,7 @@ import type { ScreenPoint } from './project.ts';
 import { SceneModel, type MapPathSegment, type MapScope, type SceneConfig } from './scene.ts';
 import type { Vec3 } from '@orbital/core';
 import type { CameraMode } from './camera-modes.ts';
+import type { PassTimes } from './pass-timing.ts';
 
 /** Steps `LaunchSite.warmVegetation` takes for the three presets' sets (measured), for the progress bar only. */
 const VEGETATION_STEPS = 34;
@@ -360,6 +361,11 @@ export interface Renderer {
 	 * Phase 8): the governor's evidence of headroom (ADR 0233).
 	 */
 	readonly gpuFrameMs: number | null;
+	/**
+	 * GPU ms per frame by pass (`planet`, `moon`, `scene` with its bloom and output) and the render
+	 * contexts each makes per frame, from the timestamp pool; null where there is none (plan 392).
+	 */
+	readonly passTimes: PassTimes | null;
 	/**
 	 * Whether the quality governor may lower the preset (WebGL), or only the resolution (WebGPU, plan
 	 * 261: its cost follows the pixels, and a preset change rebuilds shaders for seconds).
@@ -747,6 +753,7 @@ export function createRenderer(config: RendererConfig): Renderer {
 				return env.planet.planetScale;
 			},
 			gpuFrameMs: null,
+			passTimes: null,
 			governorPresetSteps: true,
 			get halfPlanetAvailable() {
 				return env.planet.halfAvailable(gl);

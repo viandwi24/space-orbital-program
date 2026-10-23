@@ -37,6 +37,7 @@ import { hideUnported } from './webgpu-compat.ts';
 import { Twins } from './tsl/twins.ts';
 import { MoonTSL } from './tsl/moon.ts';
 import type { MoonPass } from './moon.ts';
+import { PassTag, labelCommandEncoders, passTimes, type PassTimes } from './pass-timing.ts';
 
 const deferred = (): { promise: Promise<void>; resolve: () => void } => {
 	let resolve: () => void = () => {};
@@ -144,6 +145,9 @@ export function createWebGPURenderer(
 	let unported: string[] = [];
 	let patched: string[] = [];
 	let gpuMs: number | null = null;
+	/** Which pass each command encoder is for, and each pass's GPU time per frame (plan 392). */
+	const tag = new PassTag();
+	let passMs: PassTimes | null = null;
 	/** The last frame's counts, read right after it (compiles reset the renderer's own). */
 	let drawn = { calls: 0, triangles: 0 };
 	let framesSinceResolve = 0;
@@ -208,8 +212,11 @@ export function createWebGPURenderer(
 		});
 		await r.init();
 		const b = r.backend as { device?: GPUDevice; gl?: WebGL2RenderingContext };
-		if (b.device) compiles.watchWebGPU(b.device);
-		else if (b.gl) compiles.watchWebGL(b.gl);
+		if (b.device) {
+			compiles.watchWebGPU(b.device);
+			// a Metal capture and the pass timings name the passes (plan 392)
+			labelCommandEncoders(b.device, tag);
+		} else if (b.gl) compiles.watchWebGL(b.gl);
 		hookPipelines(r);
 		hookBuildBudget(r);
 		r.toneMapping = ACESFilmicToneMapping;
@@ -271,6 +278,20 @@ export function createWebGPURenderer(
 		}
 	};
 
+	/** The timestamp pool's per-context durations grouped by pass (`pass-timing.ts`); null before any read. */
+	const readPassTimes = (r: WebGPURenderer, tags: PassTag, frames: number): PassTimes | null => {
+		const pool = (
+			r.backend as {
+				timestampQueryPool?: Record<
+					string,
+					{ timestamps?: Map<string, number>; frames?: unknown[] }
+				>;
+			}
+		).timestampQueryPool?.render;
+		if (!pool?.timestamps) return null;
+		return passTimes(pool.timestamps, tags.contexts, pool.frames?.length || frames);
+	};
+
 	/**
 	 * GPU time a frame, about: three's query pool sums every pass up to when it is read, so the
 	 * frames are counted from one finished read to the next, about half a second apart.
@@ -286,6 +307,7 @@ export function createWebGPURenderer(
 		r.resolveTimestampsAsync('render')
 			.then((ms) => {
 				if (typeof ms === 'number' && ms > 0) gpuMs = ms / frames;
+				passMs = readPassTimes(r, tag, frames);
 			})
 			.catch(() => {})
 			.finally(() => {
@@ -302,15 +324,21 @@ export function createWebGPURenderer(
 		// on every preset (the governor's move to low and back crashed the page), and the planet pass
 		// ignores the map when the environment says it is off
 		env.sunLight.castShadow = true;
-		planet.update(
-			r,
-			model.camera,
-			Math.max(1, Math.round(width * pixelRatio)),
-			Math.max(1, Math.round(height * pixelRatio))
+		tag.within('planet', () =>
+			planet.update(
+				r,
+				model.camera,
+				Math.max(1, Math.round(width * pixelRatio)),
+				Math.max(1, Math.round(height * pixelRatio))
+			)
 		);
-		for (const pass of model.moonPasses) moonOf(pass).update(r);
+		tag.within('moon', () => {
+			for (const pass of model.moonPasses) moonOf(pass).update(r);
+		});
 		r.toneMappingExposure = env.state.exposure;
-		withPorted(() => (pipeline ? pipeline.render() : r.render(model.scene, model.camera)));
+		tag.within('scene', () =>
+			withPorted(() => (pipeline ? pipeline.render() : r.render(model.scene, model.camera)))
+		);
 		drawn = { calls: r.info.render.drawCalls, triangles: r.info.render.triangles };
 		if (!benchmarking && (r.backend as { trackTimestamp?: boolean }).trackTimestamp) measureGpu(r);
 	}
@@ -803,6 +831,9 @@ export function createWebGPURenderer(
 			governorPresetSteps: true,
 			get gpuFrameMs() {
 				return gpuMs;
+			},
+			get passTimes() {
+				return passMs;
 			},
 			capabilities() {
 				const b = gpu?.backend as { device?: GPUDevice; gl?: WebGL2RenderingContext } | undefined;
