@@ -330,6 +330,7 @@ export function restoreFrames(core: SimCore, save: SimSave): void {
 		frame.velocity = { ...saved.velocity };
 		frame.bodies.clear();
 		frame.tiles.clear();
+		frame.grace?.clear();
 		frame.wet.clear();
 		frame.wetVessels.clear();
 		frame.waterImpacts = [];

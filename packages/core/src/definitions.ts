@@ -590,9 +590,10 @@ export interface ModuleDefinition<In = unknown, Out = In, State = unknown> {
 	/**
 	 * The part is hollow (plan 356): its own collision boxes are left out and only the modules'
 	 * `colliders` remain, its walls. A cargo bay, so a payload set free inside it is not pushed out
-	 * of a solid box. Pure function of the config.
+	 * of a solid box. Pure function of the config and, since plan 390, the state (petals thrown
+	 * off leave no ring to collide with; a change rebuilds the vessel's body like `colliders`).
 	 */
-	hollow?: Bivariant<(config: Out) => boolean>;
+	hollow?: Bivariant<(config: Out, state?: State) => boolean>;
 	/**
 	 * Rations a part with this module carries, in crew-days per seat (player-journey audit Q2, ADR
 	 * 0323): from launch they keep its crew before carried consumables are drawn, as a KSP pod does.

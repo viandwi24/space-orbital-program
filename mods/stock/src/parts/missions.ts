@@ -434,7 +434,9 @@ function bay(
 					profile: [
 						{ y: -height / 2 + 0.05, r: inner },
 						{ y: height / 2 - 0.05, r: inner }
-					]
+					],
+					// a bay with a seat inside is a tube round it, not a solid cylinder (plan 390)
+					...(cargo ? { walls: { x: r * 0.96, y: height / 2, z: r * 0.96 } } : {})
 				}
 			]
 		]

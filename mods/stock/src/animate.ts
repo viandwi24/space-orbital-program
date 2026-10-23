@@ -210,7 +210,9 @@ export const ModuleBay = defineModule({
 		]
 	}),
 	shell: (config, state) => (state.open ? null : config.profile),
-	hollow: (config) => config.walls !== undefined,
+	// a single-use bay's ring is nothing once its panels are gone (plan 390), and a walled bay is a tube
+	hollow: (config, state) =>
+		config.walls !== undefined || (config.jettison !== undefined && state?.jettisoned === true),
 	colliders: (config, state) => {
 		const w = config.walls;
 		if (!w) return [];

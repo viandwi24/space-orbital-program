@@ -233,7 +233,11 @@ export function collectColliders(
 		const at = sub(part.designPos, rootDesign);
 		const turn = isTurned(part) ? partRotation(part) : undefined;
 		// a hollow part (a cargo bay, plan 356) has only its modules' walls
-		const hollow = part.modules.some((m) => moduleDefOf(core, m.id).hollow?.(m.config) === true);
+		const hollow = part.modules.some(
+			(m) =>
+				moduleDefOf(core, m.id).hollow?.(m.config, moduleState(core, id, m.id) as never) === true
+		);
+		if (hollow) extras.push([id, 'hollow']);
 		for (const box of hollow ? [] : colliderBoxes(partDefOf(core, part))) {
 			const rotation =
 				box.yaw === 0 ? turn : turn ? qMul(turn, qAboutY(box.yaw)) : qAboutY(box.yaw);
@@ -825,6 +829,45 @@ function groundContacts(
 	return impacts;
 }
 
+/** Steps a pair must not overlap before its contacts come back, and the longest it may be ignored, s. */
+export const GRACE_CLEAR_STEPS = 10;
+export const GRACE_MAX_SECONDS = 20;
+
+/**
+ * Ignore the contacts between the bodies of vessels `a` and `b` until they have parted (plan 390,
+ * ADR 0332): a split or a spawned piece starts with boxes inside each other's, and the solver
+ * would throw both apart.
+ */
+export function graceBetween(frame: FlightFrame, a: EntityId, b: EntityId): void {
+	const ba = frame.bodies.get(a);
+	const bb = frame.bodies.get(b);
+	if (!ba || !bb || a === b) return;
+	const key = a < b ? `${a}:${b}` : `${b}:${a}`;
+	frame.grace ??= new Map();
+	frame.grace.set(key, { a, b, clear: 0, age: 0 });
+	frame.backend.setPairContacts(ba.handle, bb.handle, false);
+}
+
+/** After a step: restore the contacts of every pair that has not overlapped for `GRACE_CLEAR_STEPS` steps. */
+function stepGrace(frame: FlightFrame, dt: number): void {
+	if (!frame.grace?.size) return;
+	for (const [key, g] of [...frame.grace]) {
+		const ba = frame.bodies.get(g.a);
+		const bb = frame.bodies.get(g.b);
+		if (!ba || !bb) {
+			frame.grace.delete(key);
+			continue;
+		}
+		g.age += dt;
+		const touching = frame.backend.contacts(ba.handle, bb.handle).some((c) => c.distance < 0);
+		g.clear = touching ? 0 : g.clear + 1;
+		if (g.clear >= GRACE_CLEAR_STEPS || g.age >= GRACE_MAX_SECONDS) {
+			frame.backend.setPairContacts(ba.handle, bb.handle, true);
+			frame.grace.delete(key);
+		}
+	}
+}
+
 /** Outcome of an impact at `speed` for a part with `tolerance`; undefined when it survives. */
 export function impactOutcome(
 	speed: number,
@@ -844,6 +887,7 @@ export function advanceFrame(core: SimCore, frame: FlightFrame, dt: number): Gro
 	const before = new Map<EntityId, ReturnType<typeof bodyMotion>>();
 	for (const id of frame.tiles.keys()) before.set(id, bodyMotion(frame, frame.bodies.get(id)!));
 	frame.backend.step(dt);
+	stepGrace(frame, dt);
 	const impacts = groundContacts(core, frame, before);
 	// A wet vessel counts as landed (ADR 0182 point 5); entries into water are impacts (point 6).
 	for (const id of frame.vessels) if (frame.wetVessels.has(id)) vesselOf(core, id).landed = true;

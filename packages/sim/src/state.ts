@@ -430,6 +430,12 @@ export interface FlightFrame {
 	wet: Map<EntityId, Set<EntityId>>;
 	wetVessels: Set<EntityId>;
 	waterImpacts: Array<{ vessel: EntityId; part: EntityId; speed: number }>;
+	/**
+	 * Pairs of vessels whose bodies ignore each other (plan 390, ADR 0332): just separated, or just
+	 * spawned inside one another. Keyed by the two ids; `clear` counts the steps they have not
+	 * overlapped, `age` the seconds. Not saved: a resume starts without any.
+	 */
+	grace?: Map<string, { a: EntityId; b: EntityId; clear: number; age: number }>;
 	/** Wheel contacts with the ground tile after the last step, per vessel: collider index to point (ADR 0161). */
 	wheelContacts?: Map<EntityId, Map<number, Vec3>>;
 }

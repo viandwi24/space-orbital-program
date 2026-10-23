@@ -52,7 +52,30 @@ export async function createRapierBackend(
 		world.integrationParameters.numSolverIterations = options.solverIterations;
 	}
 
+	// Rapier 0.12's step calls the hooks only when it is also given an event queue (no collider asks for events)
+	const queue = new RAPIER.EventQueue(false);
 	const bodies = new Map<number, BodyRecord>();
+	// Pairs of bodies whose contacts are ignored (plan 390), as "a:b" with a < b.
+	const ignored = new Set<string>();
+	const pairKey = (a: number, b: number): string => (a < b ? `${a}:${b}` : `${b}:${a}`);
+	const hooks: RAPIER.PhysicsHooks = {
+		filterContactPair: (c1, c2) => {
+			const o1 = colliderOwner.get(c1);
+			const o2 = colliderOwner.get(c2);
+			return o1 && o2 && ignored.has(pairKey(o1.body, o2.body))
+				? RAPIER.SolverFlags.EMPTY // the manifold is still made, so `contacts` can say when the pair has parted
+				: RAPIER.SolverFlags.COMPUTE_IMPULSE;
+		},
+		filterIntersectionPair: () => true
+	};
+	/** Colliders carry the filter hook only while their body is in an ignored pair (the hook costs a call per pair). */
+	const hookBody = (handle: number): void => {
+		const r = bodies.get(handle);
+		if (!r) return;
+		const any = [...ignored].some((k) => k.split(':').includes(String(handle)));
+		for (const c of r.colliders)
+			c.setActiveHooks(any ? RAPIER.ActiveHooks.FILTER_CONTACT_PAIRS : RAPIER.ActiveHooks.NONE);
+	};
 	const joints = new Map<number, JointRecord>();
 	// Bodies with pending forces/torques, in insertion order (deterministic).
 	const loaded = new Set<number>();
@@ -168,6 +191,13 @@ export async function createRapierBackend(
 				joints.delete(j); // Rapier drops attached joints with the body
 			}
 			loaded.delete(handle);
+			for (const k of [...ignored]) {
+				const [x, y] = k.split(':').map(Number) as [number, number];
+				if (x === handle || y === handle) {
+					ignored.delete(k);
+					hookBody(x === handle ? y : x);
+				}
+			}
 			for (const c of r.colliders) colliderOwner.delete(c.handle);
 			world.removeRigidBody(r.body);
 			bodies.delete(handle);
@@ -225,7 +255,7 @@ export async function createRapierBackend(
 				throw new Error(`physics: step dt must be a positive finite number, got ${dt}`);
 			}
 			world.timestep = dt;
-			world.step();
+			world.step(queue, ignored.size > 0 ? hooks : undefined);
 			for (const h of loaded) {
 				const r = bodies.get(h);
 				if (!r) continue;
@@ -292,9 +322,28 @@ export async function createRapierBackend(
 			return out.sort((x, y) => x.shape - y.shape);
 		},
 
+		setPairContacts(a, b, enabled) {
+			rec(a);
+			rec(b);
+			if (a === b) throw new Error(`physics: a pair needs two bodies, got ${a} twice`);
+			if (enabled) ignored.delete(pairKey(a, b));
+			else ignored.add(pairKey(a, b));
+			hookBody(a);
+			hookBody(b);
+		},
+
+		ignoredPairs() {
+			return [...ignored]
+				.map((k) => k.split(':').map(Number) as [number, number])
+				.sort((p, q) => p[0] - q[0] || p[1] - q[1]) as unknown as ReadonlyArray<
+				readonly [BodyHandle, BodyHandle]
+			>;
+		},
+
 		dispose() {
 			if (disposed) return;
 			disposed = true;
+			queue.free();
 			world.free();
 			bodies.clear();
 			joints.clear();

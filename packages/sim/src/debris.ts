@@ -25,7 +25,7 @@ import {
 	vesselOf,
 	type SimCore
 } from './core.ts';
-import { enterFlight, partTransform, partVelocity } from './frames.ts';
+import { enterFlight, graceBetween, partTransform, partVelocity } from './frames.ts';
 import { qRotate } from './math.ts';
 import { halfExtentsOf, isTurned, partRotation } from './parts.ts';
 import { placeAtState, spawnVessel } from './vessel.ts';
@@ -52,6 +52,7 @@ export function spawnQueuedDebris(core: SimCore): void {
 	const q = queues.get(core);
 	if (!q?.length) return;
 	queues.delete(core);
+	const spawned: EntityId[] = [];
 	for (const r of q) {
 		if (!core.world.hasEntity(r.from)) continue;
 		const frame = frameOfPart(core, r.from);
@@ -88,6 +89,10 @@ export function spawnQueuedDebris(core: SimCore): void {
 		if (source.launchLatitude !== undefined) vessel.launchLatitude = source.launchLatitude;
 		placeAtState(core, id, position, velocity, t.rotation);
 		enterFlight(core, id, frame);
+		// a thrown-off piece starts beside, or inside, what it left, and beside its fellows (plan 390)
+		graceBetween(frame, id, partOf(core, r.from).vessel);
+		for (const other of spawned) graceBetween(frame, id, other);
+		spawned.push(id);
 		// `spawnVessel` announces it (`vessel:created`)
 	}
 }

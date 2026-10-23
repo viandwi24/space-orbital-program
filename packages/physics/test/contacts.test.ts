@@ -126,3 +126,80 @@ describe('contact readback and material (plan 012)', () => {
 		expect(mock.contacts(a, b)).toEqual([]);
 	});
 });
+
+describe('pair contacts (plan 390)', () => {
+	/** Two 1 m boxes, created 0.3 m interpenetrating, in free space, at rest. */
+	async function overlapping() {
+		const world = await rapier();
+		const make = (x: number) =>
+			world.createBody({
+				shape: { type: 'box', halfExtents: half },
+				mass: 10,
+				inertia: { x: 2, y: 2, z: 2 },
+				position: { x, y: 0, z: 0 },
+				rotation: ID,
+				friction: 0.5
+			});
+		return { world, a: make(0), b: make(0.7) };
+	}
+
+	test('with their contacts ignored, two boxes that interpenetrate stay at rest', async () => {
+		const { world, a, b } = await overlapping();
+		world.setPairContacts(a, b, false);
+		expect(world.ignoredPairs()).toEqual([[a, b]]);
+		for (let i = 0; i < 10; i++) world.step(DT);
+		expect(world.getVelocity(a).linear).toEqual({ x: 0, y: 0, z: 0 });
+		expect(world.getVelocity(b).linear).toEqual({ x: 0, y: 0, z: 0 });
+		// the manifold is still made: the sim can tell when the pair has parted
+		expect(world.contacts(a, b).some((p) => p.distance < 0)).toBe(true);
+	});
+
+	test('the same boxes with contacts on are pushed apart (the control)', async () => {
+		const { world, a, b } = await overlapping();
+		for (let i = 0; i < 3; i++) world.step(DT);
+		expect(Math.abs(world.getVelocity(a).linear.x)).toBeGreaterThan(0.1);
+	});
+
+	test('once the pair is separated and its contacts restored, a collision is normal again', async () => {
+		const { world, a, b } = await overlapping();
+		world.setPairContacts(a, b, false);
+		world.setVelocity(b, { linear: { x: 3, y: 0, z: 0 }, angular: { x: 0, y: 0, z: 0 } });
+		for (let i = 0; i < 25; i++) world.step(DT); // 1.5 m apart, still ignored
+		expect(world.getTransform(b).position.x - world.getTransform(a).position.x).toBeGreaterThan(
+			1.5
+		);
+		world.setPairContacts(a, b, true);
+		expect(world.ignoredPairs()).toEqual([]);
+		// a heads for b: they meet and a does not pass through
+		world.setVelocity(b, { linear: { x: 0, y: 0, z: 0 }, angular: { x: 0, y: 0, z: 0 } });
+		world.setVelocity(a, { linear: { x: 4, y: 0, z: 0 }, angular: { x: 0, y: 0, z: 0 } });
+		for (let i = 0; i < 60; i++) world.step(DT);
+		expect(world.getTransform(a).position.x).toBeLessThan(world.getTransform(b).position.x);
+	});
+
+	test('removing a body drops its ignored pairs, and the mock backend remembers the set', async () => {
+		const { world, a, b } = await overlapping();
+		world.setPairContacts(a, b, false);
+		world.removeBody(b);
+		expect(world.ignoredPairs()).toEqual([]);
+		const mock = createMockBackend();
+		const m1 = mock.createBody({
+			shape: { type: 'box', halfExtents: half },
+			mass: 1,
+			inertia: { x: 1, y: 1, z: 1 },
+			position: { x: 0, y: 0, z: 0 },
+			rotation: ID
+		});
+		const m2 = mock.createBody({
+			shape: { type: 'box', halfExtents: half },
+			mass: 1,
+			inertia: { x: 1, y: 1, z: 1 },
+			position: { x: 0, y: 0, z: 0 },
+			rotation: ID
+		});
+		mock.setPairContacts(m2, m1, false);
+		expect(mock.ignoredPairs()).toEqual([[m1, m2]]);
+		mock.setPairContacts(m1, m2, true);
+		expect(mock.ignoredPairs()).toEqual([]);
+	});
+});

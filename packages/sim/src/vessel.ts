@@ -37,6 +37,7 @@ import { loseCrew } from './crew.ts';
 import {
 	bodyMotion,
 	createVesselBody,
+	graceBetween,
 	impactOutcome,
 	type GroundImpact,
 	leaveFlight,
@@ -492,6 +493,8 @@ function splitAt(
 				angular: rootPose.angular
 			});
 		}
+		// the halves start with boxes at each other's faces: no pushing apart until they have parted (plan 390)
+		graceBetween(frame, vesselId, newId);
 	} else {
 		// A piece that stays with a vessel standing on the ground stays on the ground (ADR 0024).
 		vessel.rails = wasOnSurface

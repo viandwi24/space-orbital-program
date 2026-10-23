@@ -34,6 +34,7 @@ interface MockBody {
 export function createMockBackend(): PhysicsBackend {
 	const bodies = new Map<number, MockBody>();
 	const joints = new Map<number, [number, number]>();
+	const ignored = new Set<string>();
 	let nextBody = 1;
 	let nextJoint = 1;
 
@@ -64,6 +65,7 @@ export function createMockBackend(): PhysicsBackend {
 		removeBody(h) {
 			get(h);
 			bodies.delete(h);
+			for (const k of [...ignored]) if (k.split(':').includes(String(h))) ignored.delete(k);
 			for (const [j, [a, b]] of joints) if (a === h || b === h) joints.delete(j);
 		},
 		createFixedJoint(a, b) {
@@ -158,7 +160,23 @@ export function createMockBackend(): PhysicsBackend {
 			get(b);
 			return [];
 		},
+		setPairContacts(a, b, enabled) {
+			get(a);
+			get(b);
+			if (a === b) throw new Error(`physics(mock): a pair needs two bodies, got ${a} twice`);
+			const k = a < b ? `${a}:${b}` : `${b}:${a}`;
+			if (enabled) ignored.delete(k);
+			else ignored.add(k);
+		},
+		ignoredPairs() {
+			return [...ignored]
+				.map((k) => k.split(':').map(Number) as [number, number])
+				.sort((p, q) => p[0] - q[0] || p[1] - q[1]) as unknown as ReadonlyArray<
+				readonly [BodyHandle, BodyHandle]
+			>;
+		},
 		dispose() {
+			ignored.clear();
 			bodies.clear();
 			joints.clear();
 		}

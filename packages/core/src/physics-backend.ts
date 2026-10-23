@@ -129,6 +129,16 @@ export interface PhysicsBackend {
 	 */
 	contacts(a: BodyHandle, b: BodyHandle): ContactPoint[];
 
+	/**
+	 * Ignore (`enabled` false) or restore the contacts between bodies `a` and `b` (plan 390): a pair
+	 * that was just separated, or just spawned overlapping, must not push itself apart. The sim
+	 * lifts it once the pair no longer overlaps. A removed body drops its pairs. The mock backend
+	 * has no collisions and only remembers the set.
+	 */
+	setPairContacts(a: BodyHandle, b: BodyHandle, enabled: boolean): void;
+	/** The pairs whose contacts are ignored, as `[a, b]` with `a < b`, in a deterministic order. */
+	ignoredPairs(): ReadonlyArray<readonly [BodyHandle, BodyHandle]>;
+
 	/** Release native resources (WASM memory). The backend is unusable afterwards. */
 	dispose(): void;
 }
