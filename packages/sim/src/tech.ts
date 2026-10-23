@@ -7,6 +7,7 @@ import {
 	lockedParts,
 	nodeOfParts,
 	researchProblem,
+	techBodiesOf,
 	type CommandResult,
 	type SaveTech,
 	type Snapshot,
@@ -32,7 +33,11 @@ export function research(core: SimCore, id: string): CommandResult {
 		nodes,
 		core.tech.researched,
 		core.milestones.records.map((r) => r.id),
-		core.economy.balances.science
+		core.economy.balances.science,
+		techBodiesOf(
+			[...core.bodies.values()].map((b) => b.def),
+			core.root.def.id
+		)
 	);
 	if (problem) return { ok: false, reason: problem };
 	if (node.cost > 0) record(core, 'science', -node.cost, 'tech.research', node.id);

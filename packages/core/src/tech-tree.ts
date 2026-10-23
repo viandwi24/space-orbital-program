@@ -14,7 +14,10 @@ export interface TechNodeDefinition {
 	cost: number;
 	/** Nodes researched first. */
 	requires?: string[];
-	/** A milestone the world must have recorded (`orbit:stock.home`, ADR 0147). */
+	/**
+	 * A milestone the world must have recorded (`orbit:stock.home`, ADR 0147). The body may be `home`
+	 * (the world's home body) or `moon` (its first moon), so one tree works in every system.
+	 */
 	milestone?: string;
 	/** Parts it unlocks (a part can also name its node with `techNode`). */
 	unlocks?: string[];
@@ -101,13 +104,38 @@ export function lockedParts(
 	return out;
 }
 
+/** The bodies a node's `home` and `moon` stand for in a world. */
+export interface TechBodies {
+	home?: string | undefined;
+	moon?: string | undefined;
+}
+
+/** The home body and its first moon among `bodies` (a star is no moon). */
+export function techBodiesOf(
+	bodies: readonly { id: string; parent?: string | undefined; star?: boolean | undefined }[],
+	home: string | undefined
+): TechBodies {
+	const moon = home === undefined ? undefined : bodies.find((b) => b.parent === home && !b.star);
+	return { home, moon: moon?.id };
+}
+
+/** A node's milestone with `home` and `moon` turned into the world's body ids. */
+export function techMilestone(milestone: string, bodies: TechBodies = {}): string {
+	const at = milestone.lastIndexOf(':');
+	if (at < 0) return milestone;
+	const body = milestone.slice(at + 1);
+	const id = body === 'home' ? bodies.home : body === 'moon' ? bodies.moon : body;
+	return id === undefined ? milestone : `${milestone.slice(0, at + 1)}${id}`;
+}
+
 /** Why `node` cannot be researched now, or undefined (ADR 0154 point 2). */
 export function researchProblem(
 	node: TechNodeDefinition,
 	nodes: ReadonlyMap<string, TechNodeDefinition>,
 	researched: readonly string[],
 	milestones: readonly string[],
-	science: number
+	science: number,
+	bodies?: TechBodies
 ): string | undefined {
 	if (isResearched(node, researched)) return `"${node.label}" is already researched`;
 	const missing = (node.requires ?? []).filter((r) => {
@@ -116,8 +144,10 @@ export function researchProblem(
 	});
 	if (missing.length > 0)
 		return `research ${missing.map((m) => `"${nodes.get(m)?.label ?? m}"`).join(', ')} first`;
-	if (node.milestone !== undefined && !milestones.includes(node.milestone))
-		return `needs the milestone "${node.milestone}"`;
+	const milestone =
+		node.milestone === undefined ? undefined : techMilestone(node.milestone, bodies);
+	if (milestone !== undefined && !milestones.includes(milestone))
+		return `needs the milestone "${milestone}"`;
 	if (science < node.cost)
 		return `needs ${node.cost} science, the world has ${Math.floor(science)}`;
 	return undefined;

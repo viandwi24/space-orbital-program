@@ -5,6 +5,7 @@
 import {
 	isResearched,
 	researchProblem,
+	type TechBodies,
 	type Snapshot,
 	type TechNodeDefinition
 } from '@orbital/core';
@@ -32,7 +33,8 @@ export interface TierColumn {
 export function techColumns(
 	nodes: readonly TechNodeDefinition[],
 	snapshot: Pick<Snapshot, 'tech' | 'milestones' | 'economy'> | null,
-	partTitle: (id: string) => string
+	partTitle: (id: string) => string,
+	bodies?: TechBodies
 ): TierColumn[] {
 	const byId = new Map(nodes.map((n) => [n.id, n]));
 	const researched = snapshot?.tech?.researched ?? [];
@@ -41,7 +43,7 @@ export function techColumns(
 	const tiers = new Map<number, NodeView[]>();
 	for (const n of [...nodes].sort((a, b) => a.cost - b.cost || a.label.localeCompare(b.label))) {
 		const done = isResearched(n, researched);
-		const reason = done ? undefined : researchProblem(n, byId, researched, milestones, science);
+		const reason = done ? undefined : researchProblem(n, byId, researched, milestones, science, bodies);
 		const view: NodeView = {
 			id: n.id,
 			label: n.label,
