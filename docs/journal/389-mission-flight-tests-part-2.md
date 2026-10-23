@@ -29,4 +29,9 @@
 
 ## Verification output
 
-pending
+```
+bun run lint ✓ · bun run check:affected: prettier, docs:check, typecheck (11 workspaces and web) ✓; bun test 1879 pass, 3 fail
+  the 3 failures are the career bots (55 to 60 s against a 30 s limit on a loaded machine); alone they pass: 9 pass in 113 s
+mission-flights.test.ts: 19 tests pass (web vitest)
+CI: not waited for (merge-first rule); it runs on main after the merge
+```
