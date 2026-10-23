@@ -21,6 +21,7 @@ Facts about the outside world that the code depends on, each with **the source U
 - `time-scales.md` — TAI − UTC leap-second table (IERS), TT and TDB, J2000 in UTC, civil-date algorithm (plan 081).
 - `sas-torque-ksp.md` — how KSP turns a vessel: reaction wheels, RCS lever arms, attitude frozen in rails warp (plan 310).
 - `shader-compile-windows.md` — how Chrome compiles our shaders on Windows (Tint/DXC, ANGLE/FXC), the 11.2 MB of WGSL at load and what plan 370 cut, the load report the owner sends.
+- `system-audit-2026-10.md` — a whole-game audit after plans 276–378: subsystems that should agree (sites, comms, systems, saves, economy, UI), what was fixed and the open design questions.
 - Topic files (`sveltekit.md`, …) — created by the plan that first needs them; keep each to what we actually use.
 
 When an entry is older than ~3 months or a major version behind, re-verify before relying on it.

@@ -351,6 +351,16 @@ The owner takes the remaining performance work on the M5; the M2 handles the fix
 
 ## Known issues / open questions
 
+- **System audit (2026-10-23, [`research/system-audit-2026-10.md`](research/system-audit-2026-10.md)):** 31 findings. Fixed:
+  - a quick launch from (0, 0) in a site-template world;
+  - Sol stations about 2,500 km off;
+  - the Sol tech tree locked;
+  - the EVA suit refund exploit;
+  - the scenario site;
+  - Brightness and the frame-rate limit outside Flight;
+  - icons, key clashes, the retired-mod warning;
+  - the trajectory snapshot duplicates.
+  Open design questions D1–D7 (Reuse first profit, recovered fuel price, the stock mission line in Sol, Pause in Map/Mods, one site in the renderer, the escape tower node, Mission Center under the bars). The Hangar/Launch Δv and Sol reachability are with plan 380.
 - **Web vitest: two script-thread tests fail on main (found 2026-10-21, journal 291).** `apps/web/src/lib/sim-host-script-worker.test.ts`: "runs a script end to end in another thread" times out at 5 s and "a QuickJS builtin that ignores the interrupt budget…" fails; reproduced in a clean worktree of b767aeb0, so not caused by plan 291. Needs its own fix plan.
 - **Full e2e not run on Firefox and WebKit, nor after plans 251–253** (owner's order, 2026-10-20: all local e2e paused until the owner says otherwise): a known issue of v1.0.0, not a pass. Chromium ran once on the integration tree before the pause (90 passed, 6 red, all triaged in plan 232's Log). The release rests on CI (lint, typecheck, unit tests, build), the graphics measurements and the owner's manual checklist. `eva.e2e` (plan 225) is a known flake.
 - **Size-class inference** (plan 289): a mod part without node sizes, 1.53 to 2.17 m across, now infers 1.875 m (stock parts unchanged). The new classes have no engines yet (plan 276), and only barrel tanks (tapered, toroid and sphere tanks are in plan 275).
