@@ -27,6 +27,19 @@ export const ChargeBudgetHybrid = defineCharge({
 	scaleBy: ['stock.funds-multiplier'],
 	multiplier: 'budget'
 });
+/**
+ * A company's standing service contracts (player-journey audit Q3, ADR 0324): a small fixed income
+ * that keeps an idle company out of debt; its launches are paid by contracts or a loan.
+ */
+export const ChargeCompanyServices = defineCharge({
+	id: 'stock.company-services',
+	label: 'Service contracts',
+	currency: 'funds',
+	amount: 6_000,
+	everyDays: MONTH,
+	when: { rule: 'stock.agency-type', equals: 'company' },
+	scaleBy: ['stock.funds-multiplier']
+});
 export const ChargeOperations = defineCharge({
 	id: 'stock.operations',
 	label: 'Space Center operations',
@@ -41,5 +54,6 @@ export const ChargeOperations = defineCharge({
 export const STOCK_CHARGES = [
 	ChargeBudgetGovernment,
 	ChargeBudgetHybrid,
+	ChargeCompanyServices,
 	ChargeOperations
 ] as const;

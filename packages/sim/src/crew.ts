@@ -85,10 +85,16 @@ export function rosterFull(core: SimCore): string | undefined {
 export function hireCrew(core: SimCore, profession: Profession): CommandResult {
 	const full = rosterFull(core);
 	if (full) return { ok: false, reason: full };
+	// no hire on money the agency does not have (player-journey audit Q3, ADR 0324)
+	const fee = salariesOn(core) ? SALARY_BASE[profession] * RECRUIT_DAYS : 0;
+	const funds = core.economy.balances.funds;
+	if (fee > 0 && fee > funds)
+		return {
+			ok: false,
+			reason: `Not enough funds: needs ${Math.ceil(fee)}, has ${Math.floor(funds)}`
+		};
 	const member = newMember(core, profession);
-	if (salariesOn(core) && SALARY_BASE[profession] > 0) {
-		record(core, 'funds', -SALARY_BASE[profession] * RECRUIT_DAYS, 'crew.recruit', member.id);
-	}
+	if (fee > 0) record(core, 'funds', -fee, 'crew.recruit', member.id);
 	core.events.emit('crew:hired', { member: member.id, name: member.name, profession });
 	return { ok: true };
 }

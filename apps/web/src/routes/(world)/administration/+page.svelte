@@ -26,6 +26,8 @@
 	import { activeWorldId } from '../../../lib/worlds/worlds';
 	import ContractsTab from '../../../lib/administration/ContractsTab.svelte';
 	import StrategiesTab from '../../../lib/administration/StrategiesTab.svelte';
+	import FinancesTab from '../../../lib/administration/FinancesTab.svelte';
+	import { financeView, loanCommand } from '../../../lib/administration/finances-model';
 	import {
 		strategyCards,
 		strategyCommand,
@@ -54,7 +56,7 @@
 	let client: SimClient | null = null;
 	let loaded: GameSave | undefined;
 	let snapshot = $state.raw<Snapshot | null>(null);
-	let section = $state<'contracts' | 'strategies'>('contracts');
+	let section = $state<'contracts' | 'strategies' | 'finances'>('contracts');
 	let tab = $state<ContractTab>('offered');
 	let selected = $state<string | null>(null);
 	let note = $state<string | null>(null);
@@ -78,6 +80,22 @@
 	});
 
 	const strip = $derived(agencyStrip(snapshot));
+	/** The Finances tab (player-journey audit Q3): income, costs, the loan. */
+	const finances = $derived(
+		snapshot
+			? financeView({
+					snapshot,
+					charges: registries.charges.list(),
+					buildings: registries.buildings,
+					strategies: registries.strategies
+				})
+			: null
+	);
+	async function loan(action: 'take' | 'repay', amount: number): Promise<void> {
+		if (!client) return;
+		const r = await client.dispatch(loanCommand(action, amount));
+		note = r.ok ? null : r.reason;
+	}
 	const cards = $derived(
 		snapshot
 			? strategyCards(
@@ -185,7 +203,8 @@
 			value={section}
 			options={[
 				{ value: 'contracts', label: 'Contracts' },
-				{ value: 'strategies', label: 'Strategies' }
+				{ value: 'strategies', label: 'Strategies' },
+				{ value: 'finances', label: 'Finances' }
 			]}
 			onchange={(v) => (section = v)}
 			testid="admin-section"
@@ -206,8 +225,10 @@
 			onselect={(id) => (selected = id)}
 			onaction={(a, id) => void act(a, id)}
 		/>
-	{:else}
+	{:else if section === 'strategies'}
 		<StrategiesTab {cards} disabled={!ready} onaction={(a, id) => void strategy(a, id)} />
+	{:else}
+		<FinancesTab view={finances} disabled={!ready} onloan={(a, n) => void loan(a, n)} />
 	{/if}
 </main>
 

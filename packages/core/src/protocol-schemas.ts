@@ -374,6 +374,8 @@ export const commandSchema: z.ZodType<Command> = z.discriminatedUnion('type', [
 	z.object({ type: z.literal('transmit-data'), vessel: entity, item: z.string().min(1) }),
 	z.object({ type: z.literal('strategy-activate'), strategy: z.string().min(1) }),
 	z.object({ type: z.literal('strategy-end'), strategy: z.string().min(1) }),
+	z.object({ type: z.literal('loan-take'), amount: z.number().positive() }),
+	z.object({ type: z.literal('loan-repay'), amount: z.number().positive() }),
 	z.object({ type: z.literal('relay-rent'), vessel: entity }),
 	z.object({ type: z.literal('relay-end-rent'), vessel: entity }),
 	z.object({ type: z.literal('discovery-process'), dataset: z.string().min(1) }),

@@ -525,6 +525,8 @@ export interface Snapshot {
 		funds: number;
 		science: number;
 		reputation: number;
+		/** The loan (ADR 0324): owed, the most that can be owed, interest per `everyDays` days. */
+		loan?: { owed: number; limit: number; interest: number; everyDays: number };
 		/** Commodities with today's price (plan 097, ADR 0124 point 8); absent with the economy off. */
 		markets?: Array<{
 			id: string;
@@ -1106,6 +1108,10 @@ export type Command =
 	| { type: 'strategy-activate'; strategy: string }
 	/** End an active strategy; its cooldown starts. */
 	| { type: 'strategy-end'; strategy: string }
+	/** Borrow `amount` funds on the agency's loan, up to its limit (ADR 0324). */
+	| { type: 'loan-take'; amount: number }
+	/** Repay `amount` of the loan from funds (at most what is owed). */
+	| { type: 'loan-repay'; amount: number }
 	/** Rent an agency's relay for the comms network (plan 126, ADR 0190 point 4): its rent is booked daily. */
 	| { type: 'relay-rent'; vessel: EntityId }
 	| { type: 'relay-end-rent'; vessel: EntityId }

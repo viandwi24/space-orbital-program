@@ -115,7 +115,7 @@ import { activateStrategy, endStrategy } from './strategies.ts';
 import { claimFact, processDataset } from './discovery.ts';
 import { broadcastMilestone } from './broadcast.ts';
 import { hasBackground } from './tick.ts';
-import { recoveryBlocker } from './economy.ts';
+import { recoveryBlocker, repayLoan, takeLoan } from './economy.ts';
 import { creditRecovery } from './recovery.ts';
 import { launchSiteOf, marketBuy, marketSell, payLaunch, refuseLaunch } from './market.ts';
 import { createRoute, deleteRoute, deployBase, joinSite } from './bases.ts';
@@ -835,6 +835,10 @@ export function dispatch(
 			return activateStrategy(core, command.strategy);
 		case 'strategy-end':
 			return endStrategy(core, command.strategy);
+		case 'loan-take':
+			return takeLoan(core, command.amount);
+		case 'loan-repay':
+			return repayLoan(core, command.amount);
 		case 'relay-rent':
 			return rentRelay(core, command.vessel);
 		case 'relay-end-rent':

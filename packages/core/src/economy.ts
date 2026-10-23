@@ -40,6 +40,8 @@ export interface SaveEconomy {
 	storage?: SiteStorage;
 	/** Supply routes (plan 128, ADR 0125 point 6); absent until one is made. */
 	routes?: SupplyRoute[];
+	/** Funds owed on the agency's loan (player-journey audit Q3, ADR 0324); absent or 0: none. */
+	loan?: number;
 }
 
 export interface SupplyRoute {
@@ -68,8 +70,18 @@ export const ECONOMY_CAUSES = {
 	construction: 'economy.construction',
 	upkeep: 'economy.upkeep',
 	/** A tour building's funds given back on removal (ADR 0314 point 4). */
-	refund: 'economy.refund'
+	refund: 'economy.refund',
+	/** A loan taken, repaid, and its interest (ADR 0324). */
+	loan: 'economy.loan',
+	loanRepay: 'economy.loan-repay',
+	interest: 'economy.interest'
 } as const;
+
+/**
+ * The agency's loan (player-journey audit Q3, ADR 0324): borrow up to `limit` funds (before the
+ * cost multiplier), repay any time; `interest` of what is owed is charged every `everyDays` days.
+ */
+export const LOAN = { limit: 100_000, interest: 0.02, everyDays: 30, step: 25_000 } as const;
 
 export const REPUTATION_LIMIT = 1_000;
 /** Reputation relaxes toward 0 with this time constant, applied every `REPUTATION_DECAY_EVERY` days. */
@@ -132,7 +144,8 @@ export const saveEconomySchema = z.object({
 				nextDay: z.int()
 			})
 		)
-		.optional()
+		.optional(),
+	loan: z.number().nonnegative().optional()
 });
 
 type RuleLookup = (id: string) => RuleValue | undefined;

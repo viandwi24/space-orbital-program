@@ -309,3 +309,4 @@ An ADR records one decision, its context, and its consequences. ADRs are **appen
 | 0321 | [Every home site's buildings are drawn at their own place](0321-one-site-mesh-per-site.md) | accepted | 2026-10-23 |
 | 0322 | [A new world's start: the core buildings and a Career crew](0322-a-new-worlds-start.md) | accepted | 2026-10-23 |
 | 0323 | [A pod's own rations](0323-a-pods-own-rations.md) | accepted | 2026-10-23 |
+| 0324 | [A company's way out of debt](0324-a-company-s-way-out-of-debt.md) | accepted | 2026-10-23 |

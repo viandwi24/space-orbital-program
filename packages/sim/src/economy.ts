@@ -9,6 +9,8 @@ import {
 	decayedReputation,
 	designCost,
 	ECONOMY_CAUSES,
+	LOAN,
+	type CommandResult,
 	ECONOMY_RULES,
 	REPUTATION_DECAY_EVERY,
 	chargeOn,
@@ -163,6 +165,10 @@ export function economyTick(core: SimCore, day: number): void {
 		const amount = chargeOn(charge, day, rule, multiplier);
 		if (amount !== null && amount !== 0) record(core, charge.currency, amount, charge.id);
 	}
+	// interest on the loan (ADR 0324)
+	const owed = core.economy.loan ?? 0;
+	if (owed > 0 && day > 0 && day % LOAN.everyDays === 0)
+		record(core, 'funds', -owed * LOAN.interest, ECONOMY_CAUSES.interest);
 	if (day > 0 && day % REPUTATION_DECAY_EVERY === 0) {
 		const r = core.economy.balances.reputation;
 		const change = decayedReputation(r) - r;
@@ -175,6 +181,57 @@ export function economySnapshot(core: SimCore): {
 	funds: number;
 	science: number;
 	reputation: number;
+	loan?: { owed: number; limit: number; interest: number; everyDays: number };
 } {
-	return { enabled: economyOn(core), ...core.economy.balances };
+	const on = economyOn(core);
+	return {
+		enabled: on,
+		...core.economy.balances,
+		...(on
+			? {
+					loan: {
+						owed: core.economy.loan ?? 0,
+						limit: loanLimit(core),
+						interest: LOAN.interest,
+						everyDays: LOAN.everyDays
+					}
+				}
+			: {})
+	};
+}
+
+/** The most the agency can owe, after the cost multiplier (ADR 0324). */
+export const loanLimit = (core: SimCore): number => LOAN.limit * costMultiplier(core);
+
+/** `loan-take` (ADR 0324): borrow up to the limit; the funds come at once. */
+export function takeLoan(core: SimCore, amount: number): CommandResult {
+	if (!economyOn(core)) return { ok: false, reason: 'this world has no money to borrow' };
+	const owed = core.economy.loan ?? 0;
+	const room = loanLimit(core) - owed;
+	if (amount > room + 1e-6)
+		return {
+			ok: false,
+			reason: `the loan is at most ${Math.round(loanLimit(core))}; ${Math.floor(Math.max(0, room))} more can be borrowed`
+		};
+	core.economy.loan = owed + amount;
+	record(core, 'funds', amount, ECONOMY_CAUSES.loan);
+	return { ok: true };
+}
+
+/** `loan-repay` (ADR 0324): pay back up to what is owed, from funds. */
+export function repayLoan(core: SimCore, amount: number): CommandResult {
+	const owed = core.economy.loan ?? 0;
+	if (owed <= 0) return { ok: false, reason: 'there is no loan to repay' };
+	const pay = Math.min(amount, owed);
+	const funds = core.economy.balances.funds;
+	if (pay > funds)
+		return {
+			ok: false,
+			reason: `Not enough funds: needs ${Math.ceil(pay)}, has ${Math.floor(funds)}`
+		};
+	record(core, 'funds', -pay, ECONOMY_CAUSES.loanRepay);
+	const left = owed - pay;
+	if (left > 1e-6) core.economy.loan = left;
+	else delete core.economy.loan;
+	return { ok: true };
 }
