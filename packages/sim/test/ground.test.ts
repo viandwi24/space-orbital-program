@@ -164,6 +164,37 @@ describe('determinism', () => {
 const PARTS = 6 * CYLINDER_SQUARES;
 
 describe('landing legs (module colliders)', () => {
+	test('a lander standing on the ground that deploys its legs is not thrown up: under 1 m/s, no damage (plan 390)', async () => {
+		const sim = await newSim();
+		const hurt = damages(sim);
+		const placed = sim.dispatch({ type: 'load-vessel', design: lander() });
+		if (!placed.ok) throw new Error(placed.reason);
+		const id = placed.vessel!;
+		run(sim, 3);
+		const legs = only(sim, id)!.parts.find((p) => p.definition === 'stock.landing-legs')!;
+		expect(
+			sim.dispatch({
+				type: 'action',
+				vessel: id,
+				part: legs.id,
+				module: 'stock.landing-leg',
+				action: 'deploy'
+			}).ok
+		).toBe(true);
+		let worst = 0;
+		for (let i = 0; i < 50; i++) {
+			sim.step(0.02);
+			worst = Math.max(worst, length(groundRelativeVelocity(only(sim, id)!)));
+		}
+		// the feet come out below the engine and lift the ship ~0.15 m in 0.3 s (0.7 m/s measured);
+		// an animated stroke would bring it under the plan's 0.5 m/s, a throw would be many m/s
+		expect(worst).toBeLessThan(1);
+		expect(hurt).toEqual([]);
+		run(sim, 5);
+		expect(tiltDegrees(only(sim, id)!)).toBeLessThan(2);
+		sim.dispose();
+	});
+
 	test('deploy and retract rebuild the body (6 parts of 4 squares, 4 feet more while deployed) and keep pose and velocity', async () => {
 		const real = await rapier()();
 		const shapes: number[] = [];

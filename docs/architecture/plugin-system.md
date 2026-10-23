@@ -323,6 +323,10 @@ JSON data files (`part.json`, `resource.json`) that reference module ids by stri
 
 `ExperimentDefinition.needs` (optional) adds conditions to a run beyond its situation: `open` names a module of the same part whose snapshot says `open: true`, `pointing` the angle in degrees the part's +Y axis may be off its target. `VesselApi.sibling(moduleId)` returns another module's snapshot on the same part, and `VesselApi.targetDirection()` the unit direction from the vessel to its target in the part frame (the set target, else the body it orbits), on rails as well as in flight. Both are optional in test fakes.
 
+## Pair contacts and hollow bays with state (API 0.1.121, plan 390, ADR 0334)
+
+`PhysicsBackend` gains `setPairContacts(a, b, enabled)` and `ignoredPairs()`: a disabled pair keeps its contact points but exerts no force (the sim uses it for bodies just split or spawned overlapping). `ModuleDefinition.hollow(config, state?)` receives the module state, so a bay that is hollow only once its panels are gone can say so. `VesselApi.detach` throws for a part inside a closed bay or fairing, and the `stage:blocked` event (`{ vessel, part, reason }`) reports a separator a stage could not fire for that reason.
+
 ## Card art for presets and system variants (API 0.1.101, plan 317, ADR 0273)
 
 `PresetDefinition` and `SystemVariantDefinition` take two optional fields:

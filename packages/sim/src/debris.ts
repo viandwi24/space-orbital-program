@@ -113,6 +113,11 @@ function radiusAt(profile: ReadonlyArray<{ y: number; r: number }>, y: number): 
 
 /** The vessel's parts inside a closed shell of one of its parts (the shell's part itself is not). */
 export function shieldedParts(core: SimCore, vesselId: EntityId): Set<EntityId> {
+	return new Set(shieldedBy(core, vesselId).keys());
+}
+
+/** Each part inside a closed shell, with the part whose shell closes it (plan 390). */
+export function shieldedBy(core: SimCore, vesselId: EntityId): Map<EntityId, EntityId> {
 	const vessel = vesselOf(core, vesselId);
 	const shells: Array<{
 		part: EntityId;
@@ -126,7 +131,7 @@ export function shieldedParts(core: SimCore, vesselId: EntityId): Set<EntityId> 
 			if (profile && profile.length >= 2) shells.push({ part: id, at: part.designPos, profile });
 		}
 	}
-	const out = new Set<EntityId>();
+	const out = new Map<EntityId, EntityId>();
 	if (shells.length === 0) return out;
 	for (const id of vessel.parts) {
 		const part = partOf(core, id);
@@ -156,7 +161,7 @@ export function shieldedParts(core: SimCore, vesselId: EntityId): Set<EntityId> 
 				return r >= 0 && Math.hypot(d.x, d.z) <= r + 1e-6;
 			});
 			if (inside) {
-				out.add(id);
+				out.set(id, s.part);
 				break;
 			}
 		}

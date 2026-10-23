@@ -329,14 +329,35 @@ export function refreshColliders(core: SimCore, vesselId: EntityId, force = fals
 	// `force`: parts moved in the design frame (a robotic joint, ADR 0269)
 	if (!force && collectColliders(core, vesselId).signature === body.signature) return;
 	const m = bodyMotion(frame, body);
+	// the rebuild must not push the vessel (plan 390, ADR 0334): the parts moved, so the centre of
+	// mass is somewhere else in the body; the origin follows it so the centre stays where it was,
+	// and the spin keeps its angular momentum (the inertia changed)
+	const vessel = vesselOf(core, vesselId);
+	const next = massProperties(core, vessel.parts, partOf(core, vessel.root).designPos);
+	const origin = add(m.origin, qRotate(m.rotation, sub(body.com, next.centerOfMass)));
+	const spin = inertiaApply(body.inertia, body.inertiaFrame, m.rotation, m.angular);
 	frame.backend.removeBody(body.handle);
 	frame.bodies.delete(vesselId);
 	createVesselBody(core, frame, vesselId, {
-		origin: m.origin,
+		origin,
 		rotation: m.rotation,
 		linear: m.linear,
-		angular: m.angular
+		angular: inertiaSolve(next.inertia, next.inertiaFrame, m.rotation, spin)
 	});
+}
+
+/** `I w`: the angular momentum of a body turning at `w` (world axes), with its principal moments and their frame. */
+export function inertiaApply(inertia: Vec3, frameQ: Quat, rotation: Quat, w: Vec3): Vec3 {
+	const q = qMul(rotation, frameQ);
+	const p = qRotate(qConj(q), w);
+	return qRotate(q, { x: inertia.x * p.x, y: inertia.y * p.y, z: inertia.z * p.z });
+}
+
+/** `I⁻¹ L`: the spin a body has at angular momentum `L` (world axes). */
+export function inertiaSolve(inertia: Vec3, frameQ: Quat, rotation: Quat, L: Vec3): Vec3 {
+	const q = qMul(rotation, frameQ);
+	const p = qRotate(qConj(q), L);
+	return qRotate(q, { x: p.x / inertia.x, y: p.y / inertia.y, z: p.z / inertia.z });
 }
 
 /**
@@ -835,7 +856,7 @@ export const GRACE_MAX_SECONDS = 20;
 
 /**
  * Ignore the contacts between the bodies of vessels `a` and `b` until they have parted (plan 390,
- * ADR 0332): a split or a spawned piece starts with boxes inside each other's, and the solver
+ * ADR 0334): a split or a spawned piece starts with boxes inside each other's, and the solver
  * would throw both apart.
  */
 export function graceBetween(frame: FlightFrame, a: EntityId, b: EntityId): void {

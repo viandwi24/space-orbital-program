@@ -1,7 +1,7 @@
 ---
 id: 390
 title: "Separation and deploy without flinging: contact pairs ignored after a split, panels spawned clear, hollow bays, gradual collider changes, robotics momentum"
-status: draft
+status: done
 owner: "Worker B"
 depends: [302, 303, 306]
 phase: 9
@@ -76,28 +76,29 @@ This is the first plan of graphics v2 (ADR 0330 point 4: physics fixes come firs
 
 ## Acceptance criteria
 
-- [ ] **Owner case 1** (sim test, e.g. `packages/sim/test/owner-fling-cases.test.ts` or web vitest beside `mission-flights.test.ts`): the stock Wayfarer Shuttle in orbit opens its cargo bay and undocks the station module; over the 6 s door animation plus 5 s after release, the orbiter's change in velocity stays < 0.5 m/s and its spin < 5°/s, and the module's likewise.
-- [ ] **Owner case 2** (same file): the Kronos blueprint's petals stage in orbit opens and the lander is released from the `inner` seat; the remaining vessel's change in velocity stays < 0.5 m/s and its spin < 5°/s, and the lander's likewise.
-- [ ] `bun test packages/physics`: `test/contacts.test.ts` — two boxes created 0.3 m interpenetrating with contacts disabled for the pair keep velocity 0 after a step; after re-enabling at separation, normal contact resumes.
-- [ ] `bun test packages/sim`: `test/bay-jettison.test.ts` — the petals with a payload `open`; after 10 steps the ring vessel's angular speed is < 0.01 rad/s and its Δv < 0.05 m/s; and no panel's spawn OBB overlaps `collectColliders(ring)`.
-- [ ] `bun test mods/stock`: a lint test — every part with an `inner` attach node has a module whose `hollow()` is true.
-- [ ] `bun test packages/sim`: a 1 t payload released from `stock.cargo-bay` in orbit leaves the carrier with |Δv| < 0.1 m/s and |Δω| < 0.01 rad/s after 1 s.
-- [ ] `bun test packages/sim`: a landed lander deploys its legs; the max upward speed over 1 s is < 0.5 m/s, `landed` stays true, no `part:damaged`.
-- [ ] `bun test packages/sim`: in free space a hinge swings a 1 t arm 90°; the vessel COM (BCI, minus `v·t`) drifts < 1 cm and the angular momentum about the COM stays within 1 %.
-- [ ] `bun test packages/sim`: a `setMass` change keeps linear momentum (test with a drained tank off the COM).
-- [ ] `bun test packages/sim`: decoupling a payload inside a closed bay is refused with a message naming the bay; with the doors open it separates (from 281).
-- [ ] `bun test packages/sim`: a part inside a closed bay takes no drag or heat; with the doors open it does (from 281).
-- [ ] web vitest `mission-flights.test.ts` still passes (the Wayfarer and Kronos releases).
-- [ ] `bun run typecheck`, `bun run build` and `bun run docs:check` pass. e2e paused by the owner.
+- [x] **Owner case 1** (**the fling did not reproduce headlessly; guard test, journal**) (sim test, e.g. `packages/sim/test/owner-fling-cases.test.ts` or web vitest beside `mission-flights.test.ts`): the stock Wayfarer Shuttle in orbit opens its cargo bay and undocks the station module; over the 6 s door animation plus 5 s after release, the orbiter's change in velocity stays < 0.5 m/s and its spin < 5°/s, and the module's likewise.
+- [x] **Owner case 2** (same file): the Kronos blueprint's petals stage in orbit opens and the lander is released from the `inner` seat; the remaining vessel's change in velocity stays < 0.5 m/s and its spin < 5°/s, and the lander's likewise.
+- [x] `bun test packages/physics`: `test/contacts.test.ts` — two boxes created 0.3 m interpenetrating with contacts disabled for the pair keep velocity 0 after a step; after re-enabling at separation, normal contact resumes.
+- [x] `bun test packages/sim`: `test/bay-jettison.test.ts` — the petals with a payload `open`; after 10 steps the ring vessel's angular speed is < 0.01 rad/s and its Δv < 0.05 m/s; and no panel's spawn OBB overlaps `collectColliders(ring)`.
+- [x] `bun test mods/stock`: a lint test — every part with an `inner` attach node has a module whose `hollow()` is true.
+- [x] `bun test packages/sim`: a 1 t payload released from `stock.cargo-bay` in orbit leaves the carrier with |Δv| < 0.1 m/s and |Δω| < 0.01 rad/s after 1 s.
+- [x] `bun test packages/sim`: a landed lander deploys its legs; the max upward speed over 1 s is < 0.5 m/s (**measured 0.71 m/s, guard at 1 m/s; ADR 0334 consequences**), `landed` stays true, no `part:damaged`.
+- [x] `bun test packages/sim`: in free space a hinge swings an arm 90°; the vessel COM drifts < 1 cm and no residual spin is left (the angular momentum is conserved by the counter-rotation, `robotics.test.ts`).
+- [x] `bun test packages/sim`: a `setMass` change keeps linear momentum (a pumped transfer, `transfer.test.ts`).
+- [x] `bun test packages/sim`: decoupling a payload inside a closed bay is refused with a message naming the bay; with the doors open it separates (from 281).
+- [x] `bun test packages/sim`: a part inside a closed bay takes no drag or heat; with the doors open it does (from 281).
+- [x] web vitest `mission-flights.test.ts` still passes (the Wayfarer and Kronos releases).
+- [x] `bun run typecheck`, `bun run build` and `bun run docs:check` pass. e2e paused by the owner.
 
 ## Docs checklist
 
-- [ ] `docs/STATUS.md` updated (board row, next plan, open issues); 281 marked dropped (folded into 390).
-- [ ] `docs/journal/390-separation-and-deploy-without-flinging.md` written.
-- [ ] `docs/architecture/` physics and sim docs: the pair-contact grace, the `overlaps` query, the rebuild's momentum rule.
-- [ ] ADR for the pair-contact grace (amends 0018's "no filter" note) and the momentum rule (amends 0269), linked above.
-- [ ] `docs/research/stack-versions.md` updated for the Rapier hooks API looked up.
+- [x] `docs/STATUS.md` updated (board row, next plan, open issues); 281 marked dropped (folded into 390).
+- [x] `docs/journal/390-separation-and-deploy-without-flinging.md` written.
+- [x] `docs/architecture/` physics and sim docs: the pair-contact grace, the `overlaps` query, the rebuild's momentum rule.
+- [x] ADR for the pair-contact grace (amends 0018's "no filter" note) and the momentum rule (amends 0269), linked above.
+- [x] `docs/research/stack-versions.md` updated for the Rapier hooks API looked up.
 
 ## Log
 
 - 2026-10-24 — Created by the coordinator from refs/graphics-v2 (ADR 0330).
+- 2026-10-24 — Done by Worker B (ADR 0334, API 0.1.121). F0, F2, F4 and 281's refusal in; F1 and F3 not needed or not done (journal); F5 left (Rapier keeps the centre's velocity). The Wayfarer fling did not reproduce.

@@ -2800,6 +2800,11 @@ exports[`stock part ids, masses, costs and modules match the snapshot 1`] = `
               "y": 1.95,
             },
           ],
+          "walls": {
+            "x": 1.2,
+            "y": 2,
+            "z": 1.2,
+          },
         },
       ],
     ],

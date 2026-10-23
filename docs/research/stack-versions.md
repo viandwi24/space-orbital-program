@@ -61,3 +61,8 @@ Always re-check the docs linked above before running: flags change.
 - **Xcode Metal capture of Chrome:** not taken; no Xcode on the measuring machine. The recipe (debuggable Chrome, `--enable-dawn-features=use_user_defined_labels_in_backend`, `MTL_CAPTURE_ENABLED=1`) is in `refs/graphics-v2/02-browser-120fps.md` §2; the passes already carry labels (`planet`, `moon`, `scene` command encoder labels and debug groups) for it.
 - **Long Animation Frames** (`PerformanceObserver` type `long-animation-frame`): lists frames of 50 ms or more only.
 
+## Rapier contact hooks (plan 390, 2026-10-24)
+
+- `@dimforge/rapier3d-compat` as installed (`node_modules/.bun/@dimforge+rapier3d-compat@0.12.0` and `0.21.0`; typings `pipeline/physics_hooks.d.ts`, `world.d.ts`, read 2026-10-24). `PhysicsHooks.filterContactPair(c1, c2, b1, b2)` returns `SolverFlags.COMPUTE_IMPULSE`, `SolverFlags.EMPTY` (the manifold stays, no forces) or `null` (the pair is dropped); a collider needs `ActiveHooks.FILTER_CONTACT_PAIRS`.
+- **`world.step(eventQueue, hooks)`**: in this version the hooks are called only when an `EventQueue` is passed as well, even if no collider asks for events. Without it nothing is filtered, silently.
+- `integrationParameters.erp` has no effect on the depenetration speed of the ground contact here (tested 0.1 to 0.8: identical).

@@ -122,4 +122,51 @@ describe('transfer (plan 213)', () => {
 		sim.dispose();
 		resumed.dispose();
 	}, 30_000);
+
+	test('a transfer moves mass and centre of mass but not the vessel (plan 390): its velocity follows a vessel that did not pump', async () => {
+		const velocityAfter = async (pump: boolean) => {
+			const sim = await createSim({ plugins: [Stock], backendFactory: rapier(), seed: 1 });
+			const r = sim.dispatch({
+				type: 'load-vessel',
+				design: stack('Tanks', ['stock.probe-core', 'stock.tank-small', 'stock.tank-small'], []),
+				placement: {
+					kind: 'state',
+					body: 'stock.home',
+					position: { x: 0, y: 4e8, z: 0 },
+					velocity: { x: 0, y: 0, z: 0 }
+				}
+			} as never);
+			if (!r.ok) throw new Error(r.reason);
+			const id = r.vessel!;
+			const tanks = sim
+				.snapshot()
+				.vessels.find((v) => v.id === id)!
+				.parts.filter((p) => p.definition === 'stock.tank-small');
+			sim.dispatch({
+				type: 'action',
+				vessel: id,
+				part: tanks[1]!.id,
+				module: 'stock.resource-container',
+				action: 'withdraw',
+				args: [LF, 100]
+			});
+			if (pump)
+				sim.dispatch({
+					type: 'transfer',
+					vessel: id,
+					resource: LF,
+					from: [tanks[0]!.id],
+					to: [tanks[1]!.id]
+				});
+			steps(sim, 300);
+			const v = sim.snapshot().vessels.find((x) => x.id === id)!.velocity;
+			sim.dispose();
+			return v;
+		};
+		const pumped = await velocityAfter(true);
+		const still = await velocityAfter(false);
+		expect(Math.hypot(pumped.x - still.x, pumped.y - still.y, pumped.z - still.z)).toBeLessThan(
+			1e-4
+		);
+	});
 });

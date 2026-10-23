@@ -188,6 +188,7 @@ export interface EventMap {
 	};
 	/** A stage fired (`stage` is the index into the design's `stages`). */
 	'stage:activated': { vessel: EntityId; stage: number };
+	'stage:blocked': { vessel: EntityId; part: EntityId; reason: string };
 	/**
 	 * A part was lost. `cause: 'impact'` (plan 012, ADR 0019): it hit the ground faster than its
 	 * `impactTolerance`; `speed` is the closing speed in m/s and `broken` = cut off and flying on as

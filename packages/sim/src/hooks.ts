@@ -16,7 +16,15 @@ import { add, length, scale } from '@orbital/kepler';
 import { motionOf, orientationOf } from './orbit.ts';
 import { resolveTarget } from './target.ts';
 import { ambientAt } from './atmosphere.ts';
-import { frameOfPart, moduleDefOf, moduleState, partOf, vesselOf, type SimCore } from './core.ts';
+import {
+	frameOfPart,
+	moduleDefOf,
+	moduleState,
+	partDefOf,
+	partOf,
+	vesselOf,
+	type SimCore
+} from './core.ts';
 import { airVelocityAt, bodyOfFrame, centreOfMassInPart, partTransform } from './frames.ts';
 import { isNonZero, qConj, qRotate } from './math.ts';
 import { isTurned, partRotation } from './parts.ts';
@@ -29,7 +37,7 @@ import { isFailed } from './reliability.ts';
 import { sunExposure } from './sunlight.ts';
 import { terrainBelow } from './terrain.ts';
 import { notePower } from './power.ts';
-import { queueDebris } from './debris.ts';
+import { queueDebris, shieldedBy } from './debris.ts';
 import { waterUnder } from './water.ts';
 
 const needsFlight = (what: string): never => {
@@ -193,6 +201,11 @@ export function makeContext(core: SimCore, partId: EntityId, moduleId: string): 
 			if (!Number.isFinite(impulse) || impulse < 0) {
 				throw new RangeError(`detach impulse must be a finite number >= 0, got ${impulse}`);
 			}
+			// a payload inside a closed bay or fairing cannot leave through its walls (plan 390)
+			const closed = shieldedBy(core, part.vessel).get(partId);
+			if (closed !== undefined) {
+				throw new EnclosedError(partDefOf(core, partOf(core, closed)).title);
+			}
 			core.pending.push({ part: partId, node, impulse });
 		},
 		releaseLink() {
@@ -216,6 +229,13 @@ export function makeContext(core: SimCore, partId: EntityId, moduleId: string): 
 		state: moduleState(core, partId, moduleId),
 		vessel: api
 	};
+}
+
+/** A separator inside a closed bay or fairing was fired (plan 390): the message names the bay. */
+export class EnclosedError extends Error {
+	constructor(readonly bay: string) {
+		super(`${bay} is closed: open it first`);
+	}
 }
 
 /** Calls `update` (flight) or `updateOnRails` (rails) on every module of every part of the vessel. */

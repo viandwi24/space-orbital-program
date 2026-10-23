@@ -63,6 +63,11 @@ export const SIM_EVENTS: readonly SimEventInfo[] = [
 	e('vessel', 'vessel:frozen', 'A vessel in an atmosphere is held still during rails warp.'),
 	e('vessel', 'vessel:thawed', 'A frozen vessel moves again.'),
 	e('flight', 'stage:activated', 'A stage fired (any source: player, script, autopilot, mod).'),
+	e(
+		'flight',
+		'stage:blocked',
+		'A part of a firing stage could not act: a separator inside a closed bay (plan 390).'
+	),
 	e('flight', 'part:damaged', 'A part broke off or was destroyed by an impact or by heat.'),
 	e('flight', 'part:failed', 'A module failed at a reliability trial.'),
 	e('flight', 'stock:engine-flameout', 'An engine ran out of propellant.', 'stock'),

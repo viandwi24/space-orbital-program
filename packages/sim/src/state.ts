@@ -431,7 +431,7 @@ export interface FlightFrame {
 	wetVessels: Set<EntityId>;
 	waterImpacts: Array<{ vessel: EntityId; part: EntityId; speed: number }>;
 	/**
-	 * Pairs of vessels whose bodies ignore each other (plan 390, ADR 0332): just separated, or just
+	 * Pairs of vessels whose bodies ignore each other (plan 390, ADR 0334): just separated, or just
 	 * spawned inside one another. Keyed by the two ids; `clear` counts the steps they have not
 	 * overlapped, `age` the seconds. Not saved: a resume starts without any.
 	 */

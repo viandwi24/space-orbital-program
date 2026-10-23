@@ -625,8 +625,9 @@ function fire(ctx: {
 	vessel: { detach(node: string, impulse?: number): void };
 }): void {
 	if (ctx.state.decoupled) return;
-	ctx.state.decoupled = true;
+	// detach first: it refuses (throws) for a part inside a closed bay, which must stay armed
 	ctx.vessel.detach(ctx.config.separates, ctx.config.ejectionImpulse);
+	ctx.state.decoupled = true;
 }
 
 export const ModuleDecoupler = defineModule({

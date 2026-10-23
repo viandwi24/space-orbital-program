@@ -141,7 +141,7 @@ import {
 	type SimCore
 } from './core.ts';
 import { acquireFrame, enterFlight, refreshColliders } from './frames.ts';
-import { makeContext, runStageHooks } from './hooks.ts';
+import { EnclosedError, makeContext, runStageHooks } from './hooks.ts';
 import { makeRoom, makeRoomAt, roomBlocker, wake, wakeBlocker } from './modes.ts';
 import { computeRails, isStableOrbit, orientationOf } from './orbit.ts';
 import { removeNode, setNode } from './maneuver.ts';
@@ -200,7 +200,13 @@ function fireStage(core: SimCore, id: EntityId): CommandResult {
 	for (const partId of stage) {
 		if (core.world.hasEntity(partId) && partOf(core, partId).vessel === id) {
 			partTrials(core, id, partId, 'stage'); // reliability draws at staging (plan 130, ADR 0156)
-			runStageHooks(core, partId);
+			try {
+				runStageHooks(core, partId);
+			} catch (e) {
+				// a separator inside a closed bay stays armed; the stage still fires the rest (plan 390)
+				if (!(e instanceof EnclosedError)) throw e;
+				core.events.emit('stage:blocked', { vessel: id, part: partId, reason: e.message });
+			}
 		}
 	}
 	processPending(core);
