@@ -1,8 +1,8 @@
 ---
 id: 298
 title: "Satellites and a space telescope: the observation needs the door open and the target in view; the orbiter probe bus is an open choice"
-status: draft
-owner: ""
+status: done
+owner: "Worker B"
 depends: [303]
 phase: 0
 created: 2026-10-21
@@ -46,19 +46,20 @@ Check the conditions when a run starts, and stop a run that loses them (door clo
 
 ## Acceptance criteria
 
-- [ ] `bun test mods/stock`: an observation in high orbit is `INVALID` with the door closed; with the door open and the craft 10° off the target it is `INVALID`; with the door open and within 5° it runs and yields a result.
-- [ ] `bun test`, `bun run typecheck` and `bun run docs:check` pass.
+- [x] `bun test mods/stock` (`observation-conditions.test.ts`) and a real sim (`packages/sim/test/telescope-observation.test.ts`): an observation in high orbit is `INVALID` with the door closed; with the door open and the craft 10° off the target it is `INVALID`; with the door open and within 5° it runs and yields a result.
+- [x] `bun test`, `bun run typecheck` and `bun run docs:check` pass.
 
 ## Docs checklist
 
-- [ ] `docs/STATUS.md` updated (board row, next plan, open issues).
-- [ ] `docs/journal/298-satellites-and-telescope.md` written.
-- [ ] Affected `docs/architecture/*.md` updated to match what shipped.
-- [ ] New ADRs written for any decision made here, linked above.
-- [ ] `refs/part-visuals-and-blueprints/parts-tracker.md`: mission table (§11).
+- [x] `docs/STATUS.md` updated (board row, next plan, open issues).
+- [x] `docs/journal/298-satellites-and-telescope.md` written.
+- [x] Affected `docs/architecture/*.md` updated to match what shipped (`plugin-system.md`).
+- [x] New ADR: [0331](../decisions/0331-experiment-conditions-door-and-pointing.md).
+- [x] `refs/part-visuals-and-blueprints/parts-tracker.md`: mission table (§11).
 
 ## Log
 
 - 2026-10-24 — Rewritten by the coordinator after an audit against main @ 4c546c02: parts are done (plan 303); the remaining work is the door and pointing conditions on the observation with a sim test; the probe bus and high-gain arms are an open choice for the owner; the dependency on 280 is dropped.
 - 2026-10-21 — Parts delivered in plan 303: satellite bus, telescope, magnetometer boom, observation and magnetometer experiments. Open: the pointing condition.
 - 2026-10-21 — Drafted from the owner's mission targets of 2026-10-21 (Apollo 11, Space Shuttle, station, rover, orbiter, space telescope, research satellite): rocket parts first, rover after, robotics last.
+- 2026-10-24 — Worker B: door and pointing conditions on the experiment definition (ADR 0331); the target is the set target, else the body it orbits. The probe bus and high-gain arms stay an open choice for the owner.

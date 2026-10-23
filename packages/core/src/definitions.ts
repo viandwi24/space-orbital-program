@@ -287,6 +287,17 @@ export interface VesselApi {
 	 * Data storage of the whole vessel (plan 083, ADR 0172): `store` puts the item on the first
 	 * storage with room and returns its id, or drops it (`data:dropped`) and returns undefined.
 	 */
+	/**
+	 * The snapshot of another module of this part, by module id (plan 298: an experiment reads its
+	 * aperture door), or undefined without one. Optional in test fakes.
+	 */
+	sibling?(moduleId: string): unknown;
+	/**
+	 * The unit direction from the vessel to its target in the part frame (plan 298): the set target,
+	 * else the centre of the body it orbits; undefined when neither is known. Available on rails.
+	 * Optional in test fakes.
+	 */
+	targetDirection?(): Vec3 | undefined;
 	/** The vessel's science situation (plan 103, ADR 0178 point 6), or undefined when none matches. */
 	situation(): string | undefined;
 	/**

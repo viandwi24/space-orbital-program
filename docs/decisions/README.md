@@ -316,3 +316,4 @@ An ADR records one decision, its context, and its consequences. ADRs are **appen
 | 0328 | [One onboarding hand-off](0328-one-onboarding-hand-off.md) | accepted | 2026-10-23 |
 | 0329 | [Graphics that never hang the load, a branch's ground and buildings, a camera that turns with the site](0329-space-center-qa-leftovers.md) | accepted | 2026-10-23 |
 | 0330 | [Graphics v2: a locked 120 Hz, built-in looks with quality settings, mods supply visual data](0330-graphics-v2-120hz-built-in-looks-mod-data.md) | accepted | 2026-10-24 |
+| 0331 | [The telescope observation needs its door open and its tube pointed: experiment conditions](0331-experiment-conditions-door-and-pointing.md) | accepted | 2026-10-24 |
