@@ -177,6 +177,21 @@ The owner dropped plans **232** (release QA, the v1.0.0 tag and the deploy) and 
 
 Worker B's queue is now **264 → 265**: merge each plan on main as soon as it is done, then start the next.
 
+## Queues after the draft audit (owner's order, 2026-10-24)
+
+At most three workers (A, B, C), always watching CPU and RAM. Skip e2e. The only exception is a quick visual check of a graphics change in a browser, and that check is not a full e2e run. Rules, in order:
+- one plan at a time;
+- refine the plan, code it, run the affected unit tests and the typecheck;
+- merge first, then start the next plan.
+
+| Worker | Queue |
+|---|---|
+| C | **fix main's red CI first** → 299 → 322 |
+| A | 304 → 358 → 312 |
+| B | 388 → 298 → 281 |
+
+The graphics and performance drafts (342, 365, 367, 368, 369, 374) are on hold. The graphics v2 research (`refs/graphics-v2/`) will fold them into new plans. The content drafts (275, 276, 280, 282, 283, 284, 286, 287, 379, 385, 386) come after the queues above.
+
 ## Doing a plan
 
 **UI fixes come first (owner's rule, ADR 0222):** when the coordinator reports that a screen you built is off the design package (`refs/space-orbital-program-ui-v2/`), finish and merge your current plan, then fix that screen (plan 233 and the like) before taking any other plan. Always compare UI work with the matching `.dc.html` source and `docs/BASE_LAYOUT.md`.
