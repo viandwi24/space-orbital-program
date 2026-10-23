@@ -4,7 +4,7 @@
  */
 import { STATION_MAST, linkRange } from '@orbital/core';
 import { add, dot, length, scale, sub, type Vec3 } from '@orbital/kepler';
-import { bodyCentre, positionOf, rotateY, type PlanNode, type PlanWorld } from './geometry';
+import { bodyCentre, positionOf, toInertial, type PlanNode, type PlanWorld } from './geometry';
 
 export interface CoverageGrid {
 	body: string;
@@ -60,7 +60,7 @@ export function coverageGrid(world: PlanWorld, input: CoverageInput): CoverageGr
 				const longitude = -Math.PI + ((col + 0.5) * 2 * Math.PI) / width;
 				const here = add(
 					centre,
-					rotateY(scale(groundDir(latitude, longitude), ground), body.omega * t)
+					toInertial(body, scale(groundDir(latitude, longitude), ground), t)
 				);
 				let linked = false;
 				for (const { p, reach } of at) {

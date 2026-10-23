@@ -49,7 +49,7 @@ import {
 } from '@orbital/core';
 import { add, cross, dot, length, normalize, scale, sub } from '@orbital/kepler';
 import { ambientAt } from './atmosphere.ts';
-import { bodyById, systemPosition, type BodyRuntime } from './bodies.ts';
+import { bodyById, rotationAt, spinAt, systemPosition, type BodyRuntime } from './bodies.ts';
 import {
 	moduleDefOf,
 	moduleState,
@@ -64,7 +64,7 @@ import { vesselOfMember } from './crew.ts';
 import { broadcastOffers } from './broadcast.ts';
 import { economyOn, record, ruleOf } from './economy.ts';
 import { railsMotion } from './orbit.ts';
-import { qAboutY, qRotate } from './math.ts';
+import { qConj, qRotate } from './math.ts';
 import { stagnationFlux } from './thermal.ts';
 
 /** Sim time between network updates at warp 1, s (ADR 0179 point 4). */
@@ -322,8 +322,10 @@ function frameAt(core: SimCore, t: number, stations: Station[]): Frame {
 	return {
 		t,
 		bodies,
+		// body-fixed to inertial as the pad's placement turns it: the pole's tilt and the start angle
+		// of a body with `rotation` (Sol's IAU elements), not a bare spin about +Y
 		stations: stations.map((s) =>
-			add(centre(s.body), qRotate(qAboutY(s.body.omega * t), scale(s.dir, s.radius)))
+			add(centre(s.body), qRotate(rotationAt(s.body, t), scale(s.dir, s.radius)))
 		),
 		position(id) {
 			const vessel = vesselOf(core, id);
@@ -352,7 +354,7 @@ function blocker(frame: Frame, a: Vec3, b: Vec3, fine = false): string | undefin
 		if (d < R - 1) return `blocked by ${body.def.id}`;
 		const terrain = body.terrain;
 		if (!terrain || d > R + terrain.maxHeight) continue;
-		const turn = qAboutY(-body.omega * frame.t);
+		const turn = qConj(rotationAt(body, frame.t));
 		for (let k = 0; k < samples; k++) {
 			const p = sub(add(a, scale(ab, (k + 0.5) / samples)), centre);
 			const altitude = length(p) - R;
@@ -369,7 +371,7 @@ function blackoutOf(core: SimCore, id: EntityId): number {
 	if (vessel.rails) return 0;
 	const body = bodyById(core, vessel.soi);
 	if (!body.def.atmosphere) return 0;
-	const air = sub(vessel.velocity, cross({ x: 0, y: body.omega, z: 0 }, vessel.com));
+	const air = sub(vessel.velocity, cross(spinAt(body, core.t), vessel.com));
 	const { density } = ambientAt(body.def, length(vessel.com) - body.def.radius);
 	return blackoutLevelFromFlux(stagnationFlux(density, BLACKOUT_NOSE_RADIUS, length(air)));
 }

@@ -13,7 +13,7 @@ import { createRapierBackend } from '@orbital/physics';
 import { createSim } from '@orbital/sim';
 import { describe, expect, it } from 'vitest';
 import { coverageGrid } from './coverage';
-import { planNodes, planWorld, type PlanVessel } from './geometry';
+import { planNodes, planWorld, positionOf, type PlanVessel } from './geometry';
 import { createPlanner, type PlanWorkerLike } from './planner';
 import { answer, type PlanMessage, type PlanReply } from './protocol';
 import { contactTimeline } from './timeline';
@@ -176,5 +176,45 @@ describe('the planning Worker protocol and client (ADR 0163 point 1)', () => {
 			planner.plan({ kind: 'constellation', input: { ...input, count: 1 } })
 		).rejects.toThrow(/count/);
 		planner.dispose();
+	});
+});
+
+describe('stations on a body with a tilted pole (system audit)', () => {
+	it("the planner turns a station as the sim does: back to the snapshot's position at any time", () => {
+		const earth = {
+			id: 'x.earth',
+			radius: 6_371_000,
+			mass: 5.97e24,
+			rotationPeriod: 86_164,
+			rotation: { pole: { ra: 0.3, dec: 1.16 }, w0: 3.4, wDot: 7.29e-5, epoch: 'j2000' }
+		} as never;
+		const world = planWorld([earth]);
+		const t = 12_345;
+		const dir = { x: 0.6, y: 0.48, z: -0.64 };
+		const station = {
+			kind: 'station',
+			id: 's',
+			label: 's',
+			body: 'x.earth',
+			dir,
+			radius: 6_371_030,
+			range: 1
+		} as const;
+		const at = positionOf(world, station, t);
+		// a bare spin about +Y puts the same point elsewhere on a tilted body
+		expect(Math.abs(at.y - dir.y * station.radius)).toBeGreaterThan(1_000);
+		const [node] = planNodes(
+			world,
+			{
+				t,
+				vessels: [],
+				network: { stations: [{ id: 's', label: 's', body: 'x.earth', position: at, range: 1 }] }
+			} as never,
+			new Map(),
+			new Map()
+		);
+		const back = positionOf(world, node!, t + 3_600);
+		const turned = positionOf(world, station, t + 3_600);
+		expect(Math.hypot(back.x - turned.x, back.y - turned.y, back.z - turned.z)).toBeLessThan(1);
 	});
 });
