@@ -128,7 +128,8 @@ jobs:
     # The result of a handover or of a push to main, as a ref the coordinator can read with
     # `git ls-remote` (no gh, no API). Main pushes need it since merges stopped waiting for CI.
     needs: [scope, docs, check]
-    if: always() && (startsWith(github.ref, 'refs/tags/ready/') || github.ref == 'refs/heads/main')
+    # A run cancelled by a newer push writes no ref, so refs/ci/fail always means a real failure.
+    if: ${{ !cancelled() && (startsWith(github.ref, 'refs/tags/ready/') || github.ref == 'refs/heads/main') }}
     runs-on: ubuntu-latest
     permissions:
       contents: write
