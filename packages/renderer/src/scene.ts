@@ -32,6 +32,7 @@ import type { WorldTerrainSpec } from './terrain-zones.ts';
 import {
 	DataTexture,
 	Group,
+	Matrix4,
 	Mesh,
 	MeshBasicMaterial,
 	MeshLambertMaterial,
@@ -48,6 +49,7 @@ import {
 	type WebGLRenderer
 } from 'three';
 import { regionTexture, type RegionBody } from './region-overlay.ts';
+import { siteAxes } from './sun.ts';
 import { ORBIT_STYLES, iconColour, orbitRole } from './map-style.ts';
 import { LampPool, type LampLight } from './lamps.ts';
 import { WaterlineEffects, waterlineCrossings, type WaterlinePart } from './effects/waterline.ts';
@@ -364,6 +366,8 @@ export class SceneModel {
 	private siteLocal: Vec3 = { x: 0, y: 0, z: 0 };
 	/** The primary site, the home radius and whether buildings come from lists (ADR 0321). */
 	private primarySite: { latitude: number; longitude: number } = { latitude: 0, longitude: 0 };
+	/** The site the view is on (the primary or a branch): the site camera's frame turns with it (plan 388). */
+	private sitePlaceNow: { latitude: number; longitude: number } = { latitude: 0, longitude: 0 };
 	private siteRadius = 1;
 	private siteListMode = false;
 	/** A site whose place is the primary's is the primary (ADR 0321 point 4). */
@@ -523,6 +527,7 @@ export class SceneModel {
 		this.siteRadius = primary?.radius ?? 1;
 		this.siteListMode = config.siteBuildings === true;
 		this.siteLocal = latLonDir(this.primarySite, this.siteRadius);
+		this.sitePlaceNow = this.primarySite;
 		this.scene.add(this.environment.root);
 		this.scene.add(this.waterline.root);
 		this.scene.fog = this.environment.fog;
@@ -1788,6 +1793,7 @@ export class SceneModel {
 		if (other) this.environment.otherSite(other.id, other.latitude, other.longitude);
 		this.environment.setViewSite(other?.id ?? null);
 		this.siteLocal = latLonDir(other ?? this.primarySite, this.siteRadius);
+		this.sitePlaceNow = other ?? this.primarySite;
 		if (
 			this.siteLocal.x !== before.x ||
 			this.siteLocal.y !== before.y ||
@@ -1975,6 +1981,7 @@ export class SceneModel {
 		// a new page starts at the primary site (ADR 0321)
 		this.environment.setViewSite(null);
 		this.siteLocal = latLonDir(this.primarySite, this.siteRadius);
+		this.sitePlaceNow = this.primarySite;
 		this.highlightPart(null);
 		this.focusId = null;
 		this.focus = null;
@@ -2396,6 +2403,21 @@ export class SceneModel {
 			};
 			const resolved = resolveMode(this.cameraMode, subject);
 			frame = modeFrame(resolved, subject);
+			// the site view turns with the ground (plan 388): its frame is the site's own axes, so a
+			// time warp does not spin the site on screen as the planet turns under an inertial frame
+			const bodyRot = this.bodyRot.get(active.soi);
+			if (this.siteView && bodyRot) {
+				const a = siteAxes(this.sitePlaceNow.latitude, this.sitePlaceNow.longitude);
+				const site = new Quaternion().setFromRotationMatrix(
+					new Matrix4().makeBasis(
+						new Vector3(a.east.x, a.east.y, a.east.z),
+						new Vector3(a.up.x, a.up.y, a.up.z),
+						new Vector3(-a.north.x, -a.north.y, -a.north.z)
+					)
+				);
+				const q = new Quaternion(bodyRot.x, bodyRot.y, bodyRot.z, bodyRot.w).multiply(site);
+				frame = { x: q.x, y: q.y, z: q.z, w: q.w };
+			}
 			if (this.resolvedMode !== null && this.resolvedMode !== resolved && this.cameraFrame) {
 				this.flightRig = reframe(this.flightRig, this.cameraFrame, frame);
 				rig = this.flightRig;

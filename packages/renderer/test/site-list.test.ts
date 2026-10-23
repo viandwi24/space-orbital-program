@@ -121,6 +121,23 @@ describe('the site view', () => {
 		}
 	});
 
+	test('the site stays put on screen while the planet turns under time warp (plan 388)', () => {
+		const m = model();
+		const at = (turn: number) => {
+			const s = snapshot();
+			s.bodies[0]!.rotation = { x: 0, y: Math.sin(turn / 2), z: 0, w: Math.cos(turn / 2) };
+			m.sync(s);
+			m.prepareFrame(0.016);
+			return m.projectSite({ east: 120, north: 60 })!;
+		};
+		const before = at(0);
+		for (const turn of [0.7, 2.1, 4]) {
+			const now = at(turn);
+			expect(Math.abs(now.x - before.x)).toBeLessThan(1);
+			expect(Math.abs(now.y - before.y)).toBeLessThan(1);
+		}
+	});
+
 	test('the camera looks at the site centre from above the ground', () => {
 		const m = model();
 		const centre = m.projectSite({ east: 0, north: 0 })!;
