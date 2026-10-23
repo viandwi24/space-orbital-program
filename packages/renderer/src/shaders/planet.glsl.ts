@@ -36,6 +36,7 @@ import {
 	MID_OCTAVE_SALT,
 	SCALED_BLEND
 } from '../scaled-space-model.ts';
+import { LIGHTS_GAIN, LIGHTS_RADIANCE, nightFactorGLSL, nightLightsGLSL } from '../night-lights.ts';
 import { DETAIL_CONTRAST, DETAIL_LOD_FADE, DETAIL_SIZE, DETAIL_TILE } from '../detail-textures.ts';
 import {
 	CLOUD_FILL,
@@ -468,6 +469,7 @@ uniform samplerCube uScaledA;   // the scaled-space bake (plan 364): sqrt albedo
 uniform samplerCube uScaledN;   // and the body-fixed normal
 uniform float uScaledTexelM;
 uniform float uScaledOn;
+uniform float uCityLights;    // city lights on the night side: 1 on, 0 off (plan 403)
 uniform float uScaledMode;     // debug: 1 as drawn, 0 never, 2 every ground pixel
 uniform float uDetailOn;       // debug: the ground detail on (1) or off
 uniform sampler2D uDetail;     // ground detail maps (plan 364): R rock, G grass, B sand, A snow
@@ -531,6 +533,7 @@ float noiseA(vec3 pl, float lam, int salt) {
 
 ${terrainNoiseGLSL}
 ${terrainZonesGLSL}
+${nightLightsGLSL}
 
 ${cloudFieldGLSL}
 ${skyMapGLSL}
@@ -1303,11 +1306,14 @@ vec3 shadeRay(vec3 ro, vec3 rd, float r0, float d, float h, bool hitG, bool hitT
 		sf.spec = 0.0;
 		sf.waterDepth = 0.0;
 		sf.lampE = vec3(0.0);
+		float cityE = 0.0;
 		if (wBake < 1.0) sf = surfaceAt(nBF, pl, footprint, uCamToSite + rdBF * tG, hT, gT);
 		if (wBake > 0.0) {
 			float lodB = max(log2(texels), 0.0);
 			vec4 ba = textureLod(uScaledA, nBF, lodB);
-			vec3 bn = normalize(textureLod(uScaledN, nBF, lodB).xyz * 2.0 - 1.0);
+			vec4 bnv = textureLod(uScaledN, nBF, lodB);
+			vec3 bn = normalize(bnv.xyz * 2.0 - 1.0);
+			cityE = bnv.a * wBake;
 			sf.albedo = mix(sf.albedo, ba.rgb * ba.rgb, wBake);
 			sf.spec = mix(sf.spec, ba.a, wBake);
 			sf.normal = normalize(mix(sf.normal, bn, wBake));
@@ -1352,6 +1358,8 @@ vec3 shadeRay(vec3 ro, vec3 rd, float r0, float d, float h, bool hitG, bool hitT
 		float skyVis = 0.5 + 0.5 * dot(sf.normal, nBF);
 		vec3 amb = uAmbient * k * skyVis + NIGHT_AMBIENT * kPI;
 		vec3 lit = sf.albedo / kPI * (uSunIrr * sunT * ndl * sh + amb + sf.lampE);
+		// city lights of the bake, on the night side only (plan 403)
+		lit += vec3(${LIGHTS_RADIANCE.map((v) => (v * LIGHTS_GAIN).toFixed(4)).join(', ')}) * (cityE * uCityLights * ${nightFactorGLSL('geo')});
 		if (sf.spec > 0.0) {
 			vec3 V = -rdBF;
 			vec3 Hh = normalize(Lb + V);
@@ -1611,7 +1619,7 @@ void main() {
 	Surface sf = surfaceAt(nBF, nBF * (uR + hT), uScaledTexelM, (nBF - uSiteUp) * uR, hT, gT);
 	gl_FragColor = uBakeWhat < 0.5
 		? vec4(sqrt(clamp(sf.albedo, 0.0, 1.0)), clamp(sf.spec, 0.0, 1.0))
-		: vec4(normalize(sf.normal) * 0.5 + 0.5, 1.0);
+		: vec4(normalize(sf.normal) * 0.5 + 0.5, nightLightsAt(nBF, hT, sf.spec > 0.01));
 }
 #else
 void main() {

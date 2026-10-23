@@ -1,9 +1,9 @@
 ---
 id: 403
 title: "Planets from orbit: higher-resolution bakes, night lights, a 2D cloud cube at orbit distance, per-body texture streaming in KTX2"
-status: draft
+status: in-progress
 owner: "Worker B"
-depends: [364, 397]
+depends: [364]
 phase: 9
 created: 2026-10-24
 updated: 2026-10-24
@@ -84,3 +84,4 @@ Seen from orbit, Home, the Moon and the other stock bodies look like reference i
 ## Log
 
 - 2026-10-24 — Created by the coordinator from refs/graphics-v2 (ADR 0330).
+- 2026-10-24 — Stage 1 by Worker B (ADR 0344): night lights in the bake's alpha, both renderers, `nightLights` preset field. The cloud cube (397's weather cover is in), other-body bakes, the bake manager, KTX2 and 2048 faces are open.
