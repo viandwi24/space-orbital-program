@@ -1,6 +1,12 @@
 /** Plan 205 / ADR 0201 point 4: the clock state machine. */
 import { describe, expect, it } from 'vitest';
-import { clockState, placePauses, type ClockInput } from './clock-state';
+import {
+	clockPlace,
+	clockState,
+	PLACE_PAUSE_DEFAULTS,
+	placePauses,
+	type ClockInput
+} from './clock-state';
 
 const base: ClockInput = {
 	playerPaused: false,
@@ -72,5 +78,17 @@ describe('clock state', () => {
 		expect(placePauses('Space Center', {})).toBe(false);
 		expect(placePauses('Hangar', { Hangar: false })).toBe(false);
 		expect(placePauses('Flight', { Flight: true })).toBe(true);
+	});
+});
+
+describe('the place the clock reads (system audit D4)', () => {
+	it('Flight with the map open is Map, so Pause in Map holds there', () => {
+		expect(clockPlace('Flight', true)).toBe('Map');
+		expect(clockPlace('Flight', false)).toBe('Flight');
+		expect(clockPlace('Hangar', true)).toBe('Hangar');
+		expect(placePauses(clockPlace('Flight', true), { Map: true })).toBe(true);
+	});
+	it('every switch in Settings is a place the clock can be in: no Mods', () => {
+		expect(Object.keys(PLACE_PAUSE_DEFAULTS)).not.toContain('Mods');
 	});
 });

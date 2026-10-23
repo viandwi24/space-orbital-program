@@ -67,7 +67,7 @@
 	import { settings } from '../../lib/settings/settings.svelte';
 	import { bodyLabel } from '../../lib/hud-model';
 	import { keyIdOf } from '../../lib/keybindings';
-	import { clockState, placePauses } from '../../lib/clock-state';
+	import { clockPlace, clockState, placePauses } from '../../lib/clock-state';
 	import { createDebugApi, exposeDebugApi, flightDebug, type DebugHost } from '../../lib/debug/api';
 	import { fatalSave } from '../../lib/fatal-error.svelte';
 	import {
@@ -111,7 +111,9 @@
 		path.startsWith(base) ? path.slice(base.length) || '/' : path;
 	const inWorld = (path: string): boolean =>
 		IN_WORLD.some((p) => local(path) === p || local(path).startsWith(`${p}/`));
-	const place = $derived(PLACES[local(page.url.pathname)] ?? '');
+	const place = $derived(
+		clockPlace(PLACES[local(page.url.pathname)] ?? '', pageShell.map?.on === true)
+	);
 	/**
 	 * The pages that draw the world's shared 3D view (plan 340, ADR 0290): they wait behind the
 	 * world's loading screen until its renderer has warmed up and drawn a frame.

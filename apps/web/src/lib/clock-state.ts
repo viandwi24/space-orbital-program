@@ -62,9 +62,15 @@ export const PLACE_PAUSE_DEFAULTS: Readonly<Record<string, boolean>> = {
 	'Astronaut Complex': false,
 	'R&D': false,
 	Administration: false,
-	'Test Stand': false,
-	Mods: false
+	'Test Stand': false
 };
+
+/**
+ * The place the clock reads (system audit D4): Flight with its map open is `Map`, so "Pause in Map"
+ * holds there; every other page is its own place. (`Mods` is outside the world and was never a place.)
+ */
+export const clockPlace = (pagePlace: string, mapOpen: boolean): string =>
+	pagePlace === 'Flight' && mapOpen ? 'Map' : pagePlace;
 
 /** Whether `place` pauses with the player's choices (a place without one takes the default). */
 export const placePauses = (place: string, choices: Readonly<Record<string, boolean>>): boolean =>
