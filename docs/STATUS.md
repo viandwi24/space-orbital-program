@@ -315,6 +315,7 @@
 | 380 | [Realistic part stats in every system](plans/380-realistic-parts-in-every-system.md) | done | realistic parts session | ADR 0317, API 0.1.116. Owner 2026-10-23: one set of realistic stats per part, no per-system patches, the system sets the difficulty; eras by tech tier (early parts V-2/LR-79 class: two stages to orbit in stock). Rules in `mods/stock/src/parts/realism.ts` with a band test; Sol balance patches gone; Δv from the world's bodies (Hangar, Create World with Easy/Medium/Realistic, guide, lessons); Guidance ascent burns on into orbit; blueprints list their systems, a real-size Kronos V and a Titan-like launcher for Sol 1:1; headless flights per blueprint and system. Journal 380. |
 | 385 | [Wayfarer at Sol scale](plans/385-wayfarer-at-sol-scale.md) | draft | — | From plan 380: the Shuttle reaches orbit in stock only; a Sol-scale tank and boosters, and the ascent after booster separation. |
 | 386 | [Off-world bases: the player's flow](plans/386-off-world-bases-player-flow.md) | draft | — | The player-journey audit's Q5 (a): deploy a base kit from Flight, join a site, a route editor, refuel from site storage; the kit, drill and off-world buildings come back then (hidden by Q5 (b)) |
+| 387 | [Space Center camera and a visual QA pass](plans/387-space-center-camera-and-visual-qa.md) | done | ui-v3 session | ADR 0326. Owner request 2026-10-23. The whole site framed from its front on opening and back in Overview; a building flown to from its entrance side, round anything in the way; re-frame when the strip opens. QA findings listed in journal 387. |
 
 Statuses: `draft` (needs refinement before an agent takes it) · `ready` · `in-progress` · `done` · `blocked`.
 
@@ -407,6 +408,7 @@ The owner takes the remaining performance work on the M5; the M2 handles the fix
 
 ## Recent journal entries
 
+- [387 — Space Center camera and a visual QA pass](journal/387-space-center-camera-and-visual-qa.md)
 - [380 — Realistic part stats in every system](journal/380-realistic-parts-in-every-system.md)
 - [382 — Small-body terrain and body names on the map](journal/382-small-body-terrain-and-map-body-labels.md)
 - [383 — Compact navball](journal/383-compact-navball.md)
