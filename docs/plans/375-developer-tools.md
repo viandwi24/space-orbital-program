@@ -1,7 +1,7 @@
 ---
 id: 375
 title: "Developer tools: one shell, viewers from the loaded plugins, the mod loader log, crew content from mods, Zen Hangar and a sandbox Hangar"
-status: in-progress
+status: done
 owner: "developer tools session (jovial-kilby worktree)"
 depends: [301, 341]
 phase: 8
@@ -121,33 +121,34 @@ When this plan is done:
 
 ## Acceptance criteria
 
-- [ ] `bun test packages/core` passes, including:
+- [x] `bun test packages/core` passes, including:
   - `test/mods.test.ts`, which asserts a rejection's `code` for an API mismatch (`api`), a missing dependency (`dependency`) and a throwing setup (`setup`, with a stack);
   - `test/crew-content.test.ts`, which asserts the crew registries validate their definitions and that `crewOutfit` patches apply.
-- [ ] `bun test mods/stock` passes, with a test that stock registers 12 outfits, 8 expressions and the five animation roles `idle`, `walk`, `wave`, `work` and `eva`.
-- [ ] `bun test packages/renderer` passes:
+- [x] `bun test mods/stock` passes, with a test that stock registers 12 outfits, 8 expressions and the five animation roles `idle`, `walk`, `wave`, `work` and `eva`.
+- [x] `bun test packages/renderer` passes:
   - the crew character tests read content from stock's registries;
   - `test/crew-content.test.ts` asserts a later plugin's `walk` replaces stock's, and that keyframe animations interpolate;
   - `test/vab-look.test.ts` asserts that switching looks changes no light count or visibility.
-- [ ] `bun test apps/web` passes, including:
+- [x] `bun test apps/web` passes, including:
   - `src/lib/mods/boot-log.test.ts`: counts per kind, problems by code, and the stored round trip;
   - `src/lib/dev/dev-content.test.ts`: the provider and patchers of a patched part, and the mod filter;
   - `src/lib/dev/blueprint-check.test.ts`: a missing part and a node size mismatch are reported.
-- [ ] `bun run typecheck`, `bun run build` and `bun run docs:check` pass.
-- [ ] Screenshots (in the shared notes folder `screens-375/`) of:
+- [x] `bun run typecheck`, `bun run build` and `bun run docs:check` pass.
+- [x] Screenshots (in the shared notes folder `screens-375/`) of:
   - each developer tab;
   - the Hangar in Normal and Zen;
   - the sandbox with a blueprint open.
 
 ## Docs checklist
 
-- [ ] `docs/STATUS.md` updated (board row, next plan, open issues).
-- [ ] `docs/journal/375-developer-tools.md` written.
-- [ ] `docs/guides/writing-a-mod.md`: crew content, image assets, the loader log.
-- [ ] `docs/architecture/*.md` touched where the registries and the mod package format are described.
-- [ ] ADRs 0311 and 0313 written and linked above.
-- [ ] `docs/research/stack-versions.md` updated for anything looked up.
+- [x] `docs/STATUS.md` updated (board row, next plan, open issues).
+- [x] `docs/journal/375-developer-tools.md` written.
+- [x] `docs/guides/writing-a-mod.md`: crew content, image assets, the loader log.
+- [x] `docs/architecture/*.md` touched where the registries and the mod package format are described.
+- [x] ADRs 0311 and 0313 written and linked above.
+- [x] `docs/research/stack-versions.md` updated for anything looked up.
 
 ## Log
 
 - 2026-10-23 — Plan written from the owner's request; started.
+- 2026-10-23 — Done. Pushed in pieces: the shell and the loader log (1a8839e0), the Parts viewer's provenance (c6c58a6a), the crew API, Zen and the sandbox (9adbbfd8, API 0.1.111 in dce21660), the Blueprints tab (3385082d), then fixes and docs. Test counts are in the journal. Nothing was looked up online: no new tool or version. Screenshots: `screens-375/` in the shared notes. The vab-look test is `packages/renderer/test/vab-look.test.ts`. The crew-content checks are in `packages/core/test/crew-content.test.ts` and `packages/renderer/test/crew-content.test.ts`. Stock's crew test is `mods/stock/test/crew-look.test.ts`.

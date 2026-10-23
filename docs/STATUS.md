@@ -2,7 +2,7 @@
 
 > Living document. Updated at the end of every plan. Keep it short; details go in plans, ADRs and the journal.
 
-**Last updated:** 2026-10-22
+**Last updated:** 2026-10-23
 **Phase:** v1 release candidate (plan 023 done 2026-10-17): every v1 plan of ADR 0048 is done; the licence is decided (Apache-2.0, ADR 0106, `LICENSE` added) and the product is named Space Orbital Program (ADR 0105, rename pending in plan 074). Post-v1: the foundation roadmap decided by the owner on 2026-10-17 (ADRs 0094 to 0108, plans 074 to 131, see "Next: foundation roadmap")
 **Current plan:** none: the three-agent foundation roadmap (`docs/roadmap/`) is complete, 68 of 68 plans done and the phase gates `cp/f1-done` to `cp/f6-done` passed on 2026-10-18 (full suite and 85 e2e on Chromium, Firefox and WebKit on the M5); 072 and 073 were closed on the owner's instruction with their human passes waived
 **Next plan:** the release roadmap (`docs/roadmap/release-roadmap.md`, plans 200–232, ADRs 0200–0210): take the lowest draft whose depends are done, starting with wave 1 (200, 201, 202, 203, 204, 207, 212, 216, 217, 220, 227). Earlier note: none is required for v1 beyond plans 074 (rename) and 075 (licence metadata); the human tests by hand (journal 023, "How to test manually"). Then the foundation roadmap below, starting with phase F1. Every plan from 074 is a `draft`: refine one into `ready` before implementing it. Target for all visual plans: [`product/visual-direction.md`](product/visual-direction.md) and ADR 0107.
@@ -283,7 +283,8 @@
 | 369 | [Cached shadow maps for the static site](plans/369-cached-shadow-maps-for-the-static-site.md) | draft | — | From plan 363's ranking. |
 | 370 | [Shader compile at world load](plans/370-shader-compile-at-world-load.md) | in-progress | shader compile session | ADR 0308; the owner's 1 min+ load on Windows/D3D: 11.2 → 3.6 MB of WGSL, async pipelines, a loading screen that never freezes (10 of the game's shots incl. staging, the petals, the Shuttle bay and a Moon landing; a vignette, a changing line and the bar in the corner; lower quality after 15 s), load logs on `/developer`. Waiting for the owner's Windows log. |
 | 374 | [Split the WebGPU planet pass](plans/374-split-the-webgpu-planet-pass.md) | draft | — | From plan 370's Windows log: the planet pass is one 14.6 s pipeline on D3D. |
-| 375 | [Developer tools](plans/375-developer-tools.md) | in-progress | developer tools session | ADRs 0311, 0313; dev shell with tabs, viewers from the loaded plugins with provenance, the mod loader log, crew content from plugins, Zen Hangar, sandbox Hangar and Blueprints. |
+| 375 | [Developer tools](plans/375-developer-tools.md) | done | developer tools session | ADRs 0311, 0313; API 0.1.111. One developer shell (Back, Main menu, tabs Overview/Parts/Crew/Hangar/Blueprints/Mods); the mod loader log (problem codes and stacks, patches, counts per kind, asset failures; kept in the browser); viewers boot the game's plugin set (switch for turned-off mods) and name each item's provider and patchers; crew looks and moves come from plugins (5 registries, image assets, package format 3, `examples/mod-crew-sample`); the Hangar's Zen studio look (no shader built on a switch); a sandbox Hangar and a Blueprints tab with checks. Journal 375. |
+| 379 | [The web app's own content moves into plugins](plans/379-stock-content-out-of-the-web-app.md) | draft | — | ADR 0311's later rows: learn and mission blueprints, lessons, loading shots. |
 | 376 | [The Mods page as a mod manager](plans/376-mods-page-mod-manager.md) | done | ui-v3 session | ADR 0312. Owner request 2026-10-23. Cards for every mod with status chips, counts per kind linking to the Developer viewers, API and dependency badges, switch, Patches/Update/Remove; search, filter, sort; drop-to-install with a review dialog; Reload banner. Journal 376. |
 | 364 | [Planet textures and sky like KSP](plans/364-planet-textures-and-sky.md) | done | planet-sky session | ADR 0306. Baked Milky Way sky with stars that never twinkle; a scaled-space albedo and normal bake of the planet from its own `surfaceAt` for orbit and map views; mid octaves for fractal coasts; triplanar ground detail; biome maps cached in IndexedDB. Journal 364. |
 | 340 | [One renderer for the world session, warm-up at world load, loading screen](plans/340-world-renderer-warm-up-and-loading-screen.md) | done | world renderer session | ADR 0290. Flight, Mission Center and Space Center share one renderer and canvas owned by the `(world)` layout; every view is drawn once behind a loading screen when the world loads. Page switches went from 1.5–2.8 s (WebGPU) and 0.2–0.4 s (WebGL) worst frames to 19 ms. Journal 340. |
@@ -389,6 +390,7 @@ The owner takes the remaining performance work on the M5; the M2 handles the fix
 
 ## Recent journal entries
 
+- [375 — Developer tools](journal/375-developer-tools.md)
 - [377 — Space Center tour](journal/377-space-center-tour.md)
 - [378 — Hangar nested editing](journal/378-hangar-nested-editing.md)
 - [373 — No shader builds at sunrise or on a governor step](journal/373-no-shader-builds-at-sunrise.md)
