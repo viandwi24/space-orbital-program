@@ -403,10 +403,8 @@ describe('a world saved before the wider stock system (plan 381, ADR 0318 point 
 		expect(snap.bodies.map((b) => String(b.id))).toEqual(STOCK_TREE);
 		// Home and Cinder did not move: the same place as the save's own time says
 		const savedVessels = fixtureV7.world.components['sim.vessel'] as Record<string, SavedVessel>;
-		for (const v of snap.vessels) {
-			const saved = savedVessels[String(v.id)];
-			if (saved) expect(String(v.soi)).toBe(saved.soi);
-		}
+		expect(snap.vessels.length).toBeGreaterThan(0);
+		for (const v of snap.vessels) expect(String(v.soi)).toBe(savedVessels[String(v.id)]!.soi);
 		for (let i = 0; i < 100; i++) sim.step(0.02);
 		expect(sim.save().bodies).toEqual(STOCK_TREE);
 		sim.dispose();
@@ -414,5 +412,6 @@ describe('a world saved before the wider stock system (plan 381, ADR 0318 point 
 });
 
 interface SavedVessel {
+	soi: string;
 	rails: { elements: { a: number; e: number } };
 }
