@@ -99,6 +99,7 @@ export class PlasmaEffect {
 				uGain: { value: 0 },
 				uVacuum: { value: 0 },
 				uDiamonds: { value: 0 },
+				uPeriod: { value: 2.6 },
 				uColor: { value: new Color(1, 0.35, 0.12) },
 				uCore: { value: new Color(1, 0.8, 0.6) }
 			},

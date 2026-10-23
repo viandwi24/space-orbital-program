@@ -316,6 +316,7 @@
 | 385 | [Wayfarer at Sol scale](plans/385-wayfarer-at-sol-scale.md) | draft | — | From plan 380: the Shuttle reaches orbit in stock only; a Sol-scale tank and boosters, and the ascent after booster separation. |
 | 386 | [Off-world bases: the player's flow](plans/386-off-world-bases-player-flow.md) | draft | — | The player-journey audit's Q5 (a): deploy a base kit from Flight, join a site, a route editor, refuel from site storage; the kit, drill and off-world buildings come back then (hidden by Q5 (b)) |
 | 387 | [Space Center camera and a visual QA pass](plans/387-space-center-camera-and-visual-qa.md) | done | ui-v3 session | ADR 0326. Owner request 2026-10-23. The whole site framed from its front on opening and back in Overview; a building flown to from its entrance side, round anything in the way; re-frame when the strip opens. QA findings listed in journal 387. |
+| 388 | [Space Center visual QA leftovers](plans/388-space-center-qa-leftovers.md) | in-progress | space-center QA fixes session | Journal 387's findings. Done so far: the TSL twin error (the plasma wake had no `uPeriod`). |
 
 Statuses: `draft` (needs refinement before an agent takes it) · `ready` · `in-progress` · `done` · `blocked`.
 

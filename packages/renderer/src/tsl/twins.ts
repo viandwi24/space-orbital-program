@@ -99,7 +99,10 @@ export interface Twin {
 const linker =
 	(m: ShaderMaterial, syncs: (() => void)[]) =>
 	(name: string): N => {
-		const src = m.uniforms[name]!;
+		const src = m.uniforms[name];
+		// a GLSL material that shares a twinned shader without this uniform (plan 388): say which
+		if (!src)
+			throw new Error(`TSL twin of ${m.name || m.type}: the material has no uniform ${name}`);
 		const value = src.value;
 		const node =
 			value instanceof Color
@@ -193,10 +196,15 @@ const plume = (m: ShaderMaterial): Twin => {
 	const vN = varying(transformNormalToView(vec3(positionGeometry.x, 0.35, positionGeometry.z)));
 	const vT = varying(t);
 	const vAng = varying(atan(positionGeometry.z, positionGeometry.x));
+	// every uniform linked here, not in the Fn: a missing one then fails when the twin is made
 	const uTime = u('uTime');
 	const uVacuum = u('uVacuum');
 	const uLength = u('uLength');
 	const uColor = u('uColor');
+	const uDiamonds = u('uDiamonds');
+	const uPeriod = u('uPeriod');
+	const uCore = u('uCore');
+	const uGain = u('uGain');
 	twin.colorNode = Fn(() => {
 		const facing = clamp(abs(dot(normalize(vN), normalize(positionView.negate()))), 0.0, 1.0);
 		const edge = pow(facing, mix(1.5, 3.2, uVacuum));
@@ -206,16 +214,16 @@ const plume = (m: ShaderMaterial): Twin => {
 			.mul(0.16)
 			.add(0.84);
 		const dia = float(1.0).add(
-			u('uDiamonds')
+			uDiamonds
 				.mul(1.1)
-				.mul(pow(max(0.0, sin(vT.mul(uLength).mul(6.2831853).div(u('uPeriod')))), 3.0))
+				.mul(pow(max(0.0, sin(vT.mul(uLength).mul(6.2831853).div(uPeriod))), 3.0))
 				.mul(float(1.0).sub(vT))
 		);
-		const col = mix(u('uCore'), uColor, smoothstep(0.0, 0.45, vT)).toVar();
+		const col = mix(uCore, uColor, smoothstep(0.0, 0.45, vT)).toVar();
 		col.assign(mix(col, uColor.mul(vec3(0.55, 0.32, 0.2)), smoothstep(0.45, 1.0, vT)));
 		col.assign(mix(col, col.mul(vec3(0.72, 0.86, 1.3)), uVacuum));
 		const a = clamp(edge.mul(along).mul(flick).mul(dia), 0.0, 1.0);
-		const gain = u('uGain').mul(edge.mul(edge).mul(along).mul(4.0).add(1.0));
+		const gain = uGain.mul(edge.mul(edge).mul(along).mul(4.0).add(1.0));
 		return vec4(col.mul(gain), a);
 	})();
 	return { material: twin, sync: () => syncs.forEach((s) => s()) };
@@ -316,6 +324,9 @@ const shell = (m: ShaderMaterial): Twin => {
 	const uIntensity = u('uIntensity');
 	const uTint = u('uTint');
 	const uTime = u('uTime');
+	const uForward = u('uForward');
+	const uTip = u('uTip');
+	const uLength = u('uLength');
 	twin.colorNode = Fn(() => {
 		const wN = normalize(normalWorld);
 		const facing = clamp(
@@ -324,14 +335,12 @@ const shell = (m: ShaderMaterial): Twin => {
 			1.0
 		);
 		const rim = pow(float(1.0).sub(facing), 1.4);
-		const windward = smoothstep(-0.25, 0.8, dot(wN, u('uForward')));
+		const windward = smoothstep(-0.25, 0.8, dot(wN, uForward));
 		const flick = sin(uTime.mul(41.0).add(wN.x.mul(7.0)).add(wN.y.mul(5.0)))
 			.mul(0.12)
 			.add(0.88);
 		const depth = clamp(
-			u('uTip')
-				.sub(vAxial)
-				.div(max(u('uLength'), 1e-3)),
+			uTip.sub(vAxial).div(max(uLength, 1e-3)),
 			0.0,
 			1.0
 		);
