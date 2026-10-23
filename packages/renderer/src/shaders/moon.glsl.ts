@@ -332,7 +332,13 @@ varying float vPatchH;
 varying float vStoneShade;
 uniform float uRadius;
 uniform vec3 uTint;
+uniform sampler2D uLook;
 ${hashNoiseGLSL}
+// the body's colour map (plan 381, ADR 0318): equirectangular, longitude 0 on +X, east toward -Z
+vec3 moonLook(vec3 n) {
+	vec2 st = vec2(atan(-n.z, n.x) * ${(1 / (2 * Math.PI)).toFixed(9)} + 0.5, asin(clamp(n.y, -1.0, 1.0)) * ${(1 / Math.PI).toFixed(9)} + 0.5);
+	return texture2D(uLook, st).rgb;
+}
 float moonGrain(vec3 p) {
 	vec3 fl = floor(p);
 	return valueNoiseCell(ivec3(fl), p - fl);
@@ -351,7 +357,7 @@ export const moonFragmentColor = /* glsl */ `
 	float arc = uRadius * acos(clamp(vMoonN.x, -1.0, 1.0));
 	float basin = 1.0 - smoothstep(${f(S.plainFrom)} * 1.6, ${f(S.plainTo)} * 2.4, arc);
 	float shade = 0.7 + 0.5 * (huge - 0.5) + 0.34 * broad + 0.2 * (mid - 0.5) + 0.16 * (fine - 0.5) + 0.1 * (grit - 0.5);
-	diffuseColor.rgb = uTint * shade * (1.0 - 0.38 * basin);
+	diffuseColor.rgb = uTint * moonLook(normalize(vMoonN)) * shade * (1.0 - 0.38 * basin);
 }
 `;
 
@@ -493,7 +499,7 @@ vPatchH = sH;
 vStoneShade = aStoneShade;
 `;
 export const moonStoneColor = /* glsl */ `
-diffuseColor.rgb = uTint * (0.45 + 0.9 * vStoneShade);
+diffuseColor.rgb = uTint * moonLook(normalize(vMoonN)) * (0.45 + 0.9 * vStoneShade);
 `;
 
 // --- hills bodies (ADR 0090) -----------------------------------------------------------------

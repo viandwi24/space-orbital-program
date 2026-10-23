@@ -62,7 +62,14 @@ export const WORLD_LOAD_STEPS: ReadonlyArray<{
 export function catalogKey(c: Catalog): string {
 	return JSON.stringify([
 		c.home ?? null,
-		c.bodies.map((b) => [b.id, b.radius, b.terrain ?? null, b.parent ?? null, b.star ?? false]),
+		c.bodies.map((b) => [
+			b.id,
+			b.radius,
+			b.terrain ?? null,
+			b.parent ?? null,
+			b.star ?? false,
+			b.appearance ?? null
+		]),
 		c.bodyTerrain ?? null,
 		c.terrain ?? null,
 		c.launchSite ?? null,
@@ -90,6 +97,8 @@ function configOf(c: Catalog, canvas: HTMLCanvasElement, backend: RendererBacken
 				// the kind of ground each body is drawn with (plan 052, ADR 0067)
 				...(b.terrain ? { terrain: b.terrain } : {}),
 				...(b.star ? { star: true } : {}),
+				// how it looks (plan 381, ADR 0318)
+				...(b.appearance ? { appearance: b.appearance } : {}),
 				...(b.parent !== undefined && b.orbit ? { parent: b.parent, orbit: b.orbit } : {})
 			})),
 		partShapes: partShapesOf(c),

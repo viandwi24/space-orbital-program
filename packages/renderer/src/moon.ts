@@ -40,6 +40,7 @@ import {
 	RGBADepthPacking,
 	RGBAFormat,
 	RepeatWrapping,
+	SRGBColorSpace,
 	Scene,
 	ShaderChunk,
 	ShaderMaterial,
@@ -51,6 +52,7 @@ import {
 	Vector4,
 	WebGLCubeRenderTarget,
 	WebGLRenderTarget,
+	type Texture,
 	type WebGLRenderer
 } from 'three';
 import {
@@ -208,6 +210,17 @@ const LIGHTS_WITH_TERRAIN_SHADOW = ShaderChunk.lights_fragment_begin.replace(
 	'getDirectionalLightInfo( directionalLight, directLight );\n\t\tdirectLight.color *= moonSunVis;'
 );
 
+let white: DataTexture | null = null;
+/** A 1 x 1 white colour map: a body without `appearance` keeps its regolith tint alone. */
+export function whiteLook(): DataTexture {
+	if (!white) {
+		white = new DataTexture(new Uint8Array([255, 255, 255, 255]), 1, 1);
+		white.colorSpace = SRGBColorSpace;
+		white.needsUpdate = true;
+	}
+	return white;
+}
+
 export class MoonPass {
 	readonly root = new Object3D();
 	readonly radius: number;
@@ -257,6 +270,8 @@ export class MoonPass {
 			atmosphere?: Atmosphere;
 			/** A craters body's site zones (plan 128, ADR 0125 point 1); default none. */
 			zones?: readonly TerrainZone[];
+			/** The body's colour map (plan 381, ADR 0318); default white (the regolith of before). */
+			look?: Texture;
 		} = {}
 	) {
 		this.radius = radius;
@@ -284,6 +299,7 @@ export class MoonPass {
 			// the stones' lattice salt (core's `stoneSalt`): the shader hashes the same integers
 			uStoneSalt: u(stoneSalt(this.seed)),
 			uTint: u(new Color().setRGB(tint[0], tint[1], tint[2])),
+			uLook: u<unknown>(options.look ?? whiteLook()),
 			// unit body-fixed direction to the sun, and the share of the sun light the lit scene gets
 			// (the vessel's own terrain shadow, ADR 0068): the ground divides it out again
 			uSunBody: u(new Vector3(1, 0, 0)),
@@ -606,6 +622,16 @@ export class MoonPass {
 		};
 		material.customProgramCacheKey = () => 'moon-stone-depth';
 		return material;
+	}
+
+	/** The body's colour map (plan 381, ADR 0318): a small one first, the full one when it is near. */
+	setLook(map: Texture): void {
+		(this.shared.uLook as U<unknown>).value = map;
+	}
+
+	/** The colour map the ground is drawn with. */
+	get look(): Texture {
+		return (this.shared.uLook as U<Texture>).value;
 	}
 
 	/** Dev/screenshot hook: the regolith's base colour (linear RGB). */

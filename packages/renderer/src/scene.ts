@@ -83,6 +83,8 @@ import {
 } from './parts/types.ts';
 import { OrbitLine, VesselMarker } from './map.ts';
 import { MoonPass } from './moon.ts';
+import { BodyDress, DRESS_FAR_PX, DRESS_NEAR_PX } from './body-dress.ts';
+import { LOOK_ALBEDO, skyOptics } from './body-look.ts';
 import {
 	HILLS_SHADOW_MARCH,
 	SHADOW_MARCH,
@@ -112,7 +114,7 @@ const MIN_TERRAIN_LIGHT = 0.03;
 
 /** What the renderer needs of a body; `parent` and `orbit` let the map view draw a moon's orbit and sphere. */
 export type BodyRenderInfo = Pick<BodyDefinition, 'id' | 'radius' | 'atmosphere'> &
-	Partial<Pick<BodyDefinition, 'parent' | 'orbit' | 'mass' | 'terrain' | 'star'>>;
+	Partial<Pick<BodyDefinition, 'parent' | 'orbit' | 'mass' | 'terrain' | 'star' | 'appearance'>>;
 
 /** One stretch of a predicted path (plan 044): points relative to `body`, which sits at `offset` in the system frame. */
 export interface MapPathSegment {
@@ -182,6 +184,32 @@ const latLonDir = (s: { latitude: number; longitude: number }, radius: number): 
 	z: -Math.cos(s.latitude) * Math.sin(s.longitude) * radius
 });
 const BODY_COLORS = [0x3d7a4a, 0x8a8f98, 0xb5764a, 0x4a6fa5];
+/** The air's optics do not thicken past this many home atmospheres (a 5 atm sky would be milk). */
+const MAX_OPTICAL_PRESSURE = 2.5 * 101_325;
+
+/** A moon-pass body's air (ADR 0121 point 2), coloured by its `sky` and `haze` (plan 381, ADR 0318 point 5). */
+function airOf(b: BodyRenderInfo): Atmosphere {
+	const a = b.atmosphere!;
+	const air = atmosphereFor(
+		b.radius,
+		a.height,
+		a.scaleHeight,
+		Math.min(a.surfacePressure, MAX_OPTICAL_PRESSURE)
+	);
+	if (!b.appearance) return air;
+	const optics = skyOptics(b.appearance);
+	return {
+		...air,
+		betaRayleigh: [
+			air.betaRayleigh[0] * optics.rayleigh[0],
+			air.betaRayleigh[1] * optics.rayleigh[1],
+			air.betaRayleigh[2] * optics.rayleigh[2]
+		],
+		betaMie: air.betaMie * optics.mie,
+		// no ozone layer on another world
+		betaOzone: [0, 0, 0]
+	};
+}
 /** A star's disc (it is unlit: the colour is what the camera sees). */
 const STAR_COLOR = 0xfff1c9;
 /** Map colours: body orbit and the highlight (the refs accent text, ADR 0140); vessel orbits and icons are in `map-style.ts`. */
@@ -232,6 +260,12 @@ export class SceneModel {
 	>();
 	/** Bodies other than the first with a craters or hills ground, drawn by the ground (moon) pass (ADR 0054, 0090). */
 	private readonly moons = new Map<string, MoonPass>();
+	/**
+	 * Bodies with an `appearance` (plan 381, ADR 0318): colour map, far sphere, clouds, rings. A
+	 * moon-pass body among them sleeps (far sphere only, no moon pipelines) until it is near.
+	 */
+	private readonly dresses = new Map<string, BodyDress>();
+	private readonly dormant = new Set<string>();
 	/** Map view furniture of a body with a parent: its orbit around the parent and its sphere of influence. */
 	private readonly bodyMarks = new Map<
 		string,
@@ -369,7 +403,11 @@ export class SceneModel {
 						seed: hillsSeedOf(b, config.terrain?.seed ?? LEGACY_TERRAIN_SEED, false),
 						zones: []
 					};
+				const dress = b.appearance ? new BodyDress(b.id, b.radius, b.appearance, this.sphere) : null;
 				const moon = new MoonPass(b.id, b.radius, {
+					...(dress
+						? { look: dress.map, tint: [LOOK_ALBEDO, LOOK_ALBEDO, LOOK_ALBEDO] as [number, number, number] }
+						: {}),
 					...(b.terrain.kind === 'hills'
 						? { kind: 'hills' as const, terrain: hillsTerrain() }
 						: {
@@ -378,20 +416,24 @@ export class SceneModel {
 								zones: config.bodyTerrain?.[b.id]?.zones ?? []
 							}),
 					// its own air (ADR 0121 point 2)
-					...(b.atmosphere
-						? {
-								atmosphere: atmosphereFor(
-									b.radius,
-									b.atmosphere.height,
-									b.atmosphere.scaleHeight,
-									b.atmosphere.surfacePressure
-								)
-							}
-						: {})
+					...(b.atmosphere ? { atmosphere: airOf(b) } : {})
 				});
 				moon.setShadowSteps(SHADOW_STEPS[config.preset ?? 'high']);
 				holder.add(moon.root);
 				this.moons.set(b.id, moon);
+				if (dress) {
+					// asleep until near (ADR 0318 point 6): no moon pipelines are built for it at load
+					dress.onMap((map) => moon.setLook(map));
+					holder.add(dress.root);
+					this.dresses.set(b.id, dress);
+					this.dormant.add(b.id);
+					moon.root.visible = false;
+				}
+			} else if (!home && b.appearance) {
+				// A giant (plan 381): its colour map on a lit sphere, its clouds and rings.
+				const dress = new BodyDress(b.id, b.radius, b.appearance, this.sphere);
+				holder.add(dress.root);
+				this.dresses.set(b.id, dress);
 			} else if (!home) {
 				// A body with no terrain stays a plain lit sphere (ADR 0027, 0067).
 				const mesh = new Mesh(
@@ -1425,7 +1467,9 @@ export class SceneModel {
 		const sunInertial = this.frameState
 			? this.environment.sunDirection(this.frameState.bodyRotation)
 			: undefined;
+		this.updateDresses();
 		for (const [id, moon] of this.moons) {
+			if (this.dormant.has(id)) continue;
 			const entry = this.bodies.get(id);
 			const rot = this.bodyRot.get(id);
 			if (!entry || !rot) continue;
@@ -1448,6 +1492,47 @@ export class SceneModel {
 			moon.setSun(sun, lit);
 		}
 		return up;
+	}
+
+	/**
+	 * The dressed bodies' frame (ADR 0318 point 6): a moon-pass body wakes (its ground drawn by the
+	 * moon pass, its full colour map baked) when it covers `DRESS_NEAR_PX` of radius or holds the
+	 * active vessel, and sleeps again below `DRESS_FAR_PX`; clouds fade below their deck.
+	 */
+	private updateDresses(): void {
+		if (this.dresses.size === 0) return;
+		const halfTan = Math.tan((this.camera.fov * Math.PI) / 360);
+		const soi = this.lastView?.active?.soi;
+		let baked = false;
+		for (const [id, dress] of this.dresses) {
+			const entry = this.bodies.get(id);
+			if (!entry) continue;
+			const d = Math.max(
+				1,
+				Math.hypot(
+					this.camera.position.x - entry.holder.position.x,
+					this.camera.position.y - entry.holder.position.y,
+					this.camera.position.z - entry.holder.position.z
+				)
+			);
+			const px = (dress.radius / d / halfTan) * (this.viewport.height / 2);
+			const moon = this.moons.get(id);
+			if (moon) {
+				const asleep = this.dormant.has(id);
+				const wake = px > DRESS_NEAR_PX || soi === id;
+				const sleep = px < DRESS_FAR_PX && soi !== id;
+				if (asleep && wake) {
+					this.dormant.delete(id);
+					moon.root.visible = true;
+					dress.showFar(false);
+				} else if (!asleep && sleep) {
+					this.dormant.add(id);
+					moon.root.visible = false;
+					dress.showFar(true);
+				}
+			}
+			if (dress.frame(px, d - dress.radius, !baked)) baked = true;
+		}
 	}
 
 	/** The moon the active vessel is at, from the last `updateMoons`. */
@@ -1518,12 +1603,12 @@ export class SceneModel {
 
 	/** The moon passes (plan 261: the WebGPU renderer bakes and draws them with its TSL twins). */
 	get moonPasses(): Iterable<MoonPass> {
-		return this.moons.values();
+		return [...this.moons].filter(([id]) => !this.dormant.has(id)).map(([, m]) => m);
 	}
 
 	/** Bakes what the moon passes asked for this frame (needs a context; the facade calls it). */
 	bakeMoons(gl: WebGLRenderer): void {
-		for (const moon of this.moons.values()) moon.bake(gl);
+		for (const moon of this.moonPasses) moon.bake(gl);
 	}
 
 	/** Baked moon patch read back as heights (m), for the parity check; null before the first bake. */
@@ -2018,6 +2103,7 @@ export class SceneModel {
 		this.sphere.dispose();
 		this.environment.dispose();
 		for (const moon of this.moons.values()) moon.dispose();
+		for (const dress of this.dresses.values()) dress.dispose();
 		for (const b of this.bodies.values()) {
 			for (const child of b.holder.children) {
 				if (child instanceof Mesh) (child.material as MeshLambertMaterial).dispose();

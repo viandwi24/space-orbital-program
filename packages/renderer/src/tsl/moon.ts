@@ -58,6 +58,8 @@ const T = TSL as any;
 const {
 	Break,
 	Discard,
+	asin,
+	atan,
 	Fn,
 	If,
 	Loop,
@@ -208,6 +210,8 @@ export class MoonTSL {
 	private readonly height: (n: N) => N;
 	private readonly hills: boolean;
 	private readonly R: number;
+	/** The colour map nodes of the layers (plan 381): their texture follows `pass.look` each frame. */
+	private readonly lookNodes: N[] = [];
 
 	constructor(
 		readonly pass: MoonPass,
@@ -267,6 +271,8 @@ export class MoonTSL {
 	/** Once a frame: the uniforms, and the bakes `MoonPass.update` asked for. */
 	update(renderer: WebGPURenderer): void {
 		this.links.sync();
+		const look = this.pass.look;
+		for (const n of this.lookNodes) if (n.value !== look) n.value = look;
 		const sun = this.lights.sun;
 		this.uSunLight.value.copy(sun.color).multiplyScalar(sun.intensity);
 		const sky = this.lights.hemisphere;
@@ -320,6 +326,17 @@ export class MoonTSL {
 		this.patchPass.m.dispose();
 		for (const t of this.twins.values()) t.material.dispose();
 		this.twins.clear();
+	}
+
+	/** The body's colour map at a unit body-fixed direction (the GLSL's `moonLook`). */
+	private lookAt(n: N): N {
+		const st = vec2(
+			atan(n.z.negate(), n.x).mul(1 / (2 * PI)).add(0.5),
+			asin(clamp(n.y, -1.0, 1.0)).mul(1 / PI).add(0.5)
+		);
+		const node = texture(this.pass.look, st);
+		this.lookNodes.push(node);
+		return node.rgb;
 	}
 
 	// --- heights --------------------------------------------------------------------------------
@@ -602,7 +619,7 @@ export class MoonTSL {
 				.add(farW.mul(0.3).mul(noiseF(bp.div(7.0))))
 				.mul(water.oneMinus());
 		} else if (stone) {
-			colour = u('uTint').mul(vStoneShade.mul(0.9).add(0.45));
+			colour = u('uTint').mul(this.lookAt(nM)).mul(vStoneShade.mul(0.9).add(0.45));
 		} else {
 			const mp = vMoonN.mul(R);
 			const huge = noiseF(mp.div(60000.0));
@@ -620,7 +637,7 @@ export class MoonTSL {
 				.add(mid.sub(0.5).mul(0.2))
 				.add(fine.sub(0.5).mul(0.16))
 				.add(grit.sub(0.5).mul(0.1));
-			colour = u('uTint').mul(shade).mul(basin.mul(0.38).oneMinus());
+			colour = u('uTint').mul(this.lookAt(nM)).mul(shade).mul(basin.mul(0.38).oneMinus());
 			const bp = mp;
 			const density = smoothstep(0.35, 0.7, noiseF(bp.div(24.0)));
 			const small = smoothstep(0.6, 1.0, noiseF(bp.div(0.7).add(17.0)));
