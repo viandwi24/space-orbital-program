@@ -137,8 +137,8 @@ export const FLIGHT_LESSONS: readonly Lesson[] = [
 		],
 		goal: (o) => o.body === 'stock.cinder',
 		debrief:
-			'You left Home’s sphere for Cinder’s. Every transfer is the same idea: burn at the window so your new orbit meets the destination.',
-		hint: 'In your world, plan the transfer burn with a node at the window shown in Upcoming, and keep 300 m/s for the capture at Cinder.'
+			'You left Home’s sphere for Cinder’s. Every transfer is the same idea: burn at the window so your new orbit meets the destination. The planets work the same way from Home’s orbit: Ochre, the red planet, has its first window about 45 days into a new world.',
+		hint: 'In your world, plan the transfer burn with a node at the window shown in Upcoming, and keep 300 m/s for the capture at Cinder. Target Ochre from a Home orbit and Upcoming shows its window too: about 1 100 m/s to leave, 650 m/s to stay.'
 	},
 	{
 		id: 'landing',

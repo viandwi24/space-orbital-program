@@ -63,6 +63,8 @@ import type {
 
 export type ResourceDefinition = z.infer<typeof resourceDefinitionSchema>;
 export type BodyDefinition = z.infer<typeof bodyDefinitionSchema>;
+/** How a body looks (plan 381, ADR 0318). */
+export type BodyAppearance = NonNullable<BodyDefinition['appearance']>;
 /** Part as pure data: modules are referenced by module id plus an (unchecked here) config. */
 export type PartDefinition = z.infer<typeof partDefinitionSchema>;
 export type PartShape = z.infer<typeof partShapeSchema>;

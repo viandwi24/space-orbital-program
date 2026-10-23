@@ -236,6 +236,7 @@ export {
 export type {
 	Ambient,
 	BasePluginContext,
+	BodyAppearance,
 	BodyDefinition,
 	BodyId,
 	EntityId,

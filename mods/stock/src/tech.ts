@@ -407,7 +407,8 @@ export const STOCK_TECH = [
 		tier: 5,
 		cost: 250,
 		requires: ['stock.advanced-power'],
-		milestone: 'landing:stock.cinder',
+		// power for the outer planets, after the first flight to one (plan 381)
+		milestone: 'flyby:stock.ochre',
 		description: 'A radioisotope generator: power far from the star, day and night.',
 		unlocks: ['stock.rtg', 'stock.rtg-radial']
 	}),

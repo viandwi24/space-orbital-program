@@ -273,7 +273,23 @@ describe('stock boots through the loader', () => {
 			'stock.wing',
 			'stock.wing-delta'
 		]);
-		expect(ids('body')).toEqual(['stock.cinder', 'stock.home', 'stock.sun']);
+		expect(ids('body')).toEqual([
+			'stock.bastion',
+			'stock.cinder',
+			'stock.flick',
+			'stock.forge',
+			'stock.glim',
+			'stock.home',
+			'stock.husk',
+			'stock.kiln',
+			'stock.mote',
+			'stock.ochre',
+			'stock.rime',
+			'stock.sun',
+			'stock.tempest',
+			'stock.vagrant',
+			'stock.vesper'
+		]);
 		expect(ids('system')).toEqual([]);
 		expect(ids('situation')).toEqual([
 			'stock.flying-high',

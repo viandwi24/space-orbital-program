@@ -74,6 +74,31 @@ describe('the system art gallery', () => {
 		expect(pic.bodies.find((b) => b.id === 'sol.saturn')!.ring).toBeGreaterThan(0);
 	});
 
+	it("draws the wider stock system from the bodies' appearance (plan 381)", () => {
+		const stock = gallery[0]![1];
+		const pic = systemPicture('stock', stock);
+		expect(pic.bodies.map((b) => b.id)).toEqual([
+			'stock.kiln',
+			'stock.vesper',
+			'stock.home',
+			'stock.ochre',
+			'stock.vagrant',
+			'stock.tempest',
+			'stock.glim'
+		]);
+		const tempest = pic.bodies.find((b) => b.id === 'stock.tempest')!;
+		expect(tempest.bands).toBe(true);
+		expect(tempest.ring).toBeGreaterThan(0);
+		expect(tempest.moons).toHaveLength(3);
+		// the palette's colour, the cloud deck over Vesper, the sky colour as the halo
+		expect(pic.bodies.find((b) => b.id === 'stock.ochre')!.light).toBe('#b0603a');
+		expect(pic.bodies.find((b) => b.id === 'stock.vesper')!.light).toBe('#eedcae');
+		expect(pic.bodies.find((b) => b.id === 'stock.ochre')!.atmosphere).toBe(
+			'rgba(214, 162, 122, 0.55)'
+		);
+		expect(pic.bodies.find((b) => b.id === 'stock.ochre')!.moons).toHaveLength(2);
+	});
+
 	it('a mod system with no data beyond its bodies still gets a picture', () => {
 		const bodies = [
 			{ id: 'mod.star', mass: 1e30, radius: 5e8, rotationPeriod: 1e6, star: true },

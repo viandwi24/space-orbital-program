@@ -1,7 +1,8 @@
 import { defineMission } from '@orbital/sdk';
 
 /**
- * The stock main line (plan 100, ADR 0151 point 2): from the first hop to a return from the Moon.
+ * The stock main line (plan 100, ADR 0151 point 2): from the first hop to a return from the Moon,
+ * then Ochre and Tempest (plan 381).
  * Each mission starts the next when it is done. Written for this game's bodies.
  */
 const LINE = 'stock.main';
@@ -72,7 +73,7 @@ export const STOCK_MISSIONS = [
 		title: 'Home from the Moon',
 		line: LINE,
 		briefing: 'Land on Cinder, lift off again and bring the vessel home safely.',
-		debriefing: 'There and back. The main line is complete; the system is yours.',
+		debriefing: 'There and back. Beyond the Moon, the planets wait for their windows.',
 		objectives: {
 			sequence: [
 				{ objective: 'stock.land', params: { body: 'stock.cinder' } },
@@ -80,6 +81,43 @@ export const STOCK_MISSIONS = [
 			]
 		},
 		prerequisites: ['stock.moon-landing'],
-		reward: [{ currency: 'reputation', amount: 80 }]
+		reward: [{ currency: 'reputation', amount: 80 }],
+		next: ['stock.ochre-flyby']
+	}),
+	// beyond the Moon (plan 381, ADR 0318): the red planet, then the giant
+	defineMission({
+		id: 'stock.ochre-flyby',
+		title: 'To the red planet',
+		line: LINE,
+		briefing:
+			"Reach Ochre's sphere of influence. Leave Home at a transfer window (the Mission Center's Upcoming list finds it, about 45 days into a new world, then every 855 days): about 1 100 m/s from low orbit.",
+		debriefing: 'Ochre fills the window: rust plains, white caps and two tiny moons.',
+		objectives: { objective: 'stock.flyby', params: { body: 'stock.ochre' } },
+		prerequisites: ['stock.moon-return'],
+		reward: [{ currency: 'reputation', amount: 100 }],
+		next: ['stock.ochre-landing']
+	}),
+	defineMission({
+		id: 'stock.ochre-landing',
+		title: 'Landing on Ochre',
+		line: LINE,
+		briefing:
+			'Set a vessel down on Ochre. Its air is thin: it slows you from orbital speed but not to a landing; wide parachutes and a last burn do the rest.',
+		debriefing: 'Footprints in red dust, a planet away from Home.',
+		objectives: { objective: 'stock.land', params: { body: 'stock.ochre' } },
+		prerequisites: ['stock.ochre-flyby'],
+		reward: [{ currency: 'reputation', amount: 150 }],
+		next: ['stock.tempest-flyby']
+	}),
+	defineMission({
+		id: 'stock.tempest-flyby',
+		title: 'The ringed giant',
+		line: LINE,
+		briefing:
+			"Reach Tempest's sphere of influence: about 2 000 m/s from low orbit and three years of coast. Its four moons are cheap to reach once you are there.",
+		debriefing: 'Tempest and its rings. The main line is complete; the system is yours.',
+		objectives: { objective: 'stock.flyby', params: { body: 'stock.tempest' } },
+		prerequisites: ['stock.ochre-landing'],
+		reward: [{ currency: 'reputation', amount: 200 }]
 	})
 ];

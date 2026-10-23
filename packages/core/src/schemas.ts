@@ -89,6 +89,47 @@ export const bodyTerrainSchema = z.discriminatedUnion('kind', [
 	z.object({ kind: z.literal('craters'), seed: z.int().min(0).max(999).optional() })
 ]);
 
+/** An sRGB colour as `#rrggbb`. */
+export const hexColorSchema = z.string().regex(/^#[0-9a-fA-F]{6}$/, 'colour as #rrggbb');
+
+/**
+ * How a body looks (plan 381, ADR 0318): colours and a few named features the renderer, the map and
+ * the system art draw; nothing here changes the physics. Absent: the look of before (the moon pass's
+ * grey regolith, a plain sphere for a body without terrain).
+ */
+export const bodyAppearanceSchema = z.object({
+	/** Surface colours, the first the main one (regolith, ice, cloud tops of a giant). */
+	palette: z.array(hexColorSchema).min(1).max(6),
+	/**
+	 * What the colours make (ADR 0318 point 2): `mottled` patches; `polar-caps` mottled with white caps;
+	 * `lineae` ice crossed by dark cracks; `volcanic` dark plains with bright vents and flows; `bands`
+	 * latitude bands with storms (a giant or a cloud deck). Default `mottled`.
+	 */
+	pattern: z.enum(['mottled', 'polar-caps', 'lineae', 'volcanic', 'bands']).optional(),
+	/** The colour light takes in the body's air (a body with an atmosphere); default the home sky's blue. */
+	sky: hexColorSchema.optional(),
+	/** Dust or smog in the air, 0 to 1: more haze, a paler horizon and a hidden ground from far away. */
+	haze: z.number().min(0).max(1).optional(),
+	/** A deck of cloud over the whole body at `altitude` m (opaque from orbit, gone below it). */
+	clouds: z
+		.object({
+			color: hexColorSchema,
+			altitude: z.number().positive(),
+			opacity: z.number().min(0).max(1).optional()
+		})
+		.optional(),
+	/** Rings in the body's equator plane, radii from its centre, m. */
+	rings: z
+		.object({
+			inner: z.number().positive(),
+			outer: z.number().positive(),
+			color: hexColorSchema,
+			opacity: z.number().min(0).max(1).optional()
+		})
+		.refine((r) => r.outer > r.inner, 'rings: outer must be beyond inner')
+		.optional()
+});
+
 /** A region id: lower-case words joined by `-` (it is part of a subject id). */
 export const regionIdSchema = z.string().regex(/^[a-z][a-z0-9-]*$/, 'region id');
 
@@ -232,6 +273,8 @@ export const bodyDefinitionSchema = z.object({
 		])
 		.optional(),
 	terrain: bodyTerrainSchema.optional(),
+	/** How the body looks (plan 381, ADR 0318). */
+	appearance: bodyAppearanceSchema.optional(),
 	orbit: z
 		.object({
 			a: z.number().positive(),

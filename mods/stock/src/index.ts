@@ -3,7 +3,7 @@
  * If stock content needs a "back door" into core, the SDK is incomplete: fix the SDK, not this package.
  */
 import { definePlugin } from '@orbital/sdk';
-import { HomeBody, MoonBody, SunBody } from './bodies.ts';
+import { STOCK_BODIES } from './bodies.ts';
 import {
 	STOCK_CREW_ANIMATIONS,
 	STOCK_CREW_EXPRESSIONS,
@@ -257,9 +257,7 @@ export const Stock = definePlugin({
 		ctx.parts.register(PartParachuteRing);
 
 		// the Sun first: hosts list bodies in registration order and the tree's root comes first
-		ctx.bodies.register(SunBody);
-		ctx.bodies.register(HomeBody);
-		ctx.bodies.register(MoonBody);
+		for (const body of STOCK_BODIES) ctx.bodies.register(body);
 
 		for (const rule of STOCK_RULES) ctx.rules.register(rule);
 		for (const preset of STOCK_PRESETS) ctx.presets.register(preset);

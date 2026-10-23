@@ -45,6 +45,22 @@ const HINTS: Record<string, { light: string; dark: string; ring?: boolean }> = {
 	'sol.neptune': { light: '#8FB0F2', dark: '#2C4699' }
 };
 
+/** `#rrggbb` times `k` (0 black, 1 itself). */
+function shade(hex: string, k: number): string {
+	const n = Number.parseInt(hex.slice(1), 16);
+	const c = (v: number): string =>
+		Math.round(v * k)
+			.toString(16)
+			.padStart(2, '0');
+	return `#${c((n >> 16) & 255)}${c((n >> 8) & 255)}${c(n & 255)}`;
+}
+
+/** `#rrggbb` as an `rgba()` with `alpha`. */
+function withAlpha(hex: string, alpha: number): string {
+	const n = Number.parseInt(hex.slice(1), 16);
+	return `rgba(${(n >> 16) & 255}, ${(n >> 8) & 255}, ${n & 255}, ${alpha})`;
+}
+
 /** A small seeded random (mulberry32) from a string. */
 export function seeded(text: string): () => number {
 	// FNV-1a, then mulberry32
@@ -70,6 +86,7 @@ export type BodyKind = 'star' | 'terran' | 'rock' | 'giant' | 'ice';
 /** What the data says a body is: a star, a world with air and hills, bare rock, or a giant. */
 export function bodyKind(body: BodyDefinition, outer = false): BodyKind {
 	if (body.star) return 'star';
+	if (body.appearance?.pattern === 'bands' && !body.terrain) return 'giant';
 	const km = body.radius / 1000;
 	if (km > 15_000 && !body.terrain) return outer ? 'ice' : 'giant';
 	if (body.atmosphere && body.atmosphere.surfacePressure > 0) return 'terran';
@@ -83,8 +100,14 @@ export function bodyTint(
 ): { light: string; dark: string; atmosphere: string | null } {
 	const hint = HINTS[body.id];
 	const air = body.atmosphere && body.atmosphere.surfacePressure > 0;
-	const atmosphere = air ? 'rgba(150, 196, 255, 0.55)' : null;
+	const look = body.appearance;
+	const atmosphere = air ? (look?.sky ? withAlpha(look.sky, 0.55) : 'rgba(150, 196, 255, 0.55)') : null;
 	if (hint) return { light: hint.light, dark: hint.dark, atmosphere };
+	// the body's own colours (plan 381, ADR 0318): the cloud deck if it has one, else the ground
+	if (look) {
+		const light = look.clouds?.color ?? look.palette[0]!;
+		return { light, dark: shade(look.palette[1] ?? light, 0.55), atmosphere };
+	}
 	const r = seeded(body.id);
 	const j = (r() - 0.5) * 24;
 	switch (bodyKind(body, outer)) {
@@ -219,7 +242,7 @@ export function systemPicture(
 			light: tint.light,
 			dark: tint.dark,
 			atmosphere: tint.atmosphere,
-			ring: HINTS[p.body.id]?.ring ? radius * 1.9 : 0,
+			ring: HINTS[p.body.id]?.ring || p.body.appearance?.rings ? radius * 1.9 : 0,
 			bands: kind === 'giant',
 			moons: p.moons.slice(0, 3).map((m, k) => {
 				const ma = -Math.PI / 4 + k * 0.9 + rnd() * 0.3;
