@@ -1,7 +1,7 @@
 ---
 id: 394
 title: "Apple tile-GPU hygiene: store and discard actions, transient attachments, one merged final pass, bloom from ¼ size, rg11b10ufloat targets"
-status: draft
+status: done
 owner: "Worker A"
 depends: [393]
 phase: 9
@@ -72,3 +72,4 @@ The frame end on Apple tile GPUs costs as little as it can: attachments that are
 ## Log
 
 - 2026-10-24 — Created by the coordinator from refs/graphics-v2 (ADR 0330).
+- 2026-10-24 — Worker A: ADR 0340. three r186.1 already does discard/transient for MSAA and the output is one node. Bloom ¼, `rg11b10ufloat` and an opaque canvas measured on the M5: no gain outside noise, `rg11b10ufloat` froze orbit. Nothing ships; the Metal capture and a quiet rerun stay [manual].
