@@ -51,6 +51,10 @@ export interface ObjectiveView {
 	time: number;
 	/** Id of the home (root) body. */
 	home: string;
+	/** The home body's first moon (system audit D3): what an objective's `moon` names. */
+	moon?: string;
+	/** Where each body's air ends, m above its surface (0 without air): `aboveAir` heights. */
+	airTops?: Readonly<Record<string, number>>;
 	vessels: readonly ObjectiveVesselView[];
 	/** The crew a contract of this instance stranded (a rescue; plan 231, ADR 0231 point 4). */
 	rescues?: readonly { member: string; vessel: number; status: string }[];
@@ -69,6 +73,51 @@ export interface ObjectiveDefinition<P = unknown> {
 	/** Re-evaluated every time and fails its tree when it fails (ADR 0175 point 2); otherwise sticky once done. */
 	constraint?: boolean;
 	evaluate(params: P, view: ObjectiveView, prior: ObjectiveResult | undefined): ObjectiveResult;
+}
+
+/**
+ * The body an objective's `body` param names (system audit D3): `home` and `moon` are the world's
+ * home body and its first moon, so one mission line works in every system; absent is home.
+ */
+export function objectiveBody(view: Pick<ObjectiveView, 'home' | 'moon'>, body?: string): string {
+	if (body === undefined || body === 'home') return view.home;
+	if (body === 'moon') return view.moon ?? body;
+	return body;
+}
+
+/** A height over `body`: `aboveAir` metres over the top of its air when given, else `metres`. */
+export function objectiveHeight(
+	view: Pick<ObjectiveView, 'airTops'>,
+	body: string,
+	metres: number | undefined,
+	aboveAir: number | undefined
+): number {
+	if (aboveAir === undefined) return metres ?? 0;
+	return (view.airTops?.[body] ?? 0) + aboveAir;
+}
+
+/** Every `body` param an objective tree names, before `home` and `moon` are resolved. */
+export function treeBodies(node: ObjectiveNode): string[] {
+	if ('objective' in node) {
+		const body = (node.params as { body?: unknown } | undefined)?.body;
+		return typeof body === 'string' ? [body] : [];
+	}
+	const children = 'all' in node ? node.all : 'any' in node ? node.any : node.sequence;
+	return children.flatMap(treeBodies);
+}
+
+/**
+ * A briefing or debriefing with the world's names in (system audit D3): `{home}`, `{moon}` and
+ * `{air}` (the home body's air top, in km). Text without them is unchanged.
+ */
+export function missionText(
+	text: string,
+	names: { home: string; moon?: string | undefined; air?: number | undefined }
+): string {
+	return text
+		.replaceAll('{home}', names.home)
+		.replaceAll('{moon}', names.moon ?? 'the moon')
+		.replaceAll('{air}', `${Math.round((names.air ?? 0) / 1000)} km`);
 }
 
 export type ObjectiveNode =

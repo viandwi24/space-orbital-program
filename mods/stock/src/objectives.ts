@@ -3,10 +3,18 @@
  * orbit, landing, altitude, spheres of influence, flybys, returning home and a date limit.
  * Each is pure over the view and its own prior result.
  */
-import { defineObjective, z, type ObjectiveVesselView, type ObjectiveView } from '@orbital/sdk';
+import {
+	defineObjective,
+	objectiveBody,
+	objectiveHeight,
+	z,
+	type ObjectiveVesselView,
+	type ObjectiveView
+} from '@orbital/sdk';
 
 const clamp01 = (x: number): number => (x < 0 ? 0 : x > 1 ? 1 : x);
-const bodyOf = (view: ObjectiveView, body: string | undefined): string => body ?? view.home;
+/** `home` and `moon` are the world's (system audit D3); absent is home. */
+const bodyOf = (view: ObjectiveView, body: string | undefined): string => objectiveBody(view, body);
 
 /** Best progress over the vessels, or done when any vessel satisfies `test`. */
 function overVessels(
@@ -28,22 +36,24 @@ export const ObjectiveReachOrbit = defineObjective({
 	params: z.object({
 		body: z.string().optional(),
 		/** Periapsis altitude at least, m. */
-		minPeriapsis: z.number().nonnegative(),
+		minPeriapsis: z.number().nonnegative().optional(),
+		/** Or this many metres over the top of the body's air (system audit D3). */
+		periapsisAboveAir: z.number().optional(),
 		/** Apoapsis altitude at most, m. */
 		maxApoapsis: z.number().positive().optional()
 	}),
 	evaluate: (p, view) => {
 		const body = bodyOf(view, p.body);
+		const min = objectiveHeight(view, body, p.minPeriapsis, p.periapsisAboveAir);
 		return overVessels(
 			view,
 			(v) =>
 				v.body === body &&
 				!v.landed &&
 				v.periapsis !== null &&
-				v.periapsis >= p.minPeriapsis &&
+				v.periapsis >= min &&
 				(p.maxApoapsis === undefined || (v.apoapsis !== null && v.apoapsis <= p.maxApoapsis)),
-			(v) =>
-				v.body === body && v.periapsis !== null ? v.periapsis / Math.max(p.minPeriapsis, 1) : 0
+			(v) => (v.body === body && v.periapsis !== null ? v.periapsis / Math.max(min, 1) : 0)
 		);
 	}
 });
@@ -58,13 +68,19 @@ export const ObjectiveLand = defineObjective({
 export const ObjectiveReachAltitude = defineObjective({
 	id: 'stock.reach-altitude',
 	label: 'Reach an altitude',
-	params: z.object({ body: z.string().optional(), min: z.number().positive() }),
+	params: z.object({
+		body: z.string().optional(),
+		min: z.number().positive().optional(),
+		/** Or this many metres over the top of the body's air (system audit D3). */
+		aboveAir: z.number().optional()
+	}),
 	evaluate: (p, view) => {
 		const body = bodyOf(view, p.body);
+		const min = Math.max(1, objectiveHeight(view, body, p.min, p.aboveAir));
 		return overVessels(
 			view,
-			(v) => v.body === body && v.altitude >= p.min,
-			(v) => (v.body === body ? v.altitude / p.min : 0)
+			(v) => v.body === body && v.altitude >= min,
+			(v) => (v.body === body ? v.altitude / min : 0)
 		);
 	}
 });
@@ -74,7 +90,7 @@ export const ObjectiveEnterSoi = defineObjective({
 	label: 'Enter the sphere of influence',
 	params: z.object({ body: z.string() }),
 	on: ['step', 'vessel:soi-changed'],
-	evaluate: (p, view) => overVessels(view, (v) => v.body === p.body)
+	evaluate: (p, view) => overVessels(view, (v) => v.body === bodyOf(view, p.body))
 });
 
 /** Entered the body's sphere, then left it (`data.entered` remembers the first half). */
@@ -84,7 +100,7 @@ export const ObjectiveFlyby = defineObjective({
 	params: z.object({ body: z.string() }),
 	on: ['step', 'vessel:soi-changed'],
 	evaluate: (p, view, prior) => {
-		const inside = view.vessels.some((v) => v.body === p.body);
+		const inside = view.vessels.some((v) => v.body === bodyOf(view, p.body));
 		const entered = prior?.data?.entered === true || inside;
 		if (entered && !inside) return { status: 'done', progress: 1, data: { entered: true } };
 		return { status: 'active', progress: entered ? 0.5 : 0, data: { entered } };

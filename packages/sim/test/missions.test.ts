@@ -1,5 +1,7 @@
 /** The stock main line (plan 100, ADR 0151): a done mission starts its next; prerequisites hold. */
 import { describe, expect, test } from 'bun:test';
+import { legacyWorldInfo } from '@orbital/core';
+import Sol from '@orbital/mod-sol';
 import Stock from '@orbital/mod-stock';
 import { createSim, type Sim } from '../src/index.ts';
 import { createAscent, defaultAscent } from './helpers/ascent.ts';
@@ -49,5 +51,35 @@ describe('stock main line', () => {
 		expect(status(sim, 'stock.orbit')).toBe('active');
 		// nothing past the line's next step started
 		expect(status(sim, 'stock.moon-flyby')).toBeUndefined();
+	});
+});
+
+describe('the main line in a Sol world (system audit D3)', () => {
+	const solSim = () =>
+		createSim({
+			plugins: [Stock, Sol],
+			backendFactory: rapier(),
+			seed: 1,
+			world: {
+				...legacyWorldInfo(1),
+				id: 'missions-sol',
+				systemId: 'sol',
+				systemVersion: '0.1.0',
+				variant: 'rescaled',
+				sites: []
+			}
+		});
+	const start = (sim: Sim, id: string) =>
+		sim.dispatch({ type: 'objective-start', source: { kind: 'mission', id } });
+
+	test('the Moon missions name the Moon; a planet mission for stock bodies is not flown', async () => {
+		const sim = await solSim();
+		expect(start(sim, 'stock.first-launch').ok).toBe(true);
+		// refused for its prerequisites only: `moon` is the Earth's Moon here
+		const moon = start(sim, 'stock.moon-landing');
+		expect(moon.ok ? '' : moon.reason).toContain('completed first');
+		const ochre = start(sim, 'stock.ochre-flyby');
+		expect(ochre.ok ? '' : ochre.reason).toBe('this world has no "stock.ochre"');
+		sim.dispose();
 	});
 });

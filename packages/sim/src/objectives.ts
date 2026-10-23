@@ -17,7 +17,10 @@ import {
 	type ObjectiveVesselView,
 	type SaveActiveObjective,
 	type SaveObjectives,
-	type Snapshot
+	type Snapshot,
+	techBodiesOf,
+	treeBodies,
+	objectiveBody
 } from '@orbital/core';
 import { length } from '@orbital/kepler';
 import { bodyOfVessel } from './bodies.ts';
@@ -146,6 +149,7 @@ export function viewFor(
 	const view: ObjectiveView = {
 		time: core.t,
 		home: core.root.def.id,
+		...worldNames(core),
 		vessels: ids.map((id) => vesselView(core, id))
 	};
 	// the crew this contract stranded (a rescue)
@@ -161,6 +165,15 @@ export function viewFor(
 		};
 	}
 	return view;
+}
+
+/** The home body's moon and every body's air top, for `moon` and `aboveAir` (system audit D3). */
+function worldNames(core: SimCore): Pick<ObjectiveView, 'moon' | 'airTops'> {
+	const defs = [...core.bodies.values()].map((b) => b.def);
+	const { moon } = techBodiesOf(defs, core.root.def.id);
+	const airTops: Record<string, number> = {};
+	for (const d of defs) airTops[d.id] = d.atmosphere?.height ?? 0;
+	return { ...(moon === undefined ? {} : { moon }), airTops };
 }
 
 /** Whether instance `ref` is a contract (not a mission). */
@@ -278,6 +291,15 @@ export function startObjective(
 	const s = core.objectives.state;
 	if (s.active.some((a) => a.source.kind === source.kind && a.source.id === source.id)) {
 		return { ok: false, reason: `${source.kind} "${source.id}" is already active` };
+	}
+	// a mission written for another system's bodies (Ochre in a Sol world) is not flown here
+	if (source.kind === 'mission' && def.objectives) {
+		const names = worldNames(core);
+		const absent = treeBodies(def.objectives)
+			.map((b) => objectiveBody({ home: core.root.def.id, ...names }, b))
+			.filter((b) => !core.bodies.has(b));
+		if (absent.length > 0)
+			return { ok: false, reason: `this world has no ${absent.map((b) => `"${b}"`).join(', ')}` };
 	}
 	const completed = new Set(s.finished.filter((f) => f.status === 'done').map((f) => f.source.id));
 	const missing = (def.prerequisites ?? []).filter((p) => !completed.has(p));

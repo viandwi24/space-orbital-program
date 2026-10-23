@@ -3,7 +3,16 @@
  * progress from the snapshot, and the missions on offer (registered, prerequisites done, not active
  * or done). Pure.
  */
-import type { MissionDefinition, Snapshot } from '@orbital/core';
+import {
+	missionText,
+	objectiveBody,
+	techBodiesOf,
+	treeBodies,
+	type BodyDefinition,
+	type MissionDefinition,
+	type Snapshot
+} from '@orbital/core';
+import { bodyLabel } from '../hud-model';
 
 type Objectives = NonNullable<Snapshot['objectives']>;
 
@@ -27,11 +36,56 @@ export interface TrackerView {
 	lastDone: { title: string; debriefing: string } | null;
 }
 
+/**
+ * The world the missions are read in (system audit D3): `{home}`, `{moon}` and `{air}` in the text
+ * become its names, and a mission naming a body it lacks is not offered (the sim refuses it too).
+ */
+export interface MissionWorld {
+	home: string;
+	moon?: string | undefined;
+	/** The home body's air top, m. */
+	air: number;
+	label: (bodyId: string) => string;
+	has: (bodyId: string) => boolean;
+}
+
+/** The mission world of the sim's catalog: its home, the home's first moon, the air top. */
+export function missionWorldOf(
+	bodies: readonly Pick<BodyDefinition, 'id' | 'parent' | 'star' | 'atmosphere'>[],
+	home: string | undefined
+): MissionWorld | null {
+	const def = bodies.find((b) => b.id === home);
+	if (!def) return null;
+	const ids = new Set(bodies.map((b) => b.id));
+	return {
+		home: def.id,
+		moon: techBodiesOf(bodies, def.id).moon,
+		air: def.atmosphere?.height ?? 0,
+		label: bodyLabel,
+		has: (id) => ids.has(id)
+	};
+}
+
 export function trackerView(
 	missions: readonly MissionDefinition[],
 	objectives: Objectives | undefined,
-	labelOf: (objectiveId: string) => string
+	labelOf: (objectiveId: string) => string,
+	world?: MissionWorld
 ): TrackerView {
+	const text = (t: string): string =>
+		world
+			? missionText(t, {
+					home: world.label(world.home),
+					moon: world.moon === undefined ? undefined : world.label(world.moon),
+					air: world.air
+				})
+			: t;
+	const flies = (m: MissionDefinition): boolean =>
+		!world ||
+		!m.objectives ||
+		treeBodies(m.objectives).every((b) =>
+			world.has(objectiveBody({ home: world.home, moon: world.moon }, b))
+		);
 	const list = objectives ?? [];
 	const byId = new Map(missions.map((m) => [m.id, m]));
 	const missionsOnly = list.filter((o) => o.source.kind === 'mission');
@@ -54,12 +108,15 @@ export function trackerView(
 	const offered = missions
 		.filter((m) => !done.has(m.id) && !running.has(m.id))
 		.filter((m) => (m.prerequisites ?? []).every((p) => done.has(p)))
-		.map((m) => ({ id: m.id, title: m.title, briefing: m.briefing ?? null }));
+		.filter(flies)
+		.map((m) => ({ id: m.id, title: m.title, briefing: m.briefing ? text(m.briefing) : null }));
 	const last = [...missionsOnly].reverse().find((o) => o.status === 'done');
 	const lastDef = last ? byId.get(last.source.id) : undefined;
 	return {
 		active,
 		offered,
-		lastDone: lastDef?.debriefing ? { title: lastDef.title, debriefing: lastDef.debriefing } : null
+		lastDone: lastDef?.debriefing
+			? { title: lastDef.title, debriefing: text(lastDef.debriefing) }
+			: null
 	};
 }

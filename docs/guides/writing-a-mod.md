@@ -240,7 +240,13 @@ ctx.contracts.register(defineContract({
 ```
 
 - Trees combine with `all`, `any` and `sequence`. A sequence counts its steps only in order, so landing first and orbiting later does not finish "orbit, then return".
-- Stock primitives: `stock.reach-orbit { body?, minPeriapsis, maxApoapsis? }`, `stock.land { body? }`, `stock.reach-altitude { body?, min }`, `stock.enter-soi { body }`, `stock.flyby { body }`, `stock.return-home`, `stock.before { time }`.
+- Stock primitives: `stock.reach-orbit { body?, minPeriapsis?, periapsisAboveAir?, maxApoapsis? }`, `stock.land { body? }`, `stock.reach-altitude { body?, min?, aboveAir? }`, `stock.enter-soi { body }`, `stock.flyby { body }`, `stock.return-home`, `stock.before { time }`.
+- **Any system (API 0.1.115):**
+  - A `body` may be `home` (the world's home body) or `moon` (its first moon), so a mission works in stock and in Sol alike.
+  - `aboveAir` and `periapsisAboveAir` are metres over the top of that body's air, instead of a fixed height.
+  - A mission's briefing and debriefing may say `{home}`, `{moon}` and `{air}` (the home body's air top in km); the game fills in the world's names.
+  - A mission that names a body the world lacks (Ochre in a Sol world) is not offered and its line stops there.
+  - Your own objectives get the same with `objectiveBody(view, body)` and `objectiveHeight(view, body, metres, aboveAir)` from the SDK.
 - Your own primitive: `ctx.objectives.register(defineObjective({ id, label, params: z.object({...}), evaluate: (params, view, prior) => ({ status, progress, data }) }))`. Keep `evaluate` pure: it reads only `view` (time, home body, vessels) and `prior` (its last result; keep memory in `data`). Name the events it should react to in `on` (default: every step).
 - The sim starts one with `objective-start` (plan 099 offers contracts, plan 100 the story line), reports it in `Snapshot.objectives`, and pays the reward into the ledger when the economy is on.
 

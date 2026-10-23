@@ -35,6 +35,8 @@ export {
 	crewPoseAt
 } from '@orbital/core';
 export { NODE_SIZES, nodeSize, nodeSizeClass, nodeSizesMatch } from '@orbital/core';
+// mission lines in every system (system audit D3): `home`/`moon` bodies, heights over the air
+export { objectiveBody, objectiveHeight } from '@orbital/core';
 export { powerBudget } from '@orbital/core';
 export { resolveSiteTemplate, siteConsequences, siteDistance } from '@orbital/core';
 export { achievementMatches, MILESTONE_KINDS, milestoneId } from '@orbital/core';

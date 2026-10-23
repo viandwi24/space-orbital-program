@@ -41,7 +41,11 @@
 		type PanelInput
 	} from '@orbital/core';
 	import MissionsPanel from '../../../lib/missions/MissionsPanel.svelte';
-	import { trackerView } from '../../../lib/missions/tracker';
+	import {
+		missionWorldOf,
+		trackerView,
+		type MissionWorld
+	} from '../../../lib/missions/tracker';
 	import Dock from '../../../lib/dock/Dock.svelte';
 	import ModPanel from '../../../lib/dock/ModPanel.svelte';
 	import PanelLibrary from '../../../lib/dock/PanelLibrary.svelte';
@@ -407,9 +411,16 @@
 	);
 	// the mission tracker (plan 100, ADR 0151 point 3)
 	let missionDefs = $state.raw<MissionDefinition[]>([]);
+	/** The world's names in the mission text, from the sim's catalog (system audit D3). */
+	let missionWorld = $state.raw<MissionWorld | null>(null);
 	let objectiveNames = $state.raw<Record<string, string>>({});
 	const tracker = $derived(
-		trackerView(missionDefs, panelInput?.snapshot.objectives, (id) => objectiveNames[id] ?? id)
+		trackerView(
+			missionDefs,
+			panelInput?.snapshot.objectives,
+			(id) => objectiveNames[id] ?? id,
+			missionWorld ?? undefined
+		)
 	);
 	const HOST: { id: string; title: string; icon: string; order: number }[] = [
 		{ id: 'host.vessel', title: 'Overview', icon: 'pod', order: 10 },
@@ -962,6 +973,7 @@
 		// the HUD's bodies and calendar are the world's own system's (plan 124, ADR 0184)
 		const ready = await client.ready.catch(() => null);
 		if (ready) warpSteps = warpStepsFor(ready.systemId);
+		if (ready) missionWorld = missionWorldOf(ready.bodies, ready.home);
 		const info =
 			resume?.sim.worldInfo ??
 			worldSession.base?.sim.worldInfo ??

@@ -163,3 +163,57 @@ describe('stock objectives', () => {
 		expect(ObjectiveBefore.constraint).toBe(true);
 	});
 });
+
+describe('a mission line in any system (system audit D3)', () => {
+	const sol = (vessels: ObjectiveVesselView[]): ObjectiveView => ({
+		time: 0,
+		home: 'sol.earth',
+		moon: 'sol.moon',
+		airTops: { 'sol.earth': 100_000, 'sol.moon': 0 },
+		vessels
+	});
+
+	test("`home` and `moon` are the world's home body and its first moon", () => {
+		const out = run(ObjectiveFlyby, { body: 'moon' }, sol([vessel({ body: 'sol.moon' })]));
+		expect(out.progress).toBe(0.5);
+		const landed = vessel({ body: 'sol.moon', landed: true, altitude: 0 });
+		expect(run(ObjectiveLand, { body: 'moon' }, sol([landed])).status).toBe('done');
+	});
+
+	test('`aboveAir` heights follow the body: 70 km is not space on an Earth with 100 km of air', () => {
+		const at = (altitude: number) => sol([vessel({ body: 'sol.earth', altitude })]);
+		expect(run(ObjectiveReachAltitude, { body: 'home', aboveAir: 0 }, at(80_000)).status).toBe(
+			'active'
+		);
+		expect(run(ObjectiveReachAltitude, { body: 'home', aboveAir: 0 }, at(101_000)).status).toBe(
+			'done'
+		);
+		const orbit = (periapsis: number) =>
+			sol([vessel({ body: 'sol.earth', periapsis, apoapsis: periapsis + 50_000 })]);
+		const p = { body: 'home', periapsisAboveAir: 0 };
+		expect(run(ObjectiveReachOrbit, p, orbit(85_000)).status).toBe('active');
+		expect(run(ObjectiveReachOrbit, p, orbit(105_000)).status).toBe('done');
+	});
+
+	test('in stock the line is unchanged: space and orbit at 70 km over Home', () => {
+		const stock = (v: ObjectiveVesselView): ObjectiveView => ({
+			...view([v]),
+			moon: 'stock.cinder',
+			airTops: { 'stock.home': 70_000 }
+		});
+		expect(
+			run(
+				ObjectiveReachAltitude,
+				{ body: 'home', aboveAir: 0 },
+				stock(vessel({ altitude: 70_000 }))
+			).status
+		).toBe('done');
+		expect(
+			run(
+				ObjectiveReachOrbit,
+				{ body: 'home', periapsisAboveAir: 0 },
+				stock(vessel({ periapsis: 69_000 }))
+			).status
+		).toBe('active');
+	});
+});

@@ -1,10 +1,11 @@
 /** The mission tracker (plan 100, ADR 0151 point 3). */
 import { loadPlugins, type Snapshot } from '@orbital/core';
+import Sol from '@orbital/mod-sol';
 import Stock from '@orbital/mod-stock';
 import { render } from 'svelte/server';
 import { describe, expect, it } from 'vitest';
 import MissionsPanel from './MissionsPanel.svelte';
-import { trackerView } from './tracker';
+import { missionWorldOf, trackerView } from './tracker';
 
 const { registries } = loadPlugins([Stock]);
 const missions = registries.missions.list();
@@ -56,5 +57,48 @@ describe('mission tracker', () => {
 		expect(html).toContain('50%');
 		expect(html).toContain('25%');
 		expect(html).toContain('mission-start-stock.space');
+	});
+});
+
+describe('the main line in the world it is read in (system audit D3)', () => {
+	const done = (ids: string[]): Objectives =>
+		ids.map((id, i) => ({
+			id: `o${i}`,
+			source: { kind: 'mission', id },
+			status: 'done',
+			progress: 1,
+			leaves: []
+		})) as unknown as Objectives;
+
+	it('a Sol world names the Earth, the Moon and its air; the line ends after the Moon', () => {
+		const sol = loadPlugins([Stock, Sol], { system: { id: 'sol', variant: 'rescaled' } }).registries;
+		const world = missionWorldOf(sol.bodies.list(), 'sol.earth')!;
+		expect(world.moon).toBe('sol.moon');
+		const space = trackerView(missions, done(['stock.first-launch']), label, world);
+		expect(space.offered[0]!.briefing).toBe(
+			`Climb above the atmosphere: ${Math.round(world.air / 1000)} km over Earth.`
+		);
+		const flyby = trackerView(missions, done(['stock.first-launch', 'stock.space', 'stock.orbit']), label, world);
+		expect(flyby.offered[0]!.briefing).toContain("Moon's sphere of influence");
+		const after = trackerView(
+			missions,
+			done(['stock.first-launch', 'stock.space', 'stock.orbit', 'stock.moon-flyby', 'stock.moon-landing', 'stock.moon-return']),
+			label,
+			world
+		);
+		expect(after.offered).toEqual([]);
+	});
+
+	it('a stock world reads as before: 70 km over Home, then Cinder', () => {
+		const world = missionWorldOf(registries.bodies.list(), 'stock.home')!;
+		const space = trackerView(missions, done(['stock.first-launch']), label, world);
+		expect(space.offered[0]!.briefing).toBe('Climb above the atmosphere: 70 km over Home.');
+		const after = trackerView(
+			missions,
+			done(['stock.first-launch', 'stock.space', 'stock.orbit', 'stock.moon-flyby', 'stock.moon-landing', 'stock.moon-return']),
+			label,
+			world
+		);
+		expect(after.offered.map((m) => m.id)).toEqual(['stock.ochre-flyby']);
 	});
 });
