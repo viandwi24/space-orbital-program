@@ -1362,7 +1362,24 @@ vec3 shadeRay(vec3 ro, vec3 rd, float r0, float d, float h, bool hitG, bool hitT
 			float sigma2 = (0.012 * footprint) * (0.012 * footprint);
 			float gloss = 900.0 / (1.0 + 900.0 * sigma2);
 			float glint = pow(nh, gloss) * gloss / (8.0 * kPI) * ndl * sh;
-			vec3 refl = uSkyColour * fres * 1.2;
+			// the sky in the reflected direction (plan 401), six samples of the air, not one mean colour
+			vec3 nW = sf.normal * uBodyInv;
+			vec3 rW = reflect(rd, nW);
+			vec3 refl = skyReflection(posRel, rW, uSunDir) * fres * 1.2;
+#if CLOUD_SHADOW_MAP
+			// a cheap cloud term: the 2D cloud map where the reflected ray meets the cloud layer
+			{
+				vec3 rBF = reflect(rdBF, sf.normal);
+				float muC = dot(nBF, rBF);
+				if (muC > 0.02) {
+					float tc = raySphere(R, muC, uCloudAlt).y;
+					vec3 qc = nBF * R + rBF * tc;
+					float cover = cloudMapAt(rotY(normalize(qc), uCloudAngle)).g;
+					vec3 cloudCol = (uAmbient * k + uSunIrr * sunT * max(geo, 0.0)) / kPI * 0.7;
+					refl = mix(refl, cloudCol * fres * 1.2, cover * 0.55 * smoothstep(0.02, 0.2, muC));
+				}
+			}
+#endif
 			lit = mix(lit, refl, fres * 0.9) + uSunIrr * sunT * glint * fres * 0.5 * sf.spec;
 		}
 		base = lit;

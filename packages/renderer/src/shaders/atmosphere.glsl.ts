@@ -176,5 +176,37 @@ Scatter marchAtmosphere(vec3 ro, vec3 rd, float t0, float t1, vec3 l, float jitt
 	}
 	return o;
 }
+
+// The sky in a direction d from the point p (planet-centred), in six samples to the top of the air:
+// the sea's reflection on WebGL2 (plan 401), the GLSL twin of the sky-view lookup on WebGPU.
+vec3 skyReflection(vec3 p, vec3 d, vec3 l) {
+	float rt = uR + uAtmH;
+	float b = dot(p, d);
+	float disc = b * b - (dot(p, p) - rt * rt);
+	if (disc <= 0.0) return vec3(0.0);
+	float len = -b + sqrt(disc);
+	float cosv = dot(d, l);
+	float pr = rayleighPhase(cosv);
+	float pm = miePhase(cosv, uMieG);
+	vec3 od = vec3(0.0);
+	vec3 insR = vec3(0.0);
+	vec3 insM = vec3(0.0);
+	for (int i = 0; i < 6; i++) {
+		float u = (float(i) + 0.5) / 6.0;
+		float s = len * u * u;
+		float ds = len * 2.0 * u / 6.0;
+		vec3 q = p + d * s;
+		float h = max(length(q) - uR, 0.0);
+		float dR = exp(-h / uHR) * ds;
+		float dM = exp(-h / uHM) * ds;
+		od += vec3(dR, dM, ozoneDensity(h) * ds);
+		vec3 sd = sunDepth(q, l);
+		if (sd.x < 0.0) continue;
+		vec3 att = extinction(od + sd);
+		insR += att * uBetaR * dR * pr;
+		insM += att * (uBetaM / 1.1 * dM * pm);
+	}
+	return (insR * uSkyBoost + insM * uMieBoost) * uSunIrr;
+}
 ${hashNoiseGLSL}
 `;

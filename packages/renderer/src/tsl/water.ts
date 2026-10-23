@@ -10,7 +10,7 @@ import { DETAIL_LAYERS, WAVES, WAVE_GRAVITY, waveNumber, waveOmega } from '../wa
 /* TSL nodes are untyped proxies; three's TSL typings lag its runtime */
 type N = any;
 const T = TSL as any;
-const { cos, dot, float, max, min, mix, sin, smoothstep, sqrt, vec3 } = T;
+const { cos, dot, float, max, min, mix, sin, smoothstep, sqrt, vec2, vec3 } = T;
 
 const SHORE_W = shoreOmega();
 const SHORE_GS = WAVE_GRAVITY * BEACH_SLOPE;
@@ -32,6 +32,8 @@ export const waveGradient = (
 		noiseA: (p: N, lam: number, salt: number) => N;
 		/** Add the scrolled detail normals (plan 401, Medium and up). */
 		detail?: boolean;
+		/** The FFT texture (height, slope x, slope z, foam) tiling every `tile` metres (plan 401, High). */
+		fft?: { node: N; tile: number };
 	}
 ): { gradient: N; crest: N } => {
 	const seed = ctx.noiseA(p, 256, 91);
@@ -56,6 +58,15 @@ export const waveGradient = (
 		g = g.add(D.mul(a.mul(k).mul(cos(ph))));
 		crest = crest.add(a.mul(sin(ph)));
 	});
+	if (ctx.fft) {
+		// the FFT sea: its slopes in the tangent plane, faded as a pixel grows past the waves they hold
+		// (read at level 0: the sea branch is not uniform control flow)
+		const uvf = vec2(dot(ctx.east, p), dot(ctx.north, p)).div(ctx.fft.tile);
+		const f = ctx.fft.node.sample(uvf).level(0);
+		const fade = smoothstep(6.0, 30.0, footprint).oneMinus();
+		g = g.add(ctx.east.mul(f.y).add(ctx.north.mul(f.z)).mul(fade));
+		crest = crest.add(f.x.mul(fade));
+	}
 	if (ctx.detail) {
 		// Two scrolled layers of fine ripples (plan 401) break the regular sine pattern close up: each is
 		// the slope of a value noise drifting in its own direction, faded by the footprint like a wave

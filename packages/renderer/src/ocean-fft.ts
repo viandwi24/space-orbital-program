@@ -180,3 +180,31 @@ export function ifft2d(f: ComplexField, n: number): ComplexField {
 export function oceanHeights(h0: ComplexField, p: OceanParams, t: number): Float64Array {
 	return ifft2d(evolve(h0, p, t), p.n).re;
 }
+
+/** The RMS slope (rise over run) a spectrum gives: sqrt(sum |k|² |h0|² · 2)/... as the field's variance of the gradient. */
+export function rmsSlope(h0: ComplexField, p: OceanParams): number {
+	let sum = 0;
+	for (let y = 0; y < p.n; y++) {
+		for (let x = 0; x < p.n; x++) {
+			const kx = waveVector(x, p.n, p.size);
+			const ky = waveVector(y, p.n, p.size);
+			const i = y * p.n + x;
+			// both h0(k) and conj h0(-k) contribute to the real field: 2 |h0|²
+			sum += (kx * kx + ky * ky) * 2 * (h0.re[i]! ** 2 + h0.im[i]! ** 2);
+		}
+	}
+	return Math.sqrt(sum);
+}
+
+/** The spectrum scaled so the sea's RMS slope is `target` (the look's choppiness), in place. */
+export function normalizeSlope(h0: ComplexField, p: OceanParams, target: number): ComplexField {
+	const have = rmsSlope(h0, p);
+	if (have > 0) {
+		const k = target / have;
+		for (let i = 0; i < h0.re.length; i++) {
+			h0.re[i] = h0.re[i]! * k;
+			h0.im[i] = h0.im[i]! * k;
+		}
+	}
+	return h0;
+}

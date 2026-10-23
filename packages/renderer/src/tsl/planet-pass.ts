@@ -85,6 +85,7 @@ import {
 	hgPhase,
 	rotY
 } from './clouds.ts';
+import { OCEAN_FFT, createOceanFft, type OceanFft } from './ocean-fft.ts';
 import { riverField, rippleAt, surfFoam, swashOffset, waveGradient } from './water.ts';
 import {
 	CLOUD_EXTRA_PATH,
@@ -364,6 +365,9 @@ export class PlanetPassTSL {
 	private readonly sun = new Vector3();
 	/** The sea's level the shader was last built for (a pinned look changes it without the preset changing). */
 	private oceanLevel: LookLevel;
+	/** The sea's FFT (High on the TSL pass), made when the shader that reads it is built. */
+	private oceanFft: OceanFft | null = null;
+	private oceanFrame = 0;
 
 	constructor(
 		private readonly planet: PlanetPass,
@@ -527,6 +531,13 @@ export class PlanetPassTSL {
 		this.up.copy(u.uCamUp!.value as Vector3);
 		this.sun.copy(u.uSunDir!.value as Vector3);
 		this.sky.update(renderer, R + Math.max(u.uAlt!.value as number, 0), this.up, this.sun);
+		// the sea's FFT every second frame (it moves slowly), at High only
+		if (
+			this.oceanFft &&
+			lookLevel(this.settings, 'ocean') === 'high' &&
+			(this.oceanFrame++ & 1) === 0
+		)
+			this.oceanFft.update(renderer, performance.now() / 1000);
 		const prev = renderer.getRenderTarget();
 		// the march prepass: where each block of the pass's pixels may first meet the ground (plan 039)
 		const terrainOn = this.settings.terrainSteps > 0 && (u.uTerrainOn!.value as number) > 0.5;
@@ -732,6 +743,10 @@ export class PlanetPassTSL {
 			const sky = this.sky;
 			const octaves = this.settings.groundOctaves;
 			const cfg = this.settings;
+			// the FFT texture the sea reads at High (plan 401); the shader's other levels do not bind it
+			if (lookLevel(cfg, 'ocean') === 'high') this.oceanFft ??= createOceanFft();
+			const fftNode =
+				lookLevel(cfg, 'ocean') === 'high' && this.oceanFft ? texture(this.oceanFft.texture) : null;
 			const cloudMap = this.cloudMap;
 			const zonesOf = (n: N): N => this.terrain?.zones(n) ?? vec3(1.0, 1e9, 1.0);
 			const steps = Math.max(1, this.settings.terrainSteps);
@@ -1459,7 +1474,8 @@ export class PlanetPassTSL {
 						time: uTime,
 						anchors,
 						noiseA: nA,
-						detail: lookLevel(cfg, 'ocean') !== 'low'
+						detail: lookLevel(cfg, 'ocean') !== 'low',
+						fft: fftNode ? { node: fftNode, tile: OCEAN_FFT.size } : undefined
 					});
 					const calm = lakeOnly.mul(-0.8).add(1.0); // a lake has no swell
 					gWave.assign(wv.gradient.mul(calm));
@@ -2320,7 +2336,29 @@ export class PlanetPassTSL {
 						const nW = transpose(uBodyInv).mul(normal);
 						const rW = normalize(rd.sub(nW.mul(dot(rd, nW).mul(2.0))));
 						const skyRefl = sky.inscatter(ro, rW).mul(SKY_GAIN);
-						const refl = skyRefl.mul(fres).mul(1.2);
+						const refl = skyRefl.mul(fres).mul(1.2).toVar();
+						if (cfg.cloudShadowMap && cloudMap) {
+							// a cheap cloud term: the 2D cloud map where the reflected ray meets the cloud layer
+							const rBF = rdBF.sub(normal.mul(dot(rdBF, normal).mul(2.0)));
+							const muC = dot(nBF, rBF);
+							If(muC.greaterThan(0.02), () => {
+								const tc = raySphere(R, muC, uCloudAlt).y;
+								const qc = nBF.mul(R).add(rBF.mul(tc));
+								const cover = cloudMap.at(rotY(normalize(qc), uCloudAngle)).y;
+								const cloudCol = uAmbient
+									.mul(k)
+									.add(uSunIrr.mul(sunT).mul(max(geo, 0.0)))
+									.div(PI)
+									.mul(0.7);
+								refl.assign(
+									mix(
+										refl,
+										cloudCol.mul(fres).mul(1.2),
+										cover.mul(0.55).mul(smoothstep(0.02, 0.2, muC))
+									)
+								);
+							});
+						}
 						lit.assign(
 							mix(lit, refl, fres.mul(0.9)).add(
 								uSunIrr.mul(sunT).mul(glint).mul(fres).mul(0.5).mul(sf.spec)
