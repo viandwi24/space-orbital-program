@@ -23,7 +23,16 @@
 	 * from the Space Center and the page. It lives in the world layout, so a visit to a building's
 	 * page keeps the tour going.
 	 */
-	let { place, warp }: { place: string; warp: number } = $props();
+	let {
+		place,
+		warp,
+		onfirstflight
+	}: {
+		place: string;
+		warp: number;
+		/** The hand-off's "fly here" (ADR 0328): the guide from its start, the first mission, the Hangar. */
+		onfirstflight?: () => void;
+	} = $props();
 
 	const progress = $derived(tourStore.progress);
 	const observation = $derived.by((): ScTourObservation | null => {
@@ -84,6 +93,7 @@
 			for (const sel of [
 				'[data-testid="build-menu"]',
 				'[data-testid="sc-buildings-list"]',
+				'[data-testid="backup-prompt"]',
 				'.bottom'
 			]) {
 				const o = rect(sel);
@@ -124,7 +134,7 @@
 				<p class="hint">You did this already: press Next to go on.</p>
 			{/if}
 			{#snippet foot()}
-				{#if progress.step > 0}
+				{#if progress.step > 0 && step.id !== 'finish'}
 					<Button
 						variant="ghost"
 						onclick={() => tourStore.set(backTour(progress))}
@@ -134,12 +144,21 @@
 				{#if step.id === 'finish'}
 					<Button variant="ghost" onclick={finish} data-testid="sc-tour-done">Done</Button>
 					<Button
-						variant="primary"
+						variant="ghost"
 						onclick={() => {
 							finish();
 							void goto(resolve('/lessons') + '?lesson=hangar');
 						}}
-						data-testid="sc-tour-rocket">Build your first rocket</Button
+						data-testid="sc-tour-rocket">A lesson</Button
+					>
+					<Button
+						variant="primary"
+						onclick={() => {
+							finish();
+							if (onfirstflight) onfirstflight();
+							else void goto(resolve('/(world)/vab'));
+						}}
+						data-testid="sc-tour-fly">Fly here</Button
 					>
 				{:else}
 					<Button

@@ -120,3 +120,16 @@ export function trackerView(
 			: null
 	};
 }
+
+/**
+ * The mission the onboarding hand-off starts (player-journey audit Q8, ADR 0328): the first on offer,
+ * only in a world that has never started a mission; null otherwise.
+ */
+export function firstMission(
+	missions: readonly MissionDefinition[],
+	objectives: Objectives | undefined,
+	world?: MissionWorld
+): string | null {
+	if ((objectives ?? []).some((o) => o.source.kind === 'mission')) return null;
+	return trackerView(missions, objectives, (id) => id, world).offered[0]?.id ?? null;
+}

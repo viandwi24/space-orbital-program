@@ -192,9 +192,10 @@ export const SC_TOUR_STEPS: readonly ScTourStep[] = [
 	{
 		id: 'finish',
 		title: 'That’s the Space Center',
+		// the one hand-off (player-journey audit Q8, ADR 0328): the first flight here, or a lesson
 		text: () =>
-			'You can build, visit, upgrade and demolish. Next, build your first rocket in the Hangar: the Lessons have a step-by-step one.',
-		point: () => 'nav-vab'
+			'You can build, visit, upgrade and demolish. Next, your first flight. Fly here: the guide shows each step and your first mission starts. Or take a Lesson first, in a practice world of its own.',
+		point: () => 'sc-tour-fly'
 	}
 ];
 

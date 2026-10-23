@@ -5,7 +5,7 @@ import Stock from '@orbital/mod-stock';
 import { render } from 'svelte/server';
 import { describe, expect, it } from 'vitest';
 import MissionsPanel from './MissionsPanel.svelte';
-import { missionWorldOf, trackerView } from './tracker';
+import { firstMission, missionWorldOf, trackerView } from './tracker';
 
 const { registries } = loadPlugins([Stock]);
 const missions = registries.missions.list();
@@ -18,6 +18,27 @@ describe('mission tracker', () => {
 		expect(v.active).toEqual([]);
 		expect(v.offered.map((m) => m.id)).toEqual(['stock.first-launch']);
 		expect(v.offered[0]!.briefing).toContain('one kilometre');
+	});
+
+	it('the onboarding hand-off starts the first mission once, in a world that never started one (ADR 0328)', () => {
+		expect(firstMission(missions, undefined)).toBe('stock.first-launch');
+		expect(firstMission(missions, [])).toBe('stock.first-launch');
+		const started: Objectives = [
+			{
+				id: 'o1',
+				source: { kind: 'mission', id: 'stock.first-launch' },
+				status: 'active',
+				progress: 0,
+				leaves: []
+			}
+		];
+		expect(firstMission(missions, started)).toBeNull();
+		// a contract does not count as the mission line
+		expect(
+			firstMission(missions, [
+				{ ...started[0]!, source: { kind: 'contract', id: 'x' }, status: 'done', progress: 1 }
+			])
+		).toBe('stock.first-launch');
 	});
 
 	it("shows each objective's progress from the snapshot, and the debriefing of the last done", () => {

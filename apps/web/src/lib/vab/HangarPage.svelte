@@ -131,8 +131,12 @@
 	// a lesson world teaches its own lesson, not the first flight (plan 229)
 	// svelte-ignore state_referenced_locally
 	const inLesson = !sandbox && runningLesson() !== null;
+	// one guide card at a time (player-journey audit Q8, ADR 0328): during the Space Center tour's
+	// visit the tour's card shows, and the first-flight guide waits for it to end
 	const tutorialStep = $derived(
-		inLesson || sandbox ? null : currentStep(settings.tutorial, 'vab')
+		inLesson || sandbox || tourStore.progress?.status === 'active'
+			? null
+			: currentStep(settings.tutorial, 'vab')
 	);
 
 	// A lesson in the Hangar (plan 344, ADR 0293 point 3) reads the design, the checks and the Library.

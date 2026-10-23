@@ -79,6 +79,8 @@
 	import SpaceCenterTour from '../../lib/hud/SpaceCenterTour.svelte';
 	import { START_TOUR } from '../../lib/onboarding/sc-tour';
 	import { tourStore } from '../../lib/onboarding/sc-tour-store.svelte';
+	import { PENDING } from '../../lib/onboarding/tutorial';
+	import { firstMission } from '../../lib/missions/tracker';
 	import type { LayoutProps } from './$types';
 
 	let { children }: LayoutProps = $props();
@@ -148,6 +150,27 @@
 	let lock: WorldLock | null = null;
 	let snapshot = $state.raw<Snapshot | null>(null);
 	let warp = $state(1);
+
+	/**
+	 * The tour's hand-off, "fly here with the guide" (player-journey audit Q8, ADR 0328): the
+	 * first-flight guide from its start if it was finished or skipped, the main mission line's first
+	 * mission started (once per world), then the Hangar.
+	 */
+	async function firstFlight(): Promise<void> {
+		if (settings.tutorial.status === 'done' || settings.tutorial.status === 'skipped')
+			settings.setTutorial(PENDING);
+		const info = worldSession.base?.sim.worldInfo;
+		const { missions } = loadContent(
+			info ? { id: info.systemId, variant: info.variant } : undefined
+		);
+		const id = firstMission(missions, snapshot?.objectives);
+		if (id)
+			await worldSession.client?.dispatch({
+				type: 'objective-start',
+				source: { kind: 'mission', id }
+			});
+		void goto(resolve('/(world)/vab'));
+	}
 	/** The warp levels of the world's system (a Sol world adds 100k×). */
 	let warpSteps = $state<readonly number[]>(WARP_STEPS);
 	let catalog = $state.raw<Catalog | null>(null);
@@ -709,6 +732,7 @@
 				.filter((p) => p !== '')
 				.at(-1) ?? ''}
 			{warp}
+			onfirstflight={() => void firstFlight()}
 		/>
 	{/if}
 	{#if local(page.url.pathname) !== '/flight' && runningLesson()}

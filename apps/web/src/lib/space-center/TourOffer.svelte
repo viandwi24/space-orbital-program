@@ -1,11 +1,21 @@
 <script lang="ts">
 	import Button from '../ui/Button.svelte';
+	import type { ModeWelcome } from '../onboarding/welcome';
 
 	/**
-	 * The welcome on a world's first Space Center visit (plan 377, ADR 0314 point 1): take the short
-	 * tour, or skip it; "Don't ask again" covers every world on this browser.
+	 * The welcome on a world's first Space Center visit (plan 377, ADR 0314 point 1): what the mode
+	 * means (ADR 0328), then take the short tour, or skip it; "Don't ask again" covers every world on
+	 * this browser.
 	 */
-	let { onstart, onskip }: { onstart: () => void; onskip: (never: boolean) => void } = $props();
+	let {
+		welcome,
+		onstart,
+		onskip
+	}: {
+		welcome?: ModeWelcome | undefined;
+		onstart: () => void;
+		onskip: (never: boolean) => void;
+	} = $props();
 	let never = $state(false);
 	let el = $state<HTMLDialogElement>();
 	$effect(() => {
@@ -23,8 +33,14 @@
 		onskip(never);
 	}}
 >
-	<p class="eyebrow">New world</p>
+	<p class="eyebrow">New world{welcome ? ` · ${welcome.mode}` : ''}</p>
 	<h2 id="tour-title">Welcome to your Space Center</h2>
+	{#if welcome}
+		<p data-testid="sc-welcome-mode">
+			{#if welcome.summary}<strong>{welcome.summary}</strong>{/if}
+			{welcome.first}
+		</p>
+	{/if}
 	<p>
 		Take a short tour? You will move the camera, build a tracking dish, visit a building, upgrade
 		and demolish: a few minutes, and it costs you nothing.

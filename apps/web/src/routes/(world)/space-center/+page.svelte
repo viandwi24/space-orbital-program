@@ -59,6 +59,7 @@
 	import { startSpaceCenter, type SpaceCenter } from '../../../lib/space-center/space-center-loop';
 	import { activeWorldId } from '../../../lib/worlds/worlds';
 	import TourOffer from '../../../lib/space-center/TourOffer.svelte';
+	import { modeWelcome } from '../../../lib/onboarding/welcome';
 	import { placesTourBuilding, START_TOUR } from '../../../lib/onboarding/sc-tour';
 	import { scFeed, tourStore } from '../../../lib/onboarding/sc-tour-store.svelte';
 	import { activeLesson } from '../../../lib/onboarding/lesson-world';
@@ -563,6 +564,7 @@
 	/>
 	{#if offerTour}
 		<TourOffer
+			welcome={world ? modeWelcome(world, registries) : undefined}
 			onstart={() => {
 				offerTour = false;
 				tourStore.set(START_TOUR);
