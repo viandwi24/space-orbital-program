@@ -24,4 +24,8 @@
 
 ## Verification output
 
-pending
+```
+bun run lint ✓ · bun run check:affected: prettier, docs:check, typecheck (15 workspaces and web) ✓; bun test 2362 pass, 0 fail (14 workspaces); web vitest (related) ✓
+check-affected: all passed in 710.8 s
+CI: not waited for (merge-first rule); it runs on main after the merge
+```
