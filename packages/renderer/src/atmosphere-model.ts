@@ -336,3 +336,46 @@ export const terrainVeil = (distance: number): number => {
 /** 0 on the ground, 1 above the atmosphere. */
 export const spaceFraction = (atm: Atmosphere, altitude: number): number =>
 	clamp(altitude / atm.height, 0, 1);
+
+/**
+ * A body's air with a mod's coefficients on it (plan 405, ADR 0362): the Rayleigh and Mie scalings,
+ * the Mie asymmetry, the layers' scale heights and the ozone and boost scalings. Absent fields and
+ * a body with no coefficients give the air as it was.
+ */
+export function applyAir(
+	air: Atmosphere,
+	k:
+		| {
+				rayleigh?: readonly [number, number, number] | undefined;
+				mie?: number | undefined;
+				mieG?: number | undefined;
+				rayleighHeight?: number | undefined;
+				mieHeight?: number | undefined;
+				ozone?: number | undefined;
+				skyBoost?: number | undefined;
+				mieBoost?: number | undefined;
+		  }
+		| undefined
+): Atmosphere {
+	if (!k) return air;
+	const r = k.rayleigh ?? [1, 1, 1];
+	return {
+		...air,
+		betaRayleigh: [
+			air.betaRayleigh[0] * r[0],
+			air.betaRayleigh[1] * r[1],
+			air.betaRayleigh[2] * r[2]
+		],
+		betaMie: air.betaMie * (k.mie ?? 1),
+		mieG: k.mieG ?? air.mieG,
+		rayleighHeight: air.rayleighHeight * (k.rayleighHeight ?? 1),
+		mieHeight: air.mieHeight * (k.mieHeight ?? 1),
+		betaOzone: [
+			air.betaOzone[0] * (k.ozone ?? 1),
+			air.betaOzone[1] * (k.ozone ?? 1),
+			air.betaOzone[2] * (k.ozone ?? 1)
+		],
+		skyBoost: air.skyBoost * (k.skyBoost ?? 1),
+		mieBoost: air.mieBoost * (k.mieBoost ?? 1)
+	};
+}

@@ -107,14 +107,14 @@ const mix = (a: RGB, b: RGB, t: number): RGB => [
 ];
 
 /** The direction of a texel's centre: longitude 0 on +X, east toward -Z (core's map convention). */
-function texelDir(i: number, j: number, w: number, h: number): RGB {
+export function texelDir(i: number, j: number, w: number, h: number): RGB {
 	const lon = ((i + 0.5) / w - 0.5) * 2 * Math.PI;
 	const lat = ((j + 0.5) / h - 0.5) * Math.PI;
 	return [Math.cos(lat) * Math.cos(lon), Math.sin(lat), -Math.cos(lat) * Math.sin(lon)];
 }
 
 /** The colour of one direction in a pattern, sRGB bytes as floats. */
-function patternColour(look: BodyAppearance, d: RGB, seed: number): RGB {
+export function patternColour(look: BodyAppearance, d: RGB, seed: number): RGB {
 	const p = look.palette.map(hexBytes) as RGB[];
 	const c0 = p[0]!;
 	const c1 = p[1] ?? c0;

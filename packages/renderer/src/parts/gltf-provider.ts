@@ -96,8 +96,8 @@ export async function createKtx2Loader(transcoderPath: string): Promise<KTX2Load
 /** The asset key of a part's lower-detail model `lod` (1 to 3) in `GltfProviderOptions.assets`. */
 export const lodAssetKey = (definition: string, lod: number): string => `${definition}#lod${lod}`;
 
-/** True when a binary glTF or a glTF JSON text names `KHR_texture_basisu`. */
-export function usesBasisu(data: ArrayBuffer | string): boolean {
+/** The JSON of a binary glTF, or a glTF text as it is. */
+function jsonOf(data: ArrayBuffer | string): string {
 	let json = typeof data === 'string' ? data : '';
 	if (typeof data !== 'string' && data.byteLength >= 20) {
 		const view = new DataView(data);
@@ -106,8 +106,16 @@ export function usesBasisu(data: ArrayBuffer | string): boolean {
 			new Uint8Array(data, 20, Math.min(length, data.byteLength - 20))
 		);
 	}
-	return json.includes('KHR_texture_basisu');
+	return json;
 }
+
+/** True when a binary glTF or a glTF JSON text names `KHR_texture_basisu`. */
+export const usesBasisu = (data: ArrayBuffer | string): boolean =>
+	jsonOf(data).includes('KHR_texture_basisu');
+
+/** True when it names `EXT_meshopt_compression` (plan 405, ADR 0362). */
+export const usesMeshopt = (data: ArrayBuffer | string): boolean =>
+	jsonOf(data).includes('EXT_meshopt_compression');
 
 interface LoadedModel {
 	scene: Object3D;
@@ -350,6 +358,7 @@ export class GltfPartProvider implements PartModelProvider {
 	/** Definitions whose palette slots are applied to their cached scene. */
 	private readonly painted = new Set<string>();
 	private ktx2Attached = false;
+	private meshoptAttached = false;
 	/** Definitions whose asset failed, with the reason (kept for diagnostics). */
 	readonly failures = new Map<string, string>();
 	/** Fit warnings per definition (`assetFit`), filled when the first model of a part is made. */
@@ -408,6 +417,12 @@ export class GltfPartProvider implements PartModelProvider {
 					throw new Error('the model uses KTX2 textures and no transcoder is set up');
 				this.loader.setKTX2Loader(await this.options.ktx2());
 				this.ktx2Attached = true;
+			}
+			// Meshopt (plan 405): three's small decoder (a WASM inside a module), imported only for a model that needs it
+			if (usesMeshopt(data) && !this.meshoptAttached) {
+				const { MeshoptDecoder } = await import('three/addons/libs/meshopt_decoder.module.js');
+				this.loader.setMeshoptDecoder(MeshoptDecoder);
+				this.meshoptAttached = true;
 			}
 			const gltf = await new Promise<{ scene: Object3D; animations: AnimationClip[] }>(
 				(resolve, reject) => {

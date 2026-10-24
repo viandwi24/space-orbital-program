@@ -48,4 +48,39 @@ export function verdantMap(): Uint8Array {
 	return encodePng(MAP_WIDTH, MAP_HEIGHT, rgba);
 }
 
-export default (): Record<string, Uint8Array> => ({ 'maps/verdant.png': verdantMap() });
+/**
+ * A tangent-space normal map (OpenGL: green up) of the same relief, from the elevation's slope, so
+ * the far planet is lit with its mountains (plan 406, ADR 0363). 512 x 256 like the map.
+ */
+export function verdantNormals(): Uint8Array {
+	const rgba = new Uint8Array(MAP_WIDTH * MAP_HEIGHT * 4);
+	const strength = 24;
+	for (let y = 0; y < MAP_HEIGHT; y++) {
+		for (let x = 0; x < MAP_WIDTH; x++) {
+			const e = (a: number, b: number) =>
+				Math.max(
+					0.46,
+					elevation((a + MAP_WIDTH) % MAP_WIDTH, Math.min(MAP_HEIGHT - 1, Math.max(0, b)))
+				);
+			const dx = (e(x + 1, y) - e(x - 1, y)) * strength;
+			// image rows run top (north) down, and green is up
+			const dy = (e(x, y + 1) - e(x, y - 1)) * strength;
+			const len = Math.hypot(dx, dy, 1);
+			rgba.set(
+				[
+					Math.round(((-dx / len) * 0.5 + 0.5) * 255),
+					Math.round(((dy / len) * 0.5 + 0.5) * 255),
+					Math.round(((1 / len) * 0.5 + 0.5) * 255),
+					255
+				],
+				(y * MAP_WIDTH + x) * 4
+			);
+		}
+	}
+	return encodePng(MAP_WIDTH, MAP_HEIGHT, rgba);
+}
+
+export default (): Record<string, Uint8Array> => ({
+	'maps/verdant.png': verdantMap(),
+	'maps/verdant-normal.png': verdantNormals()
+});

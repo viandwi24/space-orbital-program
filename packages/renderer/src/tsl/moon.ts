@@ -900,9 +900,10 @@ export class MoonTSL {
 		);
 		const seaW = smoothstep(SEA_LEVEL - 0.004, SEA_LEVEL, e).oneMinus();
 		const water = max(seaW, lakeW).toVar();
+		// the sea's colours are uniforms: the stock pair, or a mod's `ocean` (plan 406, ADR 0362)
 		const deep = mix(
-			vec3(0.011, 0.034, 0.062),
-			vec3(0.02, 0.07, 0.085),
+			this.links.of(shared, 'uSeaDeep'),
+			this.links.of(shared, 'uSeaShallow'),
 			smoothstep(SEA_LEVEL - 0.14, SEA_LEVEL, e)
 		);
 		return vec4(mix(land, deep, water), water);

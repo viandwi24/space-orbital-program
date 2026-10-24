@@ -21,6 +21,20 @@ async function inflate(chunks: Uint8Array[]): Promise<Uint8Array> {
 	return new Uint8Array(await new Response(stream).arrayBuffer());
 }
 
+/** A PNG's size from its header, without decoding it; a string is why it is not one this game reads. */
+export function pngSize(bytes: Uint8Array): { width: number; height: number } | string {
+	if (bytes.byteLength < 33 || !SIGNATURE.every((b, i) => bytes[i] === b))
+		return 'not a PNG file (bad signature)';
+	const view = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);
+	if (String.fromCharCode(...bytes.subarray(12, 16)) !== 'IHDR') return 'the PNG has no header';
+	const width = view.getUint32(16);
+	const height = view.getUint32(20);
+	if (CHANNELS[bytes[25]!] === undefined || bytes[24] !== 8)
+		return 'only 8-bit grey, RGB and RGBA PNGs are read (no palette, no 16-bit)';
+	if (bytes[28] !== 0) return 'an interlaced PNG is not read';
+	return { width, height };
+}
+
 /** Decodes a PNG; a string is the reason it is not one this game reads. */
 export async function decodePng(bytes: Uint8Array): Promise<DecodedImage | string> {
 	if (bytes.byteLength < 33 || !SIGNATURE.every((b, i) => bytes[i] === b))

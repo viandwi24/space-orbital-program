@@ -537,6 +537,8 @@ varying float vPatchH;
 varying float vSlope;
 uniform float uRadius;
 uniform sampler2D uMap;
+uniform vec3 uSeaDeep;
+uniform vec3 uSeaShallow;
 ${hashNoiseGLSL}
 ${terrainNoiseGLSL}
 float moonGrain(vec3 p) {
@@ -589,7 +591,7 @@ float hillsWater = 0.0;
 	float lakeW = clamp((lakeLevel - ${f(LAKE.to)}) / max(fwidth(lakeLevel), 1e-7) + 0.5, 0.0, 1.0);
 	float seaW = 1.0 - smoothstep(${f(SEA_LEVEL - 0.004)}, ${f(SEA_LEVEL)}, e);
 	hillsWater = max(seaW, lakeW);
-	vec3 deep = mix(vec3(0.011, 0.034, 0.062), vec3(0.02, 0.07, 0.085), smoothstep(${f(SEA_LEVEL - 0.14)}, ${f(SEA_LEVEL)}, e));
+	vec3 deep = mix(uSeaDeep, uSeaShallow, smoothstep(${f(SEA_LEVEL - 0.14)}, ${f(SEA_LEVEL)}, e));
 	diffuseColor.rgb = mix(land, deep, hillsWater);
 }
 `;

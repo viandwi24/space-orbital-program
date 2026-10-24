@@ -1,6 +1,7 @@
 import { describe, expect, test } from 'bun:test';
 import {
 	aerialPerspective,
+	applyAir,
 	columnDensity,
 	atmosphereFor,
 	horizonColour,
@@ -256,5 +257,23 @@ describe('ozone layer (plan 054, ADR 0069)', () => {
 			// the sun's path to the point still crosses the layer
 			expect(Math.abs(ap.inscatter[c]! / bp.inscatter[c]! - 1)).toBeLessThan(0.15);
 		}
+	});
+});
+
+describe("a body's own air coefficients (plan 405)", () => {
+	test('no coefficients leave the air as it was; they scale it field by field', () => {
+		expect(applyAir(atm, undefined)).toBe(atm);
+		const red = applyAir(atm, { rayleigh: [3, 1, 0.5], mie: 2, mieG: 0.4, skyBoost: 1.5 });
+		expect(red.betaRayleigh[0]).toBeCloseTo(atm.betaRayleigh[0] * 3, 12);
+		expect(red.betaRayleigh[2]).toBeCloseTo(atm.betaRayleigh[2] * 0.5, 12);
+		expect(red.betaMie).toBeCloseTo(atm.betaMie * 2, 12);
+		expect(red.mieG).toBe(0.4);
+		expect(red.skyBoost).toBeCloseTo(atm.skyBoost * 1.5, 12);
+		expect(red.rayleighHeight).toBe(atm.rayleighHeight);
+	});
+	test('a redder Rayleigh makes the zenith less blue than the stock air', () => {
+		const stock = skyRadiance(atm, 0, 85 * DEG, 60 * DEG, 0);
+		const mod = skyRadiance(applyAir(atm, { rayleigh: [4, 1, 0.3] }), 0, 85 * DEG, 60 * DEG, 0);
+		expect(mod[2] / mod[0]).toBeLessThan(stock[2] / stock[0]);
 	});
 });

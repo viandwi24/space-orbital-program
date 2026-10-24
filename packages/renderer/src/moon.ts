@@ -221,6 +221,12 @@ export function whiteLook(): DataTexture {
 	return white;
 }
 
+/** The sea of a hills body away from the home planet: the deep and the shallows, linear RGB. */
+export const MOON_SEA = {
+	deep: [0.011, 0.034, 0.062],
+	shallow: [0.02, 0.07, 0.085]
+} as const;
+
 export class MoonPass {
 	readonly root = new Object3D();
 	readonly radius: number;
@@ -323,7 +329,10 @@ export class MoonPass {
 		Object.assign(this.shared, {
 			uCamBody: u(new Vector3(0, 0, radius * 4)),
 			uAirSun: this.shared.uSunBody!,
-			uSeaTime: u(0)
+			uSeaTime: u(0),
+			// the sea's colours, linear RGB (stock; a mod's `ocean` through setOcean, plan 406)
+			uSeaDeep: u(new Vector3(...MOON_SEA.deep)),
+			uSeaShallow: u(new Vector3(...MOON_SEA.shallow))
 		});
 		// the body's own air (ADR 0121 point 2): the ground's aerial perspective and the shell share these
 		if (this.atmosphere) Object.assign(this.shared, createAtmosphereUniforms(this.atmosphere));
@@ -631,6 +640,13 @@ export class MoonPass {
 		};
 		material.customProgramCacheKey = () => 'moon-stone-depth';
 		return material;
+	}
+
+	/** The sea's colours (linear RGB; a mod's `ocean`, plan 406), or the stock ones. */
+	setOcean(look: { shallow: readonly number[]; deep: readonly number[] } | null): void {
+		const c = look ?? MOON_SEA;
+		(this.shared.uSeaDeep as U<Vector3>).value.set(c.deep[0]!, c.deep[1]!, c.deep[2]!);
+		(this.shared.uSeaShallow as U<Vector3>).value.set(c.shallow[0]!, c.shallow[1]!, c.shallow[2]!);
 	}
 
 	/** The body's colour map (plan 381, ADR 0318): a small one first, the full one when it is near. */

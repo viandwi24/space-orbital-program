@@ -3,6 +3,7 @@
  * vessel, sky ambient, fog, exposure and the launch site (ADR 0027). Contains no
  * `WebGLRenderer`, so it runs in Bun; the facade adds PMREM and the post chain.
  */
+import { hexLinear } from './body-look.ts';
 import { quantizeCover, stepCover, weatherCover } from './weather.ts';
 import {
 	LEGACY_ZONE,
@@ -24,6 +25,7 @@ import {
 	type DepthTexture
 } from 'three';
 import {
+	applyAir,
 	atmosphereFor,
 	horizonColour,
 	skyAmbient,
@@ -62,7 +64,8 @@ export interface LaunchSiteConfig {
 }
 
 export interface EnvironmentConfig {
-	body: Pick<BodyDefinition, 'id' | 'radius' | 'atmosphere'>;
+	body: Pick<BodyDefinition, 'id' | 'radius' | 'atmosphere'> &
+		Partial<Pick<BodyDefinition, 'air' | 'ocean' | 'weather'>>;
 	preset: GraphicsPreset;
 	site: LaunchSiteConfig;
 	/** The world's home terrain (plan 084, ADR 0142); default the Legacy seed and one zone at `site`. */
@@ -162,6 +165,8 @@ export class Environment {
 	private cloudAngle = 0;
 	private time = 0;
 	private cloudCover = 0.42;
+	/** A mod's weather for this body (plan 405): the cover it wanders about and how far. */
+	private readonly weather: { mean: number; span: number } | undefined;
 	/** Wall-clock seconds until the cloud map may be baked with a new cover (plan 397). */
 	private coverWait = 0;
 	private coverStarted = false;
@@ -185,13 +190,20 @@ export class Environment {
 		this.preset = config.preset;
 		const body = config.body;
 		this.radius = body.radius;
-		this.atmosphere = atmosphereFor(
-			body.radius,
-			body.atmosphere?.height ?? 1,
-			body.atmosphere?.scaleHeight,
-			body.atmosphere?.surfacePressure
+		this.atmosphere = applyAir(
+			atmosphereFor(
+				body.radius,
+				body.atmosphere?.height ?? 1,
+				body.atmosphere?.scaleHeight,
+				body.atmosphere?.surfacePressure
+			),
+			body.air
 		);
+		this.weather = body.weather;
 		const settings = PRESETS[config.preset];
+		const sea = body.ocean
+			? { shallow: hexLinear(body.ocean.shallow), deep: hexLinear(body.ocean.deep) }
+			: null;
 		this.planet = new PlanetPass(
 			this.atmosphere,
 			settings,
@@ -199,6 +211,7 @@ export class Environment {
 			body.atmosphere?.aurora !== false,
 			this.worldTerrain
 		);
+		this.planet.setOcean(sea);
 		this.site = new LaunchSite(
 			body.radius,
 			config.site,
@@ -570,7 +583,9 @@ export class Environment {
 		this.cloudAngle += input.dt * 2.2e-5;
 		if (input.gameTime !== undefined) {
 			// the weather moves the cover a step at a time (plan 397, ADR 0341); the first frame takes it whole
-			const target = quantizeCover(weatherCover(this.worldTerrain.seed, input.gameTime));
+			const target = quantizeCover(
+				weatherCover(this.worldTerrain.seed, input.gameTime, this.weather)
+			);
 			if (!this.coverStarted) {
 				this.coverStarted = true;
 				this.cloudCover = target;

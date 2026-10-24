@@ -93,6 +93,8 @@ describe('inspectGlb', () => {
 		expect(external.ok === false && external.errors[0]).toContain('buffers[0]');
 		const draco = inspectGlb(edit((d) => (d.extensionsRequired = ['KHR_draco_mesh_compression'])));
 		expect(draco.ok === false && draco.errors[0]).toContain('KHR_draco_mesh_compression');
+		const meshopt = inspectGlb(edit((d) => (d.extensionsUsed = ['EXT_meshopt_compression'])));
+		expect(meshopt.ok).toBe(true);
 		const webp = inspectGlb(
 			edit((d) => ((d.images as { mimeType: string }[])[0]!.mimeType = 'image/webp'))
 		);

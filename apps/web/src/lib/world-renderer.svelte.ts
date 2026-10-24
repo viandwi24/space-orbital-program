@@ -107,7 +107,10 @@ export function catalogKey(c: Catalog): string {
 			b.parent ?? null,
 			b.star ?? false,
 			b.appearance ?? null,
-			b.plasma ?? null
+			b.plasma ?? null,
+			b.air ?? null,
+			b.ocean ?? null,
+			b.weather ?? null
 		]),
 		c.bodyTerrain ?? null,
 		c.terrain ?? null,
@@ -140,6 +143,10 @@ function configOf(c: Catalog, canvas: HTMLCanvasElement, backend: RendererBacken
 				// how it looks (plan 381, ADR 0318)
 				...(b.appearance ? { appearance: b.appearance } : {}),
 				...(b.plasma ? { plasma: b.plasma } : {}),
+				// the air, sea and weather a mod sets (plan 405, ADR 0362)
+				...(b.air ? { air: b.air } : {}),
+				...(b.ocean ? { ocean: b.ocean } : {}),
+				...(b.weather ? { weather: b.weather } : {}),
 				...(b.parent !== undefined && b.orbit ? { parent: b.parent, orbit: b.orbit } : {})
 			})),
 		// a mod's post-processing profile: the last registered (plan 405, ADR 0345)

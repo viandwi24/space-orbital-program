@@ -96,6 +96,8 @@ export interface RendererDebug {
 	applyPreset(name: string): boolean;
 	/** Force the device pixel ratio (frame-time measurements at exactly 1920x1080), or `null` for the default. */
 	setPixelRatio(ratio: number | null): void;
+	/** The bodies whose map is baked from their own ground and resident now (plan 403). */
+	bodyBakes(): string[];
 	/** Rocks on the ground now: placed, drawn near and far, and whether the group is shown (plan 402). */
 	groundRocks(): { count: number; visible: boolean; near: number; far: number };
 	/** Force the skin temperature of every part (K) for glow screenshots, or `null` for the snapshot values. */

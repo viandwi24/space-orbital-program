@@ -119,7 +119,7 @@ export async function modPackageFingerprint(
 }
 
 // glTF extensions a model may use: everything the game's loader decodes, KTX2 with the transcoder
-// the game serves (ADR 0160 point 4); no Draco, Meshopt, WebP or AVIF (ADR 0076).
+// the game serves (ADR 0160 point 4); Meshopt with three's decoder (plan 405, ADR 0362); no Draco, WebP or AVIF (ADR 0076).
 const ALLOWED_EXTENSIONS = new Set([
 	'KHR_materials_clearcoat',
 	'KHR_materials_emissive_strength',
@@ -130,7 +130,8 @@ const ALLOWED_EXTENSIONS = new Set([
 	'KHR_materials_volume',
 	'KHR_mesh_quantization',
 	'KHR_texture_transform',
-	'KHR_texture_basisu'
+	'KHR_texture_basisu',
+	'EXT_meshopt_compression'
 ]);
 
 export interface GlbInfo {
@@ -196,7 +197,7 @@ export function inspectGlb(bytes: Uint8Array): GlbInspection {
 	for (const e of extensions) {
 		if (!ALLOWED_EXTENSIONS.has(e)) {
 			errors.push(
-				`uses the glTF extension ${e}, which the game cannot decode (no Draco, Meshopt, WebP or AVIF; export plain triangles with PNG, JPEG or KTX2 textures)`
+				`uses the glTF extension ${e}, which the game cannot decode (no Draco, WebP or AVIF; export plain triangles with PNG, JPEG or KTX2 textures)`
 			);
 		}
 	}

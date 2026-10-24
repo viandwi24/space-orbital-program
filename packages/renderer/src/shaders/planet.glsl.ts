@@ -26,6 +26,7 @@ import { TERRAIN_VEIL } from '../atmosphere-model.ts';
 import { terrainNoiseGLSL, terrainTangentGLSL, terrainZonesGLSL } from './terrain.glsl.ts';
 import { PATCH_BLEND } from '../terrain-patch.ts';
 import { SHAFT, SHAFT_TERRAIN } from '../light-shaft.ts';
+import { CLOUD_FAR } from '../cloud-far.ts';
 import { EDGE_CHROMA, EDGE_DEPTH_OCTAVES, SKY_DEPTH } from '../half-res.ts';
 import { cloudFieldGLSL } from './cloud-field.glsl.ts';
 import { auroraGLSL } from './aurora.glsl.ts';
@@ -469,6 +470,8 @@ uniform samplerCube uScaledA;   // the scaled-space bake (plan 364): sqrt albedo
 uniform samplerCube uScaledN;   // and the body-fixed normal
 uniform float uScaledTexelM;
 uniform float uScaledOn;
+uniform vec3 uOceanShallow;   // the sea's colours: a mod's ocean look, else the stock ones (plan 405)
+uniform vec3 uOceanDeep;
 uniform float uCityLights;    // city lights on the night side: 1 on, 0 off (plan 403)
 uniform float uScaledMode;     // debug: 1 as drawn, 0 never, 2 every ground pixel
 uniform float uDetailOn;       // debug: the ground detail on (1) or off
@@ -647,6 +650,14 @@ float cirrusDensity(vec3 dirBF) {
 	float streak = fbmF(q * vec3(2.2, 8.0, 8.0) + 11.0, 2);
 	float cover = smoothstep(0.3, 0.62, mask) * smoothstep(0.42, 0.7, n);
 	return clamp(cover * (0.2 + 1.0 * streak) * 0.42, 0.0, 1.0);
+}
+
+// The far cloud shell (plan 403): alpha and sun term from the baked map's coverage (twins in cloud-far.ts).
+float cloudFarAlpha(float cover, float mask, float farK) {
+	return smoothstep(${f(CLOUD_FAR.coverFrom)}, ${f(CLOUD_FAR.coverTo)}, cover) * mask * farK * ${f(CLOUD_FAR.opacity)};
+}
+float cloudFarSun(float mu) {
+	return ${f(CLOUD_FAR.sunBase)} + ${f(1 - CLOUD_FAR.sunBase)} * clamp(mu * ${f(CLOUD_FAR.sunSlope)} + ${f(CLOUD_FAR.sunLift)}, 0.0, 1.0);
 }
 
 // --- cumulus slab (plan 037, ADR 0059; the twin of cloud-volume.ts) --------------------------------
@@ -1181,8 +1192,8 @@ ${MID_OCTAVES_KM.map(
 	}
 
 	// Ocean
-	vec3 shallow = mix(vec3(0.03, 0.26, 0.24), vec3(0.02, 0.2, 0.2), depthNear);
-	vec3 deep = vec3(0.004, 0.035, 0.1);
+	vec3 shallow = mix(uOceanShallow, uOceanShallow * vec3(0.6667, 0.7692, 0.8333), depthNear);
+	vec3 deep = uOceanDeep;
 	vec3 water = mix(shallow, deep, smoothstep(0.0, 0.7, max(depth, depthNear * 0.25)));
 	// lake water is greener and murkier than the sea and darkens toward the middle
 	water = mix(water, mix(vec3(0.045, 0.17, 0.15), vec3(0.012, 0.075, 0.085), smoothstep(0.0, 90.0, lakeIn)), lakeOnly);
@@ -1447,9 +1458,31 @@ vec3 shadeRay(vec3 ro, vec3 rd, float r0, float d, float h, bool hitG, bool hitT
 			vec3 nm = normalize(ro + rd * tm);
 			float fp = tm * uPixelAngle / max(abs(dot(nm, rd)), 0.05);
 			float cover = smoothstep(0.08, 0.55, cloudDensity(uBodyInv * nm, false, fp));
-			float mask = clamp(uCloudCover * 2.0, 0.0, 1.0) * (1.0 - smoothstep(45000.0, 120000.0, tm));
+			float maskAll = clamp(uCloudCover * 2.0, 0.0, 1.0);
+			float farK = smoothstep(${f(CLOUD_FAR.from)}, ${f(CLOUD_FAR.to)}, tm);
+			float mask = maskAll * (1.0 - farK);
+			// beyond the march's reach the slab is one thin shell read from the baked weather map (plan 403, twin: cloudFarShell in cloud-far.ts)
+			float shellA = 0.0;
+			vec3 shellL = vec3(0.0);
+#if SHAFT_STEPS > 0 || CLOUD_SHADOW_MAP
+			if (farK > 0.002) {
+				float cov = cloudMapAt(rotY(uBodyInv * nm, uCloudAngle)).r;
+				shellA = cloudFarAlpha(cov, maskAll, farK);
+				if (shellA > 0.002) {
+					vec3 sunTs = sunTransmittance(nm * (uCloudAlt + 0.5 * CLOUD_THICK), uSunDir);
+					vec3 Lf = vec3(0.93) / kPI * (uSunIrr * sunTs * cloudFarSun(dot(nm, uSunDir)) + uAmbient * ${f(CLOUD_FAR.ambient)}) + NIGHT_AMBIENT * 0.6;
+					shellL = Lf / (1.0 + Lf / ${f(CLOUD_RADIANCE_KNEE)});
+				}
+			}
+#endif
 			if (cover * mask < 0.004) {
-				hitA = false;
+				if (shellA < 0.004) {
+					hitA = false;
+				} else {
+					alphaA = shellA;
+					lightA = shellL;
+					cloudTA = tm;
+				}
 			} else {
 				float cj = 0.25 + 0.5 * fract(jitter + 0.381966);
 				float cosS = dot(rd, uSunDir);
@@ -1493,6 +1526,11 @@ vec3 shadeRay(vec3 ro, vec3 rd, float r0, float d, float h, bool hitG, bool hitT
 				alphaA = opacity * mask;
 				vec3 lm = acc / max(opacity, 1e-4);
 				lightA = lm / (1.0 + lm / ${f(CLOUD_RADIANCE_KNEE)});
+				if (shellA > 0.002) {
+					float a2 = alphaA + shellA * (1.0 - alphaA);
+					lightA = (lightA * alphaA + shellL * shellA * (1.0 - alphaA)) / max(a2, 1e-4);
+					alphaA = a2;
+				}
 				cloudTA = tm;
 				if (alphaA < 0.002) {
 					hitA = false;
