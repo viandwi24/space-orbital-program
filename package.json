@@ -33,7 +33,8 @@
 		"check:affected": "bun run tools/check-affected.ts",
 		"roadmap:progress": "bun run tools/roadmap-progress.ts",
 		"roadmap:release": "bun run tools/release-roadmap.ts",
-		"e2e": "bun run --filter @orbital/web test:e2e"
+		"e2e": "bun run --filter @orbital/web test:e2e",
+		"perf:gate": "bun apps/web/scripts/perf-gate.ts"
 	},
 	"devDependencies": {
 		"@types/bun": "^1.4.3",

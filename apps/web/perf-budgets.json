@@ -1,0 +1,15 @@
+{
+	"basis": "target",
+	"margin": 0.1,
+	"tiers": {
+		"m5": {
+			"default": { "p95Ms": 8.3, "longPerMinute": 0, "compilesInPlay": 0, "heapRangeMb": 30 }
+		},
+		"m2": {
+			"default": { "p95Ms": 16.7, "longPerMinute": 0, "compilesInPlay": 0, "heapRangeMb": 30 }
+		},
+		"windows": {
+			"default": { "p95Ms": 16.7, "longPerMinute": 0, "compilesInPlay": 0, "heapRangeMb": 30 }
+		}
+	}
+}

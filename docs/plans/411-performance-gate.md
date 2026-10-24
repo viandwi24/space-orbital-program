@@ -1,7 +1,7 @@
 ---
 id: 411
 title: "A performance gate: a scene benchmark every renderer or looks change must pass before it merges, with budgets per scene and per device tier"
-status: ready
+status: done
 owner: "Worker C"
 depends: []
 phase: 9
@@ -61,15 +61,16 @@ A change that makes the game slower can no longer reach main unnoticed. Today's 
 
 ## Acceptance criteria
 
-- [ ] `bun run perf:gate` runs every scene on both backends and writes the table; a unit test covers the budget comparison.
-- [ ] Budgets are checked in and the brief requires the gate for renderer and looks plans.
-- [ ] The owner's `--quick` mode prints a paste-ready table (`[manual]` run on the M2 and on Windows).
-- [ ] Affected unit tests and the typecheck pass. E2E is paused by the owner.
+- [x] `bun run perf:gate` runs every scene on both backends and writes the table; a unit test covers the budget comparison.
+- [x] Budgets are checked in and the brief requires the gate for renderer and looks plans.
+- [x] The owner's `--quick` mode prints a paste-ready table (the run on the M2 and on Windows is `[manual]`, not done).
+- [x] Affected unit tests and the typecheck pass. E2E is paused by the owner.
 
 ## Docs checklist
 
-- [ ] STATUS row, journal, worker brief rule, plan template line.
+- [x] STATUS row, journal, worker brief rule, plan template line.
 
 ## Log
 
 - 2026-10-24 — Created by the coordinator after the owner reported that today's graphics work made the game less playable. Runs after 409 on Worker C.
+- 2026-10-24 — Done (Worker C): `bun run perf:gate`, `perf-budgets.json` (basis `target` until a headed M5 run is frozen with `--freeze`), the budget tests, the brief rule and the template line. A headless smoke ran the pipeline; the headed M5, M2 and Windows runs are `[manual]` (journal 411).

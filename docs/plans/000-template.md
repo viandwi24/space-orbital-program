@@ -36,6 +36,7 @@ updated: YYYY-MM-DD
 - [ ] `bun test packages/<pkg>` passes, including `test/<name>.test.ts` which asserts …
 - [ ] `bun run typecheck` passes.
 - [ ] `bun run docs:check` passes.
+- [ ] A plan that touches the renderer, the looks or a page loop: `bun run perf:gate` on the M5 passes (table in the journal; `docs/roadmap/worker-brief.md`).
 
 ## Docs checklist
 

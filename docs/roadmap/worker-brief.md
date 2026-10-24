@@ -225,6 +225,15 @@ The owner reports that today's graphics work made the game less playable: stalls
   - A: 408 → 410 → 398;
   - C: 409 → 411 → 385 → 407;
   - B: 403 → 405 → 406, full scope including GPU, with relevance gates and measurements.
+## The performance gate (plan 411, 2026-10-24)
+
+`bun run perf:gate` runs fixed scenes (pad, 3 km, 12 km, sea level, orbit, re-entry, the Space Center, the Hangar) headed, on WebGPU and WebGL, with the governor off at a fixed preset and again on. It reports per scene the frame interval p50 and p95, long frames a minute, pipelines compiled after the load and the JS heap range, and fails when a run is over its budget in `apps/web/perf-budgets.json` (the margin is in the file).
+
+- **Rule.** A plan that touches `packages/renderer`, the looks (`packages/renderer`'s presets, passes or generators) or the page loops (the flight loop, the Space Center, the Hangar) runs the gate on the M5 before it merges, as a measurement (`touch /tmp/orbital-measuring`, the machine idle and plugged in), and puts the table in its journal. A failed gate blocks the merge unless the owner accepts the numbers.
+- **Budgets.** Today's are `target`: the tier's frame interval (ADR 0330: M5 120, M2 and Windows 60), no long frame, no compile in play, a 30 MB heap range. After 408, 409 and 410 have merged, the first M5 run is frozen with `bun run perf:gate --freeze` and the file is committed; later budgets only go down.
+- **The owner's short run.** `bun run perf:gate --quick` (pad, orbit, Space Center, the default backend) prints a table to paste back; with `--tier m2` or `--tier windows` for those machines (`[manual]`).
+- `--headless` is a smoke run of the script: its numbers mean nothing.
+
 ## Doing a plan
 
 **UI fixes come first (owner's rule, ADR 0222):** when the coordinator reports that a screen you built is off the design package (`refs/space-orbital-program-ui-v2/`), finish and merge your current plan, then fix that screen (plan 233 and the like) before taking any other plan. Always compare UI work with the matching `.dc.html` source and `docs/BASE_LAYOUT.md`.
