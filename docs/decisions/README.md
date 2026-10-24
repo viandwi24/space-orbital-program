@@ -350,3 +350,4 @@ An ADR records one decision, its context, and its consequences. ADRs are **appen
 | 0363 | [A mod planet seen from far: the map's colours, albedo and normal images, the sea](0363-mod-planet-far-look-and-images.md) | accepted | 2026-10-24 |
 | 0364 | [Relevance gates on the looks of plans 403, 405 and 406](0364-relevance-gates-for-403.md) | accepted | 2026-10-24 |
 | 0365 | [The ascent holds max-Q, and the pilot knows the air](0365-ascent-holds-max-q.md) | accepted | 2026-10-24 |
+| 0366 | [The orbiter has elevons; it lands on a level-2 runway](0366-orbiter-elevons-and-runway-landing.md) | accepted | 2026-10-24 |

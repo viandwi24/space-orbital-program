@@ -658,7 +658,12 @@ function seleneRover(content: Content): VesselDesign {
 /** The Wayfarer Shuttle (plan 385): `options` size it for a system (the stock one is the default). */
 function wayfarer(
 	content: Content,
-	options: { coreTanks?: number; boosterPairs?: number } = {}
+	options: {
+		coreTanks?: number;
+		shortTank?: boolean;
+		boosterPairs?: number;
+		elevonPairs?: number;
+	} = {}
 ): VesselDesign {
 	const b = new Build(content, 'Wayfarer Shuttle', 'stock.orbiter-nose');
 	// the orbiter (plan 356): nose, cargo bay, engine section; the OMS propellant is in the aft
@@ -680,6 +685,10 @@ function wayfarer(
 	// the wings far aft, behind the centre of mass, on the bay's aft end, either side (±X);
 	// the tank on the belly (-Z, an angle of pi/2), the bay doors (+Z) away from it
 	b.side('stock.wing-delta', bay, 0, -0.7, 2);
+	// elevons (plan 407): three pairs of control surfaces on the tail, on both sides; the wing alone
+	// holds the orbiter's nose where the airflow puts it and the reaction wheel cannot turn it against that
+	for (const y of [-0.4, -0.05, 0.3].slice(0, options.elevonPairs ?? 3))
+		b.side('stock.control-surface', aft, 0, y, 2);
 	// RCS at both ends, so it turns as well as it moves (owner, 2026-10-22): four round the nose,
 	// a pair on the aft sides (the OMS pods' thrusters); none on the bay's top corners, the doors
 	b.side('stock.rcs-block-5', 0, Math.PI / 4, -0.55, 4);
@@ -702,6 +711,7 @@ function wayfarer(
 	if (options.coreTanks) {
 		let under = b.below('stock.adapter-3750-5000', et);
 		for (let i = 0; i < options.coreTanks; i++) under = b.below('stock.tank-5000-long', under);
+		if (options.shortTank) under = b.below('stock.tank-5000-short', under);
 		mains = b.below('stock.engine-plate-j2', under);
 	} else mains = b.below('stock.engine-plate-8', et);
 	// core engines and boosters light together; the boosters drop; the tank drops and the
@@ -793,7 +803,7 @@ export const MISSION_BLUEPRINTS: readonly MissionBlueprint[] = [
 			{
 				system: 'sol',
 				variant: '1:1',
-				build: (content) => wayfarer(content, { coreTanks: 3, boosterPairs: 2 })
+				build: (content) => wayfarer(content, { coreTanks: 3, boosterPairs: 2, elevonPairs: 1 })
 			}
 		],
 		build: (content) => wayfarer(content)

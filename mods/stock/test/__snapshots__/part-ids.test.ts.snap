@@ -4622,7 +4622,7 @@ exports[`stock part ids, masses, costs and modules match the snapshot 1`] = `
       [
         "stock.wheel",
         {
-          "deploySpeed": 150,
+          "deploySpeed": 200,
           "deployed": false,
           "grip": 0.9,
           "offset": [
@@ -4646,7 +4646,7 @@ exports[`stock part ids, masses, costs and modules match the snapshot 1`] = `
       [
         "stock.wheel",
         {
-          "deploySpeed": 150,
+          "deploySpeed": 200,
           "deployed": false,
           "grip": 0.9,
           "offset": [

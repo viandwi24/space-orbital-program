@@ -96,7 +96,7 @@ export const PartLaunchClamp = definePart({
 
 /**
  * The orbiter's landing gear (plan 361): retractable wheels under the belly, stowed behind black
- * tile doors and lowered with the Landing gear group (G) below 150 m/s. The main gear has twin
+ * tile doors and lowered with the Landing gear group (G) below 200 m/s (a landing at its weight comes in at about 150 m/s: plan 407). The main gear has twin
  * wheels and brakes; the nose gear steers.
  */
 const orbiterGear = (id: string, title: string, massKg: number, steer: number, radius: number) =>
@@ -127,7 +127,7 @@ const orbiterGear = (id: string, title: string, massKg: number, steer: number, r
 					grip: 0.9,
 					retractable: true,
 					deployed: false,
-					deploySpeed: 150
+					deploySpeed: 200
 				}
 			]
 		],

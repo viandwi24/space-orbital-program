@@ -687,22 +687,28 @@ describe('mission flights (plans 307, 309)', () => {
 	}, 240_000);
 
 	// plan 407: from the end of the re-entry (30 km, Mach 2) to a stop on the runway, all parts on. The
-	// controller is the test's own: heading to the runway, a glide line held through the angle of attack,
-	// the gear at 1.5 km, a flare near the ground, the brakes and the chute on the runway.
-	// SKIPPED: the controller does not land yet; see the log of plan 407. Run it with the skip removed.
-	it.skip('the orbiter flies from 15 km and 350 m/s to a stop on the runway, all parts on (plan 407)', async () => {
-		const rawBody = registries.bodies.get('stock.home')!;
-		const R = rawBody.radius;
+	// controller is the test's own: the glide held through the angle of attack (the elevons), the nose along
+	// the airflow, the gear below 1.5 km, a preflare and a flare, the brakes and the chute on the runway.
+	// A flight is a deterministic run, so two numbers are found by shooting: the heading of the start (the
+	// airframe turns by banking, which the test does not fly) and the range (the energy).
+	it('the orbiter flies from 30 km and Mach 2 to a stop on the runway, all parts on (plan 407)', async () => {
+		const R = registries.bodies.get('stock.home')!.radius;
 		const W = (2 * Math.PI) / DAY;
 		const rotY = (v: Vec3, a: number): Vec3 => ({
 			x: v.x * Math.cos(a) + v.z * Math.sin(a),
 			y: v.y,
 			z: -v.x * Math.sin(a) + v.z * Math.cos(a)
 		});
-		// 1. where the runway is, and which way it points, from an aircraft standing on it
-		let rwPos: Vec3;
-		let rwHeading: Vec3;
-		let rwT0: number;
+		const comb = (a: Vec3, fa: number, b: Vec3, fb: number): Vec3 => ({
+			x: a.x * fa + b.x * fb,
+			y: a.y * fa + b.y * fb,
+			z: a.z * fa + b.z * fb
+		});
+		const flat = (v: Vec3, up: Vec3): Vec3 => comb(v, 1, up, -dot3(v, up));
+		// 1. where the runway is and which way it points, from the orbiter standing on it
+		let rwPos!: Vec3;
+		let rwHeading!: Vec3;
+		let rwT0!: number;
 		{
 			const probe = await newSim();
 			try {
@@ -712,199 +718,249 @@ describe('mission flights (plans 307, 309)', () => {
 				const v = probe.snapshot().vessels.find((x) => x.id === r.vessel)!;
 				rwT0 = probe.snapshot().t;
 				rwPos = { ...v.position };
-				const up = unit3(rwPos);
-				const n = rot(v.orientation, { x: 0, y: 1, z: 0 });
-				rwHeading = unit3({
-					...n,
-					x: n.x - dot3(n, up) * up.x,
-					y: n.y - dot3(n, up) * up.y,
-					z: n.z - dot3(n, up) * up.z
-				});
+				rwHeading = unit3(flat(rot(v.orientation, { x: 0, y: 1, z: 0 }), unit3(rwPos)));
 			} finally {
 				probe.dispose();
 			}
 		}
 		const RW_R = len(rwPos);
 		const spin = (v: Vec3, t: number) => rotY(v, W * (t - rwT0));
-		const AIM_BACK = 350; // m before the runway's centre: 250 m past the threshold of a 1 200 m runway
-		// 2. the start: 90 km out along the runway line, at 30 km, Mach 2 towards the aim point
-		const D0 = Number(process.env.ORBITAL_LAND_RANGE ?? 47_000);
-		const ALT0 = Number(process.env.ORBITAL_LAND_ALT ?? 15_000);
-		const V0 = Number(process.env.ORBITAL_LAND_SPEED ?? 350);
-		const GAMMA = Number(process.env.ORBITAL_LAND_GAMMA ?? 15);
-		const sim = await newSim();
-		try {
-			const aimAt = (t: number): Vec3 => {
-				const c = spin(rwPos, t);
-				const h = spin(rwHeading, t);
-				const ang = AIM_BACK / RW_R;
-				return {
-					x: c.x * Math.cos(ang) - h.x * Math.sin(ang) * RW_R,
-					y: c.y * Math.cos(ang) - h.y * Math.sin(ang) * RW_R,
-					z: c.z * Math.cos(ang) - h.z * Math.sin(ang) * RW_R
-				};
-			};
-			const t0 = sim.snapshot().t;
-			const aim0 = aimAt(t0);
-			const aimDir0 = unit3(aim0);
-			const h0 = spin(rwHeading, t0);
-			const back = D0 / RW_R;
-			const startDir = unit3({
-				x: aimDir0.x * Math.cos(back) - h0.x * Math.sin(back),
-				y: aimDir0.y * Math.cos(back) - h0.y * Math.sin(back),
-				z: aimDir0.z * Math.cos(back) - h0.z * Math.sin(back)
-			});
-			const startPos = {
-				x: startDir.x * (RW_R + ALT0),
-				y: startDir.y * (RW_R + ALT0),
-				z: startDir.z * (RW_R + ALT0)
-			};
-			const tangent = unit3({
-				x: aimDir0.x - startDir.x * dot3(aimDir0, startDir),
-				y: aimDir0.y - startDir.y * dot3(aimDir0, startDir),
-				z: aimDir0.z - startDir.z * dot3(aimDir0, startDir)
-			});
-			const groundV = { x: W * startPos.z, y: 0, z: -W * startPos.x };
-			const gamma0 = (GAMMA * Math.PI) / 180;
-			const alpha0 = (8 * Math.PI) / 180 - gamma0;
-			const up0 = startDir;
-			const nose0 = unit3({
-				x: tangent.x * Math.cos(alpha0) + up0.x * Math.sin(alpha0),
-				y: tangent.y * Math.cos(alpha0) + up0.y * Math.sin(alpha0),
-				z: tangent.z * Math.cos(alpha0) + up0.z * Math.sin(alpha0)
-			});
-			const top0 = unit3(cross3(cross3(nose0, up0), nose0));
-			const design = orbiterAlone();
-			const id = place(
-				sim,
-				design,
-				'stock.home',
-				startPos,
-				{
-					x: groundV.x + V0 * (tangent.x * Math.cos(gamma0) - up0.x * Math.sin(gamma0)),
-					y: groundV.y + V0 * (tangent.y * Math.cos(gamma0) - up0.y * Math.sin(gamma0)),
-					z: groundV.z + V0 * (tangent.z * Math.cos(gamma0) - up0.z * Math.sin(gamma0))
-				},
-				quatOfBasis(cross3(nose0, top0), nose0, top0)
-			);
-			const at = () => sim.snapshot().vessels.find((v) => Number(v.id) === id)!;
-			const parts = design.parts.length;
-			sim.dispatch({ type: 'set-rcs', vessel: at().id, on: true } as never);
-			let lastDown = 0;
-			let gear = false;
-			let brakes = false;
-			let log = '';
-			let touch: { t: number; sink: number; speed: number; range: number } | undefined;
-			let stopped = false;
-			for (let t = 0; t < 900; t += 0.5) {
-				const v = at();
-				const now = sim.snapshot().t;
-				const pos = v.position;
-				const alt = len(pos) - RW_R;
-				const air = { x: v.velocity.x - W * pos.z, y: v.velocity.y, z: v.velocity.z + W * pos.x };
-				const speed = len(air);
-				const upv = unit3(pos);
-				const vUp = dot3(air, upv);
-				const horiz = { x: air.x - vUp * upv.x, y: air.y - vUp * upv.y, z: air.z - vUp * upv.z };
-				const aim = aimAt(now);
-				const toAim = unit3({ x: aim.x - pos.x, y: aim.y - pos.y, z: aim.z - pos.z });
-				const aimLevel = unit3({
-					x: toAim.x - dot3(toAim, upv) * upv.x,
-					y: toAim.y - dot3(toAim, upv) * upv.y,
-					z: toAim.z - dot3(toAim, upv) * upv.z
-				});
-				const range = Math.acos(Math.max(-1, Math.min(1, dot3(unit3(aim), upv)))) * RW_R;
-				// the line to the aim point
-				const wantDown = 0;
-				const nowDown = Math.atan2(-vUp, len(horiz));
-				const touched =
-					alt < 6 &&
-					(v.parts.some(
-						(p) =>
-							p.definition.startsWith('stock.orbiter-gear') &&
-							(p.modules['stock.wheel'] as { contact?: boolean })?.contact === true
-					) ||
-						alt < 3.5);
-				// the angle of attack that bends the path onto the line (a steeper path wants less)
-				const noseNow = rot(v.orientation, { x: 0, y: 1, z: 0 });
-				const realAoa =
-					(Math.acos(Math.max(-1, Math.min(1, dot3(noseNow, unit3(air))))) * 180) / Math.PI;
-				const R1 = 14_000;
-				const H1 = 2_400;
-				const lineSlope = (ALT0 - H1) / (D0 - R1);
-				const hRef = range > R1 ? H1 + (range - R1) * lineSlope : H1 * (range / R1);
-				const slopeRef = range > R1 ? lineSlope : H1 / R1;
-				const vzCmd = -len(horiz) * slopeRef - 0.02 * (alt - hRef);
-				lastDown = nowDown;
-				let alpha = 9 - 0.06 * (vUp - vzCmd);
-				alpha = Math.max(3, Math.min(16, alpha));
-				if (alt < 150 && !touched) {
-					// flare: a sink of 3 m/s at 20 m, 0.8 m/s near the ground
-					const wantSink = Math.min(4, 0.8 + (alt / 150) * 3);
-					alpha = Math.max(6, Math.min(16, 9 + 2 * (-vUp - wantSink)));
-					alpha = -vUp > wantSink ? 14 : 8;
-				}
-				if (touched || alt < 4) alpha = 0;
-				// the nose: the heading to the aim point, raised by the angle of attack above the path
-				const pathUp = unit3({
-					x: (horiz.x / len(horiz)) * Math.cos(nowDown) - upv.x * Math.sin(nowDown),
-					y: (horiz.y / len(horiz)) * Math.cos(nowDown) - upv.y * Math.sin(nowDown),
-					z: (horiz.z / len(horiz)) * Math.cos(nowDown) - upv.z * Math.sin(nowDown)
-				});
-				void pathUp;
-				const pitchCmd = -nowDown + (alpha * Math.PI) / 180;
-				const dirNose = unit3({
-					x: aimLevel.x * Math.cos(pitchCmd) + upv.x * Math.sin(pitchCmd),
-					y: aimLevel.y * Math.cos(pitchCmd) + upv.y * Math.sin(pitchCmd),
-					z: aimLevel.z * Math.cos(pitchCmd) + upv.z * Math.sin(pitchCmd)
-				});
-				if (!touched)
-					sim.dispatch({
-						type: 'sas',
-						vessel: v.id,
-						mode: 'direction',
-						direction: dirNose
-					} as never);
-				if (!gear && alt < 1_500 && speed < 200) {
-					gear = sim.dispatch({
-						type: 'action-group',
-						vessel: v.id,
-						group: 'stock.landing-gear',
-						value: true
-					} as never).ok;
-				}
-				if (touched && !touch) {
-					touch = { t, sink: -vUp, speed, range };
-					sim.dispatch({
-						type: 'action-group',
-						vessel: v.id,
-						group: 'stock.brakes',
-						value: true
-					} as never);
-					sim.dispatch({ type: 'action-group', vessel: v.id, group: 'stock.parachutes' } as never);
-					brakes = true;
-				}
-				if (Math.floor(t) % 10 === 0 && t % 1 === 0)
-					log += `\nt ${t} alt ${alt.toFixed(0)} range ${range.toFixed(0)} v ${speed.toFixed(0)} sink ${(-vUp).toFixed(1)} down ${((nowDown * 180) / Math.PI).toFixed(1)} want ${((wantDown * 180) / Math.PI).toFixed(1)} alpha ${alpha.toFixed(1)} real ${realAoa.toFixed(1)}`;
-				run(sim, 0.5);
-				if (touch && speed < 1 && t > touch.t + 5) {
-					stopped = true;
-					break;
-				}
-				if (!at()) break;
-			}
-			console.log(
-				`landing: ${log}\ntouchdown ${JSON.stringify(touch)} stopped ${stopped} gear ${gear} brakes ${brakes}`
-			);
-			expect(at().parts.length).toBe(parts);
-			expect(touch).toBeDefined();
-			expect(touch!.sink).toBeLessThan(4);
-			expect(Math.abs(touch!.range)).toBeLessThan(1_000);
-			expect(stopped).toBe(true);
-		} finally {
-			sim.dispose();
+		// the aim point: 700 m before the middle of a level-2 runway (1 800 m), 200 m past its threshold
+		const aimAt = (t: number): Vec3 => {
+			const ang = 700 / RW_R;
+			return comb(spin(rwPos, t), Math.cos(ang), spin(rwHeading, t), -Math.sin(ang) * RW_R);
+		};
+		const ALT0 = 30_000;
+		const V0 = 602;
+		const GAMMA = (19 * Math.PI) / 180;
+		const design = orbiterAlone();
+
+		interface Landing {
+			/** Touchdown (or the ground), m past the aim point along the runway and m right of its line. */
+			along: number;
+			lateral: number;
+			sink: number;
+			speed: number;
+			t: number;
+			parts: number;
+			stopped: boolean;
+			stopAlong: number;
+			gear: boolean;
 		}
-	}, 600_000);
+
+		/** One flight: `delta` turns the start heading (rad), `range` is the distance out (m). */
+		async function approach(delta: number, range: number, log = false): Promise<Landing> {
+			const sim = await newSim();
+			try {
+				const t0 = sim.snapshot().t;
+				const aim0 = aimAt(t0);
+				const aimDir0 = unit3(aim0);
+				const h0 = spin(rwHeading, t0);
+				const back = range / RW_R;
+				const startDir = unit3(comb(aimDir0, Math.cos(back), h0, -Math.sin(back)));
+				const startPos = comb(startDir, RW_R + ALT0, startDir, 0);
+				let tangent = unit3(flat(aimDir0, startDir));
+				// the heading turned by `delta` about up
+				const side0 = cross3(startDir, tangent);
+				tangent = unit3(comb(tangent, Math.cos(delta), side0, Math.sin(delta)));
+				const groundV = { x: W * startPos.z, y: 0, z: -W * startPos.x };
+				const alpha0 = (8 * Math.PI) / 180 - GAMMA;
+				const nose0 = unit3(comb(tangent, Math.cos(alpha0), startDir, Math.sin(alpha0)));
+				const top0 = unit3(cross3(cross3(nose0, startDir), nose0));
+				const id = place(
+					sim,
+					design,
+					'stock.home',
+					startPos,
+					comb(groundV, 1, comb(tangent, Math.cos(GAMMA), startDir, -Math.sin(GAMMA)), V0),
+					quatOfBasis(cross3(nose0, top0), nose0, top0)
+				);
+				const at = () => sim.snapshot().vessels.find((v) => Number(v.id) === id);
+				const parts = design.parts.length;
+				sim.dispatch({ type: 'set-rcs', vessel: at()!.id, on: true } as never);
+				let gear = false;
+				let touch: Landing | undefined;
+				let lastLog = -1;
+				for (let t = 0; t < 500; t += 0.5) {
+					const v = at();
+					if (!v) break;
+					const now = sim.snapshot().t;
+					const pos = v.position;
+					const upv = unit3(pos);
+					const alt = len(pos) - RW_R;
+					const air = { x: v.velocity.x - W * pos.z, y: v.velocity.y, z: v.velocity.z + W * pos.x };
+					const speed = len(air);
+					const vUp = dot3(air, upv);
+					const horiz = flat(air, upv);
+					const aim = aimAt(now);
+					const hRun = unit3(flat(spin(rwHeading, now), upv));
+					const sideRun = unit3(cross3(upv, hRun));
+					const rel = comb(pos, 1, aim, -1);
+					const along = dot3(rel, hRun);
+					const lateral = dot3(rel, sideRun);
+					const range = Math.acos(Math.max(-1, Math.min(1, dot3(unit3(aim), upv)))) * RW_R;
+					const nowDown = Math.atan2(-vUp, len(horiz));
+					// the glide: a steep line down to a short final, then a preflare and the flare
+					const R1 = 4_000;
+					const H1 = R1 * Math.tan((8 * Math.PI) / 180);
+					const lineSlope = (ALT0 - H1) / (startRange - R1);
+					const hRef = range > R1 ? H1 + (range - R1) * lineSlope : H1 * (range / R1);
+					const slopeRef = range > R1 ? lineSlope : H1 / R1;
+					const vzCmd = -len(horiz) * slopeRef - 0.02 * (alt - hRef);
+					let alpha = Math.max(3, Math.min(16, 9 - 0.06 * (vUp - vzCmd)));
+					const onGround = alt < 6 && (touch !== undefined || alt < 3.5);
+					if (alt < 500 && !onGround) {
+						// the flare: the sink follows the height (a 10 s time constant), down to 1 m/s at the ground
+						const wantSink = 1 + 0.1 * alt;
+						alpha = Math.max(8, Math.min(17, 11 + 1.0 * (-vUp - wantSink)));
+					}
+					if (onGround) alpha = 0;
+					// the nose along the airflow's heading, turned towards the runway line by at most 10°
+					const hAir = unit3(horiz);
+					const sideways = unit3(cross3(upv, hAir));
+					const toLine = comb(aim, 1, pos, -1);
+					const bearing = Math.atan2(
+						dot3(flat(toLine, upv), sideways),
+						dot3(flat(toLine, upv), hAir)
+					);
+					const turn = Math.max(-0.17, Math.min(0.17, bearing));
+					const dirH = comb(hAir, Math.cos(turn), sideways, Math.sin(turn));
+					const pitchCmd = -nowDown + (alpha * Math.PI) / 180;
+					if (!onGround)
+						sim.dispatch({
+							type: 'sas',
+							vessel: v.id,
+							mode: 'direction',
+							direction: comb(dirH, Math.cos(pitchCmd), upv, Math.sin(pitchCmd))
+						} as never);
+					if (!gear && alt < 1_500 && speed < 190) {
+						gear = sim.dispatch({
+							type: 'action-group',
+							vessel: v.id,
+							group: 'stock.landing-gear',
+							value: true
+						} as never).ok;
+					}
+					if (onGround && !touch) {
+						touch = {
+							along,
+							lateral,
+							sink: -vUp,
+							speed,
+							t,
+							parts: v.parts.length === parts ? parts : v.parts.length,
+							stopped: false,
+							stopAlong: along,
+							gear
+						};
+						sim.dispatch({
+							type: 'action-group',
+							vessel: v.id,
+							group: 'stock.brakes',
+							value: true
+						} as never);
+						sim.dispatch({
+							type: 'action-group',
+							vessel: v.id,
+							group: 'stock.parachutes'
+						} as never);
+					}
+					if (log && t - lastLog >= 10) {
+						lastLog = t;
+						console.log(
+							`t ${t} alt ${alt.toFixed(0)} range ${range.toFixed(0)} along ${along.toFixed(0)} lateral ${lateral.toFixed(0)} v ${speed.toFixed(0)} sink ${(-vUp).toFixed(1)} alpha ${alpha.toFixed(1)}`
+						);
+					}
+					run(sim, 0.5);
+					if (touch) {
+						touch.stopAlong = dot3(
+							comb(at()?.position ?? pos, 1, aimAt(sim.snapshot().t), -1),
+							hRun
+						);
+						if (speed < 1 && t > touch.t + 5) {
+							touch.stopped = true;
+							break;
+						}
+					}
+				}
+				if (!touch) {
+					const v = at();
+					const pos = v?.position ?? startPos;
+					const aim = aimAt(sim.snapshot().t);
+					const upv = unit3(pos);
+					const hRun = unit3(flat(spin(rwHeading, sim.snapshot().t), upv));
+					const rel = comb(pos, 1, aim, -1);
+					return {
+						along: 1e6,
+						lateral: dot3(rel, unit3(cross3(upv, hRun))),
+						sink: 0,
+						speed: 0,
+						t: 0,
+						parts: 0,
+						stopped: false,
+						stopAlong: 0,
+						gear
+					};
+				}
+				touch.parts = at()?.parts.length ?? 0;
+				return touch;
+			} finally {
+				sim.dispose();
+			}
+		}
+		/** The range the glide line starts from: the flight's own. */
+		let startRange = 90_000;
+
+		// shooting: the heading and the range that put the touchdown 500 m past the aim on the line
+		let delta = 0;
+		let rangeOut = 90_000;
+		let result: Landing | undefined;
+		let best = { cost: Infinity, delta: 0, range: 90_000 };
+		for (let round = 0; round < 9; round++) {
+			startRange = rangeOut;
+			const base = await approach(delta, rangeOut);
+			result = base;
+			// the best flight so far: on the line, on the runway, the softest
+			const cost = Math.abs(base.lateral) + Math.abs(base.along - 500) / 5 + 40 * base.sink;
+			if (cost < best.cost) best = { cost, delta, range: rangeOut };
+			if (Math.abs(base.lateral) < 15 && Math.abs(base.along - 500) < 250 && base.sink < 3) break;
+			const dd = 0.004;
+			startRange = rangeOut;
+			const byDelta = await approach(delta + dd, rangeOut);
+			const dr = 3_000;
+			startRange = rangeOut + dr;
+			const byRange = await approach(delta, rangeOut + dr);
+			// Newton on [lateral, along - 500] by [delta, range]
+			const a = (byDelta.lateral - base.lateral) / dd;
+			const b = (byRange.lateral - base.lateral) / dr;
+			const c = (byDelta.along - base.along) / dd;
+			const d = (byRange.along - base.along) / dr;
+			const det = a * d - b * c;
+			if (!Number.isFinite(det) || Math.abs(det) < 1e-9) break;
+			const f1 = -base.lateral;
+			const f2 = 500 - base.along;
+			delta += Math.max(-0.02, Math.min(0.02, (f1 * d - b * f2) / det));
+			rangeOut += Math.max(-8_000, Math.min(8_000, (a * f2 - c * f1) / det));
+			console.log(
+				`shooting ${round}: lateral ${base.lateral.toFixed(0)} along ${base.along.toFixed(0)} sink ${base.sink.toFixed(1)} -> delta ${(delta * 57.3).toFixed(2)}° range ${rangeOut.toFixed(0)}`
+			);
+		}
+		void result;
+		startRange = best.range;
+		const final = await approach(best.delta, best.range, true);
+		console.log(`landing: ${JSON.stringify(final)}`);
+		expect(final.parts).toBe(design.parts.length);
+		expect(final.gear).toBe(true);
+		// the gear takes 6 m/s (its impact tolerance is 14)
+		expect(final.sink).toBeLessThan(6);
+		// on the level-2 runway: from its threshold (200 m before the aim) to its far end (1 600 m past it)
+		expect(final.along).toBeGreaterThan(-200);
+		expect(final.along).toBeLessThan(1_000);
+		expect(Math.abs(final.lateral)).toBeLessThan(30);
+		expect(final.stopped).toBe(true);
+		expect(final.stopAlong).toBeLessThan(1_600);
+		void R;
+	}, 900_000);
 
 	// plan 287: the Selene Rover set down on the moon, released from the lander and driven 100 m
 	it('the Selene Rover is released on the moon and drives 100 m (plan 287)', async () => {

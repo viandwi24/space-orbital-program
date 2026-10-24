@@ -2859,6 +2859,90 @@ const DATA: unknown = [
 				},
 				{
 					index: 15,
+					part: 'stock.control-surface',
+					parent: {
+						index: 2,
+						parentNode: 'surface',
+						node: 'radial',
+						radial: {
+							angle: 0,
+							y: -0.4
+						}
+					},
+					symmetry: 2
+				},
+				{
+					index: 16,
+					part: 'stock.control-surface',
+					parent: {
+						index: 2,
+						parentNode: 'surface',
+						node: 'radial',
+						radial: {
+							angle: 3.14159265359,
+							y: -0.4
+						}
+					},
+					symmetry: 2
+				},
+				{
+					index: 17,
+					part: 'stock.control-surface',
+					parent: {
+						index: 2,
+						parentNode: 'surface',
+						node: 'radial',
+						radial: {
+							angle: 0,
+							y: -0.05
+						}
+					},
+					symmetry: 3
+				},
+				{
+					index: 18,
+					part: 'stock.control-surface',
+					parent: {
+						index: 2,
+						parentNode: 'surface',
+						node: 'radial',
+						radial: {
+							angle: 3.14159265359,
+							y: -0.05
+						}
+					},
+					symmetry: 3
+				},
+				{
+					index: 19,
+					part: 'stock.control-surface',
+					parent: {
+						index: 2,
+						parentNode: 'surface',
+						node: 'radial',
+						radial: {
+							angle: 0,
+							y: 0.3
+						}
+					},
+					symmetry: 4
+				},
+				{
+					index: 20,
+					part: 'stock.control-surface',
+					parent: {
+						index: 2,
+						parentNode: 'surface',
+						node: 'radial',
+						radial: {
+							angle: 3.14159265359,
+							y: 0.3
+						}
+					},
+					symmetry: 4
+				},
+				{
+					index: 21,
 					part: 'stock.rcs-block-5',
 					parent: {
 						index: 0,
@@ -2869,10 +2953,10 @@ const DATA: unknown = [
 							y: -0.55
 						}
 					},
-					symmetry: 2
+					symmetry: 5
 				},
 				{
-					index: 16,
+					index: 22,
 					part: 'stock.rcs-block-5',
 					parent: {
 						index: 0,
@@ -2883,10 +2967,10 @@ const DATA: unknown = [
 							y: -0.55
 						}
 					},
-					symmetry: 2
+					symmetry: 5
 				},
 				{
-					index: 17,
+					index: 23,
 					part: 'stock.rcs-block-5',
 					parent: {
 						index: 0,
@@ -2897,10 +2981,10 @@ const DATA: unknown = [
 							y: -0.55
 						}
 					},
-					symmetry: 2
+					symmetry: 5
 				},
 				{
-					index: 18,
+					index: 24,
 					part: 'stock.rcs-block-5',
 					parent: {
 						index: 0,
@@ -2911,10 +2995,10 @@ const DATA: unknown = [
 							y: -0.55
 						}
 					},
-					symmetry: 2
+					symmetry: 5
 				},
 				{
-					index: 19,
+					index: 25,
 					part: 'stock.rcs-block-5',
 					parent: {
 						index: 1,
@@ -2925,10 +3009,10 @@ const DATA: unknown = [
 							y: -0.9
 						}
 					},
-					symmetry: 3
+					symmetry: 6
 				},
 				{
-					index: 20,
+					index: 26,
 					part: 'stock.rcs-block-5',
 					parent: {
 						index: 1,
@@ -2939,10 +3023,10 @@ const DATA: unknown = [
 							y: -0.9
 						}
 					},
-					symmetry: 3
+					symmetry: 6
 				},
 				{
-					index: 21,
+					index: 27,
 					part: 'stock.radial-decoupler',
 					parent: {
 						index: 1,
@@ -2955,19 +3039,19 @@ const DATA: unknown = [
 					}
 				},
 				{
-					index: 22,
+					index: 28,
 					part: 'stock.external-tank',
 					parent: {
-						index: 21,
+						index: 27,
 						parentNode: 'outer',
 						node: 'radial'
 					}
 				},
 				{
-					index: 23,
+					index: 29,
 					part: 'stock.radial-decoupler',
 					parent: {
-						index: 22,
+						index: 28,
 						parentNode: 'surface',
 						node: 'radial',
 						radial: {
@@ -2975,13 +3059,13 @@ const DATA: unknown = [
 							y: -0.2
 						}
 					},
-					symmetry: 4
+					symmetry: 7
 				},
 				{
-					index: 24,
+					index: 30,
 					part: 'stock.radial-decoupler',
 					parent: {
-						index: 22,
+						index: 28,
 						parentNode: 'surface',
 						node: 'radial',
 						radial: {
@@ -2989,59 +3073,59 @@ const DATA: unknown = [
 							y: -0.2
 						}
 					},
-					symmetry: 4
+					symmetry: 7
 				},
 				{
-					index: 25,
+					index: 31,
 					part: 'stock.srb-xl',
 					parent: {
-						index: 23,
+						index: 29,
 						parentNode: 'outer',
 						node: 'radial'
 					},
-					symmetry: 5
+					symmetry: 8
 				},
 				{
-					index: 26,
+					index: 32,
 					part: 'stock.srb-xl',
 					parent: {
-						index: 24,
+						index: 30,
 						parentNode: 'outer',
 						node: 'radial'
 					},
-					symmetry: 5
+					symmetry: 8
 				},
 				{
-					index: 27,
+					index: 33,
 					part: 'stock.nose-cone-1875',
 					parent: {
-						index: 25,
+						index: 31,
 						parentNode: 'top',
 						node: 'bottom'
 					},
-					symmetry: 6
+					symmetry: 9
 				},
 				{
-					index: 28,
+					index: 34,
 					part: 'stock.nose-cone-1875',
 					parent: {
-						index: 26,
+						index: 32,
 						parentNode: 'top',
 						node: 'bottom'
 					},
-					symmetry: 6
+					symmetry: 9
 				},
 				{
-					index: 29,
+					index: 35,
 					part: 'stock.engine-plate-8',
 					parent: {
-						index: 22,
+						index: 28,
 						parentNode: 'bottom',
 						node: 'top'
 					}
 				},
 				{
-					index: 30,
+					index: 36,
 					part: 'stock.orbiter-gear-nose',
 					parent: {
 						index: 0,
@@ -3059,7 +3143,7 @@ const DATA: unknown = [
 					}
 				},
 				{
-					index: 31,
+					index: 37,
 					part: 'stock.orbiter-gear',
 					parent: {
 						index: 1,
@@ -3077,7 +3161,7 @@ const DATA: unknown = [
 					}
 				},
 				{
-					index: 32,
+					index: 38,
 					part: 'stock.orbiter-gear',
 					parent: {
 						index: 1,
@@ -3095,7 +3179,7 @@ const DATA: unknown = [
 					}
 				},
 				{
-					index: 33,
+					index: 39,
 					part: 'stock.drag-chute',
 					parent: {
 						index: 2,
@@ -3113,7 +3197,7 @@ const DATA: unknown = [
 					}
 				}
 			],
-			stages: [[29, 25, 26], [23, 24], [21, 2], [4]]
+			stages: [[35, 31, 32], [29, 30], [27, 2], [4]]
 		},
 		systems: [
 			{
@@ -3304,6 +3388,90 @@ const DATA: unknown = [
 						},
 						{
 							index: 15,
+							part: 'stock.control-surface',
+							parent: {
+								index: 2,
+								parentNode: 'surface',
+								node: 'radial',
+								radial: {
+									angle: 0,
+									y: -0.4
+								}
+							},
+							symmetry: 2
+						},
+						{
+							index: 16,
+							part: 'stock.control-surface',
+							parent: {
+								index: 2,
+								parentNode: 'surface',
+								node: 'radial',
+								radial: {
+									angle: 3.14159265359,
+									y: -0.4
+								}
+							},
+							symmetry: 2
+						},
+						{
+							index: 17,
+							part: 'stock.control-surface',
+							parent: {
+								index: 2,
+								parentNode: 'surface',
+								node: 'radial',
+								radial: {
+									angle: 0,
+									y: -0.05
+								}
+							},
+							symmetry: 3
+						},
+						{
+							index: 18,
+							part: 'stock.control-surface',
+							parent: {
+								index: 2,
+								parentNode: 'surface',
+								node: 'radial',
+								radial: {
+									angle: 3.14159265359,
+									y: -0.05
+								}
+							},
+							symmetry: 3
+						},
+						{
+							index: 19,
+							part: 'stock.control-surface',
+							parent: {
+								index: 2,
+								parentNode: 'surface',
+								node: 'radial',
+								radial: {
+									angle: 0,
+									y: 0.3
+								}
+							},
+							symmetry: 4
+						},
+						{
+							index: 20,
+							part: 'stock.control-surface',
+							parent: {
+								index: 2,
+								parentNode: 'surface',
+								node: 'radial',
+								radial: {
+									angle: 3.14159265359,
+									y: 0.3
+								}
+							},
+							symmetry: 4
+						},
+						{
+							index: 21,
 							part: 'stock.rcs-block-5',
 							parent: {
 								index: 0,
@@ -3314,10 +3482,10 @@ const DATA: unknown = [
 									y: -0.55
 								}
 							},
-							symmetry: 2
+							symmetry: 5
 						},
 						{
-							index: 16,
+							index: 22,
 							part: 'stock.rcs-block-5',
 							parent: {
 								index: 0,
@@ -3328,10 +3496,10 @@ const DATA: unknown = [
 									y: -0.55
 								}
 							},
-							symmetry: 2
+							symmetry: 5
 						},
 						{
-							index: 17,
+							index: 23,
 							part: 'stock.rcs-block-5',
 							parent: {
 								index: 0,
@@ -3342,10 +3510,10 @@ const DATA: unknown = [
 									y: -0.55
 								}
 							},
-							symmetry: 2
+							symmetry: 5
 						},
 						{
-							index: 18,
+							index: 24,
 							part: 'stock.rcs-block-5',
 							parent: {
 								index: 0,
@@ -3356,10 +3524,10 @@ const DATA: unknown = [
 									y: -0.55
 								}
 							},
-							symmetry: 2
+							symmetry: 5
 						},
 						{
-							index: 19,
+							index: 25,
 							part: 'stock.rcs-block-5',
 							parent: {
 								index: 1,
@@ -3370,10 +3538,10 @@ const DATA: unknown = [
 									y: -0.9
 								}
 							},
-							symmetry: 3
+							symmetry: 6
 						},
 						{
-							index: 20,
+							index: 26,
 							part: 'stock.rcs-block-5',
 							parent: {
 								index: 1,
@@ -3384,10 +3552,10 @@ const DATA: unknown = [
 									y: -0.9
 								}
 							},
-							symmetry: 3
+							symmetry: 6
 						},
 						{
-							index: 21,
+							index: 27,
 							part: 'stock.radial-decoupler',
 							parent: {
 								index: 1,
@@ -3400,19 +3568,19 @@ const DATA: unknown = [
 							}
 						},
 						{
-							index: 22,
+							index: 28,
 							part: 'stock.external-tank',
 							parent: {
-								index: 21,
+								index: 27,
 								parentNode: 'outer',
 								node: 'radial'
 							}
 						},
 						{
-							index: 23,
+							index: 29,
 							part: 'stock.radial-decoupler',
 							parent: {
-								index: 22,
+								index: 28,
 								parentNode: 'surface',
 								node: 'radial',
 								radial: {
@@ -3420,13 +3588,13 @@ const DATA: unknown = [
 									y: -0.2
 								}
 							},
-							symmetry: 4
+							symmetry: 7
 						},
 						{
-							index: 24,
+							index: 30,
 							part: 'stock.radial-decoupler',
 							parent: {
-								index: 22,
+								index: 28,
 								parentNode: 'surface',
 								node: 'radial',
 								radial: {
@@ -3434,86 +3602,86 @@ const DATA: unknown = [
 									y: -0.2
 								}
 							},
-							symmetry: 4
-						},
-						{
-							index: 25,
-							part: 'stock.srb-xl',
-							parent: {
-								index: 23,
-								parentNode: 'outer',
-								node: 'radial'
-							},
-							symmetry: 5
-						},
-						{
-							index: 26,
-							part: 'stock.srb-xl',
-							parent: {
-								index: 24,
-								parentNode: 'outer',
-								node: 'radial'
-							},
-							symmetry: 5
-						},
-						{
-							index: 27,
-							part: 'stock.nose-cone-1875',
-							parent: {
-								index: 25,
-								parentNode: 'top',
-								node: 'bottom'
-							},
-							symmetry: 6
-						},
-						{
-							index: 28,
-							part: 'stock.nose-cone-1875',
-							parent: {
-								index: 26,
-								parentNode: 'top',
-								node: 'bottom'
-							},
-							symmetry: 6
-						},
-						{
-							index: 29,
-							part: 'stock.adapter-3750-5000',
-							parent: {
-								index: 22,
-								parentNode: 'bottom',
-								node: 'top'
-							}
-						},
-						{
-							index: 30,
-							part: 'stock.tank-5000-long',
-							parent: {
-								index: 29,
-								parentNode: 'bottom',
-								node: 'top'
-							}
+							symmetry: 7
 						},
 						{
 							index: 31,
-							part: 'stock.tank-5000-long',
+							part: 'stock.srb-xl',
 							parent: {
-								index: 30,
-								parentNode: 'bottom',
-								node: 'top'
-							}
+								index: 29,
+								parentNode: 'outer',
+								node: 'radial'
+							},
+							symmetry: 8
 						},
 						{
 							index: 32,
-							part: 'stock.engine-plate-j2',
+							part: 'stock.srb-xl',
+							parent: {
+								index: 30,
+								parentNode: 'outer',
+								node: 'radial'
+							},
+							symmetry: 8
+						},
+						{
+							index: 33,
+							part: 'stock.nose-cone-1875',
 							parent: {
 								index: 31,
+								parentNode: 'top',
+								node: 'bottom'
+							},
+							symmetry: 9
+						},
+						{
+							index: 34,
+							part: 'stock.nose-cone-1875',
+							parent: {
+								index: 32,
+								parentNode: 'top',
+								node: 'bottom'
+							},
+							symmetry: 9
+						},
+						{
+							index: 35,
+							part: 'stock.adapter-3750-5000',
+							parent: {
+								index: 28,
 								parentNode: 'bottom',
 								node: 'top'
 							}
 						},
 						{
-							index: 33,
+							index: 36,
+							part: 'stock.tank-5000-long',
+							parent: {
+								index: 35,
+								parentNode: 'bottom',
+								node: 'top'
+							}
+						},
+						{
+							index: 37,
+							part: 'stock.tank-5000-long',
+							parent: {
+								index: 36,
+								parentNode: 'bottom',
+								node: 'top'
+							}
+						},
+						{
+							index: 38,
+							part: 'stock.engine-plate-j2',
+							parent: {
+								index: 37,
+								parentNode: 'bottom',
+								node: 'top'
+							}
+						},
+						{
+							index: 39,
 							part: 'stock.orbiter-gear-nose',
 							parent: {
 								index: 0,
@@ -3531,7 +3699,7 @@ const DATA: unknown = [
 							}
 						},
 						{
-							index: 34,
+							index: 40,
 							part: 'stock.orbiter-gear',
 							parent: {
 								index: 1,
@@ -3549,7 +3717,7 @@ const DATA: unknown = [
 							}
 						},
 						{
-							index: 35,
+							index: 41,
 							part: 'stock.orbiter-gear',
 							parent: {
 								index: 1,
@@ -3567,7 +3735,7 @@ const DATA: unknown = [
 							}
 						},
 						{
-							index: 36,
+							index: 42,
 							part: 'stock.drag-chute',
 							parent: {
 								index: 2,
@@ -3585,7 +3753,7 @@ const DATA: unknown = [
 							}
 						}
 					],
-					stages: [[32, 25, 26], [23, 24], [21, 2], [4]]
+					stages: [[38, 31, 32], [29, 30], [27, 2], [4]]
 				}
 			},
 			{
@@ -3773,28 +3941,28 @@ const DATA: unknown = [
 						},
 						{
 							index: 15,
-							part: 'stock.rcs-block-5',
+							part: 'stock.control-surface',
 							parent: {
-								index: 0,
+								index: 2,
 								parentNode: 'surface',
 								node: 'radial',
 								radial: {
-									angle: 0.785398163397,
-									y: -0.55
+									angle: 0,
+									y: -0.4
 								}
 							},
 							symmetry: 2
 						},
 						{
 							index: 16,
-							part: 'stock.rcs-block-5',
+							part: 'stock.control-surface',
 							parent: {
-								index: 0,
+								index: 2,
 								parentNode: 'surface',
 								node: 'radial',
 								radial: {
-									angle: 2.35619449019,
-									y: -0.55
+									angle: 3.14159265359,
+									y: -0.4
 								}
 							},
 							symmetry: 2
@@ -3807,14 +3975,42 @@ const DATA: unknown = [
 								parentNode: 'surface',
 								node: 'radial',
 								radial: {
+									angle: 0.785398163397,
+									y: -0.55
+								}
+							},
+							symmetry: 3
+						},
+						{
+							index: 18,
+							part: 'stock.rcs-block-5',
+							parent: {
+								index: 0,
+								parentNode: 'surface',
+								node: 'radial',
+								radial: {
+									angle: 2.35619449019,
+									y: -0.55
+								}
+							},
+							symmetry: 3
+						},
+						{
+							index: 19,
+							part: 'stock.rcs-block-5',
+							parent: {
+								index: 0,
+								parentNode: 'surface',
+								node: 'radial',
+								radial: {
 									angle: 3.92699081699,
 									y: -0.55
 								}
 							},
-							symmetry: 2
+							symmetry: 3
 						},
 						{
-							index: 18,
+							index: 20,
 							part: 'stock.rcs-block-5',
 							parent: {
 								index: 0,
@@ -3825,10 +4021,10 @@ const DATA: unknown = [
 									y: -0.55
 								}
 							},
-							symmetry: 2
+							symmetry: 3
 						},
 						{
-							index: 19,
+							index: 21,
 							part: 'stock.rcs-block-5',
 							parent: {
 								index: 1,
@@ -3839,10 +4035,10 @@ const DATA: unknown = [
 									y: -0.9
 								}
 							},
-							symmetry: 3
+							symmetry: 4
 						},
 						{
-							index: 20,
+							index: 22,
 							part: 'stock.rcs-block-5',
 							parent: {
 								index: 1,
@@ -3853,10 +4049,10 @@ const DATA: unknown = [
 									y: -0.9
 								}
 							},
-							symmetry: 3
+							symmetry: 4
 						},
 						{
-							index: 21,
+							index: 23,
 							part: 'stock.radial-decoupler',
 							parent: {
 								index: 1,
@@ -3869,87 +4065,87 @@ const DATA: unknown = [
 							}
 						},
 						{
-							index: 22,
+							index: 24,
 							part: 'stock.external-tank',
 							parent: {
-								index: 21,
+								index: 23,
 								parentNode: 'outer',
 								node: 'radial'
 							}
 						},
 						{
-							index: 23,
+							index: 25,
 							part: 'stock.radial-decoupler',
 							parent: {
-								index: 22,
+								index: 24,
 								parentNode: 'surface',
 								node: 'radial',
 								radial: {
 									angle: 1.57079632679,
 									y: -0.2
 								}
-							},
-							symmetry: 4
-						},
-						{
-							index: 24,
-							part: 'stock.radial-decoupler',
-							parent: {
-								index: 22,
-								parentNode: 'surface',
-								node: 'radial',
-								radial: {
-									angle: 4.71238898038,
-									y: -0.2
-								}
-							},
-							symmetry: 4
-						},
-						{
-							index: 25,
-							part: 'stock.srb-xl',
-							parent: {
-								index: 23,
-								parentNode: 'outer',
-								node: 'radial'
 							},
 							symmetry: 5
 						},
 						{
 							index: 26,
-							part: 'stock.srb-xl',
+							part: 'stock.radial-decoupler',
 							parent: {
 								index: 24,
-								parentNode: 'outer',
-								node: 'radial'
+								parentNode: 'surface',
+								node: 'radial',
+								radial: {
+									angle: 4.71238898038,
+									y: -0.2
+								}
 							},
 							symmetry: 5
 						},
 						{
 							index: 27,
-							part: 'stock.nose-cone-1875',
+							part: 'stock.srb-xl',
 							parent: {
 								index: 25,
-								parentNode: 'top',
-								node: 'bottom'
+								parentNode: 'outer',
+								node: 'radial'
 							},
 							symmetry: 6
 						},
 						{
 							index: 28,
-							part: 'stock.nose-cone-1875',
+							part: 'stock.srb-xl',
 							parent: {
 								index: 26,
-								parentNode: 'top',
-								node: 'bottom'
+								parentNode: 'outer',
+								node: 'radial'
 							},
 							symmetry: 6
 						},
 						{
 							index: 29,
+							part: 'stock.nose-cone-1875',
+							parent: {
+								index: 27,
+								parentNode: 'top',
+								node: 'bottom'
+							},
+							symmetry: 7
+						},
+						{
+							index: 30,
+							part: 'stock.nose-cone-1875',
+							parent: {
+								index: 28,
+								parentNode: 'top',
+								node: 'bottom'
+							},
+							symmetry: 7
+						},
+						{
+							index: 31,
 							part: 'stock.radial-decoupler',
 							parent: {
-								index: 22,
+								index: 24,
 								parentNode: 'surface',
 								node: 'radial',
 								radial: {
@@ -3957,13 +4153,13 @@ const DATA: unknown = [
 									y: 0.6
 								}
 							},
-							symmetry: 7
+							symmetry: 8
 						},
 						{
-							index: 30,
+							index: 32,
 							part: 'stock.radial-decoupler',
 							parent: {
-								index: 22,
+								index: 24,
 								parentNode: 'surface',
 								node: 'radial',
 								radial: {
@@ -3971,71 +4167,53 @@ const DATA: unknown = [
 									y: 0.6
 								}
 							},
-							symmetry: 7
-						},
-						{
-							index: 31,
-							part: 'stock.srb-xl',
-							parent: {
-								index: 29,
-								parentNode: 'outer',
-								node: 'radial'
-							},
-							symmetry: 8
-						},
-						{
-							index: 32,
-							part: 'stock.srb-xl',
-							parent: {
-								index: 30,
-								parentNode: 'outer',
-								node: 'radial'
-							},
 							symmetry: 8
 						},
 						{
 							index: 33,
-							part: 'stock.nose-cone-1875',
+							part: 'stock.srb-xl',
 							parent: {
 								index: 31,
-								parentNode: 'top',
-								node: 'bottom'
+								parentNode: 'outer',
+								node: 'radial'
 							},
 							symmetry: 9
 						},
 						{
 							index: 34,
-							part: 'stock.nose-cone-1875',
+							part: 'stock.srb-xl',
 							parent: {
 								index: 32,
-								parentNode: 'top',
-								node: 'bottom'
+								parentNode: 'outer',
+								node: 'radial'
 							},
 							symmetry: 9
 						},
 						{
 							index: 35,
-							part: 'stock.adapter-3750-5000',
+							part: 'stock.nose-cone-1875',
 							parent: {
-								index: 22,
-								parentNode: 'bottom',
-								node: 'top'
-							}
+								index: 33,
+								parentNode: 'top',
+								node: 'bottom'
+							},
+							symmetry: 10
 						},
 						{
 							index: 36,
-							part: 'stock.tank-5000-long',
+							part: 'stock.nose-cone-1875',
 							parent: {
-								index: 35,
-								parentNode: 'bottom',
-								node: 'top'
-							}
+								index: 34,
+								parentNode: 'top',
+								node: 'bottom'
+							},
+							symmetry: 10
 						},
 						{
 							index: 37,
-							part: 'stock.tank-5000-long',
+							part: 'stock.adapter-3750-5000',
 							parent: {
-								index: 36,
+								index: 24,
 								parentNode: 'bottom',
 								node: 'top'
 							}
@@ -4051,7 +4229,7 @@ const DATA: unknown = [
 						},
 						{
 							index: 39,
-							part: 'stock.engine-plate-j2',
+							part: 'stock.tank-5000-long',
 							parent: {
 								index: 38,
 								parentNode: 'bottom',
@@ -4060,6 +4238,24 @@ const DATA: unknown = [
 						},
 						{
 							index: 40,
+							part: 'stock.tank-5000-long',
+							parent: {
+								index: 39,
+								parentNode: 'bottom',
+								node: 'top'
+							}
+						},
+						{
+							index: 41,
+							part: 'stock.engine-plate-j2',
+							parent: {
+								index: 40,
+								parentNode: 'bottom',
+								node: 'top'
+							}
+						},
+						{
+							index: 42,
 							part: 'stock.orbiter-gear-nose',
 							parent: {
 								index: 0,
@@ -4077,7 +4273,7 @@ const DATA: unknown = [
 							}
 						},
 						{
-							index: 41,
+							index: 43,
 							part: 'stock.orbiter-gear',
 							parent: {
 								index: 1,
@@ -4095,7 +4291,7 @@ const DATA: unknown = [
 							}
 						},
 						{
-							index: 42,
+							index: 44,
 							part: 'stock.orbiter-gear',
 							parent: {
 								index: 1,
@@ -4113,7 +4309,7 @@ const DATA: unknown = [
 							}
 						},
 						{
-							index: 43,
+							index: 45,
 							part: 'stock.drag-chute',
 							parent: {
 								index: 2,
@@ -4131,7 +4327,7 @@ const DATA: unknown = [
 							}
 						}
 					],
-					stages: [[39, 25, 26, 31, 32], [23, 24, 29, 30], [21, 2], [4]]
+					stages: [[41, 27, 28, 33, 34], [25, 26, 31, 32], [23, 2], [4]]
 				}
 			}
 		]
