@@ -76,6 +76,7 @@ import {
 import { ConnectorBars, type ConnectorBar } from './parts/connector.ts';
 import { PartModelFactory } from './parts/factory.ts';
 import { applyShrouds, shroudCandidates } from './parts/shroud.ts';
+import { VesselBatch } from './parts/vessel-batch.ts';
 import { mergeShardSources, shardSourceFromGeometry, type ShardSource } from './effects/shards.ts';
 import {
 	DEFAULT_PART_SHAPE,
@@ -247,6 +248,8 @@ interface VesselEntry {
 	bars: ConnectorBars;
 	line: OrbitLine;
 	marker: VesselMarker;
+	/** The parts' static meshes drawn once per material (plan 367, ADR 0344). */
+	batch: VesselBatch;
 }
 
 /** How long a change of the view insets eases, s (plan 215, ADR 0205 point 7). */
@@ -1374,6 +1377,7 @@ export class SceneModel {
 			} else {
 				this.scene.remove(entry.group, entry.line.object, entry.marker.object);
 				for (const p of entry.parts.values()) p.model.dispose();
+				entry.batch.dispose();
 				entry.bars.dispose();
 				entry.line.dispose();
 				entry.marker.dispose();
@@ -2153,6 +2157,7 @@ export class SceneModel {
 		if (!rot) {
 			this.scene.remove(entry.group);
 			for (const p of entry.parts.values()) p.model.dispose();
+			entry.batch.dispose();
 			entry.bars.dispose();
 			return;
 		}
@@ -2177,6 +2182,7 @@ export class SceneModel {
 	private dropRemnant(r: Remnant): void {
 		this.scene.remove(r.entry.group);
 		for (const p of r.entry.parts.values()) p.model.dispose();
+		r.entry.batch.dispose();
 		r.entry.bars.dispose();
 	}
 
@@ -2270,6 +2276,7 @@ export class SceneModel {
 		this.remnants = [];
 		for (const v of this.vessels.values()) {
 			for (const p of v.parts.values()) p.model.dispose();
+			v.batch.dispose();
 			v.bars.dispose();
 			v.line.dispose();
 			v.marker.dispose();
@@ -2483,7 +2490,8 @@ export class SceneModel {
 				parts: new Map(),
 				bars: this.makeBars(group),
 				line: new OrbitLine(),
-				marker: new VesselMarker()
+				marker: new VesselMarker(),
+				batch: new VesselBatch(group)
 			};
 			entry.line.setResolution(this.viewport.width, this.viewport.height);
 			this.scene.add(entry.group, entry.line.object, entry.marker.object);
@@ -2558,6 +2566,7 @@ export class SceneModel {
 		}
 		// The parts of a vessel are rigid, so shrouds change only when a part joins or leaves.
 		if (changed) applyShrouds(shroudCandidates(entry.parts));
+		entry.batch.sync(entry.parts);
 		if (this.highlight.id !== null) this.applyHighlight();
 	}
 }

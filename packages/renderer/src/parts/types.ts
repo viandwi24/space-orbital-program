@@ -93,6 +93,8 @@ export interface PartModel {
 	 * geometry and materials as an `InstancedMesh`; pieces that animate stay on `root`.
 	 */
 	readonly staticMesh?: Mesh;
+	/** The model has its own cloned materials (a part that glows): the vessel batch leaves it out (plan 367). */
+	readonly cloned?: boolean;
 	/**
 	 * Size (m) of the node of the part on this part's bottom node, or null for none: an engine or
 	 * decoupler grows or drops its auto shroud (plan 207). Absent on models without one.
