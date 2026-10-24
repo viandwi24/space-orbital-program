@@ -129,8 +129,10 @@ describe('stock boots through the loader', () => {
 			'stock.engine-plate-9',
 			'stock.engine-plate-f1',
 			'stock.engine-plate-j2',
+			'stock.engine-tiny',
 			'stock.engine-vacuum',
 			'stock.engine-vacuum-xl',
+			'stock.engine-vernier',
 			'stock.engine-wide',
 			'stock.escape-tower',
 			'stock.eva-suit',
@@ -237,6 +239,7 @@ describe('stock boots through the loader', () => {
 			'stock.separator-1250',
 			'stock.separator-2500',
 			'stock.separator-3750',
+			'stock.separatron',
 			'stock.sequencer',
 			'stock.service-bay',
 			'stock.service-bay-wide',
@@ -459,7 +462,9 @@ describe('stock boots through the loader', () => {
 			'stock.orbiter-gear-nose',
 			'stock.drag-chute',
 			// the R-7 strap-on tank hangs radially too (plan 275)
-			'stock.tank-booster'
+			'stock.tank-booster',
+			// the separatron hangs on a stage's side (plan 276)
+			'stock.separatron'
 		]);
 		// the mission parts of plans 276–300 with other node sets: radial-only, bottom-only, a
 		// hub's side ports, a coupler's several bottoms

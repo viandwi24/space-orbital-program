@@ -1881,7 +1881,25 @@ const DATA: unknown = [
 					symmetry: 6
 				}
 			],
-			stages: [[49], [47, 46, 4, 3], [43, 42], [21, 22], [20], [23], [24], [29, 30], [6], [0]]
+			stages: [[49], [47, 46, 4, 3], [43, 42], [21, 22], [20], [23], [24], [29, 30], [6], [0]],
+			groups: [
+				{
+					slot: 0,
+					label: 'Abort',
+					members: [
+						{
+							part: 4,
+							module: 'stock.engine',
+							action: 'setActive'
+						},
+						{
+							part: 6,
+							module: 'stock.decoupler',
+							action: 'decouple'
+						}
+					]
+				}
+			]
 		},
 		systems: [
 			{
@@ -2626,7 +2644,25 @@ const DATA: unknown = [
 							symmetry: 6
 						}
 					],
-					stages: [[56], [50, 49, 4, 3], [44, 43], [21, 22], [20], [23], [24], [29, 30], [6], [0]]
+					stages: [[56], [50, 49, 4, 3], [44, 43], [21, 22], [20], [23], [24], [29, 30], [6], [0]],
+					groups: [
+						{
+							slot: 0,
+							label: 'Abort',
+							members: [
+								{
+									part: 4,
+									module: 'stock.engine',
+									action: 'setActive'
+								},
+								{
+									part: 6,
+									module: 'stock.decoupler',
+									action: 'decouple'
+								}
+							]
+						}
+					]
 				}
 			}
 		]

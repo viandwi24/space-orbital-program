@@ -183,3 +183,27 @@ describe('mission blueprints (plan 286)', () => {
 		}
 	});
 });
+
+describe('the Abort group of Kronos V (plan 276)', () => {
+	it('holds the tower’s motor and the capsule’s separation in custom slot 0, at both scales', () => {
+		const kronos = MISSION_BLUEPRINTS.find((m) => m.id === 'stock.kronos-selene')!;
+		const designs = [
+			kronos.design,
+			...(kronos.systems ?? []).flatMap((s) => (s.design ? [s.design] : []))
+		];
+		expect(designs.length).toBeGreaterThan(1);
+		for (const d of designs) {
+			const abort = d.groups?.find((g) => g.slot === 0);
+			expect(abort, d.name).toBeDefined();
+			const named = abort!.members.map((m) => [
+				d.parts.find((p) => p.index === m.part)!.part,
+				m.module,
+				m.action
+			]);
+			expect(named).toEqual([
+				['stock.escape-tower', 'stock.engine', 'setActive'],
+				['stock.decoupler-wide', 'stock.decoupler', 'decouple']
+			]);
+		}
+	});
+});

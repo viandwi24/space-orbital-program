@@ -143,6 +143,64 @@ export function engine(ctx: GenContext): GeneratedPart {
 		}
 	}
 
+	// Presets (plan 276): `style` 1 an open frame, 2 a full shroud, 3 a vacuum bell with a dark extension.
+	const style = Math.round(ctx.param('style', 0, 0, 3));
+	if (style === 1) {
+		// open frame: a cage of four rails and two hoops round the chamber, a second pump, bare plumbing
+		const cageR = Math.min(R * 0.78, 0.5);
+		const top = plateBottom - 0.02;
+		const bottom = throatY - 0.05;
+		for (let i = 0; i < 4; i++) {
+			const a = ((i + 0.5) / 4) * Math.PI * 2;
+			m.cylinder(
+				'metal',
+				0.018,
+				top - bottom,
+				[Math.sin(a) * cageR, (top + bottom) / 2, Math.cos(a) * cageR],
+				{
+					segments: 8
+				}
+			);
+		}
+		for (const y of [top - 0.04, bottom + 0.04]) {
+			m.revolve('metal', [
+				{ r: cageR - 0.015, y: y - 0.015 },
+				{ r: cageR + 0.015, y: y - 0.015 },
+				{ r: cageR + 0.015, y: y + 0.015 },
+				{ r: cageR - 0.015, y: y + 0.015 }
+			]);
+		}
+	} else if (style === 2) {
+		// full shroud: a cowl over the chamber and the pumps, closed at the bottom by a lip
+		const cowlR = Math.min(R * 0.96, 0.58);
+		const top = plateBottom - 0.01;
+		const bottom = throatY - 0.1;
+		m.revolve('paint-primary', [
+			{ r: bellR(bottom) + wall + 0.02, y: bottom - 0.04 },
+			{ r: cowlR, y: bottom },
+			{ r: cowlR, y: top }
+		]);
+		m.revolve('dark-metal', [
+			{ r: cowlR, y: top },
+			{ r: cowlR * 0.9, y: top + 0.008 }
+		]);
+		if (detail.extras >= 1) {
+			m.revolve('paint-accent', [
+				{ r: cowlR + 0.004, y: bottom + 0.1 },
+				{ r: cowlR + 0.004, y: bottom + 0.15 }
+			]);
+		}
+	} else if (style === 3) {
+		// a vacuum bell: the lower third is a dark radiation-cooled extension, a little wider
+		const y0 = -h2 + bellLen * 0.38;
+		m.revolve('dark-metal', [
+			{ r: bellR(-h2) + wall + 0.012, y: -h2 },
+			{ r: bellR(-h2 + 0.2) + wall + 0.012, y: -h2 + 0.2, smooth: true },
+			{ r: bellR(y0) + wall + 0.012, y: y0 },
+			{ r: bellR(y0) + wall, y: y0 }
+		]);
+	}
+
 	// A skirt from the plate's rim to the part below covers the bell (plan 207).
 	return {
 		pivot: [0, plateBottom, 0],

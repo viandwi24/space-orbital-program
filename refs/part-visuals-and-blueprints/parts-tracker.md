@@ -150,20 +150,20 @@ Logika sim RCS sudah ada (`ModuleRcs`, plan 211). Konfigurasinya per nozzle (`no
 
 | ID | Part kita | Referensi KSP/KSP2 | Bentuk & detail | Interaksi | Status | Prio |
 |---|---|---|---|---|---|---|
-| ENG-01 | Mesin lifter 1,25 m (`engine-lv`) | LV-T30 / LV-T45 | **rangka terbuka**: pompa, pipa, bell pendek dengan ring | S, P (limiter, gimbal), E | 🎨 | P1 |
-| ENG-02 | Mesin vakum (`engine-vacuum`) | Terrier / Poodle | kepala pendek, bell panjang dan lebar, nozzle extension gelap | S, P, E | 🎨 | P1 |
-| ENG-03 | Mesin 2,5 m (`engine-wide`) | Skipper / Mainsail | **shroud penuh** menutupi pompa | S, P, E (shroud on/off) | 🎨 | P1 |
+| ENG-01 | Mesin lifter 1,25 m (`engine-lv`) | LV-T30 / LV-T45 | **rangka terbuka**: pompa, pipa, bell pendek dengan ring | S, P (limiter, gimbal), E | ✅ style 1 (plan 276) | P1 |
+| ENG-02 | Mesin vakum (`engine-vacuum`) | Terrier / Poodle | kepala pendek, bell panjang dan lebar, nozzle extension gelap | S, P, E | ✅ style 3 (plan 276) | P1 |
+| ENG-03 | Mesin 2,5 m (`engine-wide`) | Skipper / Mainsail | **shroud penuh** menutupi pompa | S, P, E (shroud on/off) | ✅ style 2 (plan 276) | P1 |
 | ENG-04 | Cluster 4 (`engine-cluster`) | Twin-Boar / Mammoth | 4 bell di bawah pelat | S, P, E | 🎨 | P2 |
 | ENG-05 | Pelat mesin 5 / 8 / 9 | EP-xx engine plate [MH], Mammoth | pelat dengan susunan quincunx (5, gaya F-1), cincin 8, octaweb 9 | S, E | 🆕 | P1 |
-| ENG-06 | Mesin dengan vernier | (RD-107 gaya Soyuz) | 4 ruang bakar + 2 vernier kecil berputar | S, E | 🆕 | P1 (Soyuz) |
-| ENG-07 | Mesin kecil 0,625 m | Spark / Ant | mini, bell lebar | S, E | 🆕 | P2 |
+| ENG-06 | Mesin dengan vernier | (RD-107 gaya Soyuz) | 4 ruang bakar + 2 vernier kecil berputar | S, E | ✅ `stock.engine-vernier` (plan 276) | P1 (Soyuz) |
+| ENG-07 | Mesin kecil 0,625 m | Spark / Ant | mini, bell lebar | S, E | ✅ `stock.engine-tiny` (plan 276) | P2 |
 | ENG-08 | Mesin nuklir termal | LV-N "Nerv" | silinder panjang, radiator, bell panjang | S, E | 🆕 ⚙️ panas | P3 |
 | ENG-09 | Mesin ion | Dawn | kotak dengan grid bundar | S, E | 🆕 ⚙️ xenon | P3 |
 | ENG-10 | Aerospike | Dart | ram melingkar tanpa bell | S, E | 🆕 | P3 |
-| SRB-01 | SRB (`srb-small`, `srb-large`, `booster`) | Flea / Hammer / Thumper / Kickback | **segmen** dengan ring sambungan, rok belakang, nozzle tetap, band hitam | S, E (limiter) | 🎨 | P1 |
-| SRB-02 | Booster cair (`booster-liquid`) | — | sama seperti SRB-01 dengan pipa dan katup | S, E | 🎨 | P2 |
-| SRB-03 | Motor pemisah kecil | Sepratron | tabung kecil miring, radial | S | 🆕 | P2 |
-| SRB-04 | Menara escape (LES) | Launch Escape System | tiang rangka + motor dengan nozzle miring, dibuang setelah terbang | S, AG (abort) | 🆕 | P1 (Apollo, Soyuz) |
+| SRB-01 | SRB (`srb-small`, `srb-large`, `booster`) | Flea / Hammer / Thumper / Kickback | **segmen** dengan ring sambungan, rok belakang, nozzle tetap, band hitam | S, E (limiter) | ✅ `joints` (plan 276) | P1 |
+| SRB-02 | Booster cair (`booster-liquid`) | — | sama seperti SRB-01 dengan pipa dan katup | S, E | ✅ `joints` (plan 276) | P2 |
+| SRB-03 | Motor pemisah kecil | Sepratron | tabung kecil miring, radial | S | ✅ `stock.separatron` (plan 276; belum miring) | P2 |
+| SRB-04 | Menara escape (LES) | Launch Escape System | tiang rangka + motor dengan nozzle miring, dibuang setelah terbang | S, AG (abort) | ✅ `stock.escape-tower`, di grup Abort Kronos V (plan 276) | P1 (Apollo, Soyuz) |
 
 ## 4. Coupling, struktur, payload
 

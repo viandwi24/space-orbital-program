@@ -30,6 +30,8 @@ export const PartEngineLV = definePart({
 	visual: {
 		kind: 'engine',
 		palette: { primary: '#2d3138', secondary: '#9aa1aa', accent: '#b0642e' },
+		// an open frame (plan 276)
+		params: { style: 1 },
 		// Thrust along +Y, so the exhaust leaves the bell exit (bottom face) downwards.
 		plume: {
 			template: { propellant: 'kerolox', chamberPressure: 70 },
@@ -130,6 +132,8 @@ function solidBooster(spec: {
 	fuel: number;
 	bellExit: number;
 	plumeLength: number;
+	/** Field joints drawn on the casing (plan 276). */
+	joints?: number;
 }) {
 	const h2 = spec.height / 2;
 	return definePart({
@@ -143,7 +147,7 @@ function solidBooster(spec: {
 			kind: 'booster',
 			palette: { primary: '#ecebe6', secondary: '#23272d', accent: '#d9552b' },
 			// white with black bands, as solid motors are painted (plan 291 livery)
-			params: { bellExit: spec.bellExit, livery: 'bands' },
+			params: { bellExit: spec.bellExit, livery: 'bands', joints: spec.joints ?? 0 },
 			plume: {
 				template: { propellant: 'solid' },
 				module: ModuleEngine.id,
@@ -191,7 +195,8 @@ export const PartBooster = solidBooster({
 	ispSeaLevel: 215,
 	fuel: 330,
 	bellExit: 0.3,
-	plumeLength: 6
+	plumeLength: 6,
+	joints: 3
 });
 
 /**
@@ -208,6 +213,7 @@ export const PartBoosterLiquid = definePart({
 	visual: {
 		kind: 'booster',
 		palette: { primary: '#e8ecef', secondary: '#2a4f7a', accent: '#e3a61f' },
+		params: { joints: 2 },
 		plume: {
 			template: { propellant: 'kerolox', chamberPressure: 55 },
 			module: ModuleEngine.id,
@@ -255,7 +261,8 @@ export const PartSrbSmall = solidBooster({
 	ispSeaLevel: 210,
 	fuel: 110,
 	bellExit: 0.24,
-	plumeLength: 4
+	plumeLength: 4,
+	joints: 1
 });
 
 /** A large 1.25 m solid motor (plan 210): stack or side, 300 kN for about 45 s. */
@@ -270,7 +277,8 @@ export const PartSrbLarge = solidBooster({
 	ispSeaLevel: 225,
 	fuel: 870,
 	bellExit: 0.45,
-	plumeLength: 9
+	plumeLength: 9,
+	joints: 3
 });
 
 /** A vacuum upper-stage engine (plan 210): high Isp in vacuum, poor at sea level, short and light. */
@@ -284,7 +292,7 @@ export const PartEngineVacuum = definePart({
 	visual: {
 		kind: 'engine',
 		palette: { primary: '#2d3138', secondary: '#c9ced4', accent: '#3d7fb0' },
-		params: { bellExit: 0.5, throat: 0.1 },
+		params: { bellExit: 0.5, throat: 0.1, style: 3 },
 		plume: {
 			template: { propellant: 'hydrolox', chamberPressure: 30 },
 			module: ModuleEngine.id,
@@ -326,7 +334,7 @@ export const PartEngineWide = definePart({
 	visual: {
 		kind: 'engine',
 		palette: { primary: '#2d3138', secondary: '#9aa1aa', accent: '#b0642e' },
-		params: { bellExit: 0.95, throat: 0.3 },
+		params: { bellExit: 0.95, throat: 0.3, style: 2 },
 		plume: {
 			template: { propellant: 'methalox', chamberPressure: 80 },
 			module: ModuleEngine.id,
@@ -356,3 +364,143 @@ export const PartEngineWide = definePart({
 	],
 	stagingIcon: 'engine'
 });
+
+/**
+ * A vernier engine (plan 276, ENG-06): the RD-107 of 1957, four chambers on one turbopump and two
+ * small steering chambers on the rim. The verniers are drawn, not simulated: the engine's gimbal
+ * does their work, with a wider range than the cluster's.
+ */
+const VERNIER_THRUST = 450_000;
+export const PartEngineVernier = definePart({
+	id: 'stock.engine-vernier',
+	title: 'OrbitX RD-107V "Quartet"',
+	mass: kg(engineMass('kerolox-early', VERNIER_THRUST, 4)),
+	cost: engineCost('kerolox-early', VERNIER_THRUST),
+	impactTolerance: 4,
+	shape: cylinder(1.2),
+	visual: {
+		kind: 'engine-cluster',
+		palette: { primary: '#2d3138', secondary: '#9aa1aa', accent: '#b0642e' },
+		params: { bells: 4, ring: 0.31, bellExit: 0.2, verniers: 2 },
+		plume: {
+			template: { propellant: 'kerolox', brightness: 0.9, lengthScale: 0.9, chamberPressure: 90 },
+			module: ModuleEngine.id,
+			nozzle: [0, -0.6, 0],
+			nozzles: [
+				[0.219203, -0.6, 0.219203],
+				[-0.219203, -0.6, 0.219203],
+				[-0.219203, -0.6, -0.219203],
+				[0.219203, -0.6, -0.219203]
+			],
+			exitRadius: 0.2,
+			length: 5.5,
+			exitPressure: 90_000
+		},
+		articulation: { module: ModuleEngine.id, field: 'gimbal', mode: 'gimbal' }
+	},
+	attach: stackNodes(1.2),
+	crossfeed: false,
+	modules: [
+		[
+			ModuleEngine,
+			{
+				thrust: VERNIER_THRUST,
+				ispVacuum: 306,
+				ispSeaLevel: 255,
+				propellants: [
+					{ resource: LiquidFuel.id, ratio: 0.9 },
+					{ resource: Oxidizer.id, ratio: 1.1 }
+				],
+				gimbal: { range: 6, rate: 24 }
+			}
+		]
+	],
+	stagingIcon: 'engine'
+});
+
+/** A 0.625 m engine (plan 276, ENG-07): a small storable engine for probes and kick stages. */
+const TINY_THRUST = 20_000;
+export const PartEngineTiny = definePart({
+	id: 'stock.engine-tiny',
+	title: 'OrbitX SP-06 "Spark"',
+	mass: kg(engineMass('hypergolic-early', TINY_THRUST)),
+	cost: engineCost('hypergolic-early', TINY_THRUST),
+	impactTolerance: 4,
+	shape: cylinder(0.8, 0.3125),
+	visual: {
+		kind: 'engine-mini',
+		palette: { primary: '#2d3138', secondary: '#c9ced4', accent: '#d9552b' },
+		params: { bellExit: 0.26 },
+		plume: {
+			template: { propellant: 'hypergolic', chamberPressure: 20 },
+			module: ModuleEngine.id,
+			nozzle: [0, -0.4, 0],
+			exitRadius: 0.26,
+			length: 4,
+			exitPressure: 8_000
+		},
+		articulation: { module: ModuleEngine.id, field: 'gimbal', mode: 'gimbal' }
+	},
+	attach: stackNodes(0.8, 0.625),
+	crossfeed: false,
+	modules: [
+		[
+			ModuleEngine,
+			{
+				thrust: TINY_THRUST,
+				ispVacuum: 280,
+				ispSeaLevel: 120,
+				propellants: [
+					{ resource: LiquidFuel.id, ratio: 0.9 },
+					{ resource: Oxidizer.id, ratio: 1.1 }
+				],
+				gimbal: { range: 3, rate: 20 }
+			}
+		]
+	],
+	stagingIcon: 'engine'
+});
+
+/**
+ * The separatron (plan 276, SRB-03): a small solid motor for the side of a stage, fired a moment
+ * after separation to push the spent stage away. A radial part; staged with the decoupler.
+ */
+export const PartSeparatron = definePart({
+	id: 'stock.separatron',
+	title: 'OrbitX SM-1 "Nudge"',
+	mass: kg(6),
+	cost: partCost(6, 'engine'),
+	impactTolerance: 5,
+	shape: { kind: 'cylinder', radius: 0.1, height: 0.5 },
+	visual: {
+		kind: 'separatron',
+		palette: { primary: '#d8d6cf', secondary: '#23272d', accent: '#d9552b' },
+		plume: {
+			template: { propellant: 'solid' },
+			module: ModuleEngine.id,
+			nozzle: [0, -0.25, 0],
+			exitRadius: 0.08,
+			length: 2,
+			exitPressure: 90_000
+		}
+	},
+	attach: { radial: { pos: [-0.1, 0, 0], dir: [-1, 0, 0] } },
+	crossfeed: false,
+	modules: [
+		[
+			ModuleEngine,
+			{
+				thrust: 18_000,
+				ispVacuum: 230,
+				ispSeaLevel: 205,
+				propellants: [{ resource: SolidFuel.id, ratio: 1 }],
+				solid: true
+			}
+		],
+		[ModuleResourceContainer, { contents: { [SolidFuel.id]: { capacity: 6 } } }]
+	],
+	stagingIcon: 'engine'
+});
+
+/** The small engines of plan 276, registered after the older parts. */
+export const STOCK_SMALL_ENGINES = [PartEngineVernier, PartEngineTiny, PartSeparatron] as const;

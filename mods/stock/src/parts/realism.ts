@@ -303,6 +303,16 @@ export const STOCK_ENGINE_REALISM: Record<string, PartRealism> = {
 		counterpart: 'a hydrolox cluster: RS-25 class (Shuttle, Energia core)',
 		bells: 8
 	},
+	'stock.engine-vernier': {
+		kind: 'kerolox-early',
+		counterpart: 'RD-107 of 1957 with its two vernier chambers',
+		bells: 4
+	},
+	'stock.engine-tiny': {
+		kind: 'hypergolic-early',
+		counterpart: 'an AJ10-class kick engine, scaled down'
+	},
+	'stock.separatron': { kind: 'solid-early', counterpart: 'a Sergeant-class separation motor' },
 	'stock.booster-liquid': {
 		kind: 'kerolox-early',
 		counterpart: 'a strap-on kerolox booster (Soyuz block B, scaled)',
