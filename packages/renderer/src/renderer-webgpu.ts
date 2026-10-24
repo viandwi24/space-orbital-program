@@ -19,6 +19,7 @@ import { postLook } from './post-profile.ts';
 import { ACESFilmicToneMapping, PCFShadowMap, type Camera, type Scene } from 'three';
 import type { RenderPipeline, WebGPURenderer } from 'three/webgpu';
 import type { RendererBackend } from './backend.ts';
+import { wantedLimits } from './device-limits.ts';
 import { FEATURE_NAMES, FeatureSwitches, type FeatureName } from './feature-switches.ts';
 import { PrecompileTracker, type PrecompileProgress } from './precompile-progress.ts';
 import { CompileReport } from './compile-report.ts';
@@ -255,7 +256,12 @@ export function createWebGPURenderer(
 		modules ??= await loadModules();
 		// the static site structure as one render bundle (plan 396); lights and moving parts stay out
 		env.site.bundleStatic(new modules.BundleGroup() as unknown as StaticBundle);
+		// a pipeline that samples more than 16 textures in one stage (the planet's shadow pass with a mod
+		// planet's images on top of the looks' maps) fails to build at the default limit and leaves a look
+		// missing; the adapter has more (48 on the M5, 128 on D3D): ask for what it has, up to 32 (plan 410)
+		const limits = await wantedLimits();
 		const r = new modules.WebGPURenderer({
+			...(limits ? { requiredLimits: limits } : {}),
 			canvas: config.canvas,
 			antialias: false,
 			logarithmicDepthBuffer: true,

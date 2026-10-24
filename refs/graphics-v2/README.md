@@ -119,3 +119,8 @@ Drafts folded in:
 - **Mods:** a mod can add a textured planet that the sim collides with, and per-body plasma, cloud and plume data.
 - **Lower tiers:** a locked 60 on a base M2 and on a mid-range Windows PC at their default preset. These are measured by the owner or on other machines.
 - **Physics:** no fling on opening bays, doors, legs or petals in space. That includes the Wayfarer Shuttle's cargo bay and Kronos releasing its payload. A vessel cannot pass through another vessel or the ground. Each fix has a unit test.
+
+## Relevance rules (plan 410, ADR 0368)
+
+Each look has a level per view, 0 (off or a baked stand-in), 1 (cheap) or 2 (full), from `packages/renderer/src/relevance.ts`: the sea full below 3 km and analytic below 30 km; the volumetric clouds full below 15 km and cheap to the top of the air; rocks below 150 m; the mesh terrain below 20 km; a plume only with a vessel and screen share; the plasma shell only while heating. The renderer applies a level through uniforms and branches only (no pipeline changes in play); `debug.setLookOff` forces a look off to measure it, `debug.lookCosts()` lists the levels.
+

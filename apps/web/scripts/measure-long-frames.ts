@@ -78,6 +78,11 @@ async function run(page: Page, label: string): Promise<void> {
 					scale: rr.renderScale
 				}
 			: null;
+		const compiled = rr?.compiles?.pipelines
+			? rr.compiles.pipelines
+					.filter((p: any) => p.phase === 'play')
+					.map((p: any) => p.label as string)
+			: null;
 		const log = (globalThis as any).__orbitalLongFrames?.();
 		return {
 			frames: iv.length,
@@ -90,12 +95,13 @@ async function run(page: Page, label: string): Promise<void> {
 				.slice(0, 8)
 				.map((x) => Math.round(x.v)),
 			causes: log ? log.counts() : null,
-			state
+			state,
+			compiled
 		};
 	}, seconds);
 	const perMin = (r.long / seconds) * 60;
 	console.log(
-		`${label}: ${r.frames} frames, p50 ${r.p50.toFixed(1)} ms, p95 ${r.p95.toFixed(1)} ms, max ${Math.round(r.max)} ms; ${r.long} long frames (${perMin.toFixed(1)} a minute), worst ${r.worst.join(', ')} ms; state ${JSON.stringify(r.state)}${r.causes ? `; causes ${JSON.stringify(Object.fromEntries(Object.entries(r.causes).filter(([, n]) => (n as number) > 0)))}` : ''}`
+		`${label}: ${r.frames} frames, p50 ${r.p50.toFixed(1)} ms, p95 ${r.p95.toFixed(1)} ms, max ${Math.round(r.max)} ms; ${r.long} long frames (${perMin.toFixed(1)} a minute), worst ${r.worst.join(', ')} ms; state ${JSON.stringify(r.state)}; compiled in play ${r.compiled ? r.compiled.length : '?'}${r.compiled?.length ? ` (${r.compiled.slice(0, 4).join(', ')})` : ''}${r.causes ? `; causes ${JSON.stringify(Object.fromEntries(Object.entries(r.causes).filter(([, n]) => (n as number) > 0)))}` : ''}`
 	);
 }
 

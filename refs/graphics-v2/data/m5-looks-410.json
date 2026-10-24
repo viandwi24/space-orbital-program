@@ -1,0 +1,254 @@
+{
+  "rows": [
+    {
+      "scene": "orbit",
+      "look": "ocean",
+      "state": "on",
+      "round": 1,
+      "p95": 16.700000000000728,
+      "over16": 0,
+      "over8": 1,
+      "gpuMs": 2.3035663333333334
+    },
+    {
+      "scene": "orbit",
+      "look": "ocean",
+      "state": "off",
+      "round": 1,
+      "p95": 16.700000000004366,
+      "over16": 0,
+      "over8": 1,
+      "gpuMs": 2.4749372
+    },
+    {
+      "scene": "orbit",
+      "look": "ocean",
+      "state": "off",
+      "round": 2,
+      "p95": 16.799999999995634,
+      "over16": 0,
+      "over8": 1,
+      "gpuMs": 2.4416669666666673
+    },
+    {
+      "scene": "orbit",
+      "look": "ocean",
+      "state": "on",
+      "round": 2,
+      "p95": 16.700000000004366,
+      "over16": 0,
+      "over8": 1,
+      "gpuMs": 2.7646898333333336
+    },
+    {
+      "scene": "orbit",
+      "look": "clouds",
+      "state": "on",
+      "round": 1,
+      "p95": 16.79999999998836,
+      "over16": 0,
+      "over8": 1,
+      "gpuMs": 2.5669566666666666
+    },
+    {
+      "scene": "orbit",
+      "look": "clouds",
+      "state": "off",
+      "round": 1,
+      "p95": 16.79999999998836,
+      "over16": 0,
+      "over8": 1,
+      "gpuMs": 2.7081906
+    },
+    {
+      "scene": "orbit",
+      "look": "clouds",
+      "state": "off",
+      "round": 2,
+      "p95": 16.70000000001164,
+      "over16": 0,
+      "over8": 1,
+      "gpuMs": 1.9071542333333331
+    },
+    {
+      "scene": "orbit",
+      "look": "clouds",
+      "state": "on",
+      "round": 2,
+      "p95": 16.70000000001164,
+      "over16": 0,
+      "over8": 1,
+      "gpuMs": 2.2139606333333335
+    },
+    {
+      "scene": "orbit",
+      "look": "terrain",
+      "state": "on",
+      "round": 1,
+      "p95": 16.79999999998836,
+      "over16": 0,
+      "over8": 1,
+      "gpuMs": 2.160822733333333
+    },
+    {
+      "scene": "orbit",
+      "look": "terrain",
+      "state": "off",
+      "round": 1,
+      "p95": 16.79999999998836,
+      "over16": 0,
+      "over8": 1,
+      "gpuMs": 2.090161166666667
+    },
+    {
+      "scene": "orbit",
+      "look": "terrain",
+      "state": "off",
+      "round": 2,
+      "p95": 16.79999999998836,
+      "over16": 0,
+      "over8": 1,
+      "gpuMs": 2.2977662666666663
+    },
+    {
+      "scene": "orbit",
+      "look": "terrain",
+      "state": "on",
+      "round": 2,
+      "p95": 16.79999999998836,
+      "over16": 0,
+      "over8": 1,
+      "gpuMs": 2.543499966666667
+    },
+    {
+      "scene": "space-center",
+      "look": "ocean",
+      "state": "on",
+      "round": 1,
+      "p95": 16.799999999999272,
+      "over16": 0,
+      "over8": 1,
+      "gpuMs": 1.5255337
+    },
+    {
+      "scene": "space-center",
+      "look": "ocean",
+      "state": "off",
+      "round": 1,
+      "p95": 16.700000000004366,
+      "over16": 0,
+      "over8": 1,
+      "gpuMs": 1.5156450666666663
+    },
+    {
+      "scene": "space-center",
+      "look": "ocean",
+      "state": "off",
+      "round": 2,
+      "p95": 16.700000000004366,
+      "over16": 0,
+      "over8": 1,
+      "gpuMs": 1.5162908000000002
+    },
+    {
+      "scene": "space-center",
+      "look": "ocean",
+      "state": "on",
+      "round": 2,
+      "p95": 16.799999999995634,
+      "over16": 0,
+      "over8": 1,
+      "gpuMs": 1.5033561666666668
+    },
+    {
+      "scene": "space-center",
+      "look": "clouds",
+      "state": "on",
+      "round": 1,
+      "p95": 16.79999999998836,
+      "over16": 0,
+      "over8": 1,
+      "gpuMs": 1.5219406666666668
+    },
+    {
+      "scene": "space-center",
+      "look": "clouds",
+      "state": "off",
+      "round": 1,
+      "p95": 16.70000000001164,
+      "over16": 0,
+      "over8": 1,
+      "gpuMs": 1.5198962666666664
+    },
+    {
+      "scene": "space-center",
+      "look": "clouds",
+      "state": "off",
+      "round": 2,
+      "p95": 16.79999999998836,
+      "over16": 0,
+      "over8": 1,
+      "gpuMs": 1.5204781333333335
+    },
+    {
+      "scene": "space-center",
+      "look": "clouds",
+      "state": "on",
+      "round": 2,
+      "p95": 16.80000000000291,
+      "over16": 0,
+      "over8": 1,
+      "gpuMs": 1.5183088333333334
+    },
+    {
+      "scene": "space-center",
+      "look": "terrain",
+      "state": "on",
+      "round": 1,
+      "p95": 16.70000000001164,
+      "over16": 0,
+      "over8": 1,
+      "gpuMs": 1.5133420333333336
+    },
+    {
+      "scene": "space-center",
+      "look": "terrain",
+      "state": "off",
+      "round": 1,
+      "p95": 16.70000000001164,
+      "over16": 0,
+      "over8": 1,
+      "gpuMs": 1.5124395666666666
+    },
+    {
+      "scene": "space-center",
+      "look": "terrain",
+      "state": "off",
+      "round": 2,
+      "p95": 16.70000000001164,
+      "over16": 0,
+      "over8": 1,
+      "gpuMs": 1.6253182333333334
+    },
+    {
+      "scene": "space-center",
+      "look": "terrain",
+      "state": "on",
+      "round": 2,
+      "p95": 16.79999999998836,
+      "over16": 0,
+      "over8": 1,
+      "gpuMs": 1.5964518333333333
+    }
+  ],
+  "lines": [
+    "| scene | look | p95 ms on | p95 ms off | > 16.7 on | > 16.7 off | GPU ms on | GPU ms off |",
+    "|---|---|---|---|---|---|---|---|",
+    "| orbit | ocean | 16.7 | 16.8 | 0 % | 0 % | 2.5 | 2.5 |",
+    "| orbit | clouds | 16.8 | 16.8 | 0 % | 0 % | 2.4 | 2.3 |",
+    "| orbit | terrain | 16.8 | 16.8 | 0 % | 0 % | 2.4 | 2.2 |",
+    "| space-center | ocean | 16.8 | 16.7 | 0 % | 0 % | 1.5 | 1.5 |",
+    "| space-center | clouds | 16.8 | 16.8 | 0 % | 0 % | 1.5 | 1.5 |",
+    "| space-center | terrain | 16.8 | 16.7 | 0 % | 0 % | 1.6 | 1.6 |"
+  ]
+}
