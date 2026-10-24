@@ -699,6 +699,7 @@ export class PlanetPassTSL {
 		const tag = `${preset}${this.builtShadow ? '' : '·noshadow'}`;
 		v.full.name = `planet-full·${tag}`;
 		v.half.name = `planet-half·${tag}`;
+		v.fullTaau.name = `planet-taau·${tag}`;
 		v.edge.name = `planet-edge·${tag}`;
 		v.up.name = `planet-upsample·${tag}`;
 		v.pre.name = `planet-prepass·${tag}`;

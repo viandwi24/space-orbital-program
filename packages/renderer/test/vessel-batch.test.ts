@@ -45,7 +45,9 @@ describe('VesselBatch', () => {
 		);
 		expect(tris).toBe(5 * 12);
 		// the merged geometry is in the vessel's frame: it spans the parts' positions
-		const box = (group.children[0] as Mesh).geometry.boundingSphere!;
+		const geometry = (group.children[0] as Mesh).geometry;
+		geometry.computeBoundingSphere();
+		const box = geometry.boundingSphere!;
 		expect(box.center.x).toBeCloseTo(3, 1);
 		batch.dispose();
 		expect(group.children.length).toBe(0);

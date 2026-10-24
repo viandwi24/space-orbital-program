@@ -73,6 +73,12 @@ export interface RendererConfig extends SceneConfig {
 	 */
 	warmPresets?: readonly GraphicsPreset[];
 	/**
+	 * WebGPU (plan 395, ADR 0359): the TAAU share of the side the governor's fast axis goes through, so
+	 * the start preset and the warmed ones are also drawn with TAAU on at load and a rung of it builds
+	 * no pipeline in flight. 0 or absent: not warmed (a tier that does not use the axis).
+	 */
+	warmTaau?: number;
+	/**
 	 * WebGPU (plan 370, ADR 0308): draw this preset's small pipelines first and swap to `preset` once
 	 * its pipelines are built in the background, after the loading screen. The host sets it on a first
 	 * load where shaders compile slowly (Windows). `Renderer.preset` reports `preset` throughout.

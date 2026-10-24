@@ -19,3 +19,9 @@
 ## Not done
 
 The first Flight → Map is still 126 ms (WebGPU) and 237 ms (WebGL): the map's own objects (twin lines, vessel markers, some mesh materials) compile on that frame, and the next frame is the map HUD's first mount. Moving them into `warmViews` needs the warm-up to draw the map with the vessel's objects present (open). The boot preset swap (ADR 0308) was not in these runs.
+
+## The governor's steps (found while measuring, fixed in the same plan)
+
+See the ADR's second section. In short: the TAAU share was in the pipeline key (every rung rebuilt a scene pass), the warm-up forced TAAU off for the other presets and never warmed `high` with TAAU on (`RendererConfig.warmTaau`), and plan 400's cluster-light pool was removed and rebuilt by every low-preset warm round, which changed every lit shader's cache key each time. A governed step to `medium` went 600 to 800 ms → 16 ms and the background warm-up 41 to 48 s → 3.2 to 3.4 s. `scripts/profile-governor-step.ts` (a step with a CPU profile, or `RUNGS=0.75,0.6,0.5` for the TAAU rungs, `NO_BATCH=1` for the part batch off) found it; a bisect over the 23 commits of the day found the plume lights.
+
+Open: a step to `low` in orbit (0.46 to 1.2 s on WebGPU, three MeshBasic pipelines the pad's warm-up does not draw).

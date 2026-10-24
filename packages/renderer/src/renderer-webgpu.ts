@@ -155,6 +155,8 @@ export function createWebGPURenderer(
 		backend === 'webgpu' ? (taauOverride ?? PRESETS[preset].taau) : 0;
 	/** The TAAU node of each kept pipeline, to start its history again on a camera cut, and the cut detector. */
 	const taauNodes = new Map<string, unknown>();
+	/** The scene pass of each kept TAAU pipeline: its scale changes with no new pipeline (plan 395, ADR 0359). */
+	const taauPasses = new Map<string, { setResolutionScale(scale: number): void }>();
 	const cuts = new CutDetector();
 	let last = performance.now();
 
@@ -190,9 +192,10 @@ export function createWebGPURenderer(
 		const taauScale = currentTaau();
 		const taauOn = taauScale > 0 && settings.post;
 		const samples = taauOn ? 0 : msaaSamples(settings.msaa, baseRatio());
-		const key = settings.post
-			? `${samples}:${settings.bloomScale}${taauOn ? `:taau${taauScale}` : ''}`
-			: 'off';
+		const key = settings.post ? `${samples}:${settings.bloomScale}${taauOn ? ':taau' : ''}` : 'off';
+		// the share of the side is not part of the key: a new scene pass is a new render context, and every
+		// material would build its pipeline again; the scale of the kept pass changes in place
+		if (taauOn) taauPasses.get(key)?.setResolutionScale(taauScale);
 		if (key === pipelineKey && (pipeline !== null) === settings.post) return;
 		pipeline = null;
 		pipelineKey = key;
@@ -219,6 +222,7 @@ export function createWebGPURenderer(
 				model.camera
 			) as unknown as typeof colour;
 			taauNodes.set(key, colour);
+			taauPasses.set(key, scenePass);
 		}
 		const glow = modules.bloom(
 			colour,
@@ -675,6 +679,11 @@ export function createWebGPURenderer(
 			const before = compiles.pipelines.length;
 			deferredBuilds = 0;
 			asyncPipelines = true;
+			// another preset is warmed with its own TAAU share, not the rung the governor sits on: the
+			// governor's rung at load (high, native) forced TAAU off for the medium warm-up, and its
+			// TAAU planet variant then built in flight (plan 342)
+			const heldTaau = taauOverride;
+			if (name !== own) taauOverride = null;
 			try {
 				if (name !== own) applyPreset(name, true);
 				if (parts) withParts(parts, frames);
@@ -682,6 +691,7 @@ export function createWebGPURenderer(
 			} finally {
 				asyncPipelines = false;
 				planet.forceScale = null;
+				taauOverride = heldTaau;
 				if (name !== own) applyPreset(own, true);
 			}
 			drawFrame(0);
@@ -762,6 +772,31 @@ export function createWebGPURenderer(
 				await warmRounds(name, () => sunlit(() => drawFrame(0)), parts);
 				presetWarmMs[name] = Math.round(performance.now() - t0);
 				tracker.finish();
+			}
+			// 4. the governor's TAAU rungs (plan 395): a preset whose own share is none is drawn once with
+			// TAAU on, which builds the scene pass's pipelines for the velocity target and the TAAU
+			// planet variant; the share itself is not part of the key, so every rung then reuses them
+			const share = config.warmTaau ?? 0;
+			if (share > 0 && backend === 'webgpu') {
+				for (const name of [own, ...(asked ? (config.warmPresets ?? []) : [])]) {
+					if (!gpu || preset !== own || !PRESETS[name].post || PRESETS[name].taau > 0) continue;
+					const parts = model.warmPartScene(name);
+					variants.push(parts);
+					tracker.expect(1);
+					const before = taauOverride;
+					taauOverride = share;
+					// the post chain follows the share: drawn with TAAU on, the planet writes the velocity
+					// the scene pass of the TAAU chain has, so the chain is the one drawn
+					syncPipeline();
+					try {
+						await warmRounds(name, planetFrames);
+						await warmRounds(name, () => sunlit(() => drawFrame(0)), parts);
+					} finally {
+						taauOverride = before;
+						syncPipeline();
+					}
+					tracker.finish();
+				}
 			}
 			compiles.phase = 'play';
 			// the instanced vegetation of the other presets, a few milliseconds per idle period (ADR 0055)
