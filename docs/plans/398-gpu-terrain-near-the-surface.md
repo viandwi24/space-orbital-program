@@ -68,7 +68,7 @@ Below about 20 km the ground is a rasterised mesh, not a per-pixel ray march: a 
 - [x] `docs/STATUS.md` updated (board row, next plan, open issues).
 - [x] `docs/journal/398-gpu-terrain-near-the-surface.md` written, with screens and numbers.
 - [ ] `docs/architecture/` renderer doc: terrain near and far.
-- [x] ADR for GPU terrain (step 1), linked above: 0343 (the structure), 0370 (the mesh).
+- [x] ADR for GPU terrain (step 1), linked above: 0343 (the structure), 0371 (the mesh).
 - [ ] `docs/research/stack-versions.md`: three's indirect draw and compute APIs.
 
 ## Log
