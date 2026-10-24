@@ -391,6 +391,49 @@ function station(content: Content, real: boolean): VesselDesign {
 	return b.done([[engine, ...srbs], decs, [dec]]);
 }
 
+/**
+ * Companion-1 (plan 287, BP-05; the first satellite): a small probe with four whip antennas and a
+ * battery on the stock light launcher. It carries no solar panels or instruments: it beeps.
+ */
+function companion(content: Content, real: boolean): VesselDesign {
+	const b = new Build(content, 'Companion-1', 'stock.probe-core');
+	for (let i = 0; i < 4; i++)
+		b.side('stock.antenna-whip-radial', 0, (i * Math.PI) / 2 + Math.PI / 4, 0.2);
+	b.side('stock.battery-radial', 0, 0, -0.2, 2);
+	launcherFor(real)(b, 0);
+	return b.done();
+}
+
+/**
+ * Semyorka-S + Union (plan 287, BP-03; Soyuz): a three-seat capsule with its heat shield and
+ * parachutes, a service module and an escape tower, on a core stage with four liquid strap-on
+ * boosters.
+ */
+function semyorka(content: Content): VesselDesign {
+	const b = new Build(content, 'Semyorka-S + Union', 'stock.pod-3');
+	const pod = 0;
+	b.above('stock.escape-tower', pod);
+	const shield = b.below('stock.heat-shield-wide', pod);
+	const sep = b.below('stock.decoupler-wide', shield);
+	const service = b.below('stock.tank-wide-short', sep);
+	b.side('stock.rcs-block', pod, Math.PI / 4, -0.2, 4);
+	b.side('stock.monoprop-radial', service, Math.PI / 2, 0, 2);
+	b.side('stock.battery-radial', service, Math.PI, 0, 2);
+	b.side('stock.antenna-whip-radial', service, 0, 0.3);
+	const serviceEngine = b.below('stock.engine-lv', service);
+	const dec = b.below('stock.decoupler-wide', serviceEngine);
+	const upper = b.below('stock.tank-wide', dec);
+	const upperEngine = b.below('stock.engine-wide', upper);
+	const lowerDec = b.below('stock.decoupler-wide', upperEngine);
+	const core = b.below('stock.tank-wide', lowerDec);
+	const coreEngine = b.below('stock.engine-wide', core);
+	const decouplers = b.side('stock.radial-decoupler', core, Math.PI / 4, 0, 4);
+	const boosters = b.on('stock.booster-liquid', decouplers, 'outer');
+	b.on('stock.nose-cone', boosters, 'top');
+	b.side('stock.fin', core, 0, -0.7, 4);
+	return b.done();
+}
+
 export const MISSION_BLUEPRINTS: readonly MissionBlueprint[] = [
 	{
 		id: 'kronos-selene',
@@ -583,5 +626,27 @@ export const MISSION_BLUEPRINTS: readonly MissionBlueprint[] = [
 			b.side('stock.antenna-whip-radial', 0, 0, -1);
 			return { ...b.done([]), aircraft: true };
 		}
+	},
+	{
+		id: 'companion-1',
+		title: 'Companion-1',
+		inspiredBy: 'the first artificial satellite (Sputnik 1)',
+		goal: 'orbit',
+		crew: 0,
+		summary:
+			'A small probe with four whip antennas and a battery: no instruments, no panels, it only beeps. On the stock light launcher.',
+		build: (content) => companion(content, false),
+		systems: [{ system: 'stock' }]
+	},
+	{
+		id: 'semyorka-union',
+		title: 'Semyorka-S + Union',
+		inspiredBy: 'Soyuz (the R-7 with four strap-on boosters, the Soyuz spacecraft)',
+		goal: 'orbit',
+		crew: 3,
+		summary:
+			'A three-seat capsule under an escape tower, on a service module and two stages with four liquid strap-on boosters: the workhorse crew launcher.',
+		build: (content) => semyorka(content),
+		systems: [{ system: 'stock' }]
 	}
 ];

@@ -6755,6 +6755,681 @@ const DATA: unknown = [
 				system: 'sol'
 			}
 		]
+	},
+	{
+		id: 'stock.companion-1',
+		title: 'Companion-1',
+		inspiredBy: 'the first artificial satellite (Sputnik 1)',
+		goal: 'orbit',
+		crew: 0,
+		summary:
+			'A small probe with four whip antennas and a battery: no instruments, no panels, it only beeps. On the stock light launcher.',
+		collection: 'missions',
+		design: {
+			formatVersion: 3,
+			name: 'Companion-1',
+			parts: [
+				{
+					index: 0,
+					part: 'stock.probe-core',
+					parent: null
+				},
+				{
+					index: 1,
+					part: 'stock.antenna-whip-radial',
+					parent: {
+						index: 0,
+						parentNode: 'surface',
+						node: 'radial',
+						radial: {
+							angle: 0.785398163397,
+							y: 0.2
+						}
+					}
+				},
+				{
+					index: 2,
+					part: 'stock.antenna-whip-radial',
+					parent: {
+						index: 0,
+						parentNode: 'surface',
+						node: 'radial',
+						radial: {
+							angle: 2.35619449019,
+							y: 0.2
+						}
+					}
+				},
+				{
+					index: 3,
+					part: 'stock.antenna-whip-radial',
+					parent: {
+						index: 0,
+						parentNode: 'surface',
+						node: 'radial',
+						radial: {
+							angle: 3.92699081699,
+							y: 0.2
+						}
+					}
+				},
+				{
+					index: 4,
+					part: 'stock.antenna-whip-radial',
+					parent: {
+						index: 0,
+						parentNode: 'surface',
+						node: 'radial',
+						radial: {
+							angle: 5.49778714378,
+							y: 0.2
+						}
+					}
+				},
+				{
+					index: 5,
+					part: 'stock.battery-radial',
+					parent: {
+						index: 0,
+						parentNode: 'surface',
+						node: 'radial',
+						radial: {
+							angle: 0,
+							y: -0.2
+						}
+					},
+					symmetry: 0
+				},
+				{
+					index: 6,
+					part: 'stock.battery-radial',
+					parent: {
+						index: 0,
+						parentNode: 'surface',
+						node: 'radial',
+						radial: {
+							angle: 3.14159265359,
+							y: -0.2
+						}
+					},
+					symmetry: 0
+				},
+				{
+					index: 7,
+					part: 'stock.decoupler',
+					parent: {
+						index: 0,
+						parentNode: 'bottom',
+						node: 'top'
+					}
+				},
+				{
+					index: 8,
+					part: 'stock.tank-medium',
+					parent: {
+						index: 7,
+						parentNode: 'bottom',
+						node: 'top'
+					}
+				},
+				{
+					index: 9,
+					part: 'stock.engine-lv',
+					parent: {
+						index: 8,
+						parentNode: 'bottom',
+						node: 'top'
+					}
+				},
+				{
+					index: 10,
+					part: 'stock.decoupler',
+					parent: {
+						index: 9,
+						parentNode: 'bottom',
+						node: 'top'
+					}
+				},
+				{
+					index: 11,
+					part: 'stock.adapter-large',
+					parent: {
+						index: 10,
+						parentNode: 'bottom',
+						node: 'top'
+					}
+				},
+				{
+					index: 12,
+					part: 'stock.tank-wide',
+					parent: {
+						index: 11,
+						parentNode: 'bottom',
+						node: 'top'
+					}
+				},
+				{
+					index: 13,
+					part: 'stock.engine-wide',
+					parent: {
+						index: 12,
+						parentNode: 'bottom',
+						node: 'top'
+					}
+				},
+				{
+					index: 14,
+					part: 'stock.fin',
+					parent: {
+						index: 12,
+						parentNode: 'surface',
+						node: 'radial',
+						radial: {
+							angle: 0.785398163397,
+							y: -0.7
+						}
+					},
+					symmetry: 1
+				},
+				{
+					index: 15,
+					part: 'stock.fin',
+					parent: {
+						index: 12,
+						parentNode: 'surface',
+						node: 'radial',
+						radial: {
+							angle: 2.35619449019,
+							y: -0.7
+						}
+					},
+					symmetry: 1
+				},
+				{
+					index: 16,
+					part: 'stock.fin',
+					parent: {
+						index: 12,
+						parentNode: 'surface',
+						node: 'radial',
+						radial: {
+							angle: 3.92699081699,
+							y: -0.7
+						}
+					},
+					symmetry: 1
+				},
+				{
+					index: 17,
+					part: 'stock.fin',
+					parent: {
+						index: 12,
+						parentNode: 'surface',
+						node: 'radial',
+						radial: {
+							angle: 5.49778714378,
+							y: -0.7
+						}
+					},
+					symmetry: 1
+				}
+			],
+			stages: [[13], [9, 10], [7]]
+		},
+		systems: [
+			{
+				system: 'stock'
+			}
+		]
+	},
+	{
+		id: 'stock.semyorka-union',
+		title: 'Semyorka-S + Union',
+		inspiredBy: 'Soyuz (the R-7 with four strap-on boosters, the Soyuz spacecraft)',
+		goal: 'orbit',
+		crew: 3,
+		summary:
+			'A three-seat capsule under an escape tower, on a service module and two stages with four liquid strap-on boosters: the workhorse crew launcher.',
+		collection: 'missions',
+		design: {
+			formatVersion: 3,
+			name: 'Semyorka-S + Union',
+			parts: [
+				{
+					index: 0,
+					part: 'stock.pod-3',
+					parent: null
+				},
+				{
+					index: 1,
+					part: 'stock.escape-tower',
+					parent: {
+						index: 0,
+						parentNode: 'top',
+						node: 'bottom'
+					}
+				},
+				{
+					index: 2,
+					part: 'stock.heat-shield-wide',
+					parent: {
+						index: 0,
+						parentNode: 'bottom',
+						node: 'top'
+					}
+				},
+				{
+					index: 3,
+					part: 'stock.decoupler-wide',
+					parent: {
+						index: 2,
+						parentNode: 'bottom',
+						node: 'top'
+					}
+				},
+				{
+					index: 4,
+					part: 'stock.tank-wide-short',
+					parent: {
+						index: 3,
+						parentNode: 'bottom',
+						node: 'top'
+					}
+				},
+				{
+					index: 5,
+					part: 'stock.rcs-block',
+					parent: {
+						index: 0,
+						parentNode: 'surface',
+						node: 'radial',
+						radial: {
+							angle: 0.785398163397,
+							y: -0.2
+						}
+					},
+					symmetry: 0
+				},
+				{
+					index: 6,
+					part: 'stock.rcs-block',
+					parent: {
+						index: 0,
+						parentNode: 'surface',
+						node: 'radial',
+						radial: {
+							angle: 2.35619449019,
+							y: -0.2
+						}
+					},
+					symmetry: 0
+				},
+				{
+					index: 7,
+					part: 'stock.rcs-block',
+					parent: {
+						index: 0,
+						parentNode: 'surface',
+						node: 'radial',
+						radial: {
+							angle: 3.92699081699,
+							y: -0.2
+						}
+					},
+					symmetry: 0
+				},
+				{
+					index: 8,
+					part: 'stock.rcs-block',
+					parent: {
+						index: 0,
+						parentNode: 'surface',
+						node: 'radial',
+						radial: {
+							angle: 5.49778714378,
+							y: -0.2
+						}
+					},
+					symmetry: 0
+				},
+				{
+					index: 9,
+					part: 'stock.monoprop-radial',
+					parent: {
+						index: 4,
+						parentNode: 'surface',
+						node: 'radial',
+						radial: {
+							angle: 1.57079632679,
+							y: 0
+						}
+					},
+					symmetry: 1
+				},
+				{
+					index: 10,
+					part: 'stock.monoprop-radial',
+					parent: {
+						index: 4,
+						parentNode: 'surface',
+						node: 'radial',
+						radial: {
+							angle: 4.71238898038,
+							y: 0
+						}
+					},
+					symmetry: 1
+				},
+				{
+					index: 11,
+					part: 'stock.battery-radial',
+					parent: {
+						index: 4,
+						parentNode: 'surface',
+						node: 'radial',
+						radial: {
+							angle: 3.14159265359,
+							y: 0
+						}
+					},
+					symmetry: 2
+				},
+				{
+					index: 12,
+					part: 'stock.battery-radial',
+					parent: {
+						index: 4,
+						parentNode: 'surface',
+						node: 'radial',
+						radial: {
+							angle: 6.28318530718,
+							y: 0
+						}
+					},
+					symmetry: 2
+				},
+				{
+					index: 13,
+					part: 'stock.antenna-whip-radial',
+					parent: {
+						index: 4,
+						parentNode: 'surface',
+						node: 'radial',
+						radial: {
+							angle: 0,
+							y: 0.3
+						}
+					}
+				},
+				{
+					index: 14,
+					part: 'stock.engine-lv',
+					parent: {
+						index: 4,
+						parentNode: 'bottom',
+						node: 'top'
+					}
+				},
+				{
+					index: 15,
+					part: 'stock.decoupler-wide',
+					parent: {
+						index: 14,
+						parentNode: 'bottom',
+						node: 'top'
+					}
+				},
+				{
+					index: 16,
+					part: 'stock.tank-wide',
+					parent: {
+						index: 15,
+						parentNode: 'bottom',
+						node: 'top'
+					}
+				},
+				{
+					index: 17,
+					part: 'stock.engine-wide',
+					parent: {
+						index: 16,
+						parentNode: 'bottom',
+						node: 'top'
+					}
+				},
+				{
+					index: 18,
+					part: 'stock.decoupler-wide',
+					parent: {
+						index: 17,
+						parentNode: 'bottom',
+						node: 'top'
+					}
+				},
+				{
+					index: 19,
+					part: 'stock.tank-wide',
+					parent: {
+						index: 18,
+						parentNode: 'bottom',
+						node: 'top'
+					}
+				},
+				{
+					index: 20,
+					part: 'stock.engine-wide',
+					parent: {
+						index: 19,
+						parentNode: 'bottom',
+						node: 'top'
+					}
+				},
+				{
+					index: 21,
+					part: 'stock.radial-decoupler',
+					parent: {
+						index: 19,
+						parentNode: 'surface',
+						node: 'radial',
+						radial: {
+							angle: 0.785398163397,
+							y: 0
+						}
+					},
+					symmetry: 3
+				},
+				{
+					index: 22,
+					part: 'stock.radial-decoupler',
+					parent: {
+						index: 19,
+						parentNode: 'surface',
+						node: 'radial',
+						radial: {
+							angle: 2.35619449019,
+							y: 0
+						}
+					},
+					symmetry: 3
+				},
+				{
+					index: 23,
+					part: 'stock.radial-decoupler',
+					parent: {
+						index: 19,
+						parentNode: 'surface',
+						node: 'radial',
+						radial: {
+							angle: 3.92699081699,
+							y: 0
+						}
+					},
+					symmetry: 3
+				},
+				{
+					index: 24,
+					part: 'stock.radial-decoupler',
+					parent: {
+						index: 19,
+						parentNode: 'surface',
+						node: 'radial',
+						radial: {
+							angle: 5.49778714378,
+							y: 0
+						}
+					},
+					symmetry: 3
+				},
+				{
+					index: 25,
+					part: 'stock.booster-liquid',
+					parent: {
+						index: 21,
+						parentNode: 'outer',
+						node: 'radial'
+					},
+					symmetry: 4
+				},
+				{
+					index: 26,
+					part: 'stock.booster-liquid',
+					parent: {
+						index: 22,
+						parentNode: 'outer',
+						node: 'radial'
+					},
+					symmetry: 4
+				},
+				{
+					index: 27,
+					part: 'stock.booster-liquid',
+					parent: {
+						index: 23,
+						parentNode: 'outer',
+						node: 'radial'
+					},
+					symmetry: 4
+				},
+				{
+					index: 28,
+					part: 'stock.booster-liquid',
+					parent: {
+						index: 24,
+						parentNode: 'outer',
+						node: 'radial'
+					},
+					symmetry: 4
+				},
+				{
+					index: 29,
+					part: 'stock.nose-cone',
+					parent: {
+						index: 25,
+						parentNode: 'top',
+						node: 'bottom'
+					},
+					symmetry: 5
+				},
+				{
+					index: 30,
+					part: 'stock.nose-cone',
+					parent: {
+						index: 26,
+						parentNode: 'top',
+						node: 'bottom'
+					},
+					symmetry: 5
+				},
+				{
+					index: 31,
+					part: 'stock.nose-cone',
+					parent: {
+						index: 27,
+						parentNode: 'top',
+						node: 'bottom'
+					},
+					symmetry: 5
+				},
+				{
+					index: 32,
+					part: 'stock.nose-cone',
+					parent: {
+						index: 28,
+						parentNode: 'top',
+						node: 'bottom'
+					},
+					symmetry: 5
+				},
+				{
+					index: 33,
+					part: 'stock.fin',
+					parent: {
+						index: 19,
+						parentNode: 'surface',
+						node: 'radial',
+						radial: {
+							angle: 0,
+							y: -0.7
+						}
+					},
+					symmetry: 6
+				},
+				{
+					index: 34,
+					part: 'stock.fin',
+					parent: {
+						index: 19,
+						parentNode: 'surface',
+						node: 'radial',
+						radial: {
+							angle: 1.57079632679,
+							y: -0.7
+						}
+					},
+					symmetry: 6
+				},
+				{
+					index: 35,
+					part: 'stock.fin',
+					parent: {
+						index: 19,
+						parentNode: 'surface',
+						node: 'radial',
+						radial: {
+							angle: 3.14159265359,
+							y: -0.7
+						}
+					},
+					symmetry: 6
+				},
+				{
+					index: 36,
+					part: 'stock.fin',
+					parent: {
+						index: 19,
+						parentNode: 'surface',
+						node: 'radial',
+						radial: {
+							angle: 4.71238898038,
+							y: -0.7
+						}
+					},
+					symmetry: 6
+				}
+			],
+			stages: [
+				[20, 25, 26, 27, 28],
+				[21, 22, 23, 24],
+				[17, 18],
+				[14, 15],
+				[1, 3]
+			]
+		},
+		systems: [
+			{
+				system: 'stock'
+			}
+		]
 	}
 ];
 

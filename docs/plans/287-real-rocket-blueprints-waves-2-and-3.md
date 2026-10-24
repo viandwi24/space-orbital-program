@@ -71,6 +71,7 @@ As plan 286: fly in the stock system in `mission-flights.test.ts`, and record th
 
 ## Log
 
+- 2026-10-24 — Wave 1 (Worker C): Companion-1 and Semyorka-S + Union are stock blueprints that reach orbit headless in the stock system and in Sol rescaled; the other ten stay open (journal 287).
 - 2026-10-24 — Rewritten by the coordinator after an audit against main @ 4c546c02: English names proposed for every blueprint (ADR 0268), the stock-owned bake process (ADR 0316) and per-system outcomes (ADR 0317) added; depends on 275, 276, 283 and 307.
 - 2026-10-21 — Re-scoped to the owner's mission targets: famous missions first, other real rockets later.
 - 2026-10-21 — Drafted from the part-visuals research and the owner's decisions of 2026-10-21 (CTO calls delegated by the owner). Not to be started until the owner releases the parts work: on 2026-10-21 main is busy with renderer fixes and a UI/UX agent.

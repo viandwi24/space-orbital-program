@@ -106,6 +106,9 @@ const EXPECTED: Record<string, Record<SystemKey, Outcome>> = {
 	'stock.horizon-telescope': { stock: 'goal', rescaled: 'goal', '1:1': 'goal' },
 	'stock.aurora-satellite': { stock: 'goal', rescaled: 'goal', '1:1': 'goal' },
 	'stock.trailblazer-rover': { stock: 'ground', rescaled: 'ground', '1:1': 'ground' },
+	// plan 287: designed for the stock system's launcher
+	'stock.companion-1': { stock: 'goal', rescaled: 'goal', '1:1': 'short' },
+	'stock.semyorka-union': { stock: 'goal', rescaled: 'goal', '1:1': 'short' },
 	// the orbit lessons' rocket: lessons fly in a stock world
 	'lesson.pathfinder': { stock: 'goal', rescaled: 'goal', '1:1': 'short' }
 };
