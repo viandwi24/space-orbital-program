@@ -137,9 +137,14 @@ export class TerrainTSL {
 			})
 	);
 	private readonly atlasNode: N = texture(this.blankHalf.texture);
+	/**
+	 * Both patches live in one texture, the fine one in its left half and the mid one in its right (plan 412:
+	 * the planet pass's edge variant sampled 17 textures against WebGPU's limit of 16): the two nodes hold the
+	 * same texture, which three binds once.
+	 */
 	private readonly patchNodes: Record<'fine' | 'mid', N> = {
 		fine: texture(this.blankFloats[0]!.texture),
-		mid: texture(this.blankFloats[1]!.texture)
+		mid: texture(this.blankFloats[0]!.texture)
 	};
 	private mapNode: N = null;
 	private readonly uAtlasSize = uniform(1);
@@ -215,8 +220,13 @@ export class TerrainTSL {
 		this.uPatchF.value.set(frame.north.x, frame.north.y, frame.north.z);
 		this.uHalfTan.value = frame.halfTan;
 		this.uTexel.value = patchTexel(frame, this.patchSize);
+		target.viewport.set(slot === 'mid' ? this.patchSize : 0, 0, this.patchSize, this.patchSize);
 		renderer.setRenderTarget(target);
+		// the other half keeps its bake: a clear would take the whole attachment
+		const clear = renderer.autoClear;
+		renderer.autoClear = false;
 		this.patchPass.q.render(renderer);
+		renderer.autoClear = clear;
 		this.planet.markPatchBaked(slot, frame);
 	}
 
@@ -236,7 +246,7 @@ export class TerrainTSL {
 		this.uPatchSize.value = Math.max(patchSize, 1);
 		this.atlasNode.value = this.blankHalf.texture;
 		this.patchNodes.fine.value = this.blankFloats[0]!.texture;
-		this.patchNodes.mid.value = this.blankFloats[1]!.texture;
+		this.patchNodes.mid.value = this.blankFloats[0]!.texture;
 		if (cubeSize <= 0) return;
 		const tile = cubeSize + 2;
 		this.atlas = new RenderTarget(6 * tile, tile, {
@@ -250,18 +260,17 @@ export class TerrainTSL {
 		const passKey = `${cubeSize}:${patchSize}:${map.image.width}x${map.image.height}:${this.gradient}`;
 		const cached = this.passes.get(passKey);
 		if (patchSize > 0) {
-			const make = (): RenderTarget =>
-				new RenderTarget(patchSize, patchSize, {
-					type: FloatType,
-					minFilter: this.floatLinear ? LinearFilter : NearestFilter,
-					magFilter: this.floatLinear ? LinearFilter : NearestFilter,
-					depthBuffer: false,
-					generateMipmaps: false
-				});
-			this.patchTargets.fine = make();
-			this.patchTargets.mid = make();
-			this.patchNodes.fine.value = this.patchTargets.fine.texture;
-			this.patchNodes.mid.value = this.patchTargets.mid.texture;
+			// one target two patches wide: a bake sets its half as the viewport (`bakePatch`)
+			const pair = new RenderTarget(2 * patchSize, patchSize, {
+				type: FloatType,
+				minFilter: this.floatLinear ? LinearFilter : NearestFilter,
+				magFilter: this.floatLinear ? LinearFilter : NearestFilter,
+				depthBuffer: false,
+				generateMipmaps: false
+			});
+			this.patchTargets.fine = this.patchTargets.mid = pair;
+			this.patchNodes.fine.value = pair.texture;
+			this.patchNodes.mid.value = pair.texture;
 		}
 		if (cached) {
 			this.cubePass = cached.cube;
@@ -621,16 +630,24 @@ export class TerrainTSL {
 	sampler(link: (name: string) => N, bodyInv: N, patches: boolean): TerrainSampler | null {
 		const cube = (n: N): N => texture(this.atlasNode, atlasCoord(n, this.uAtlasSize)).level(0);
 		const patchSize = this.uPatchSize;
-		const patchFetch = (target: N, st: N): N => {
+		// `half`: 0 for the fine patch (left half of the texture), 1 for the mid one (right half)
+		const patchFetch = (target: N, st: N, half: number): N => {
 			const at = st.mul(0.5).add(0.5);
-			if (this.floatLinear) return texture(target, at).level(0).xyz;
+			if (this.floatLinear)
+				return texture(target, vec2(at.x.add(half).mul(0.5), at.y)).level(0).xyz;
 			// four texels by hand where 32-bit floats cannot be filtered
 			const p = at.mul(patchSize).sub(0.5);
 			const f = fract(p);
 			const i0 = ivec2(floor(p));
-			const hi = ivec2(int(patchSize).sub(1));
+			const lo = ivec2(int(patchSize).mul(half), int(0));
+			const hi = ivec2(
+				int(patchSize)
+					.mul(half + 1)
+					.sub(1),
+				int(patchSize).sub(1)
+			);
 			const fetch = (dx: number, dy: number): N =>
-				textureLoad(target, clamp(i0.add(ivec2(dx, dy)), ivec2(0), hi)).xyz;
+				textureLoad(target, clamp(i0.add(ivec2(dx, dy)).add(lo), lo, hi)).xyz;
 			return mix(mix(fetch(0, 0), fetch(1, 0), f.x), mix(fetch(0, 1), fetch(1, 1), f.x), f.y);
 		};
 		const slots = (['fine', 'mid'] as const).map((which) => {
@@ -664,7 +681,7 @@ export class TerrainTSL {
 			const wf = fine.target ? window(nB, fine) : { st: vec2(0.0), w: float(0.0) };
 			const qFine = vec3(0.0).toVar();
 			If(wf.w.greaterThan(0.0), () => {
-				qFine.assign(patchFetch(fine.target!, wf.st));
+				qFine.assign(patchFetch(fine.target!, wf.st, 0));
 			});
 			If(wf.w.greaterThanEqual(1.0), () => {
 				out.assign(vec2(qFine.x, length(qFine.yz)));
@@ -673,7 +690,7 @@ export class TerrainTSL {
 				const h = float(0.0).toVar();
 				const g = float(0.0).toVar();
 				If(wm.w.greaterThanEqual(1.0), () => {
-					const q = patchFetch(mid.target!, wm.st);
+					const q = patchFetch(mid.target!, wm.st, 1);
 					h.assign(q.x);
 					g.assign(length(q.yz));
 				}).Else(() => {
@@ -681,7 +698,7 @@ export class TerrainTSL {
 					h.assign(t.r.add(t.g));
 					g.assign(length(t.ba));
 					If(wm.w.greaterThan(0.0), () => {
-						const q = patchFetch(mid.target!, wm.st);
+						const q = patchFetch(mid.target!, wm.st, 1);
 						h.assign(mix(h, q.x, wm.w));
 						g.assign(mix(g, length(q.yz), wm.w));
 					});
@@ -700,7 +717,7 @@ export class TerrainTSL {
 				if (!s.target) continue;
 				const win = window(nB, s);
 				If(win.w.greaterThan(0.0), () => {
-					const q = patchFetch(s.target!, win.st);
+					const q = patchFetch(s.target!, win.st, s === fine ? 0 : 1);
 					t.assign(mix(t, vec4(q.x, t1.mul(q.y).add(cross(nB, t1).mul(q.z))), win.w));
 				});
 			}

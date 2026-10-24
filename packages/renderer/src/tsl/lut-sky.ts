@@ -11,6 +11,7 @@
  *
  * Positions are planet-centred, metres. Radiance comes out times the sun's irradiance.
  */
+import { LUT_MS, LUT_PACK, LUT_TRANS } from '../texture-pack-model.ts';
 import { HalfFloatType, LinearFilter, RenderTarget, Vector3 } from 'three';
 import * as TSL from 'three/tsl';
 import { MeshBasicNodeMaterial, QuadMesh, type WebGPURenderer } from 'three/webgpu';
@@ -49,8 +50,10 @@ const {
 } = T;
 
 const PI = Math.PI;
-const TRANS = { w: 256, h: 64 };
-const MS = { w: 32, h: 32 };
+const TRANS = LUT_TRANS;
+// the two tables share one texture (plan 412, texture-pack-model.ts)
+const MS = LUT_MS;
+const PACK = LUT_PACK;
 const VIEW = { w: 192, h: 108 };
 const TRANS_STEPS = 40;
 const MS_DIRS = 8;
@@ -148,7 +151,7 @@ export function createLutSky(atm: Atmosphere): LutSky {
 	};
 
 	// --- transmittance ----------------------------------------------------------------------------
-	const transRT = target(TRANS);
+	const packRT = target(PACK);
 	const transFrag = Fn(() => {
 		const xmu = fromTexel(uv().x, TRANS.w);
 		const xr = fromTexel(uv().y, TRANS.h);
@@ -203,7 +206,8 @@ export function createLutSky(atm: Atmosphere): LutSky {
 		const dMax = rho.add(H);
 		const xmu = d.sub(dMin).div(max(dMax.sub(dMin), 1e-3));
 		const coord = vec2(toTexel(clamp(xmu, 0.0, 1.0), TRANS.w), toTexel(rho.div(H), TRANS.h));
-		return texture(transRT.texture, coord).level(0).xyz;
+		// the transmittance table is the pack's left part
+		return texture(packRT.texture, vec2(coord.x.mul(TRANS.w / PACK.w), coord.y)).level(0).xyz;
 	};
 	const sunlight = (p: N, l: N): N => {
 		const r = length(p);
@@ -214,6 +218,7 @@ export function createLutSky(atm: Atmosphere): LutSky {
 	};
 
 	// --- multiple scattering ----------------------------------------------------------------------
+	// the table is baked on its own (it reads the transmittance in the pack), then copied to the pack's right part
 	const msRT = target(MS);
 	// the planet pass's ground (albedo times 0.08 of the irradiance), as an albedo
 	const groundAlbedo = vec3(0.18, 0.2, 0.12).mul(0.08 * PI);
@@ -276,9 +281,11 @@ export function createLutSky(atm: Atmosphere): LutSky {
 	});
 	const multipleScattering = (r: N, sunMu: N): N =>
 		texture(
-			msRT.texture,
+			packRT.texture,
 			vec2(
-				toTexel(clamp(sunMu.mul(0.5).add(0.5), 0.0, 1.0), MS.w),
+				toTexel(clamp(sunMu.mul(0.5).add(0.5), 0.0, 1.0), MS.w)
+					.mul(MS.w / PACK.w)
+					.add(TRANS.w / PACK.w),
 				toTexel(clamp(r.sub(Rg).div(Rt - Rg), 0.0, 1.0), MS.h)
 			)
 		).level(0).xyz;
@@ -471,6 +478,15 @@ export function createLutSky(atm: Atmosphere): LutSky {
 		p.q.render(renderer);
 		renderer.setRenderTarget(prev);
 	};
+	/** A pass into one part of the pack, the rest kept (no clear). */
+	const runInPack = (renderer: WebGPURenderer, p: { q: QuadMesh }, x: number, w: number): void => {
+		packRT.viewport.set(x, 0, w, PACK.h);
+		const clear = renderer.autoClear;
+		renderer.autoClear = false;
+		run(renderer, packRT, p);
+		renderer.autoClear = clear;
+	};
+	const copyMsPass = pass(() => texture(msRT.texture, uv()).level(0), 'lut-sky-ms-copy');
 
 	return {
 		inscatter,
@@ -479,8 +495,9 @@ export function createLutSky(atm: Atmosphere): LutSky {
 		march,
 		sunlight,
 		bake(renderer) {
-			run(renderer, transRT, transPass);
+			runInPack(renderer, transPass, 0, TRANS.w);
 			run(renderer, msRT, msPass);
+			runInPack(renderer, copyMsPass, TRANS.w, MS.w);
 		},
 		update(renderer, r, up, sun) {
 			uViewR.value = r;
@@ -489,8 +506,8 @@ export function createLutSky(atm: Atmosphere): LutSky {
 			run(renderer, viewRT, viewPass);
 		},
 		dispose() {
-			for (const p of [transPass, msPass, viewPass]) p.m.dispose();
-			for (const rt of [transRT, msRT, viewRT]) rt.dispose();
+			for (const p of [transPass, msPass, viewPass, copyMsPass]) p.m.dispose();
+			for (const rt of [packRT, msRT, viewRT]) rt.dispose();
 		}
 	};
 }
