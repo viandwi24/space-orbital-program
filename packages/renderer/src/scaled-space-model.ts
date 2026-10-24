@@ -5,11 +5,12 @@
 import type { PresetSettings } from './presets.ts';
 
 /**
- * Face size of the bake: low 512, medium 1024, high and up 1536 (from the terrain cube's size). With the
- * WebGPU atlas's gutters and mips that is about 20, 76 and 164 MB for both maps.
+ * Face size of the bake: low 512, medium 1024, high 2048 (from the terrain cube's size; plan 403
+ * raised it from 1536). With the WebGPU atlas's gutters and mips that is about 20, 76 and 268 MB for
+ * both maps (`scaledSpaceBytes`).
  */
 export function scaledSpaceSize(s: Pick<PresetSettings, 'terrainSize' | 'mapWidth'>): number {
-	if (s.terrainSize >= 1024) return 1536;
+	if (s.terrainSize >= 1024) return 2048;
 	if (s.terrainSize >= 768) return 1024;
 	return 512;
 }

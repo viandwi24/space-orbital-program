@@ -53,3 +53,19 @@ describe('stepCover', () => {
 		expect(quantizeCover(0.4249)).toBeCloseTo(0.42, 9);
 	});
 });
+
+describe("weatherCover with a body's own look (plan 405)", () => {
+	test('a higher mean is cloudier, a zero span is steady, and the bounds still hold', () => {
+		expect(weatherCover(3, 99_000, { mean: 0.8, span: 0.1 })).toBeGreaterThan(
+			weatherCover(3, 99_000, { mean: 0.2, span: 0.1 })
+		);
+		expect(weatherCover(3, 1, { mean: 0.5, span: 0 })).toBe(
+			weatherCover(3, 777_777, { mean: 0.5, span: 0 })
+		);
+		for (let t = 0; t < 86_400 * 3; t += 3_600) {
+			const c = weatherCover(5, t, { mean: 0.88, span: 0.4 });
+			expect(c).toBeLessThanOrEqual(0.9);
+			expect(c).toBeGreaterThanOrEqual(0.05);
+		}
+	});
+});

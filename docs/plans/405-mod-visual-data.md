@@ -1,7 +1,7 @@
 ---
 id: 405
 title: "Mod visual data: plasma palettes, plume templates, cloud and weather maps, sky and ocean coefficients, post profiles, larger caps, KTX2 and WebP, and the guide"
-status: in-progress
+status: done
 owner: "Worker B"
 depends: [399, 400]
 phase: 9
@@ -64,26 +64,27 @@ A mod can change the look of the game with data: per-body plasma palettes, plume
 
 ## Acceptance criteria
 
-- [ ] `bun test packages/core` passes, including `test/mod-visual-data.test.ts`: each new field accepts the sample's values and rejects out-of-range ones with the field named; patches over stock palettes and templates apply.
-- [ ] `test/mod-assets.test.ts` (extended): PNG, WebP and KTX2 images within the caps are accepted; an over-cap image, a bad KTX2 header and an unreferenced path are refused with the file named.
-- [ ] `examples/mod-visual-sample/test/*.test.ts`: the sample builds, parses, resolves, and its palette, template, cloud map, coefficients and post profile reach the renderer's data (checked on the resolved objects, not by pixels).
-- [ ] `bun test packages/renderer` passes, including a test that a mod palette and a mod plume template replace the stock ones for that body and engine.
-- [ ] `bun run typecheck`, `bun run build` and `bun run docs:check` pass.
-- [ ] e2e paused by the owner: none added.
-- [ ] A quick look in a browser with the sample installed; before and after screenshots in `docs/journal/assets/405-*.jpg`.
-- [ ] No frame-time regression against plan 392's baseline with the sample installed (same views as 399–401).
+- [x] `bun test packages/core` passes, including `test/mod-visual-data.test.ts`: each new field accepts the sample's values and rejects out-of-range ones with the field named; patches over stock palettes and templates apply.
+- [x] `test/mod-assets.test.ts` (extended): PNG, WebP and KTX2 images within the caps are accepted; an over-cap image, a bad KTX2 header and an unreferenced path are refused with the file named.
+- [x] `examples/mod-visual-sample/test/*.test.ts`: the sample builds, parses, resolves, and its palette, template, cloud map, coefficients and post profile reach the renderer's data (checked on the resolved objects, not by pixels).
+- [x] `bun test packages/renderer` passes, including a test that a mod palette and a mod plume template replace the stock ones for that body and engine.
+- [x] `bun run typecheck`, `bun run build` and `bun run docs:check` pass.
+- [x] e2e paused by the owner: none added.
+- [x] A quick look in a browser with the sample installed; before and after screenshots in `docs/journal/assets/405-*.jpg`.
+- [x] No frame-time regression against plan 392's baseline with the sample installed (same views as 399–401).
 - [ ] [manual] The owner installs the sample and sees the changed plasma, plume and clouds.
 
 ## Docs checklist
 
-- [ ] `docs/STATUS.md` updated (board row, next plan, open issues).
-- [ ] `docs/journal/405-mod-visual-data.md` written.
-- [ ] `docs/guides/writing-a-mod.md`: "Changing the look", new caps and image kinds, and the stale "Open items" line fixed.
-- [ ] The new ADR linked above and in `docs/decisions/README.md`.
-- [ ] The mod API version bumped and noted in the guide.
+- [x] `docs/STATUS.md` updated (board row, next plan, open issues).
+- [x] `docs/journal/405-mod-visual-data.md` written.
+- [x] `docs/guides/writing-a-mod.md`: "Changing the look", new caps and image kinds, and the stale "Open items" line fixed.
+- [x] The new ADR linked above and in `docs/decisions/README.md`.
+- [x] The mod API version bumped and noted in the guide.
 - [ ] `docs/research/stack-versions.md` updated for the Meshopt decoder, if used.
 
 ## Log
 
 - 2026-10-24 — Created by the coordinator from refs/graphics-v2 (ADR 0330).
 - 2026-10-24 — Stage 1 by Worker B (ADR 0345, API 0.1.122): plasma palettes, post profiles, KTX2 and WebP images with the larger caps, the sample mod and the guide. Cloud and weather maps, sky and ocean coefficients (nothing reads them yet) and Meshopt are open.
+- 2026-10-24 — Stage 2 by Worker B (ADR 0362, API 0.1.131): air, ocean and weather data, cloud images, Meshopt allowed; the sample and guide. Done; the owner's install is [manual]. Journal 405.

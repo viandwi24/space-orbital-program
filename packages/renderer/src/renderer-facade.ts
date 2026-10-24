@@ -66,6 +66,7 @@ export type DebugFacade = Pick<
 	| 'scaledSpace'
 	| 'groundDetail'
 	| 'groundRocks'
+	| 'bodyBakes'
 	| 'setMoonTint'
 	| 'setMoonDetail'
 	| 'dishAims'
@@ -139,6 +140,7 @@ export function debugFacade(model: SceneModel): DebugFacade {
 			return true;
 		},
 		setPartTemperature: (kelvin) => model.setDebugTemperature(kelvin),
+		bodyBakes: () => model.bakedBodies(),
 		groundRocks: () => ({
 			count: env.rocks.count,
 			visible: env.rocks.root.visible,

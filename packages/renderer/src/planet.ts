@@ -217,6 +217,12 @@ interface PatchSlot {
 	names: { texture: string; c: string; e: string; f: string; k: string };
 }
 
+/** The stock sea's colours, linear RGB (what the shader had hard-coded). */
+export const OCEAN_STOCK = {
+	shallow: [0.03, 0.26, 0.24],
+	deep: [0.004, 0.035, 0.1]
+} as const;
+
 export class PlanetPass {
 	readonly mesh: Mesh;
 	readonly material: ShaderMaterial;
@@ -422,6 +428,9 @@ export class PlanetPass {
 				uScaledOn: u(0),
 				uScaledMode: u(1),
 				uCityLights: u(settings.nightLights ? 1 : 0),
+				// the sea's colours (plan 405, ADR 0362): a mod's `ocean`, else the stock ones
+				uOceanShallow: u(new Vector3(...OCEAN_STOCK.shallow)),
+				uOceanDeep: u(new Vector3(...OCEAN_STOCK.deep)),
 				uDetailOn: u(1),
 				uDetail: u(detailTexture()),
 				uBakeFace: u(0),
@@ -1359,6 +1368,14 @@ export class PlanetPass {
 		const other = siteAxes(site.latitude, site.longitude).up;
 		const r = this.material.uniforms.uR!.value as number;
 		v.set((up.x - other.x) * r, (up.y - other.y) * r, (up.z - other.z) * r);
+	}
+
+	/** The sea's colours (linear RGB; plan 405), or the stock ones. */
+	setOcean(look: { shallow: readonly number[]; deep: readonly number[] } | null): void {
+		const u = this.material.uniforms;
+		const c = look ?? OCEAN_STOCK;
+		(u.uOceanShallow!.value as Vector3).set(c.shallow[0]!, c.shallow[1]!, c.shallow[2]!);
+		(u.uOceanDeep!.value as Vector3).set(c.deep[0]!, c.deep[1]!, c.deep[2]!);
 	}
 
 	/** Moves the painted launch site (pad, roads, aprons) to another surface point. */

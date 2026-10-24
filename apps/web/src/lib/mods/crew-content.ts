@@ -3,7 +3,13 @@
  * registered for crew looks and moves, handed to the renderer once, with the mods' portrait images.
  * A portrait whose image is missing goes into the loader log.
  */
-import { installTerrainMaps, loadPlugins, type Plugin, type Registries } from '@orbital/core';
+import {
+	installBodyImages,
+	installTerrainMaps,
+	loadPlugins,
+	type Plugin,
+	type Registries
+} from '@orbital/core';
 import { crewContentOf, setCrewContent, type CrewContent } from '@orbital/renderer/crew';
 import { BUILTIN_PLUGINS } from '../builtins';
 import { noteAssetProblem } from './boot-log';
@@ -65,6 +71,28 @@ export async function installPageTerrainMaps(
 		noteAssetProblem({
 			mod: p.mod,
 			what: `planet map "${p.path}" of ${p.body}`,
+			message: p.message
+		});
+}
+
+/** After the mod runtime: the cloud images of the mods' bodies (plan 405, ADR 0362). */
+export async function installPageBodyImages(
+	builtin: readonly Plugin[] = BUILTIN_PLUGINS
+): Promise<void> {
+	const rt = modRuntime();
+	const problems = await installBodyImages(
+		[...builtin, ...rt.plugins],
+		new Map(
+			[...rt.assets].map(([mod, files]) => [
+				mod,
+				new Map([...files].map(([p, bytes]) => [p, { bytes }]))
+			])
+		)
+	);
+	for (const p of problems)
+		noteAssetProblem({
+			mod: p.mod,
+			what: `cloud map "${p.path}" of ${p.body}`,
 			message: p.message
 		});
 }

@@ -184,12 +184,27 @@ export const bodyAppearanceSchema = z.object({
 	sky: hexColorSchema.optional(),
 	/** Dust or smog in the air, 0 to 1: more haze, a paler horizon and a hidden ground from far away. */
 	haze: z.number().min(0).max(1).optional(),
+	/**
+	 * Images in the mod's package (PNG, `assets/`; plan 406, ADR 0363), twice as wide as high, 128 to 4096
+	 * texels across, equirectangular with the longitude across and north up: `albedo` is the body's colour
+	 * seen from far (instead of the palette's pattern, or the biome map's colours on a hills body) and
+	 * `normal` a tangent-space relief (OpenGL: green up) lit on the far sphere. They are read when the
+	 * body comes near and let go when it is far again.
+	 */
+	albedo: z.string().min(1).optional(),
+	normal: z.string().min(1).optional(),
 	/** A deck of cloud over the whole body at `altitude` m (opaque from orbit, gone below it). */
 	clouds: z
 		.object({
 			color: hexColorSchema,
 			altitude: z.number().positive(),
-			opacity: z.number().min(0).max(1).optional()
+			opacity: z.number().min(0).max(1).optional(),
+			/**
+			 * An image in the mod's package (PNG, `assets/`) for the deck's cover (plan 405): twice as wide
+			 * as high, 64 to 2048 texels across; the colour of each texel tints the deck, the alpha is its
+			 * cover. The deck's `color` is used where the image has none.
+			 */
+			map: z.string().min(1).optional()
 		})
 		.optional(),
 	/** Rings in the body's equator plane, radii from its centre, m. */
@@ -203,6 +218,42 @@ export const bodyAppearanceSchema = z.object({
 		.refine((r) => r.outer > r.inner, 'rings: outer must be beyond inner')
 		.optional()
 });
+
+/**
+ * How a body's air scatters (plan 405, ADR 0362): scales on the coefficients the renderer derives
+ * from its pressure and height, so a mod makes a redder sky, a hazier horizon or a thicker air
+ * without a shader. Each is optional; 1 is the derived value. Ranges keep the sky drawable.
+ */
+export const airCoefficientsSchema = z.object({
+	/** Rayleigh scattering per channel (red, green, blue). */
+	rayleigh: z
+		.tuple([z.number().min(0).max(8), z.number().min(0).max(8), z.number().min(0).max(8)])
+		.optional(),
+	/** Mie scattering (haze). */
+	mie: z.number().min(0).max(8).optional(),
+	/** The Mie phase asymmetry (the glare round the sun), -0.95 to 0.95; the stock air is 0.76. */
+	mieG: z.number().min(-0.95).max(0.95).optional(),
+	/** The scale heights of the two layers, as multiples. */
+	rayleighHeight: z.number().min(0.25).max(4).optional(),
+	mieHeight: z.number().min(0.25).max(4).optional(),
+	/** The ozone layer's absorption (the home air has one). */
+	ozone: z.number().min(0).max(4).optional(),
+	/** The stand-ins for multiple scattering (sky and haze). */
+	skyBoost: z.number().min(0.25).max(4).optional(),
+	mieBoost: z.number().min(0.25).max(4).optional()
+});
+export type AirCoefficients = z.infer<typeof airCoefficientsSchema>;
+
+/** The colours of a body's sea (plan 405, ADR 0362): the shallows and the deep. */
+export const oceanLookSchema = z.object({ shallow: hexColorSchema, deep: hexColorSchema });
+export type OceanLook = z.infer<typeof oceanLookSchema>;
+
+/** The weather of a body's clouds (plan 405, ADR 0362): the cover about which it wanders and how far. */
+export const weatherLookSchema = z.object({
+	mean: z.number().min(0.05).max(0.9),
+	span: z.number().min(0).max(0.5)
+});
+export type WeatherLook = z.infer<typeof weatherLookSchema>;
 
 /** A region id: lower-case words joined by `-` (it is part of a subject id). */
 export const regionIdSchema = z.string().regex(/^[a-z][a-z0-9-]*$/, 'region id');
@@ -354,6 +405,12 @@ export const bodyDefinitionSchema = z.object({
 	 * picks the stock palette. On the body, not its `appearance`, so the home body (which has none) can have one.
 	 */
 	plasma: plasmaPaletteSchema.optional(),
+	/** The scattering of this body's air (plan 405, ADR 0362); on the body so the home body (no `appearance`) can have it. */
+	air: airCoefficientsSchema.optional(),
+	/** The colours of this body's sea (plan 405, ADR 0362). */
+	ocean: oceanLookSchema.optional(),
+	/** The weather of this body's clouds (plan 405, ADR 0362). */
+	weather: weatherLookSchema.optional(),
 	orbit: z
 		.object({
 			a: z.number().positive(),

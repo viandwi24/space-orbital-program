@@ -8,6 +8,7 @@ import { addOverlay, HighlightMaterials, removeOverlay } from './vab/highlight.t
 import type { SiteBuildingView, SitePlace } from './site-list.ts';
 import { SiteBuildings, type LaunchSite } from './site-meshes.ts';
 import type {
+	BodyAppearance,
 	BodyDefinition,
 	EntityId,
 	PartVisual,
@@ -17,8 +18,14 @@ import type {
 	Vec3,
 	VesselSnapshot
 } from '@orbital/core';
-import { LEGACY_TERRAIN_SEED, hillsSeedOf } from '@orbital/core';
-import { atmosphereFor, type Atmosphere } from './atmosphere-model.ts';
+import {
+	LEGACY_TERRAIN_SEED,
+	TERRAIN_MAP_WIDTH,
+	cachedPlanetMap,
+	hillsSeedOf,
+	terrainShift
+} from '@orbital/core';
+import { applyAir, atmosphereFor, type Atmosphere } from './atmosphere-model.ts';
 import { holdSubject } from './camera-hold.ts';
 import {
 	cameraPose,
@@ -30,8 +37,13 @@ import {
 } from './camera-modes.ts';
 import type { WorldTerrainSpec } from './terrain-zones.ts';
 import {
+	ClampToEdgeWrapping,
 	DataTexture,
 	Group,
+	LinearFilter,
+	LinearMipmapLinearFilter,
+	RepeatWrapping,
+	SRGBColorSpace,
 	Matrix4,
 	Mesh,
 	MeshBasicMaterial,
@@ -87,9 +99,13 @@ import {
 	repeatedDetail
 } from './parts/types.ts';
 import { OrbitLine, VesselMarker } from './map.ts';
-import { MoonPass } from './moon.ts';
+import { MOON_SEA, MoonPass, whiteLook } from './moon.ts';
 import { BodyDress, DRESS_FAR_PX, DRESS_NEAR_PX } from './body-dress.ts';
-import { LOOK_ALBEDO, skyOptics } from './body-look.ts';
+import { LOOK_ALBEDO, hexLinear, skyOptics } from './body-look.ts';
+import { BodyBakes, type BakeTarget } from './body-bakes.ts';
+import { BODY_BAKE } from './body-bake-model.ts';
+import { createBaker } from './body-baker.ts';
+import { indexedDbStore } from './body-bake-cache.ts';
 import {
 	HILLS_SHADOW_MARCH,
 	SHADOW_MARCH,
@@ -120,7 +136,19 @@ const MIN_TERRAIN_LIGHT = 0.03;
 /** What the renderer needs of a body; `parent` and `orbit` let the map view draw a moon's orbit and sphere. */
 export type BodyRenderInfo = Pick<BodyDefinition, 'id' | 'radius' | 'atmosphere'> &
 	Partial<
-		Pick<BodyDefinition, 'parent' | 'orbit' | 'mass' | 'terrain' | 'star' | 'appearance' | 'plasma'>
+		Pick<
+			BodyDefinition,
+			| 'parent'
+			| 'orbit'
+			| 'mass'
+			| 'terrain'
+			| 'star'
+			| 'appearance'
+			| 'plasma'
+			| 'air'
+			| 'ocean'
+			| 'weather'
+		>
 	>;
 
 /** One stretch of a predicted path (plan 044): points relative to `body`, which sits at `offset` in the system frame. */
@@ -185,6 +213,29 @@ const GHOST_ID = -1;
 export const CAMERA_NEAR = 0.1;
 export const CAMERA_FAR = 1e13;
 /** Body-fixed point of a latitude/longitude at `radius` (the map convention of core). */
+/** What a cratered body with no palette is baked from: pale highlands and darker maria, in sRGB. */
+const REGOLITH_LOOK: BodyAppearance = {
+	palette: ['#c9c6c0', '#8f8c87', '#dedad3'],
+	pattern: 'mottled'
+} as BodyAppearance;
+
+/** The mean linear colour of a map's bytes, sampled (a body's tint is shared out by it). */
+function meanLinear(bytes: Uint8Array): [number, number, number] {
+	const lin = (b: number): number => {
+		const c = b / 255;
+		return c <= 0.04045 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4;
+	};
+	const sum: [number, number, number] = [0, 0, 0];
+	let n = 0;
+	for (let o = 0; o + 3 < bytes.length; o += 4 * 61) {
+		sum[0] += lin(bytes[o]!);
+		sum[1] += lin(bytes[o + 1]!);
+		sum[2] += lin(bytes[o + 2]!);
+		n++;
+	}
+	return [Math.max(0.02, sum[0] / n), Math.max(0.02, sum[1] / n), Math.max(0.02, sum[2] / n)];
+}
+
 const latLonDir = (s: { latitude: number; longitude: number }, radius: number): Vec3 => ({
 	x: Math.cos(s.latitude) * Math.cos(s.longitude) * radius,
 	y: Math.sin(s.latitude) * radius,
@@ -203,19 +254,22 @@ function airOf(b: BodyRenderInfo): Atmosphere {
 		a.scaleHeight,
 		Math.min(a.surfacePressure, MAX_OPTICAL_PRESSURE)
 	);
-	if (!b.appearance) return air;
+	if (!b.appearance) return applyAir(air, b.air);
 	const optics = skyOptics(b.appearance);
-	return {
-		...air,
-		betaRayleigh: [
-			air.betaRayleigh[0] * optics.rayleigh[0],
-			air.betaRayleigh[1] * optics.rayleigh[1],
-			air.betaRayleigh[2] * optics.rayleigh[2]
-		],
-		betaMie: air.betaMie * optics.mie,
-		// no ozone layer on another world
-		betaOzone: [0, 0, 0]
-	};
+	return applyAir(
+		{
+			...air,
+			betaRayleigh: [
+				air.betaRayleigh[0] * optics.rayleigh[0],
+				air.betaRayleigh[1] * optics.rayleigh[1],
+				air.betaRayleigh[2] * optics.rayleigh[2]
+			],
+			betaMie: air.betaMie * optics.mie,
+			// no ozone layer on another world
+			betaOzone: [0, 0, 0]
+		},
+		b.air
+	);
 }
 /** A star's disc (it is unlit: the colour is what the camera sees). */
 const STAR_COLOR = 0xfff1c9;
@@ -274,6 +328,21 @@ export class SceneModel {
 	 * moon-pass body among them sleeps (far sphere only, no moon pipelines) until it is near.
 	 */
 	private readonly dresses = new Map<string, BodyDress>();
+	/** The cratered bodies whose map is baked from their own ground (plan 403, ADR 0361). */
+	private readonly bakeSources = new Map<
+		string,
+		{
+			body: Pick<BodyDefinition, 'id' | 'radius' | 'terrain'>;
+			look: BodyAppearance;
+			moon: MoonPass;
+			dress: BodyDress | null;
+			/** The regolith tint the body has without a bake. */
+			tint: [number, number, number];
+		}
+	>();
+	private bodyBakes: BodyBakes | null = null;
+	private bakePreset: GraphicsPreset = 'high';
+	private readonly bakedMaps = new Map<string, DataTexture>();
 	private readonly dormant = new Set<string>();
 	/** The moon passes awake now (every one but the dormant), rebuilt when one wakes or sleeps. */
 	private awake: MoonPass[] = [];
@@ -438,8 +507,27 @@ export class SceneModel {
 						seed: hillsSeedOf(b, config.terrain?.seed ?? LEGACY_TERRAIN_SEED, false),
 						zones: []
 					};
+				// a hills body is seen from far in the colours its ground has: its biome map, its sea (plan 406)
+				const hills = b.terrain.kind === 'hills' ? hillsTerrain() : undefined;
+				const sea = b.ocean
+					? { shallow: hexLinear(b.ocean.shallow), deep: hexLinear(b.ocean.deep) }
+					: MOON_SEA;
 				const dress = b.appearance
-					? new BodyDress(b.id, b.radius, b.appearance, this.sphere)
+					? new BodyDress(
+							b.id,
+							b.radius,
+							b.appearance,
+							this.sphere,
+							hills
+								? {
+										map: cachedPlanetMap(TERRAIN_MAP_WIDTH, hills),
+										shift: terrainShift(hills.seed),
+										radius: b.radius,
+										deep: sea.deep,
+										shallow: sea.shallow
+									}
+								: undefined
+						)
 					: null;
 				const moon = new MoonPass(b.id, b.radius, {
 					...(dress
@@ -460,8 +548,17 @@ export class SceneModel {
 					...(b.atmosphere ? { atmosphere: airOf(b) } : {})
 				});
 				moon.setShadowSteps(SHADOW_STEPS[config.preset ?? 'high']);
+				if (b.ocean) moon.setOcean(sea);
 				holder.add(moon.root);
 				this.moons.set(b.id, moon);
+				if (b.terrain.kind === 'craters')
+					this.bakeSources.set(b.id, {
+						body: b,
+						look: dress?.look ?? REGOLITH_LOOK,
+						moon,
+						dress,
+						tint: dress ? [LOOK_ALBEDO, LOOK_ALBEDO, LOOK_ALBEDO] : [0.135, 0.13, 0.122]
+					});
 				if (dress) {
 					// asleep until near (ADR 0318 point 6): no moon pipelines are built for it at load
 					dress.onMap((map) => moon.setLook(map));
@@ -619,6 +716,8 @@ export class SceneModel {
 	 */
 	setPreset(preset: GraphicsPreset, resources?: GraphicsPreset, keepParts = false): void {
 		this.environment.setPreset(preset, resources);
+		this.bodyBakes?.setPreset(BODY_BAKE[preset].size, BODY_BAKE[preset].budgetBytes);
+		this.bakePreset = preset;
 		this.effects.setPreset(PRESETS[preset]);
 		plumeQuality.level = lookLevel(PRESETS[preset], 'plume');
 		for (const moon of this.moons.values()) moon.setShadowSteps(SHADOW_STEPS[preset]);
@@ -1515,6 +1614,7 @@ export class SceneModel {
 	 * Returns the local vertical (inertial, unit) when the active vessel is in a moon's sphere.
 	 */
 	private updateMoons(): Vec3 | undefined {
+		this.updateBakes();
 		let up: Vec3 | undefined;
 		this.activeMoon = null;
 		this.moonSunScale = 1;
@@ -1547,6 +1647,87 @@ export class SceneModel {
 			moon.setSun(sun, lit);
 		}
 		return up;
+	}
+
+	/** The bakes of the cratered bodies the camera is near (plan 403, ADR 0361), once a frame. */
+	private updateBakes(): void {
+		if (this.bakeSources.size === 0) return;
+		const bakes = (this.bodyBakes ??= this.makeBodyBakes());
+		const halfTan = Math.tan((this.camera.fov * Math.PI) / 360);
+		const targets: BakeTarget[] = [];
+		for (const [id, s] of this.bakeSources) {
+			const entry = this.bodies.get(id);
+			if (!entry) continue;
+			const d = Math.max(
+				1,
+				Math.hypot(
+					this.camera.position.x - entry.holder.position.x,
+					this.camera.position.y - entry.holder.position.y,
+					this.camera.position.z - entry.holder.position.z
+				)
+			);
+			targets.push({
+				id,
+				body: s.body,
+				look: s.look,
+				px: (s.body.radius / d / halfTan) * (this.viewport.height / 2)
+			});
+		}
+		bakes.frame(targets);
+	}
+
+	private makeBodyBakes(): BodyBakes {
+		const plan = BODY_BAKE[this.bakePreset];
+		return new BodyBakes({
+			baker: createBaker(),
+			store: indexedDbStore(),
+			size: plan.size,
+			budgetBytes: plan.budgetBytes,
+			onReady: (id, bytes, size) => this.applyBake(id, bytes, size),
+			onEvict: (id) => this.dropBake(id)
+		});
+	}
+
+	/** A finished map: the body's ground and far sphere take it. */
+	private applyBake(id: string, bytes: Uint8Array, size: { width: number; height: number }): void {
+		const s = this.bakeSources.get(id);
+		if (!s) return;
+		const map = new DataTexture(bytes as Uint8Array<ArrayBuffer>, size.width, size.height);
+		map.colorSpace = SRGBColorSpace;
+		map.minFilter = LinearMipmapLinearFilter;
+		map.magFilter = LinearFilter;
+		map.wrapS = RepeatWrapping;
+		map.wrapT = ClampToEdgeWrapping;
+		map.generateMipmaps = true;
+		map.needsUpdate = true;
+		this.bakedMaps.get(id)?.dispose();
+		this.bakedMaps.set(id, map);
+		if (s.dress) s.dress.setBaked(map);
+		else {
+			// a body with no palette: the map carries its relief and variation, the tint its overall colour,
+			// shared out so the body's mean albedo stays what it was
+			const mean = meanLinear(bytes);
+			s.moon.setLook(map);
+			s.moon.setTint(s.tint[0] / mean[0], s.tint[1] / mean[1], s.tint[2] / mean[2]);
+		}
+	}
+
+	private dropBake(id: string): void {
+		const s = this.bakeSources.get(id);
+		const map = this.bakedMaps.get(id);
+		if (!s || !map) return;
+		if (s.dress) s.dress.setBaked(null);
+		else {
+			s.moon.setLook(whiteLook());
+			s.moon.setTint(s.tint[0], s.tint[1], s.tint[2]);
+		}
+		map.dispose();
+		this.bakedMaps.delete(id);
+	}
+
+	/** Bakes resident now, by body id (plan 403): for tests and the capture scripts. */
+	bakedBodies(): string[] {
+		return this.bodyBakes?.ready() ?? [];
 	}
 
 	/**
@@ -2341,6 +2522,8 @@ export class SceneModel {
 		this.effects.dispose();
 		this.sphere.dispose();
 		this.environment.dispose();
+		this.bodyBakes?.dispose();
+		for (const map of this.bakedMaps.values()) map.dispose();
 		for (const { buildings } of this.offWorld.values()) buildings.dispose();
 		for (const moon of this.moons.values()) moon.dispose();
 		for (const dress of this.dresses.values()) dress.dispose();

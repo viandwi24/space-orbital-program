@@ -1,26 +1,29 @@
-# 403 — Planets from orbit (stage 1: night lights)
+# 403 — Planets from orbit
 
-**Plan:** [plans/403-planets-from-orbit.md](../plans/403-planets-from-orbit.md) · **Session:** Worker B, 2026-10-24 · **ADRs:** 0344 (0306, 0330, 0342) · **Note:** [refs/graphics-v2/01-ksp-and-mods.md](../../refs/graphics-v2/01-ksp-and-mods.md) §7
+**Plan:** [plans/403-planets-from-orbit.md](../plans/403-planets-from-orbit.md) · **Session:** Worker B, 2026-10-24 · **ADRs:** 0344 (night lights), 0361 (bakes, manager, cache, far cloud shell) · **Note:** [refs/graphics-v2/01-ksp-and-mods.md](../../refs/graphics-v2/01-ksp-and-mods.md) §7
 
 ## What was done
 
 | Where | What |
 |---|---|
-| `renderer/night-lights.ts` | the formula (CPU reference, GLSL and TSL twins), the night factor, the constants |
-| `renderer/shaders/planet.glsl.ts`, `tsl/planet-pass.ts` | the bake writes the light density in the normal map's alpha; the ground adds the lights on the night side |
-| `renderer/planet.ts`, `presets.ts` | the `uCityLights` uniform; `PresetSettings.nightLights` (Low off) |
-| `renderer/test/night-lights.test.ts` | day-side factor, none on ice, sea and high ground, lights on settled low land and a minority of it |
-| `web/scripts/capture-403.ts` | the night-side screens |
+| `renderer/night-lights.ts` and the passes (stage 1) | city lights in the bake's normal alpha, both renderers, `nightLights` preset field |
+| `renderer/body-bake.ts`, `body-bake.worker.ts`, `body-baker.ts` | a cratered body's colour map baked from its own height field (relief and height shading of the palette), in a worker or in slices |
+| `renderer/body-bake-model.ts`, `body-bakes.ts` | `BODY_BAKE` (Low none, Medium 1024 x 512 / 24 MiB, High 2048 x 1024 / 96 MiB); `BodyBakeManager`: nearest first, one job, hysteresis 60 / 20 px, only unwanted bakes evicted, never a rebake of a resident one |
+| `renderer/body-bake-cache.ts` | finished maps gzipped in IndexedDB under a key of everything they depend on |
+| `renderer/cloud-far.ts`, `shaders/planet.glsl.ts`, `tsl/planet-pass.ts` | the far cloud shell: coverage from the baked weather map beyond the cumulus march (45 to 120 km), cross-faded with it |
+| `renderer/scaled-space-model.ts` | Home's faces 2048 on High (268 MB for both maps with gutters and mips) |
+| `renderer/scene.ts`, `body-dress.ts`, `renderer-facade.ts` | bake sources for cratered bodies, `bakedBodies()` |
+| tests | `body-bake`, `body-bake-stream` (order, budget, eviction, no rebake), `body-bakes`, `cloud-far`, `scaled-space-model` |
 
 ## Findings
 
-- The bake's normal alpha was unused (1), so the planet pass's 16 textures were not touched.
-- Screens: `docs/journal/assets/403-low-a.jpg` (Low: none), `403-high-a.jpg` (High) and `403gl-high-a.jpg` (WebGL): warm clusters on the night side of Home at 1 200 km, the same places on both renderers.
-- The bake is not re-run for a change of preset: the channel is always there and the uniform switches it.
+- Screens (WebGPU, High): `403-webgpu-cinder.jpg` (Cinder from 300 km, craters and rims from its own field), `403-webgpu-forge.jpg`, `403-webgpu-kiln.jpg`. `403low-webgpu-cinder.jpg` is Low; at this framing the two look alike because the moon pass's own ground shows through on a body this near, and the bake's gain is at the 60 to 300 px sizes.
+- KTX2 was not done: only the Basis *transcoder* is shipped. The cache keeps gzipped RGBA8 (ADR 0361).
+- The manager first evicted farther bakes that were still wanted and thrashed in the unit test; it now drops only unwanted ones and uses a hysteresis band.
+- Frame time (M5, this machine, load average 8 to 9 from other jobs, so noisy; `measure-120hz.ts`, WebGPU High, governor off, a development build): orbit p95 10.4 ms with the work, 15.0 and 10.4 ms for `origin/main`; 12 km p95 50 and 58 ms with it, 42 and 50 ms for main, 66 and 50 ms with the 2048 faces turned back to 1536: the runs differ from one another by more than the branches do, so no regression is *shown*, and none is *excluded* below about 10 ms at 12 km. GPU time per frame read 2 to 4 ms in every build. Plan 392's tooling, one `/tmp/orbital-measuring` flag held while it ran.
 
-## Not done (plan 403 stays in progress, ADR 0344)
+## Not done
 
-- The 2D cloud cube from plan 397's weather cover, with the descent cross-fade (397's stage 1, `weather.ts`, has landed).
-- Bakes for the Moon and the other stock bodies, the bake and evict manager with its budgets, the KTX2 cache, 2048 faces.
-- Frame time against plan 392's baseline in orbit, the locked 60 on the lower targets, and the owner's look at Home by day and night against reference image 07.
-- Cities at 100 km: the lights are the bake's, so below the bake's blend (a pixel under a texel) they fade out; the ground there has no settlements.
+- A locked 60 on Low and Medium measured with throttling or on the Windows integrated GPUs, and the memory budget measured in the browser (the test checks the manager's arithmetic): [manual] for the real machine.
+- No warm-list test for the bake variants: the bake is a texture upload and a worker, it builds no pipeline.
+- The owner's look at Home by day and night, the Moon and two other bodies against reference image 07 ([manual]).

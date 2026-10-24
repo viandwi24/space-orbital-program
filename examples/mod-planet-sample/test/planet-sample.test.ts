@@ -1,6 +1,10 @@
 import { afterEach, describe, expect, test } from 'bun:test';
 import {
+	bodyImageResident,
+	bodyMapSize,
 	clearMapOverrides,
+	installBodyImages,
+	loadBodyImage,
 	createBodyTerrainField,
 	decodeAssets,
 	installTerrainMaps,
@@ -30,6 +34,12 @@ describe('the planet sample mod (plan 406, ADR 0346)', () => {
 		expect(pkg.formatVersion).toBe(3);
 		expect(pkg.assets['maps/verdant.png'].type).toBe('image/png');
 		expect(await installTerrainMaps([Stock, Planet], assets)).toEqual([]);
+		// the relief image is read lazily: its size is known, its pixels come on demand
+		expect(await installBodyImages([Stock, Planet], assets)).toEqual([]);
+		expect(bodyMapSize('planet-sample.verdant', 'normal')).toEqual({ width: 512, height: 256 });
+		expect(bodyImageResident('planet-sample.verdant', 'normal')).toBe(false);
+		const normals = await loadBodyImage('planet-sample.verdant', 'normal');
+		expect(normals?.data[2]).toBeGreaterThan(127); // flat sea faces up the map's blue
 	});
 
 	test('a vessel set down on its highland rests on the height the image gives', async () => {

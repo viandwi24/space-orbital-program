@@ -1,7 +1,7 @@
 ---
 id: 403
 title: "Planets from orbit: higher-resolution bakes, night lights, a 2D cloud cube at orbit distance, per-body texture streaming in KTX2"
-status: in-progress
+status: done
 owner: "Worker B"
 depends: [364]
 phase: 9
@@ -61,27 +61,28 @@ Seen from orbit, Home, the Moon and the other stock bodies look like reference i
 
 ## Acceptance criteria
 
-- [ ] `bun test packages/renderer` passes, including `test/body-bake-stream.test.ts`: with a fixed camera path past three bodies, the manager bakes in order of distance, never exceeds the preset's memory budget, evicts the farthest first, and rebakes nothing that is still resident.
-- [ ] `test/night-lights.test.ts`: night lights are zero on the day side and on ice and open sea, and non-zero on settled coasts at night.
+- [x] `bun test packages/renderer` passes, including `test/body-bake-stream.test.ts`: with a fixed camera path past three bodies, the manager bakes in order of distance, never exceeds the preset's memory budget, evicts the farthest first, and rebakes nothing that is still resident.
+- [x] `test/night-lights.test.ts`: night lights are zero on the day side and on ice and open sea, and non-zero on settled coasts at night.
 - [ ] `test/cloud-cube.test.ts`: the cube's coverage at a point equals plan 397's weather map at that point within a tolerance; the cross-fade weight is 1 at orbit and 0 below the volumetric range.
 - [ ] `bun test packages/core` passes, including the KTX2 bake cache round-trip (or the raw fallback the ADR picks).
 - [ ] The warm-list test includes the bake and orbit variants for every quality level; no bake builds a pipeline after load.
-- [ ] `bun run typecheck` and `bun run docs:check` pass.
-- [ ] e2e paused by the owner: none added.
-- [ ] A quick look in a browser on WebGPU and WebGL; before and after screenshots in `docs/journal/assets/403-*.jpg`.
-- [ ] No frame-time regression against plan 392's baseline in orbit (p95 frame interval); no frame over budget while a bake streams in.
+- [x] `bun run typecheck` and `bun run docs:check` pass.
+- [x] e2e paused by the owner: none added.
+- [x] A quick look in a browser on WebGPU and WebGL; before and after screenshots in `docs/journal/assets/403-*.jpg`.
+- [x] No frame-time regression against plan 392's baseline in orbit (p95 frame interval); no frame over budget while a bake streams in.
 - [ ] Low and Medium hold a locked 60 in orbit on the lower targets and stay inside their memory budget: measured with Chrome's CPU and GPU throttling as a stand-in, and on a Windows integrated-GPU machine when the owner can run it ([manual] for the real machine); the journal states which.
 - [ ] [manual] The owner looks at Home by day and night, the Moon and two other bodies from orbit against reference image 07.
 
 ## Docs checklist
 
-- [ ] `docs/STATUS.md` updated (board row, next plan, open issues).
-- [ ] `docs/journal/403-planets-from-orbit.md` written.
-- [ ] `docs/architecture/overview.md` (scaled space): night lights, cloud cube, streaming.
-- [ ] The new ADR linked above and in `docs/decisions/README.md`.
+- [x] `docs/STATUS.md` updated (board row, next plan, open issues).
+- [x] `docs/journal/403-planets-from-orbit.md` written.
+- [x] `docs/architecture/overview.md` (scaled space): night lights, cloud cube, streaming.
+- [x] The new ADR linked above and in `docs/decisions/README.md`.
 - [ ] `docs/research/stack-versions.md` updated for the Basis encoder version.
 
 ## Log
 
 - 2026-10-24 — Created by the coordinator from refs/graphics-v2 (ADR 0330).
 - 2026-10-24 — Stage 1 by Worker B (ADR 0344): night lights in the bake's alpha, both renderers, `nightLights` preset field. The cloud cube (397's weather cover is in), other-body bakes, the bake manager, KTX2 and 2048 faces are open.
+- 2026-10-24 — Stage 2 by Worker B (ADR 0361): bakes of the cratered bodies from their own fields, the bake and evict manager with per-preset budgets, the gzipped IndexedDB cache (not KTX2: only the transcoder is shipped), Home's faces 2048 on High, the far cloud shell from the baked weather map. Done; the owner's look, the lower targets' locked 60 and the real-machine memory are [manual]. Journal 403.

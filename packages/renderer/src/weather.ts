@@ -31,12 +31,19 @@ function noise1(seed: number, x: number): number {
 }
 
 /** Cloud cover (0..1 of the sky the map calls cloudy) at game time `t`, s, for a world `seed`. */
-export function weatherCover(seed: number, t: number): number {
+export function weatherCover(
+	seed: number,
+	t: number,
+	look?: { mean: number; span: number } | undefined
+): number {
 	let sum = 0;
 	PERIODS.forEach((period, k) => {
 		sum += WEIGHTS[k]! * noise1(seed + k * 7919, t / period);
 	});
-	return Math.min(0.9, Math.max(0.05, WEATHER_MEAN + WEATHER_SPAN * sum));
+	return Math.min(
+		0.9,
+		Math.max(0.05, (look?.mean ?? WEATHER_MEAN) + (look?.span ?? WEATHER_SPAN) * sum)
+	);
 }
 
 /** The cover the map is baked with: steps of 0.02, so it rebakes only when the weather moved visibly. */

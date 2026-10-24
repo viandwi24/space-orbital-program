@@ -17,6 +17,7 @@ export * from './vessel-names.ts';
 export * from './body-rotation.ts';
 export * from './seasons.ts';
 export * from './schemas.ts';
+export * from './body-images.ts';
 export * from './definitions.ts';
 export * from './module-info.ts';
 export * from './node-size.ts';

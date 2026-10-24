@@ -71,6 +71,7 @@ import {
 	TERRAIN_MARCH_SLOPE_MIN
 } from '../terrain-model.ts';
 import { TerrainTSL, type TerrainSampler } from './terrain.ts';
+import { CLOUD_FAR } from '../cloud-far.ts';
 import {
 	CloudMapTSL,
 	cirrusDensity,
@@ -1440,10 +1441,15 @@ export class PlanetPassTSL {
 					landW.assign(max(landW, site.pave));
 				});
 
-				const shallow = mix(vec3(0.03, 0.26, 0.24), vec3(0.02, 0.2, 0.2), depthNear);
+				const oceanShallow = this.link('uOceanShallow');
+				const shallow = mix(
+					oceanShallow,
+					oceanShallow.mul(vec3(0.6667, 0.7692, 0.8333)),
+					depthNear
+				);
 				const water = mix(
 					shallow,
-					vec3(0.004, 0.035, 0.1),
+					this.link('uOceanDeep'),
 					smoothstep(0.0, 0.7, max(depth, depthNear.mul(0.25)))
 				).toVar();
 				// lake water is greener and murkier than the sea and darkens toward the middle
@@ -2501,9 +2507,44 @@ export class PlanetPassTSL {
 							uCloudCover
 						);
 						const cover = smoothstep(0.08, 0.55, coverD).toVar();
-						const mask = clamp(uCloudCover.mul(2.0), 0.0, 1.0)
-							.mul(smoothstep(45000.0, 120000.0, tm).oneMinus())
-							.toVar();
+						const maskAll = clamp(uCloudCover.mul(2.0), 0.0, 1.0);
+						// beyond the march's reach the slab is one thin shell read from the baked weather map
+						// (plan 403, twin: cloudFarShell in cloud-far.ts)
+						const farK = smoothstep(CLOUD_FAR.from, CLOUD_FAR.to, tm).toVar();
+						const mask = maskAll.mul(farK.oneMinus()).toVar();
+						const shellA = float(0.0).toVar();
+						const shellL = vec3(0.0).toVar();
+						if (cloudMap) {
+							If(farK.greaterThan(0.002), () => {
+								const cov = cloudMap.at(rotY(uBodyInv.mul(nm), uCloudAngle)).x;
+								shellA.assign(
+									smoothstep(CLOUD_FAR.coverFrom, CLOUD_FAR.coverTo, cov)
+										.mul(maskAll)
+										.mul(farK)
+										.mul(CLOUD_FAR.opacity)
+								);
+								If(shellA.greaterThan(0.002), () => {
+									const sunTs = sky.sunlight(nm.mul(uCloudAlt.add(0.5 * CLOUD_THICKNESS)), uSunDir);
+									const sunK = float(CLOUD_FAR.sunBase).add(
+										clamp(
+											dot(nm, uSunDir).mul(CLOUD_FAR.sunSlope).add(CLOUD_FAR.sunLift),
+											0.0,
+											1.0
+										).mul(1 - CLOUD_FAR.sunBase)
+									);
+									const lf = vec3(0.93 / PI)
+										.mul(uSunIrr.mul(sunTs).mul(sunK).add(uAmbient.mul(CLOUD_FAR.ambient)))
+										.add(vec3(...NIGHT_AMBIENT).mul(0.6));
+									shellL.assign(lf.div(lf.div(CLOUD_RADIANCE_KNEE).add(1.0)));
+								});
+							});
+						}
+						If(shellA.greaterThanEqual(0.004).and(cover.mul(mask).lessThan(0.004)), () => {
+							alphaA.assign(shellA);
+							lightA.assign(shellL);
+							cloudTA.assign(tm);
+							hitA.assign(true);
+						});
 						If(cover.mul(mask).greaterThanEqual(0.004), () => {
 							const cj = fract(jitter.add(0.381966).add(this.cloudFrameU)).mul(0.5).add(0.25);
 							const cosS = dot(rd, uSunDir).toVar();
@@ -2584,6 +2625,16 @@ export class PlanetPassTSL {
 							alphaA.assign(opacity.mul(mask));
 							const lm = acc.div(max(opacity, 1e-4));
 							lightA.assign(lm.div(lm.div(CLOUD_RADIANCE_KNEE).add(1.0)));
+							If(shellA.greaterThan(0.002), () => {
+								const a2 = alphaA.add(shellA.mul(alphaA.oneMinus())).toVar();
+								lightA.assign(
+									lightA
+										.mul(alphaA)
+										.add(shellL.mul(shellA).mul(alphaA.oneMinus()))
+										.div(max(a2, 1e-4))
+								);
+								alphaA.assign(a2);
+							});
 							cloudTA.assign(tm);
 							hitA.assign(alphaA.greaterThanEqual(0.002));
 							alphaA.assign(select(hitA, alphaA, float(0.0)));

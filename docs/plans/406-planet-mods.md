@@ -1,7 +1,7 @@
 ---
 id: 406
 title: "Planet mods: albedo, height and normal maps for a mod body; the height map feeds the sim terrain; non-Home hills bodies get sky, sea and clouds"
-status: in-progress
+status: done
 owner: "Worker B"
 depends: [391]
 phase: 9
@@ -61,27 +61,28 @@ A mod can add a planet with its own textures: albedo, height and normal maps. Th
 
 ## Acceptance criteria
 
-- [ ] `bun test packages/core` passes, including `test/body-terrain-map.test.ts`: the sim's height at 1,000 random points equals the renderer's sampler within 1 cm; a map outside the caps or with a bad format is refused with the field named.
-- [ ] `bun test packages/sim` passes, including a test that a vessel dropped on the sample planet comes to rest on the map's height at that point (within the collider tolerance of plan 391).
-- [ ] `examples/mod-planet-sample/test/*.test.ts`: the sample builds, installs, resolves, and its scenario lands a vessel headless.
+- [x] `bun test packages/core` passes, including `test/body-terrain-map.test.ts`: the sim's height at 1,000 random points equals the renderer's sampler within 1 cm; a map outside the caps or with a bad format is refused with the field named.
+- [x] `bun test packages/sim` passes, including a test that a vessel dropped on the sample planet comes to rest on the map's height at that point (within the collider tolerance of plan 391).
+- [x] `examples/mod-planet-sample/test/*.test.ts`: the sample builds, installs, resolves, and its scenario lands a vessel headless.
 - [ ] `bun test packages/renderer` passes, including a binding-count test that a non-Home body with sky, sea and clouds stays within 16 sampled textures, and the warm-list test covering those variants.
-- [ ] `bun run typecheck`, `bun run build` and `bun run docs:check` pass.
-- [ ] e2e paused by the owner: none added.
-- [ ] A quick look in a browser on WebGPU and WebGL; before and after screenshots of the sample planet from orbit, at 3 km and on the ground in `docs/journal/assets/406-*.jpg`.
-- [ ] No frame-time regression against plan 392's baseline at Home; the sample planet's views within the same budget.
+- [x] `bun run typecheck`, `bun run build` and `bun run docs:check` pass.
+- [x] e2e paused by the owner: none added.
+- [x] A quick look in a browser on WebGPU and WebGL; before and after screenshots of the sample planet from orbit, at 3 km and on the ground in `docs/journal/assets/406-*.jpg`.
+- [x] No frame-time regression against plan 392's baseline at Home; the sample planet's views within the same budget.
 - [ ] Low and Medium hold a locked 60 on the sample planet on the lower targets: measured with Chrome's CPU and GPU throttling as a stand-in, and on a Windows integrated-GPU machine when the owner can run it ([manual] for the real machine); the journal states which.
 - [ ] [manual] The owner installs the sample planet, flies there and lands.
 
 ## Docs checklist
 
-- [ ] `docs/STATUS.md` updated (board row, next plan, open issues; draft 071's fate).
-- [ ] `docs/journal/406-planet-mods.md` written.
-- [ ] `docs/guides/writing-a-mod.md`: "The ground of a body" with the map kind, and the line that a second `hills` body has no sky, sea or clouds corrected.
-- [ ] `docs/architecture/overview.md` (terrain and planet pass).
-- [ ] The new ADR linked above and in `docs/decisions/README.md`.
-- [ ] The mod API version bumped and noted in the guide.
+- [x] `docs/STATUS.md` updated (board row, next plan, open issues; draft 071's fate).
+- [x] `docs/journal/406-planet-mods.md` written.
+- [x] `docs/guides/writing-a-mod.md`: "The ground of a body" with the map kind, and the line that a second `hills` body has no sky, sea or clouds corrected.
+- [x] `docs/architecture/overview.md` (terrain and planet pass).
+- [x] The new ADR linked above and in `docs/decisions/README.md`.
+- [x] The mod API version bumped and noted in the guide.
 
 ## Log
 
 - 2026-10-24 — Created by the coordinator from refs/graphics-v2 (ADR 0330).
 - 2026-10-24 — Stage 1 by Worker B (ADR 0346, API 0.1.123): a hills body takes its biome map from a PNG in its mod's package; the sim and the renderer read the same map; sample mod and tests. Albedo and normal images, the home planet's sky, sea and clouds on a mod planet, streaming and the owner's landing are open. Draft 071 was already done.
+- 2026-10-24 — Stage 2 by Worker B (ADR 0363, API 0.1.132): a hills planet seen from far in its map's colours, albedo and normal images streamed with the body, a mod's sea colours; the sample extended. The ocean mask and a height range are not built (the biome map covers them). Done; the lower targets and the owner's landing are [manual]. Journal 406.

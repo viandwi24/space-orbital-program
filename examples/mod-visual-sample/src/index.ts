@@ -51,6 +51,30 @@ export const LongPlume = definePatch({
 	]
 });
 
+/**
+ * A teal sea under a redder, hazier sky, with more cloud about a steadier cover (plan 405 stage 2,
+ * ADR 0362): the air scales the coefficients the renderer derives from the pressure, the ocean gives
+ * the shallows and the deep, the weather the cover it wanders about.
+ */
+export const TealWorld = definePatch({
+	id: 'visual-sample.teal-world',
+	target: 'body',
+	select: { id: 'stock.home' },
+	ops: [
+		{ op: 'set', path: 'air', value: { rayleigh: [1.6, 1, 0.8], mie: 1.5, mieG: 0.7 } },
+		{ op: 'set', path: 'ocean', value: { shallow: '#2fd0b0', deep: '#06483f' } },
+		{ op: 'set', path: 'weather', value: { mean: 0.6, span: 0.15 } }
+	]
+});
+
+/** Vesper's cloud deck takes its cover from a picture in this package (`assets/vesper-clouds.png`, twice as wide as high). */
+export const VesperClouds = definePatch({
+	id: 'visual-sample.vesper-clouds',
+	target: 'body',
+	select: { id: 'stock.vesper' },
+	ops: [{ op: 'set', path: 'appearance.clouds.map', value: 'vesper-clouds.png' }]
+});
+
 /** Softer bloom and a slightly darker exposure, in every view. */
 export const Moody = definePostProfile({
 	id: 'visual-sample.moody',
@@ -63,13 +87,15 @@ export default definePlugin({
 	meta: {
 		id: 'visual-sample',
 		version: '1.0.0',
-		api: '^0.1.122',
+		api: '^0.1.131',
 		title: 'Green fire (visual sample)'
 	},
 	depends: ['stock'],
 	setup(ctx) {
 		ctx.patches.register(GreenFire);
 		ctx.patches.register(LongPlume);
+		ctx.patches.register(TealWorld);
+		ctx.patches.register(VesperClouds);
 		ctx.postProfiles.register(Moody);
 	}
 });

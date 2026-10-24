@@ -215,6 +215,16 @@ When a queue is empty, take the next free plan from this list, in order: 299, 32
   - measurements.
 - **Measurements need a quiet machine.** Before a timing run, `touch /tmp/orbital-measuring`, and remove it when the run ends (in a trap). While that file exists, nobody starts any test or build: wait with `while [ -e /tmp/orbital-measuring ]; do sleep 30; done`.
 
+## Graphics and playability together (CTO order, 2026-10-24, corrected by the owner)
+
+The owner reports that today's graphics work made the game less playable: stalls up to 700 ms and periodic stutter on the M2 and on Windows. The owner wants **better graphics and playability at the same time, not one before the other**. So looks work continues, under these rules:
+- **Every look is gated by relevance from the start.** It is off, cheap or full, set by altitude, distance, screen share and vessel state. Far away it uses a baked stand-in: from orbit, the sea is its colour and glint, and the clouds are the baked cube. Plan 410 builds the shared relevance model. Until it lands, each look carries its own gate in the same three-level form, and 410 then moves it onto the shared model.
+- **No pipeline compiles, no reallocation, no per-frame allocation in play.** Every variant is compiled on the loading screen.
+- **Each looks or renderer plan measures before it merges.** It records the cost of its look per scene, on and off, with the 251/392 tool under `/tmp/orbital-measuring`, and puts the numbers in its journal. After plan 411, it runs `bun run perf:gate`. A look that adds long frames or breaks its tier's target does not merge.
+- **Queues:**
+  - A: 408 → 410 → 398;
+  - C: 409 → 411 → 385 → 407;
+  - B: 403 → 405 → 406, full scope including GPU, with relevance gates and measurements.
 ## Doing a plan
 
 **UI fixes come first (owner's rule, ADR 0222):** when the coordinator reports that a screen you built is off the design package (`refs/space-orbital-program-ui-v2/`), finish and merge your current plan, then fix that screen (plan 233 and the like) before taking any other plan. Always compare UI work with the matching `.dc.html` source and `docs/BASE_LAYOUT.md`.

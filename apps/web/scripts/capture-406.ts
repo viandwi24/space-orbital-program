@@ -92,7 +92,7 @@ const bodies = await page.evaluate(() =>
 	(window as any).__orbital.snapshot().bodies.map((b: any) => b.id)
 );
 console.log('bodies', JSON.stringify(bodies));
-const longitude = ((150 + 0.5) / 512 - 0.5) * 2 * Math.PI;
+const longitude = ((150 + 0.5) / 512 - 0.5) * 2 * Math.PI + Number(process.env.SHOT_LON_SHIFT ?? 0);
 const latitude = ((100 + 0.5) / 256 - 0.5) * Math.PI;
 const located = await page.evaluate(
 	([latitude, longitude]) =>
