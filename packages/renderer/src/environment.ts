@@ -383,6 +383,9 @@ export class Environment {
 		this.sunLight.castShadow = !off && settingsFor(this.preset, this.resources).shadowMapSize > 0;
 	}
 
+	/** Measurement: the floodlights lit as at night, whatever the sun does. */
+	nightForMeasure = false;
+
 	private applyPreset(): void {
 		const s = settingsFor(this.preset, this.resources);
 		this.planet.setQuality(s);
@@ -504,6 +507,7 @@ export class Environment {
 			);
 		this.site.setDetail(Math.hypot(frame.camToSite.x, frame.camToSite.y, frame.camToSite.z));
 		this.site.thinTufts(cameraRender);
+		this.site.aimFloods(cameraRender);
 		this.site.animate({
 			dt: input.dt,
 			time: this.time,
@@ -565,7 +569,7 @@ export class Environment {
 		this.fog.density = 0.00003 * atmFade;
 
 		// Floodlights come on around dusk (sun below 3 degrees at the camera), full at -6.
-		const siteLamps = 1 - smoothstep(-6, 3, elevDeg);
+		const siteLamps = this.nightForMeasure ? 1 : 1 - smoothstep(-6, 3, elevDeg);
 
 		// Exposure adapts toward the day/night target.
 		// against the horizon seen from up there, not the local horizontal: in orbit over the night side the

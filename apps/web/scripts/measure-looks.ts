@@ -42,6 +42,7 @@ const looks = (process.env.LOOKS ?? 'bakes,farShell,rocks,images').split(',') as
 	| 'structures'
 	| 'people'
 	| 'steam'
+	| 'night'
 	| 'bushes'
 	| 'siteRocks'
 >;

@@ -31,7 +31,7 @@ describe('choosing the lamps that throw light', () => {
 		const many = Array.from({ length: 20 }, (_, i) => lamp(i * 5));
 		const chosen = chooseLamps(many, [0, 0, 0]);
 		expect(chosen).toHaveLength(LAMP_BUDGET);
-		expect(chosen.map((l) => l.position[0])).toEqual([0, 5, 10, 15]);
+		expect(chosen.map((l) => l.position[0])).toEqual([0, 5]);
 		expect(chooseLamps(many, [97, 0, 0], 2).map((l) => l.position[0])).toEqual([95, 90]);
 	});
 	it('drops lamps that are off, too far for the eye or out of their own reach', () => {

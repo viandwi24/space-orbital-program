@@ -68,6 +68,8 @@ import {
 } from './site-vegetation.ts';
 import {
 	FLOOD_LIGHT_INTENSITY,
+	FLOOD_POOL,
+	FLOOD_POOL_GAIN,
 	floodLightPositions,
 	layoutTufts,
 	layoutVegetation,
@@ -688,15 +690,34 @@ export class LaunchSite {
 		if (thin && parts.thin.length) thin.castShadow = false;
 	}
 
-	/** Warm point lights at the mast floodlight banks: intensity 0 by day (kept visible so no shader recompiles at dusk). */
+	/**
+	 * The floodlights as a fixed pool of `FLOOD_POOL` point lights (plan 414, ADR 0373): every light in the
+	 * scene is in every lit material's light loop all day (four of them cost 1.5 ms at the pad), so the
+	 * four mast banks share one light that stands at the bank nearest the camera (`aimFloods`), at intensity
+	 * 0 by day. It is always visible: the light count is part of the shader's key and never changes.
+	 */
 	private buildFloodLights(): void {
-		for (const p of floodLightPositions()) {
+		const at = floodLightPositions()[0]!;
+		for (let i = 0; i < FLOOD_POOL; i++) {
 			const light = new PointLight(0xffd29a, 0, 0, 2);
-			light.position.set(p.x, p.y, p.z);
+			light.position.set(at.x, at.y, at.z);
 			light.name = 'site-flood';
 			this.floods.push(light);
 			this.root.add(light);
 		}
+	}
+
+	/** Stands the pool's light at the floodlight bank nearest the camera (`cameraRender`, render space). */
+	aimFloods(cameraRender: Vec3): void {
+		const cam = this.root.worldToLocal(new Vector3(cameraRender.x, cameraRender.y, cameraRender.z));
+		const banks = floodLightPositions();
+		const order = banks
+			.map((p, i) => ({ i, d: Math.hypot(p.x - cam.x, p.y - cam.y, p.z - cam.z) }))
+			.sort((a, b) => a.d - b.d);
+		this.floods.forEach((light, k) => {
+			const p = banks[order[k % order.length]!.i]!;
+			light.position.set(p.x, p.y, p.z);
+		});
 	}
 
 	/** Measurement (plan 414): one part of the site hidden or shown. */
@@ -724,7 +745,7 @@ export class LaunchSite {
 	/** 0 by day to 1 at night. */
 	setLamps(level: number): void {
 		const k = Math.min(Math.max(level, 0), 1);
-		for (const l of this.floods) l.intensity = FLOOD_LIGHT_INTENSITY * k;
+		for (const l of this.floods) l.intensity = FLOOD_LIGHT_INTENSITY * FLOOD_POOL_GAIN * k;
 		this.lastLamps = k;
 	}
 

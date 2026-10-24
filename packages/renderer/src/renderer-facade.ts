@@ -157,6 +157,7 @@ export function debugFacade(model: SceneModel): DebugFacade {
 			else if (look === 'vegetation') env.setVegetationOff(off);
 			else if (look === 'shadows') env.setShadowsOff(off);
 			else if (look === 'trees' || look === 'tufts') env.setVegetationPart(look, off);
+			else if (look === 'night') env.nightForMeasure = off;
 			else if (
 				look === 'floods' ||
 				look === 'structures' ||

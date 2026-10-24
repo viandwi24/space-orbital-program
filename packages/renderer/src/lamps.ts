@@ -7,7 +7,7 @@
 import { Object3D, SpotLight, Vector3, type Camera, type Scene } from 'three';
 
 /** How many lamps throw light at once. */
-export const LAMP_BUDGET = 4;
+export const LAMP_BUDGET = 2;
 /** A lamp farther than this from the eye (m) throws no light, whatever its range. */
 export const LAMP_CULL_DISTANCE = 600;
 /** Candela scale of a lamp at full brightness. */

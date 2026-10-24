@@ -129,6 +129,8 @@ export interface RendererDebug {
 			| 'structures'
 			| 'people'
 			| 'steam'
+			| 'night'
+			| 'night'
 			| 'bushes'
 			| 'siteRocks',
 		off: boolean

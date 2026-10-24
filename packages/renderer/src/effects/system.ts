@@ -94,7 +94,7 @@ import {
 import type { FxEvent } from './transitions.ts';
 
 /** Point lights the cluster lights draw from (plan 400). */
-const CLUSTER_LIGHTS = 3;
+const CLUSTER_LIGHTS = 2;
 
 export type EffectBody = Pick<BodyDefinition, 'id' | 'radius' | 'atmosphere'> &
 	Partial<Pick<BodyDefinition, 'mass' | 'plasma'>>;
