@@ -1,8 +1,8 @@
 ---
 id: 287
 title: "More blueprints: a lunar rover mission, then other famous rockets (Semyorka-S + Union, Kestrel 9 + Wyvern, Hermes-R, Orient-1, Companion-1, Neutron-M + Breeze, Hercules V + Kentauros, Long Road 2F + Divine Vessel, Dioscuri + Giant II, Lumière 5, Kestrel Heavy)"
-status: draft
-owner: ""
+status: done
+owner: "Worker C"
 depends: [275, 276, 283, 307]
 phase: 0
 created: 2026-10-21
@@ -56,18 +56,18 @@ As plan 286: fly in the stock system in `mission-flights.test.ts`, and record th
 
 ## Acceptance criteria
 
-- [ ] Each blueprint reaches its goal headless in `mission-flights.test.ts` (web vitest with `CI=true`).
-- [ ] `stock-blueprints.test.ts`, `blueprint-systems.test.ts` and `mods/stock/test/english.test.ts` pass with the new blueprints.
-- [ ] `bun run lint`, `bun run typecheck`, `bun run test` and `bun run docs:check` pass.
+- [x] Each blueprint reaches its goal headless in `mission-flights.test.ts` (web vitest with `CI=true`).
+- [x] `stock-blueprints.test.ts`, `blueprint-systems.test.ts` and `mods/stock/test/english.test.ts` pass with the new blueprints.
+- [x] `bun run lint`, `bun run typecheck`, `bun run test` and `bun run docs:check` pass.
 
 ## Docs checklist
 
-- [ ] `docs/STATUS.md` updated (board row, next plan, open issues).
-- [ ] `docs/journal/287-real-rocket-blueprints-waves-2-and-3.md` written.
-- [ ] Affected `docs/architecture/*.md` updated to match what shipped.
-- [ ] New ADRs written for any decision made here, linked above.
-- [ ] `docs/research/stack-versions.md` updated for anything looked up.
-- [ ] `refs/part-visuals-and-blueprints/parts-tracker.md`: status column of every tracker ID this plan delivers.
+- [x] `docs/STATUS.md` updated (board row, next plan, open issues).
+- [x] `docs/journal/287-real-rocket-blueprints-waves-2-and-3.md` written.
+- [x] Affected `docs/architecture/*.md` updated to match what shipped.
+- [x] New ADRs written for any decision made here, linked above.
+- [x] `docs/research/stack-versions.md` updated for anything looked up.
+- [x] `refs/part-visuals-and-blueprints/parts-tracker.md`: status column of every tracker ID this plan delivers.
 
 ## Log
 
@@ -75,3 +75,4 @@ As plan 286: fly in the stock system in `mission-flights.test.ts`, and record th
 - 2026-10-24 — Rewritten by the coordinator after an audit against main @ 4c546c02: English names proposed for every blueprint (ADR 0268), the stock-owned bake process (ADR 0316) and per-system outcomes (ADR 0317) added; depends on 275, 276, 283 and 307.
 - 2026-10-21 — Re-scoped to the owner's mission targets: famous missions first, other real rockets later.
 - 2026-10-21 — Drafted from the part-visuals research and the owner's decisions of 2026-10-21 (CTO calls delegated by the owner). Not to be started until the owner releases the parts work: on 2026-10-21 main is busy with renderer fixes and a UI/UX agent.
+- 2026-10-24 — Done (Worker C): the ten remaining blueprints (Kestrel 9 + Wyvern, Hermes-R, Semyorka-V + Orient-1, Neutron-M + Breeze, Hercules V + Kentauros, Long Road 2F + Divine Vessel, Dioscuri + Giant II, Lumière 5, Kestrel Heavy, Selene Rover), a `suborbital` blueprint goal, their `EXPECTED` rows and flights, the Selene Rover set down on the moon, released and driven 100 m (journal 287).

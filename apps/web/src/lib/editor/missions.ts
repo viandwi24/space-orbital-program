@@ -24,7 +24,7 @@ export interface MissionBlueprint {
 	title: string;
 	inspiredBy: string;
 	/** `surface`: it drives where it is launched, lying level (plan 307: a rover). */
-	goal: 'orbit' | 'moon' | 'station' | 'deep-space' | 'surface';
+	goal: 'orbit' | 'suborbital' | 'moon' | 'station' | 'deep-space' | 'surface';
 	crew: number;
 	summary: string;
 	build(content: Content): VesselDesign;
@@ -432,7 +432,7 @@ function semyorka(content: Content): VesselDesign {
 	b.side('stock.monoprop-radial', service, Math.PI / 2, 0, 2);
 	b.side('stock.battery-radial', service, Math.PI, 0, 2);
 	b.side('stock.antenna-whip-radial', service, 0, 0.3);
-	const serviceEngine = b.below('stock.engine-lv', service);
+	const serviceEngine = b.below('stock.engine-wide', service);
 	const dec = b.below('stock.decoupler-wide', serviceEngine);
 	const upper = b.below('stock.tank-wide', dec);
 	const upperEngine = b.below('stock.engine-wide', upper);
@@ -444,6 +444,214 @@ function semyorka(content: Content): VesselDesign {
 	b.on('stock.nose-cone', boosters, 'top');
 	b.side('stock.fin', core, 0, -0.7, 4);
 	return b.done();
+}
+
+/**
+ * A communications satellite under its relay antenna (the root): the bus with an RTG and solar
+ * wings (plan 287). Returns the wings, the part to hang a stage from.
+ */
+function comsat(b: Build): number {
+	const bus = b.below('stock.satellite-bus', 0);
+	b.side('stock.rtg-radial', bus, 0, 0);
+	b.side('stock.rcs-block', bus, Math.PI / 4, 0.3, 4);
+	b.side('stock.monoprop-radial', bus, Math.PI / 2, 0, 2);
+	return b.below('stock.solar-wings', bus);
+}
+
+/**
+ * Kestrel 9 + Wyvern (plan 287, BP-07; Falcon 9 + Dragon): a four-seat capsule with a heat shield
+ * on a trunk with solar wings, on a two-stage reusable-style launcher with fins.
+ */
+function kestrel(content: Content): VesselDesign {
+	const b = new Build(content, 'Kestrel 9 + Wyvern', 'stock.descent-module');
+	const shield = b.below('stock.heat-shield-1875', 0);
+	const sep = b.below('stock.decoupler-1875', shield);
+	b.side('stock.rcs-block', 0, Math.PI / 4, -0.2, 4);
+	const trunk = b.below('stock.tank-1875-short', sep);
+	b.side('stock.solar-fold', trunk, 0, 0, 2);
+	b.side('stock.antenna-whip-radial', trunk, Math.PI / 2, 0.2);
+	b.side('stock.monoprop-radial', trunk, Math.PI / 4, -0.3, 2);
+	const adapter = b.below('stock.adapter-1875-2500', trunk);
+	realLauncher(b, adapter, 2.5);
+	return b.done();
+}
+
+/**
+ * Hermes-R (plan 287, BP-12; Mercury-Redstone): a one-seat capsule with an escape tower on a single
+ * stage: a hop over the edge of space, down under the parachute.
+ */
+function hermes(content: Content): VesselDesign {
+	const b = new Build(content, 'Hermes-R', 'stock.pod-3');
+	b.above('stock.escape-tower', 0);
+	const shield = b.below('stock.heat-shield-wide', 0);
+	const dec = b.below('stock.decoupler-wide', shield);
+	const tank = b.below('stock.tank-wide', dec);
+	b.below('stock.engine-wide', tank);
+	b.side('stock.fin', tank, Math.PI / 4, -0.7, 4);
+	return b.done();
+}
+
+/**
+ * Semyorka-V + Orient-1 (plan 287, BP-04; Vostok): a sphere capsule on an instrument module, on
+ * the strap-on booster rocket of the Union (the R-7 again).
+ */
+function orient(content: Content): VesselDesign {
+	const b = new Build(content, 'Semyorka-V + Orient-1', 'stock.capsule-sphere');
+	b.side('stock.antenna-whip-radial', 0, 0, 0.3);
+	// the sphere's 0.625 m bottom: the small adapter turned over, then the shield
+	const neck = b.on('stock.adapter-small', 0, 'bottom', 'top');
+	const shield = b.below('stock.heat-shield', neck);
+	const sep = b.below('stock.decoupler', shield);
+	const module = b.below('stock.tank-small', sep);
+	b.side('stock.battery-radial', module, Math.PI, 0, 2);
+	b.side('stock.rcs-block', module, Math.PI / 4, 0, 4);
+	b.side('stock.monoprop-radial', module, Math.PI / 2, 0, 2);
+	const engine = b.below('stock.engine-lv', module);
+	const dec = b.below('stock.decoupler', engine);
+	const adapter = b.below('stock.adapter-large', dec);
+	const upper = b.below('stock.tank-wide', adapter);
+	const upperEngine = b.below('stock.engine-wide', upper);
+	const lowerDec = b.below('stock.decoupler-wide', upperEngine);
+	const core = b.below('stock.tank-wide', lowerDec);
+	b.below('stock.engine-wide', core);
+	const decs = b.side('stock.radial-decoupler', core, Math.PI / 4, 0, 4);
+	const boosters = b.on('stock.booster-liquid', decs, 'outer');
+	b.on('stock.nose-cone', boosters, 'top');
+	b.side('stock.fin', core, 0, -0.7, 4);
+	return b.done();
+}
+
+/**
+ * Neutron-M + Breeze (plan 287, BP-06; Proton + Briz-M): a communications satellite on a Breeze
+ * upper stage with its own engine, on a three-stage launcher with a vacuum second stage.
+ */
+function neutron(content: Content): VesselDesign {
+	const b = new Build(content, 'Neutron-M + Breeze', 'stock.antenna-relay');
+	const wings = comsat(b);
+	const dec = b.below('stock.decoupler', wings);
+	const breeze = b.below('stock.tank-medium', dec);
+	b.below('stock.engine-vacuum', breeze);
+	realLauncher(b, b.s.design.parts.at(-1)!.index, 1.25);
+	return b.done();
+}
+
+/**
+ * Hercules V + Kentauros (plan 287, BP-09; Atlas V + Centaur): a probe on a hydrolox upper stage
+ * (Kentauros) over a kerolox first stage with two solid boosters.
+ */
+function hercules(content: Content): VesselDesign {
+	const b = new Build(content, 'Hercules V + Kentauros', 'stock.antenna-relay');
+	const wings = comsat(b);
+	const dec = b.below('stock.decoupler', wings);
+	const adapter = b.below('stock.adapter-large', dec);
+	const cent = b.below('stock.tank-wide', adapter);
+	const centEngine = b.below('stock.engine-wide', cent);
+	realLauncher(b, centEngine, 2.5, true);
+	return b.done();
+}
+
+/**
+ * Long Road 2F + Divine Vessel (plan 287, BP-10; Long March 2F + Shenzhou): an orbital module over
+ * a descent module and a service module, under an escape tower, on four liquid strap-on boosters.
+ */
+function longRoad(content: Content): VesselDesign {
+	const b = new Build(content, 'Long Road 2F + Divine Vessel', 'stock.orbital-module');
+	b.side('stock.antenna-whip-radial', 0, 0, 0.3);
+	const descent = b.below('stock.descent-module', 0);
+	const shield = b.below('stock.heat-shield-1875', descent);
+	const sep = b.below('stock.decoupler-1875', shield);
+	const service = b.below('stock.tank-1875-short', sep);
+	b.side('stock.solar-fold', service, 0, 0, 2);
+	b.side('stock.rcs-block', service, Math.PI / 4, 0, 4);
+	b.side('stock.monoprop-radial', service, Math.PI / 2, 0, 2);
+	const adapter = b.below('stock.adapter-1875-2500', service);
+	const dec = b.below('stock.decoupler-wide', adapter);
+	const upper = b.below('stock.tank-wide', dec);
+	const upperEngine = b.below('stock.engine-wide', upper);
+	const lowerDec = b.below('stock.decoupler-wide', upperEngine);
+	const core = b.below('stock.tank-wide', lowerDec);
+	b.below('stock.engine-wide', core);
+	const decs = b.side('stock.radial-decoupler', core, Math.PI / 4, 0, 4);
+	const boosters = b.on('stock.booster-liquid', decs, 'outer');
+	b.on('stock.nose-cone', boosters, 'top');
+	b.side('stock.fin', core, 0, -0.7, 4);
+	return b.done();
+}
+
+/**
+ * Dioscuri + Giant II (plan 287, BP-13; Gemini-Titan II): a two-seat capsule with an adapter module
+ * on a two-stage launcher with no boosters, hypergolic and plain.
+ */
+function dioscuri(content: Content): VesselDesign {
+	const b = new Build(content, 'Dioscuri + Giant II', 'stock.descent-module');
+	const shield = b.below('stock.heat-shield-1875', 0);
+	b.side('stock.rcs-block', 0, Math.PI / 4, -0.2, 4);
+	const sep = b.below('stock.decoupler-1875', shield);
+	const adapterModule = b.below('stock.tank-1875-short', sep);
+	b.side('stock.battery-radial', adapterModule, Math.PI, 0, 2);
+	b.side('stock.antenna-whip-radial', adapterModule, 0, 0.2);
+	b.side('stock.monoprop-radial', adapterModule, Math.PI / 2, 0, 2);
+	const adapter = b.below('stock.adapter-1875-2500', adapterModule);
+	const dec = b.below('stock.decoupler-wide', adapter);
+	const upper = b.below('stock.tank-wide', dec);
+	const upperEngine = b.below('stock.engine-wide', upper);
+	const lowerDec = b.below('stock.decoupler-wide', upperEngine);
+	const core = b.below('stock.tank-wide', b.below('stock.tank-wide', lowerDec));
+	b.below('stock.engine-wide', core);
+	const srbDecs = b.side('stock.radial-decoupler', core, Math.PI / 2, 0, 2);
+	b.on('stock.srb-large', srbDecs, 'outer');
+	b.side('stock.fin', core, Math.PI / 4, -0.7, 4);
+	return b.done();
+}
+
+/**
+ * Lumière 5 (plan 287, BP-11; Ariane 5): two comsats under a fairing on a hydrolox core between
+ * two big solid boosters.
+ */
+function lumiere(content: Content): VesselDesign {
+	const b = new Build(content, 'Lumière 5', 'stock.antenna-relay');
+	const wings = comsat(b);
+	const dec = b.below('stock.decoupler', wings);
+	realLauncher(b, dec, 1.25, true);
+	return b.done();
+}
+
+/**
+ * Kestrel Heavy (plan 287, BP-08; Falcon Heavy): a satellite on the Kestrel 9's stages with two
+ * more first stages strapped to its sides.
+ */
+function kestrelHeavy(content: Content): VesselDesign {
+	const b = new Build(content, 'Kestrel Heavy', 'stock.antenna-relay');
+	const wings = comsat(b);
+	const engine = realLauncher(b, wings, 1.25);
+	const low = b.s.design.parts.find((p) => p.index === engine)?.parent?.index ?? engine;
+	const decs = b.side('stock.radial-decoupler', low, 0, -0.2, 2);
+	const side = b.on('stock.booster-liquid', decs, 'outer');
+	b.on('stock.nose-cone', side, 'top');
+	return b.done();
+}
+
+/**
+ * Selene Rover (plan 287, BP-16; the lunar roving vehicle): a one-seat lander with a rover folded
+ * on its side on a decoupler: set down on the moon, release the rover (stage), drive.
+ */
+function seleneRover(content: Content): VesselDesign {
+	const b = new Build(content, 'Selene Rover', 'stock.lander-can');
+	b.side('stock.antenna-whip-radial', 0, Math.PI / 2, 0);
+	const descent = b.below('stock.lander-descent', 0);
+	b.side('stock.landing-leg-single', descent, Math.PI / 4, -0.2, 4);
+	b.side('stock.rcs-block', 0, Math.PI / 4, -0.2, 4);
+	// the rover rides on the descent stage's flank: its deck turned onto the decoupler
+	const rd = b.side('stock.radial-decoupler', descent, Math.PI / 2, 0.2);
+	const chassis = b.on('stock.rover-chassis', rd, 'outer', 'top');
+	b.on('stock.rover-cab', chassis, 'deck', 'bottom');
+	const side = Math.atan2(0.175, 0.6);
+	for (const angle of [side, Math.PI - side]) {
+		b.side('stock.rover-wheel-m-steer', chassis, angle, 0.9);
+		b.side('stock.rover-wheel-m', chassis, angle, -0.9);
+	}
+	b.side('stock.solar-flat', chassis, -Math.PI / 2, -0.8);
+	return b.done([[descent], [rd]]);
 }
 
 export const MISSION_BLUEPRINTS: readonly MissionBlueprint[] = [
@@ -659,6 +867,114 @@ export const MISSION_BLUEPRINTS: readonly MissionBlueprint[] = [
 		summary:
 			'A three-seat capsule under an escape tower, on a service module and two stages with four liquid strap-on boosters: the workhorse crew launcher.',
 		build: (content) => semyorka(content),
+		systems: [{ system: 'stock' }]
+	},
+	{
+		id: 'kestrel-wyvern',
+		title: 'Kestrel 9 + Wyvern',
+		inspiredBy: 'Falcon 9 + Dragon',
+		goal: 'orbit',
+		crew: 3,
+		summary:
+			'A three-seat capsule with a heat shield and a trunk with solar wings, on a two-stage launcher with fins.',
+		build: (content) => kestrel(content),
+		systems: [{ system: 'stock' }, { system: 'sol' }]
+	},
+	{
+		id: 'hermes-r',
+		title: 'Hermes-R',
+		inspiredBy: 'Mercury-Redstone (the first American in space)',
+		goal: 'suborbital',
+		crew: 1,
+		summary:
+			'A capsule with an escape tower on a single stage: up over the edge of space and down under the parachute. Not an orbit.',
+		build: (content) => hermes(content),
+		systems: [{ system: 'stock' }]
+	},
+	{
+		id: 'orient-1',
+		title: 'Semyorka-V + Orient-1',
+		inspiredBy: 'Vostok (the first person in orbit)',
+		goal: 'orbit',
+		crew: 1,
+		summary:
+			'A sphere capsule on an instrument module, on the strap-on booster rocket of the Union: one orbit and home.',
+		build: (content) => orient(content),
+		systems: [{ system: 'stock' }]
+	},
+	{
+		id: 'neutron-breeze',
+		title: 'Neutron-M + Breeze',
+		inspiredBy: 'Proton-M + Briz-M',
+		goal: 'orbit',
+		crew: 0,
+		summary:
+			'A communications satellite on an upper stage with its own engine, on a three-stage launcher.',
+		build: (content) => neutron(content),
+		systems: [{ system: 'stock' }, { system: 'sol' }]
+	},
+	{
+		id: 'hercules-kentauros',
+		title: 'Hercules V + Kentauros',
+		inspiredBy: 'Atlas V + Centaur',
+		goal: 'orbit',
+		crew: 0,
+		summary:
+			'A satellite on a Centaur-style upper stage over a first stage with two solid boosters.',
+		build: (content) => hercules(content),
+		systems: [{ system: 'stock' }, { system: 'sol' }]
+	},
+	{
+		id: 'long-road-2f',
+		title: 'Long Road 2F + Divine Vessel',
+		inspiredBy: 'Long March 2F + Shenzhou',
+		goal: 'orbit',
+		crew: 3,
+		summary:
+			'An orbital module over a descent module and a service module, on four liquid strap-on boosters.',
+		build: (content) => longRoad(content),
+		systems: [{ system: 'stock' }]
+	},
+	{
+		id: 'dioscuri-giant',
+		title: 'Dioscuri + Giant II',
+		inspiredBy: 'Gemini-Titan II',
+		goal: 'orbit',
+		crew: 2,
+		summary:
+			'A two-seat capsule and an adapter module on a two-stage launcher with two solid boosters.',
+		build: (content) => dioscuri(content),
+		systems: [{ system: 'stock' }]
+	},
+	{
+		id: 'lumiere-5',
+		title: 'Lumière 5',
+		inspiredBy: 'Ariane 5',
+		goal: 'orbit',
+		crew: 0,
+		summary: 'A satellite under a fairing on a core stage between two big solid boosters.',
+		build: (content) => lumiere(content),
+		systems: [{ system: 'stock' }, { system: 'sol' }]
+	},
+	{
+		id: 'kestrel-heavy',
+		title: 'Kestrel Heavy',
+		inspiredBy: 'Falcon Heavy',
+		goal: 'orbit',
+		crew: 0,
+		summary: 'A satellite on the Kestrel 9 with two more first stages strapped to its sides.',
+		build: (content) => kestrelHeavy(content),
+		systems: [{ system: 'stock' }, { system: 'sol' }]
+	},
+	{
+		id: 'selene-rover',
+		title: 'Selene Rover',
+		inspiredBy: 'the lunar roving vehicle (Apollo 15 to 17)',
+		goal: 'surface',
+		crew: 1,
+		summary:
+			'A one-seat lander with a two-seat-class rover folded on its flank: set down on the moon, release the rover (stage), and drive. W and S drive, A and D steer.',
+		build: (content) => seleneRover(content),
 		systems: [{ system: 'stock' }]
 	}
 ];

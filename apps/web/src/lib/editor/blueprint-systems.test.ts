@@ -109,6 +109,16 @@ const EXPECTED: Record<string, Record<SystemKey, Outcome>> = {
 	// plan 287: designed for the stock system's launcher
 	'stock.companion-1': { stock: 'goal', rescaled: 'goal', '1:1': 'short' },
 	'stock.semyorka-union': { stock: 'goal', rescaled: 'goal', '1:1': 'short' },
+	'stock.kestrel-wyvern': { stock: 'goal', rescaled: 'goal', '1:1': 'goal' },
+	'stock.hermes-r': { stock: 'goal', rescaled: 'goal', '1:1': 'goal' },
+	'stock.orient-1': { stock: 'goal', rescaled: 'goal', '1:1': 'short' },
+	'stock.neutron-breeze': { stock: 'goal', rescaled: 'goal', '1:1': 'goal' },
+	'stock.hercules-kentauros': { stock: 'goal', rescaled: 'goal', '1:1': 'goal' },
+	'stock.long-road-2f': { stock: 'goal', rescaled: 'short', '1:1': 'short' },
+	'stock.dioscuri-giant': { stock: 'goal', rescaled: 'goal', '1:1': 'short' },
+	'stock.lumiere-5': { stock: 'goal', rescaled: 'goal', '1:1': 'goal' },
+	'stock.kestrel-heavy': { stock: 'goal', rescaled: 'goal', '1:1': 'goal' },
+	'stock.selene-rover': { stock: 'ground', rescaled: 'ground', '1:1': 'ground' },
 	// the orbit lessons' rocket: lessons fly in a stock world
 	'lesson.pathfinder': { stock: 'goal', rescaled: 'goal', '1:1': 'short' }
 };
@@ -225,6 +235,36 @@ async function fly(c: Case, s: System, design: VesselDesign): Promise<{ pe: numb
 	}
 }
 
+/** A hop (a suborbital blueprint): straight up under SAS hold on the first stage; the highest altitude reached, m. */
+async function hop(s: System, design: VesselDesign): Promise<{ apogee: number; end: string }> {
+	const sim = await createSim({
+		plugins: [Stock, Sol, Guidance],
+		backendFactory: () => createRapierBackend({ solverIterations: 16 }),
+		maxFlightFrames: 1,
+		seed: 7,
+		...(s.world ? { world: s.world } : {})
+	});
+	try {
+		const r = sim.dispatch({ type: 'load-vessel', design });
+		if (!r.ok || r.vessel === undefined) throw new Error(r.ok ? 'no vessel' : r.reason);
+		const id = r.vessel;
+		const radius = sim.registries.bodies.get(s.facts.home)!.radius;
+		sim.dispatch({ type: 'sas', vessel: id, mode: 'hold' } as never);
+		sim.dispatch({ type: 'throttle', vessel: id, value: 1 });
+		if (!sim.dispatch({ type: 'stage', vessel: id }).ok) return { apogee: 0, end: 'no stage' };
+		let apogee = 0;
+		for (let t = 0; t < 600; t += 0.1) {
+			sim.step(0.1);
+			const v = sim.snapshot().vessels.find((x) => x.id === id);
+			if (!v) return { apogee, end: 'vessel gone' };
+			apogee = Math.max(apogee, Math.hypot(v.position.x, v.position.y, v.position.z) - radius);
+		}
+		return { apogee, end: 'coasted' };
+	} finally {
+		sim.dispose();
+	}
+}
+
 const only = (process.env.ORBITAL_FLIGHTS ?? '').split(',').filter(Boolean);
 
 describe('stock blueprints in every system (plan 380)', () => {
@@ -245,7 +285,12 @@ describe('stock blueprints in every system (plan 380)', () => {
 				const design = c.design(s);
 				let outcome: Outcome = 'ground';
 				let note = '';
-				if (expected !== 'ground') {
+				if (expected !== 'ground' && c.goal === 'suborbital') {
+					// over the air but not an orbit: the apogee clears the atmosphere's top
+					const { apogee, end } = await hop(s, design);
+					outcome = apogee > (s.facts.atmosphereTop ?? 0) ? 'goal' : 'short';
+					note = `apogee ${(apogee / 1000).toFixed(0)} km; ${end}`;
+				} else if (expected !== 'ground') {
 					const { pe, end } = await fly(c, s, design);
 					const air = s.facts.atmosphereTop ?? 0;
 					const orbit = pe > air;

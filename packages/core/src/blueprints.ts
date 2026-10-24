@@ -9,6 +9,7 @@ import { vesselDesignSchema } from './protocol-schemas.ts';
 
 export const BLUEPRINT_GOALS = [
 	'orbit',
+	'suborbital',
 	'moon',
 	'planet',
 	'deep-space',

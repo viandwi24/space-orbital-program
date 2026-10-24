@@ -347,6 +347,8 @@ Jawaban singkat: **ya, sistem seperti ini yang membuat game roket terasa hidup, 
 
 ## 9. Nama tiruan untuk blueprint roket nyata
 
+> **Status (plan 287, 2026-10-24):** BP-03 to BP-13 and BP-16 are done as stock blueprints with English names (ADR 0268): Semyorka-S + Union, Semyorka-V + Orient-1, Companion-1, Neutron-M + Breeze, Kestrel 9 + Wyvern, Kestrel Heavy, Hercules V + Kentauros, Long Road 2F + Divine Vessel, Lumière 5, Hermes-R, Dioscuri + Giant II, Selene Rover. Each reaches its goal headless (`blueprint-systems.test.ts`, `mission-flights.test.ts`).
+
 Usulan, bebas diganti. Nama tidak memakai merek dagang. Tujuannya cukup jelas mengingatkan pada aslinya tanpa menyalin.
 
 | ID | Terinspirasi oleh | Nama tiruan (usulan) | Alasan nama | Part kunci (ID di atas) |

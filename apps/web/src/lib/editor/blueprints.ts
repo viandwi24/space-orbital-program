@@ -45,6 +45,7 @@ export const ORIGIN_LABELS: Record<BlueprintOrigin, string> = {
 
 export const GOAL_LABELS: Record<BlueprintCard['goal'], string> = {
 	orbit: 'Orbit',
+	suborbital: 'Suborbital',
 	moon: 'Moon',
 	planet: 'Planet',
 	'deep-space': 'Deep space',

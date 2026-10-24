@@ -906,6 +906,58 @@ describe('mission flights (plans 307, 309)', () => {
 		}
 	}, 600_000);
 
+	// plan 287: the Selene Rover set down on the moon, released from the lander and driven 100 m
+	it('the Selene Rover is released on the moon and drives 100 m (plan 287)', async () => {
+		const design = blueprint('selene-rover');
+		const sim = await newSim();
+		try {
+			const moon = registries.bodies.get('stock.cinder')!;
+			expect(sim.dispatch({ type: 'crew-hire', profession: 'pilot' }).ok).toBe(true);
+			// the pilot sits in the rover's cab, as after a walk and a boarding
+			const r = sim.dispatch({
+				type: 'load-vessel',
+				design,
+				placement: { kind: 'surface', body: 'stock.cinder', latitude: 0, longitude: 0.5 },
+				crew: [{ member: 'c1', part: indexOf(design, 'stock.rover-cab') }]
+			} as never);
+			if (!r.ok || r.vessel === undefined) throw new Error(r.ok ? 'no vessel' : r.reason);
+			run(sim, 4);
+			const before = sim.snapshot().vessels.length;
+			// the first stage lights the descent engine (throttle closed), the second releases the rover
+			for (let k = 0; k < 2; k++) {
+				const staged = sim.dispatch({ type: 'stage', vessel: r.vessel });
+				expect(staged.ok ? '' : staged.reason).toBe('');
+				run(sim, 1);
+			}
+			run(sim, 1);
+			const vessels = sim.snapshot().vessels;
+			expect(vessels).toHaveLength(before + 1);
+			const rover = vessels.find((v) =>
+				v.parts.some((p) => p.definition === 'stock.rover-chassis')
+			)!;
+			const lander = vessels.find((v) => v.id !== rover.id)!;
+			expect(lander.parts.some((p) => p.definition === 'stock.lander-descent')).toBe(true);
+			const id = rover.id;
+			const at = () => sim.snapshot().vessels.find((v) => v.id === id)!;
+			const start = { ...at().position };
+			const parts = at().parts.length;
+			const drive = sim.dispatch({ type: 'wheel-throttle', vessel: id, value: 1 });
+			expect(drive.ok ? '' : drive.reason).toBe('');
+			let moved = 0;
+			for (let t = 0; t < 60 && moved < 100; t += 1) {
+				run(sim, 1);
+				const p = at().position;
+				moved = Math.hypot(p.x - start.x, p.y - start.y, p.z - start.z);
+			}
+			sim.dispatch({ type: 'wheel-throttle', vessel: id, value: 0 });
+			console.log(`Selene Rover on ${moon.id}: ${moved.toFixed(0)} m`);
+			expect(moved).toBeGreaterThanOrEqual(100);
+			expect(at().parts.length).toBe(parts);
+		} finally {
+			sim.dispose();
+		}
+	}, 240_000);
+
 	it('the Kronos capsule comes home: a shallow entry at 2 km/s, down under its chutes', async () => {
 		const design = blueprint('kronos-selene');
 		const pod = indexOf(design, 'stock.pod-3');

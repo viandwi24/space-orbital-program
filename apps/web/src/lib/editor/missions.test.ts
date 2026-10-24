@@ -29,7 +29,19 @@ describe('mission blueprints (plan 286)', () => {
 			'stock.moonwatch-orbiter',
 			'stock.horizon-telescope',
 			'stock.aurora-satellite',
-			'stock.trailblazer-rover'
+			'stock.trailblazer-rover',
+			'stock.companion-1',
+			'stock.semyorka-union',
+			'stock.kestrel-wyvern',
+			'stock.hermes-r',
+			'stock.orient-1',
+			'stock.neutron-breeze',
+			'stock.hercules-kentauros',
+			'stock.long-road-2f',
+			'stock.dioscuri-giant',
+			'stock.lumiere-5',
+			'stock.kestrel-heavy',
+			'stock.selene-rover'
 		]);
 	});
 

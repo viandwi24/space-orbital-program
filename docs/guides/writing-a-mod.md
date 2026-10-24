@@ -1179,7 +1179,7 @@ The Library shows its picture, goal and crew, parts, mass, Δv and liftoff TWR, 
 
 Since API 0.1.112 (ADR 0316) stock registers the game's own blueprints the same way: the learn examples and the famous missions, with ids such as `stock.two-stage` and `stock.kronos-selene`.
 - `collection: 'learn'` or `'missions'` files a card beside them. Without it, a card goes under "Mod".
-- `goal` may also be `deep-space`.
+- `goal` may also be `deep-space` or `suborbital`.
 - Stock's designs are generated from the Hangar's builders (`apps/web/scripts/bake-stock-blueprints.ts`), and a test keeps them equal.
 - Developer → Blueprints checks every registered blueprint and opens it in the sandbox Hangar.
 - **Systems (API 0.1.116, plan 380, ADR 0317).** `systems: [{ system: 'stock' }, { system: 'sol', variant: '1:1', design: bigger }]` lists the systems a blueprint is designed for; absent, stock alone. An entry's own `design` replaces `design` in that system (stock's Kronos V is a Saturn V the real size at Sol 1:1). The Library builds each card's design for the world's system and marks a card that is not designed for it. `blueprintFits` and `blueprintDesignFor` (from `@orbital/sdk`) answer the same questions in your code; `apps/web/src/lib/editor/blueprint-systems.test.ts` flies every stock blueprint in every system.
