@@ -2513,6 +2513,7 @@ export class PlanetPassTSL {
 						// (plan 403, twin: cloudFarShell in cloud-far.ts)
 						const farK = smoothstep(CLOUD_FAR.from, CLOUD_FAR.to, tm)
 							.mul(smoothstep(CLOUD_FAR_GATE.from, CLOUD_FAR_GATE.to, uAlt))
+							.mul(this.link('uFarShellOn'))
 							.toVar();
 						const mask = maskAll.mul(farK.oneMinus()).toVar();
 						const shellA = float(0.0).toVar();

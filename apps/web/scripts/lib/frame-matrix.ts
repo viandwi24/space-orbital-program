@@ -77,7 +77,7 @@ export interface Report {
 	cells: Cell[];
 }
 
-async function waitForFlight(page: Page): Promise<void> {
+export async function waitForFlight(page: Page): Promise<void> {
 	await page.waitForFunction(
 		() => (window as any).__orbital?.snapshot?.()?.vessels?.length > 0,
 		null,
@@ -88,7 +88,7 @@ async function waitForFlight(page: Page): Promise<void> {
 	await page.getByTestId('world-loading').waitFor({ state: 'detached', timeout: 300_000 });
 }
 
-async function placeView(page: Page, view: View): Promise<void> {
+export async function placeView(page: Page, view: View): Promise<void> {
 	// the pad: the flight starts there, and `pad` comes first in a page's views
 	if (view === 'pad') return;
 	if (view === 'orbit') {
@@ -113,7 +113,7 @@ async function placeView(page: Page, view: View): Promise<void> {
 }
 
 /** Records for `seconds`: rAF timestamps, long animation frames and the GPU reads, in the page. */
-async function record(page: Page, seconds: number) {
+export async function record(page: Page, seconds: number) {
 	return page.evaluate(async (secs) => {
 		const o = (window as any).__orbital;
 		const r = o.renderer();
@@ -194,7 +194,7 @@ async function record(page: Page, seconds: number) {
 }
 
 /** Opens the booster rocket in the Hangar so `/flight` has a vessel (the Hangar keeps it for the flight). */
-async function setupVessel(page: Page): Promise<void> {
+export async function setupVessel(page: Page): Promise<void> {
 	await page.goto('/vab');
 	await page.waitForFunction(
 		() => typeof (window as any).__orbitalVab?.loadBooster === 'function',

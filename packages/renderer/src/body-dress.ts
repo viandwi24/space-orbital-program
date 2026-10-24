@@ -218,7 +218,7 @@ export class BodyDress {
 	/** The mod's images are decoded while the body is near and let go when it is far (plan 406). */
 	private stream(px: number): void {
 		const a = this.authored;
-		if (!a.asked && px >= DRESS_NEAR_PX) {
+		if (!a.asked && px >= DRESS_NEAR_PX && !this.imagesOff) {
 			a.asked = true;
 			for (const kind of ['albedo', 'normal'] as const)
 				void loadBodyImage(this.id, kind).then((image) => {
@@ -243,6 +243,14 @@ export class BodyDress {
 			releaseBodyImage(this.id, 'normal');
 		}
 	}
+
+	/** Measurement: the mod's images off (and let go) or back. */
+	setImagesOff(off: boolean): void {
+		this.imagesOff = off;
+		if (off) this.stream(0);
+	}
+
+	private imagesOff = false;
 
 	/** Whether the mod's albedo is on the body now (for tests and the capture scripts). */
 	get authoredResident(): boolean {

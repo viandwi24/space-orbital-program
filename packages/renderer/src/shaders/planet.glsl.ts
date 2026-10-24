@@ -474,6 +474,7 @@ uniform vec3 uOceanShallow;   // the sea's colours: a mod's ocean look, else the
 uniform vec3 uOceanDeep;
 uniform float uCityLights;    // city lights on the night side: 1 on, 0 off (plan 403)
 uniform float uScaledMode;     // debug: 1 as drawn, 0 never, 2 every ground pixel
+uniform float uFarShellOn;     // measurement: the far cloud shell on (1) or off (0)
 uniform float uDetailOn;       // debug: the ground detail on (1) or off
 uniform sampler2D uDetail;     // ground detail maps (plan 364): R rock, G grass, B sand, A snow
 uniform int uBakeFace;
@@ -1459,7 +1460,7 @@ vec3 shadeRay(vec3 ro, vec3 rd, float r0, float d, float h, bool hitG, bool hitT
 			float fp = tm * uPixelAngle / max(abs(dot(nm, rd)), 0.05);
 			float cover = smoothstep(0.08, 0.55, cloudDensity(uBodyInv * nm, false, fp));
 			float maskAll = clamp(uCloudCover * 2.0, 0.0, 1.0);
-			float farK = smoothstep(${f(CLOUD_FAR.from)}, ${f(CLOUD_FAR.to)}, tm) * smoothstep(${f(CLOUD_FAR_GATE.from)}, ${f(CLOUD_FAR_GATE.to)}, uAlt);
+			float farK = smoothstep(${f(CLOUD_FAR.from)}, ${f(CLOUD_FAR.to)}, tm) * smoothstep(${f(CLOUD_FAR_GATE.from)}, ${f(CLOUD_FAR_GATE.to)}, uAlt) * uFarShellOn;
 			float mask = maskAll * (1.0 - farK);
 			// beyond the march's reach the slab is one thin shell read from the baked weather map (plan 403, twin: cloudFarShell in cloud-far.ts)
 			float shellA = 0.0;

@@ -432,6 +432,7 @@ export class PlanetPass {
 				uOceanShallow: u(new Vector3(...OCEAN_STOCK.shallow)),
 				uOceanDeep: u(new Vector3(...OCEAN_STOCK.deep)),
 				uDetailOn: u(1),
+				uFarShellOn: u(1),
 				uDetail: u(detailTexture()),
 				uBakeFace: u(0),
 				uBakeWhat: u(0),
@@ -1052,6 +1053,11 @@ export class PlanetPass {
 	}
 
 	/** Plan 364: the triplanar ground detail on or off (its cost and look). */
+	/** Measurement: the far cloud shell on (1) or off (0); it is gated by altitude besides (plan 403). */
+	debugFarShell(on: boolean): void {
+		(this.material.uniforms['uFarShellOn'] as { value: number }).value = on ? 1 : 0;
+	}
+
 	debugGroundDetail(on: boolean): void {
 		(this.material.uniforms['uDetailOn'] as { value: number }).value = on ? 1 : 0;
 	}

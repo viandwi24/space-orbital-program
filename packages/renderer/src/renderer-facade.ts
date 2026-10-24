@@ -68,6 +68,7 @@ export type DebugFacade = Pick<
 	| 'groundRocks'
 	| 'bodyBakes'
 	| 'holdBakes'
+	| 'setLookOff'
 	| 'setMoonTint'
 	| 'setMoonDetail'
 	| 'dishAims'
@@ -143,6 +144,12 @@ export function debugFacade(model: SceneModel): DebugFacade {
 		setPartTemperature: (kelvin) => model.setDebugTemperature(kelvin),
 		bodyBakes: () => model.bakedBodies(),
 		holdBakes: (ms) => model.holdBakes(ms),
+		setLookOff: (look, off) => {
+			if (look === 'bakes') model.setBakesOff(off);
+			else if (look === 'farShell') env.planet.debugFarShell(!off);
+			else if (look === 'rocks') env.setRocksOff(off);
+			else model.setImagesOff(off);
+		},
 		groundRocks: () => ({
 			count: env.rocks.count,
 			visible: env.rocks.root.visible,

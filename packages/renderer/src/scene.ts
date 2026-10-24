@@ -1651,7 +1651,7 @@ export class SceneModel {
 
 	/** The bakes of the cratered bodies the camera is near (plan 403, ADR 0361), once a frame. */
 	private updateBakes(): void {
-		if (this.bakeSources.size === 0) return;
+		if (this.bakeSources.size === 0 || this.bakesOff) return;
 		const bakes = (this.bodyBakes ??= this.makeBodyBakes());
 		const halfTan = Math.tan((this.camera.fov * Math.PI) / 360);
 		const targets: BakeTarget[] = [];
@@ -1727,6 +1727,20 @@ export class SceneModel {
 
 	/** Bakes resident now, by body id (plan 403): for tests and the capture scripts. */
 	/** Nothing is baked or taken in until `ms` after the last call (the player's hands are on the controls). */
+	/** Measurement: the bakes of other bodies and the mods' far images on or off (plan 403, 406). */
+	setBakesOff(off: boolean): void {
+		if (off === this.bakesOff) return;
+		this.bakesOff = off;
+		const plan = BODY_BAKE[this.bakePreset];
+		this.bodyBakes?.setPreset(off ? null : plan.size, off ? 0 : plan.budgetBytes);
+	}
+
+	private bakesOff = false;
+
+	setImagesOff(off: boolean): void {
+		for (const dress of this.dresses.values()) dress.setImagesOff(off);
+	}
+
 	holdBakes(ms: number): void {
 		this.bakeHoldUntil = Math.max(this.bakeHoldUntil, performance.now() + ms);
 	}

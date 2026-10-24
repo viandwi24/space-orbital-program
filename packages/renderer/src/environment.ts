@@ -339,11 +339,18 @@ export class Environment {
 		return kept > 0 ? kept : own;
 	}
 
+	/** Measurement: the ground rocks switched off, and kept off across preset changes. */
+	private rocksOff = false;
+	setRocksOff(off: boolean): void {
+		this.rocksOff = off;
+		this.applyPreset();
+	}
+
 	private applyPreset(): void {
 		const s = settingsFor(this.preset, this.resources);
 		this.planet.setQuality(s);
 		this.site.setTrees(s.trees, s.tufts);
-		this.rocks.setQuality(s.rocks);
+		this.rocks.setQuality(this.rocksOff ? { density: 0, range: 0 } : s.rocks);
 		const shadows = s.shadowMapSize > 0;
 		this.sunLight.castShadow = shadows;
 		const wanted = shadowSizeAt(this.shadowMapSide(), this.viewRatio);
