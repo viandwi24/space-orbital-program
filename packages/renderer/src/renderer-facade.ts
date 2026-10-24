@@ -4,6 +4,7 @@
  * the site, picking and projection. What draws, sizes and measures stays with each renderer.
  */
 import { findPreset } from './camera-presets.ts';
+import { RELEVANCE_LOOKS } from './relevance.ts';
 import type { Renderer, RendererDebug } from './renderer.ts';
 import type { SceneModel } from './scene.ts';
 
@@ -69,6 +70,7 @@ export type DebugFacade = Pick<
 	| 'bodyBakes'
 	| 'holdBakes'
 	| 'setLookOff'
+	| 'lookCosts'
 	| 'setMoonTint'
 	| 'setMoonDetail'
 	| 'dishAims'
@@ -145,11 +147,16 @@ export function debugFacade(model: SceneModel): DebugFacade {
 		bodyBakes: () => model.bakedBodies(),
 		holdBakes: (ms) => model.holdBakes(ms),
 		setLookOff: (look, off) => {
-			if (look === 'bakes') model.setBakesOff(off);
+			if (look === 'ocean' || look === 'clouds' || look === 'terrain') {
+				if (off) env.lookOff.add(look);
+				else env.lookOff.delete(look);
+			} else if (look === 'bakes') model.setBakesOff(off);
 			else if (look === 'farShell') env.planet.debugFarShell(!off);
 			else if (look === 'rocks') env.setRocksOff(off);
 			else model.setImagesOff(off);
 		},
+		// each look's level for the view (plan 410); the ms is filled where a pass measures it
+		lookCosts: () => RELEVANCE_LOOKS.map((look) => ({ look, ms: 0, level: env.relevance[look] })),
 		groundRocks: () => ({
 			count: env.rocks.count,
 			visible: env.rocks.root.visible,

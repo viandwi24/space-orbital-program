@@ -784,6 +784,9 @@ export class PlanetPassTSL {
 			const uTerrainOn = this.link('uTerrainOn');
 			const uSkipR = this.link('uSkipR');
 			const uMarchSteps = this.uMarchSteps;
+			const uGateOcean = this.link('uGateOcean');
+			const uGateClouds = this.link('uGateClouds');
+			const uGateTerrain = this.link('uGateTerrain');
 			const uSilhouetteAA = this.link('uSilhouetteAA');
 			const shadowTex = this.builtShadow ? (this.shadowNode ??= texture(this.builtShadow)) : null;
 			const uShadowOn = this.link('uShadowOn');
@@ -1501,46 +1504,49 @@ export class PlanetPassTSL {
 					);
 				});
 				const gWave = vec3(0.0).toVar();
-				If(landW.lessThan(0.999).and(footprint.lessThan(120.0)), () => {
-					const wv = waveGradient(pl, nBF, footprint, {
-						east: uSiteEast,
-						north: uSiteNorth,
-						time: uTime,
-						anchors,
-						noiseA: nA,
-						detail: lookLevel(cfg, 'ocean') !== 'low',
-						fft: fftNode ? { node: fftNode, tile: OCEAN_FFT.size } : undefined
-					});
-					const calm = lakeOnly.mul(-0.8).add(1.0); // a lake has no swell
-					gWave.assign(wv.gradient.mul(calm));
-					const crest = wv.crest.mul(calm);
-					// white caps only where a pixel resolves them, and their 1.5 m noise only nearer still:
-					// wider pixels sampled them as white specks that flickered with the waves
-					const capFade = smoothstep(1.5, 8.0, footprint).oneMinus();
-					const capNoise = nA(pl, 1.5, 73)
-						.sub(0.5)
-						.mul(0.55)
-						.mul(smoothstep(0.4, 1.5, footprint).oneMinus());
-					const cap = smoothstep(
-						0.85,
-						1.35,
-						crest.div(2.4).add(capNoise).add(length(gWave).mul(0.8))
-					);
-					water.assign(
-						mix(
-							water.mul(crest.mul(0.08).add(1.0)),
-							vec3(0.8, 0.85, 0.87),
-							cap.mul(capFade).mul(smoothstep(0.1, 0.5, depth.add(depthNear)))
-						)
-					);
-				});
+				If(
+					landW.lessThan(0.999).and(footprint.lessThan(120.0)).and(uGateOcean.greaterThan(0.5)),
+					() => {
+						const wv = waveGradient(pl, nBF, footprint, {
+							east: uSiteEast,
+							north: uSiteNorth,
+							time: uTime,
+							anchors,
+							noiseA: nA,
+							detail: lookLevel(cfg, 'ocean') !== 'low',
+							fft: fftNode ? { node: fftNode, tile: OCEAN_FFT.size } : undefined
+						});
+						const calm = lakeOnly.mul(-0.8).add(1.0); // a lake has no swell
+						gWave.assign(wv.gradient.mul(calm));
+						const crest = wv.crest.mul(calm);
+						// white caps only where a pixel resolves them, and their 1.5 m noise only nearer still:
+						// wider pixels sampled them as white specks that flickered with the waves
+						const capFade = smoothstep(1.5, 8.0, footprint).oneMinus();
+						const capNoise = nA(pl, 1.5, 73)
+							.sub(0.5)
+							.mul(0.55)
+							.mul(smoothstep(0.4, 1.5, footprint).oneMinus());
+						const cap = smoothstep(
+							0.85,
+							1.35,
+							crest.div(2.4).add(capNoise).add(length(gWave).mul(0.8))
+						);
+						water.assign(
+							mix(
+								water.mul(crest.mul(0.08).add(1.0)),
+								vec3(0.8, 0.85, 0.87),
+								cap.mul(capFade).mul(smoothstep(0.1, 0.5, depth.add(depthNear)))
+							)
+						);
+					}
+				);
 				const riverCol = mix(vec3(0.03, 0.07, 0.06), vec3(0.02, 0.1, 0.1), noiseF(pl.mul(0.1)));
 				water.assign(mix(water, riverCol, riverMask));
 				const lw = landW.mul(riverMask.oneMinus()).toVar();
 				const col = mix(water, land, lw).toVar();
 				const Nw = vec3(Nb).toVar();
 				const wRip = float(0.5).toVar();
-				If(lw.lessThan(1.0).and(footprint.lessThan(400.0)), () => {
+				If(lw.lessThan(1.0).and(footprint.lessThan(400.0)).and(uGateOcean.greaterThan(0.5)), () => {
 					// a ripple fades in from three pixels a wavelength (it was held to 1.6, the Nyquist edge)
 					const f1 = clamp(float(8.0).div(footprint.mul(3.2)).sub(1.0), 0.0, 1.0);
 					const f2 = clamp(float(2.0).div(footprint.mul(3.2)).sub(1.0), 0.0, 1.0);
@@ -1634,161 +1640,164 @@ export class PlanetPassTSL {
 					t.assign(max(t, uSkipR.div(sqrt(max(float(1.0).sub(d.mul(d)), 0.0025)))));
 				});
 				t.assign(max(t, tFrom));
-				If(shell.y.greaterThan(0.0).and(t.lessThan(tEnd)), () => {
-					const tP = float(0.0).toVar();
-					const cP = float(1e9).toVar();
-					const cM = float(1e9).toVar();
-					const tN = float(0.0).toVar();
-					const cN = float(-1.0).toVar();
-					const grabNext = bool(false).toVar();
-					const tPrev = float(t).toVar();
-					const cPrev = float(1.0).toVar();
-					const cHit = float(-1.0).toVar();
-					Loop({ start: 0, end: steps, type: 'int', name: 'mi' }, ({ mi }: { mi: N }) => {
-						If(float(mi).greaterThanEqual(uMarchSteps), () => {
-							Break();
-						});
-						const p = ro.add(rd.mul(t));
-						const r = length(p);
-						const hs = terrain!.heightAndSlope(p);
-						const c = rayAltitude(r0, d, t, p).sub(hs.x);
-						If(c.lessThan(0.0), () => {
-							hit.assign(true);
-							cHit.assign(c);
-							Break();
-						});
-						// the closest sample and its neighbours, for the parabola after the loop
-						const sc = c.div(max(t.mul(pixelAngle), 1e-6));
-						If(grabNext, () => {
-							tN.assign(t);
-							cN.assign(c);
-							grabNext.assign(false);
-						});
-						If(sc.lessThan(sMin), () => {
-							sMin.assign(sc);
-							tMin.assign(t);
-							cM.assign(c);
-							tP.assign(tPrev);
-							cP.assign(cPrev);
-							grabNext.assign(true);
-						});
-						const mu = dot(rd, p.div(r));
-						const dt = max(
-							max(
-								t.mul(mix(STEP_MIN_FRACTION, STEP_FAR_FRACTION, smoothstep(50.0, 500.0, t))),
-								t.mul(pixelAngle).mul(1.5)
-							),
-							STEP_MIN_METRES
-						).toVar();
-						// a safe step from the local slope: gentle ground allows longer steps
-						const slope = clamp(
-							hs.y.mul(2.0).add(TERRAIN_MARCH_SLOPE_MIN),
-							TERRAIN_MARCH_SLOPE_MIN,
-							TERRAIN_MAX_SLOPE
-						);
-						dt.assign(max(dt, c.mul(STEP_RELAX).div(slope.add(max(mu.negate(), 0.0)))));
-						const tStart = float(t).toVar();
-						tPrev.assign(t);
-						cPrev.assign(c);
-						If(c.lessThan(dt.mul(0.5)), () => {
-							// the step is longer than the clearance is safe for: look inside it for a thin crest
-							const stop = bool(false).toVar();
-							for (let j = 1; j < 3; j++) {
-								If(stop.or(hit).not(), () => {
-									const ts = tStart.add(dt.mul(j / 3));
-									If(ts.greaterThanEqual(tEnd), () => {
-										stop.assign(true);
-									}).Else(() => {
-										const cs = clearance(r0, d, ts, ro, rd).c;
-										If(cs.lessThan(0.0), () => {
-											hit.assign(true);
-											t.assign(ts);
-											cHit.assign(cs);
+				If(
+					shell.y.greaterThan(0.0).and(t.lessThan(tEnd)).and(uGateTerrain.greaterThan(0.5)),
+					() => {
+						const tP = float(0.0).toVar();
+						const cP = float(1e9).toVar();
+						const cM = float(1e9).toVar();
+						const tN = float(0.0).toVar();
+						const cN = float(-1.0).toVar();
+						const grabNext = bool(false).toVar();
+						const tPrev = float(t).toVar();
+						const cPrev = float(1.0).toVar();
+						const cHit = float(-1.0).toVar();
+						Loop({ start: 0, end: steps, type: 'int', name: 'mi' }, ({ mi }: { mi: N }) => {
+							If(float(mi).greaterThanEqual(uMarchSteps), () => {
+								Break();
+							});
+							const p = ro.add(rd.mul(t));
+							const r = length(p);
+							const hs = terrain!.heightAndSlope(p);
+							const c = rayAltitude(r0, d, t, p).sub(hs.x);
+							If(c.lessThan(0.0), () => {
+								hit.assign(true);
+								cHit.assign(c);
+								Break();
+							});
+							// the closest sample and its neighbours, for the parabola after the loop
+							const sc = c.div(max(t.mul(pixelAngle), 1e-6));
+							If(grabNext, () => {
+								tN.assign(t);
+								cN.assign(c);
+								grabNext.assign(false);
+							});
+							If(sc.lessThan(sMin), () => {
+								sMin.assign(sc);
+								tMin.assign(t);
+								cM.assign(c);
+								tP.assign(tPrev);
+								cP.assign(cPrev);
+								grabNext.assign(true);
+							});
+							const mu = dot(rd, p.div(r));
+							const dt = max(
+								max(
+									t.mul(mix(STEP_MIN_FRACTION, STEP_FAR_FRACTION, smoothstep(50.0, 500.0, t))),
+									t.mul(pixelAngle).mul(1.5)
+								),
+								STEP_MIN_METRES
+							).toVar();
+							// a safe step from the local slope: gentle ground allows longer steps
+							const slope = clamp(
+								hs.y.mul(2.0).add(TERRAIN_MARCH_SLOPE_MIN),
+								TERRAIN_MARCH_SLOPE_MIN,
+								TERRAIN_MAX_SLOPE
+							);
+							dt.assign(max(dt, c.mul(STEP_RELAX).div(slope.add(max(mu.negate(), 0.0)))));
+							const tStart = float(t).toVar();
+							tPrev.assign(t);
+							cPrev.assign(c);
+							If(c.lessThan(dt.mul(0.5)), () => {
+								// the step is longer than the clearance is safe for: look inside it for a thin crest
+								const stop = bool(false).toVar();
+								for (let j = 1; j < 3; j++) {
+									If(stop.or(hit).not(), () => {
+										const ts = tStart.add(dt.mul(j / 3));
+										If(ts.greaterThanEqual(tEnd), () => {
+											stop.assign(true);
 										}).Else(() => {
-											tPrev.assign(ts);
-											cPrev.assign(cs);
+											const cs = clearance(r0, d, ts, ro, rd).c;
+											If(cs.lessThan(0.0), () => {
+												hit.assign(true);
+												t.assign(ts);
+												cHit.assign(cs);
+											}).Else(() => {
+												tPrev.assign(ts);
+												cPrev.assign(cs);
+											});
 										});
 									});
+								}
+								If(hit, () => {
+									Break();
 								});
-							}
-							If(hit, () => {
+							});
+							t.assign(tStart.add(dt));
+							If(t.greaterThanEqual(tEnd), () => {
+								t.assign(tEnd);
+								cHit.assign(clearance(r0, d, t, ro, rd).c);
+								hit.assign(cHit.lessThan(0.0));
 								Break();
 							});
 						});
-						t.assign(tStart.add(dt));
-						If(t.greaterThanEqual(tEnd), () => {
-							t.assign(tEnd);
-							cHit.assign(clearance(r0, d, t, ro, rd).c);
-							hit.assign(cHit.lessThan(0.0));
-							Break();
-						});
-					});
-					If(hit.not(), () => {
-						// the closest approach lies between samples: read the clearance where a parabola through
-						// the closest sample and its neighbours is lowest (below zero: a crest between samples)
-						If(
-							uSilhouetteAA
-								.greaterThan(0.5)
-								.and(sMin.lessThan(1.5))
-								.and(cN.greaterThanEqual(0.0))
-								.and(tN.greaterThan(tMin))
-								.and(tMin.greaterThan(tP))
-								.and(cM.lessThanEqual(cP))
-								.and(cM.lessThanEqual(cN)),
-							() => {
-								const x1 = tP.sub(tMin);
-								const x3 = tN.sub(tMin);
-								const den = x1.mul(x3).mul(x1.sub(x3));
-								If(abs(den).greaterThan(1e-6), () => {
-									const pa = x3
-										.mul(cP.sub(cM))
-										.sub(x1.mul(cN.sub(cM)))
-										.div(den);
-									const pb = x1
-										.mul(x1)
-										.mul(cN.sub(cM))
-										.sub(x3.mul(x3).mul(cP.sub(cM)))
-										.div(den);
-									If(pa.greaterThan(0.0), () => {
-										const tv = tMin.add(clamp(pb.negate().div(pa.mul(2.0)), x1, x3));
-										const sv = clearance(r0, d, tv, ro, rd).c.div(max(tv.mul(pixelAngle), 1e-6));
-										If(sv.lessThan(sMin), () => {
-											sMin.assign(sv);
-											tMin.assign(tv);
+						If(hit.not(), () => {
+							// the closest approach lies between samples: read the clearance where a parabola through
+							// the closest sample and its neighbours is lowest (below zero: a crest between samples)
+							If(
+								uSilhouetteAA
+									.greaterThan(0.5)
+									.and(sMin.lessThan(1.5))
+									.and(cN.greaterThanEqual(0.0))
+									.and(tN.greaterThan(tMin))
+									.and(tMin.greaterThan(tP))
+									.and(cM.lessThanEqual(cP))
+									.and(cM.lessThanEqual(cN)),
+								() => {
+									const x1 = tP.sub(tMin);
+									const x3 = tN.sub(tMin);
+									const den = x1.mul(x3).mul(x1.sub(x3));
+									If(abs(den).greaterThan(1e-6), () => {
+										const pa = x3
+											.mul(cP.sub(cM))
+											.sub(x1.mul(cN.sub(cM)))
+											.div(den);
+										const pb = x1
+											.mul(x1)
+											.mul(cN.sub(cM))
+											.sub(x3.mul(x3).mul(cP.sub(cM)))
+											.div(den);
+										If(pa.greaterThan(0.0), () => {
+											const tv = tMin.add(clamp(pb.negate().div(pa.mul(2.0)), x1, x3));
+											const sv = clearance(r0, d, tv, ro, rd).c.div(max(tv.mul(pixelAngle), 1e-6));
+											If(sv.lessThan(sMin), () => {
+												sMin.assign(sv);
+												tMin.assign(tv);
+											});
 										});
 									});
+								}
+							);
+						}).Else(() => {
+							// Illinois (regula falsi): five evaluations land within millimetres
+							const lo = float(tPrev).toVar();
+							const hi = float(t).toVar();
+							const fLo = float(cPrev).toVar();
+							const fHi = float(cHit).toVar();
+							const side = float(0.0).toVar();
+							for (let k = 0; k < 5; k++) {
+								const midT = lo.add(hi.sub(lo).mul(fLo).div(fLo.sub(fHi)));
+								const fm = clearance(r0, d, midT, ro, rd).c;
+								If(fm.lessThan(0.0), () => {
+									hi.assign(midT);
+									fHi.assign(fm);
+									If(side.lessThan(-0.5), () => {
+										fLo.mulAssign(0.5);
+									});
+									side.assign(-1.0);
+								}).Else(() => {
+									lo.assign(midT);
+									fLo.assign(fm);
+									If(side.greaterThan(0.5), () => {
+										fHi.mulAssign(0.5);
+									});
+									side.assign(1.0);
 								});
 							}
-						);
-					}).Else(() => {
-						// Illinois (regula falsi): five evaluations land within millimetres
-						const lo = float(tPrev).toVar();
-						const hi = float(t).toVar();
-						const fLo = float(cPrev).toVar();
-						const fHi = float(cHit).toVar();
-						const side = float(0.0).toVar();
-						for (let k = 0; k < 5; k++) {
-							const midT = lo.add(hi.sub(lo).mul(fLo).div(fLo.sub(fHi)));
-							const fm = clearance(r0, d, midT, ro, rd).c;
-							If(fm.lessThan(0.0), () => {
-								hi.assign(midT);
-								fHi.assign(fm);
-								If(side.lessThan(-0.5), () => {
-									fLo.mulAssign(0.5);
-								});
-								side.assign(-1.0);
-							}).Else(() => {
-								lo.assign(midT);
-								fLo.assign(fm);
-								If(side.greaterThan(0.5), () => {
-									fHi.mulAssign(0.5);
-								});
-								side.assign(1.0);
-							});
-						}
-						tOut.assign(hi);
-					});
-				});
+							tOut.assign(hi);
+						});
+					}
+				);
 				return { hit, tOut, sMin, tMin };
 			};
 			const raySphere = (r0: N, mu: N, rs: N): N => {
@@ -2470,7 +2479,7 @@ export class PlanetPassTSL {
 				const cloudTA = float(1e30).toVar();
 				const csT = raySphere(r0, d, uCloudTop).toVar();
 				const csA = raySphere(r0, d, uCloudAlt).toVar();
-				If(inAtm.and(csT.y.greaterThan(0.0)), () => {
+				If(inAtm.and(csT.y.greaterThan(0.0)).and(uGateClouds.greaterThan(0.5)), () => {
 					// the stretch of the ray inside the slab (twin: slabInterval in cloud-volume.ts)
 					const a0 = max(csT.x, 0.0).toVar();
 					const a1 = float(csT.y).toVar();

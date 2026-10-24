@@ -433,6 +433,10 @@ export class PlanetPass {
 				uOceanDeep: u(new Vector3(...OCEAN_STOCK.deep)),
 				uDetailOn: u(1),
 				uFarShellOn: u(1),
+				// the looks' gates (plan 410): 1 draws, 0 skips; set by `relevance.ts` and the debug switches
+				uGateOcean: u(1),
+				uGateClouds: u(1),
+				uGateTerrain: u(1),
 				uDetail: u(detailTexture()),
 				uBakeFace: u(0),
 				uBakeWhat: u(0),
@@ -1054,6 +1058,13 @@ export class PlanetPass {
 
 	/** Plan 364: the triplanar ground detail on or off (its cost and look). */
 	/** Measurement: the far cloud shell on (1) or off (0); it is gated by altitude besides (plan 403). */
+	/** Switches the planet pass's own looks on or off at run time (plan 410): no pipeline changes. */
+	debugGate(look: 'ocean' | 'clouds' | 'terrain', on: boolean): void {
+		const key =
+			look === 'ocean' ? 'uGateOcean' : look === 'clouds' ? 'uGateClouds' : 'uGateTerrain';
+		(this.material.uniforms[key] as { value: number }).value = on ? 1 : 0;
+	}
+
 	debugFarShell(on: boolean): void {
 		(this.material.uniforms['uFarShellOn'] as { value: number }).value = on ? 1 : 0;
 	}

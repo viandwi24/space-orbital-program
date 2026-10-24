@@ -5,6 +5,7 @@
  */
 import { hexLinear } from './body-look.ts';
 import { quantizeCover, stepCover, weatherCover } from './weather.ts';
+import { relevanceLevels, type RelevanceLevel, type RelevanceLook } from './relevance.ts';
 import {
 	LEGACY_ZONE,
 	createTerrainField,
@@ -163,6 +164,15 @@ export class Environment {
 	/** Toward the system's star from the home body (plan 122, ADR 0119); null: the fixed direction. */
 	private star: Vec3 | null = null;
 	private cloudAngle = 0;
+	/** The level of each look for the view drawn last (plan 410). */
+	relevance: Record<RelevanceLook, RelevanceLevel> = relevanceLevels({
+		altitude: 0,
+		atmosphereTop: 0,
+		vessel: 'none',
+		map: false
+	});
+	/** Looks switched off by the measuring tool (`debug.setLookOff`). */
+	readonly lookOff = new Set<RelevanceLook>();
 	private time = 0;
 	private cloudCover = 0.42;
 	/** A mod's weather for this body (plan 405): the cover it wanders about and how far. */
@@ -604,6 +614,22 @@ export class Environment {
 		}
 		this.time += input.dt;
 		this.site.setLamps(siteLamps);
+		// what the view can show of each look (plan 410, ADR 0368): the planet pass's gates are uniforms
+		this.relevance = relevanceLevels({
+			altitude: alt,
+			atmosphereTop: atm.height,
+			vessel: !input.vesselRender
+				? 'none'
+				: alt < 20
+					? 'landed'
+					: alt < (atm.height || 70_000)
+						? 'flying'
+						: 'orbiting',
+			map: input.mapView
+		});
+		this.planet.debugGate('ocean', this.relevance.ocean > 0 && !this.lookOff.has('ocean'));
+		this.planet.debugGate('clouds', this.relevance.clouds > 0 && !this.lookOff.has('clouds'));
+		this.planet.debugGate('terrain', !this.lookOff.has('terrain'));
 		const shadowMatrix = this.shadowCopy.copy(this.sunLight.shadow.matrix);
 		this.planet.update({
 			camera,
