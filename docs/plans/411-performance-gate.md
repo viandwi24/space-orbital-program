@@ -3,7 +3,7 @@ id: 411
 title: "A performance gate: a scene benchmark every renderer or looks change must pass before it merges, with budgets per scene and per device tier"
 status: ready
 owner: "Worker C"
-depends: [409]
+depends: []
 phase: 9
 created: 2026-10-24
 updated: 2026-10-24

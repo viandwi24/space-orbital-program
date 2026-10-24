@@ -3,7 +3,7 @@ id: 410
 title: "Pay only for what the view needs: each look gated by relevance and distance, cheap baked stand-ins far away, slow updates for slow things"
 status: ready
 owner: "Worker A"
-depends: [408]
+depends: []
 phase: 9
 created: 2026-10-24
 updated: 2026-10-24
