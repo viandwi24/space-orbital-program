@@ -1,4 +1,4 @@
-# 0352 — A vessel's static parts are merged per material
+# 0353 — A vessel's static parts are merged per material
 
 **Status:** accepted
 **Date:** 2026-10-24

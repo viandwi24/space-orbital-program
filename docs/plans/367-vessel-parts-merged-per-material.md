@@ -53,4 +53,4 @@ When this is done, a vessel's static part meshes draw once per material and pain
 
 - 2026-10-22 — Drafted by plan 363.
 - 2026-10-24 — Rewritten by the coordinator after an audit against main @ 4c546c02: still valid; no `BatchedMesh`, parts merge per part; merge by material plus paint; new pipelines warmed at load (ADR 0290, 0310); measure again first; depends adds 373.
-- 2026-10-24 — Worker A: done. ADR 0352; a `VesselBatch` per vessel merges the static part meshes per material; draw calls at `medium` 273 to 121 at the pad and 226 to 74 at 3 km; screens unchanged; the first build merged nothing (non-indexed geometry), fixed.
+- 2026-10-24 — Worker A: done. ADR 0353; a `VesselBatch` per vessel merges the static part meshes per material; draw calls at `medium` 273 to 121 at the pad and 226 to 74 at 3 km; screens unchanged; the first build merged nothing (non-indexed geometry), fixed.

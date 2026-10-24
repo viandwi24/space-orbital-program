@@ -91,7 +91,7 @@ describe('SceneModel with part visuals (plan 020)', () => {
 			'part:stock.decoupler',
 			'part:stock.engine-lv'
 		]);
-		// their static meshes are drawn merged, once per material (plan 367, ADR 0352)
+		// their static meshes are drawn merged, once per material (plan 367, ADR 0353)
 		const merged = group.children.filter((c) => c.name === 'vessel-batch');
 		expect(merged.length).toBeGreaterThan(0);
 		expect(merged.length).toBeLessThan(models.length * 3);

@@ -1,6 +1,6 @@
 # 367 — Vessel parts merged per material
 
-**Plan:** [plans/367-vessel-parts-merged-per-material.md](../plans/367-vessel-parts-merged-per-material.md) · **Session:** Worker A, 2026-10-24 · **ADR:** [0352](../decisions/0352-vessel-parts-merged-per-material.md)
+**Plan:** [plans/367-vessel-parts-merged-per-material.md](../plans/367-vessel-parts-merged-per-material.md) · **Session:** Worker A, 2026-10-24 · **ADR:** [0353](../decisions/0353-vessel-parts-merged-per-material.md)
 
 ## What was done
 
