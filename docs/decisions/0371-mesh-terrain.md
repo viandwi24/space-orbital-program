@@ -27,3 +27,7 @@ Plan 398 asked for a compute pass appending visible patches to an indirect draw.
 - Detail normal maps stay with the shading (ADR 0044's patches and plan 364's triplanar); the mesh's own normals are not used.
 - The CPU selection costs a few hundred node tests per frame; the instance buffer is about 12 KB.
 - The compute walk and indirect draw of the plan's first wording are not built: WebGL2 keeps working and the walk is cheap on the CPU. A GPU walk can replace `selectNodes` later without touching the shader.
+
+## Addendum (plan 415)
+
+8. **The mesh costs nothing it should not at the pad.** The patches are selected again only when the camera has moved more than 1 m, otherwise only their centres relative to the camera are rewritten (0.8 ms of CPU became 0). The planet pass skips the mesh's ground inside the launch site's flat zone (`uSkipR`) exactly as the march does, so those pixels take the sphere path as before (1.6 ms of GPU at the pad). The mesh's levels and image size do not move its cost; `__meshTuning` in a page changes them for the measuring.

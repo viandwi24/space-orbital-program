@@ -74,7 +74,7 @@ import {
 	TERRAIN_MARCH_SLOPE_MIN
 } from '../terrain-model.ts';
 import { TerrainTSL, type TerrainSampler } from './terrain.ts';
-import { TerrainMesh } from './terrain-mesh.ts';
+import { TerrainMesh, meshTuning } from './terrain-mesh.ts';
 import { CLOUD_FAR, CLOUD_FAR_GATE } from '../cloud-far.ts';
 import {
 	CloudMapTSL,
@@ -381,6 +381,7 @@ export class PlanetPassTSL {
 	private meshEpoch = -1;
 	private meshSyncs: (() => void)[] = [];
 	private readonly uMeshOn = uniform(0);
+	private readonly uMeshScale = uniform(1);
 	private meshNode: N = null;
 	private meshActive = false;
 	private readonly bodyView = new Matrix4();
@@ -594,6 +595,7 @@ export class PlanetPassTSL {
 		const meshOn = terrainOn && this.terrainMesh !== null && this.planet.meshWanted;
 		this.meshActive = meshOn;
 		this.uMeshOn.value = meshOn ? 1 : 0;
+		this.uMeshScale.value = meshTuning.scale;
 		if (this.meshNode)
 			this.meshNode.value = meshOn ? this.terrainMesh!.target.texture : this.marchTarget.texture;
 		if (meshOn) {
@@ -2359,15 +2361,22 @@ export class PlanetPassTSL {
 				if (terrain) {
 					const meshPixel =
 						mode === 'half'
-							? ivec2(screenCoordinate.xy.add(0.5).div(this.uMarchScale))
-							: ivec2(screenCoordinate.xy);
+							? ivec2(screenCoordinate.xy.add(0.5).div(this.uMarchScale).mul(this.uMeshScale))
+							: ivec2(screenCoordinate.xy.mul(this.uMeshScale));
 					// the mesh terrain's image holds the distance to the ground of this very pixel (plan 398)
 					If(this.uMeshOn.greaterThan(0.5), () => {
 						const tm = textureLoad(marchTex, meshPixel).x;
+						// like the march, the mesh's ground inside the flat zone of the launch site is the sea-level sphere
+						// (the same height, shaded by the cheaper path): `uSkipR` is the zone's reach
+						const tSkip = select(
+							uSkipR.greaterThan(0.0),
+							uSkipR.div(sqrt(max(float(1.0).sub(d.mul(d)), 0.0025))),
+							float(0.0)
+						);
 						If(
 							uTerrainOn
 								.greaterThan(0.5)
-								.and(tm.greaterThan(0.0))
+								.and(tm.greaterThan(max(tSkip, 0.0)))
 								.and(hitP.not().or(tm.lessThan(tHit))),
 							() => {
 								hitT.assign(true);

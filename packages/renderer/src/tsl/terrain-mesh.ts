@@ -27,8 +27,14 @@ import {
 } from 'three';
 import * as TSL from 'three/tsl';
 import { MeshBasicNodeMaterial, type WebGPURenderer } from 'three/webgpu';
-import { INSTANCE_FLOATS, MESH_GRID, SKIRT_SHARE, writeInstances } from '../terrain-mesh-model.ts';
-import type { QuadNode, Vec3 } from '../terrain-quadtree.ts';
+import {
+	INSTANCE_FLOATS,
+	MESH_GRID,
+	SKIRT_SHARE,
+	patchFrame,
+	type PatchFrame
+} from '../terrain-mesh-model.ts';
+import { rangeOf, selectNodes, type QuadNode, type Vec3 } from '../terrain-quadtree.ts';
 import type { TerrainSampler } from './terrain.ts';
 
 /* TSL nodes are untyped proxies; three's TSL typings lag its runtime */
@@ -55,6 +61,17 @@ const {
 export const MESH_MAX_LEVEL = 15;
 /** The distance inside which the finest level is used, m; each level up doubles it. */
 export const MESH_RANGE0 = 40;
+/** The tuning the measuring reads and writes (`__meshTuning` in a page): levels and the finest range. */
+export const meshTuning = {
+	maxLevel: MESH_MAX_LEVEL,
+	range0: MESH_RANGE0,
+	scale: 1,
+	updateMs: 0,
+	drawMs: 0
+};
+(globalThis as { __meshTuning?: unknown }).__meshTuning = meshTuning;
+/** The camera may move this far (m) before the patches are selected again: the morph covers the difference. */
+const RESELECT_DISTANCE = 1;
 /** The slope the height bounds of a patch allow for (the steepest ground), rise over run. */
 const MAX_SLOPE = 1.2;
 
@@ -198,31 +215,70 @@ export class TerrainMesh {
 	 * buffer and returns how many. Patch bounds use the terrain height at the patch's centre, cached by node.
 	 */
 	update(camBody: Vec3): number {
+		const t0 = performance.now();
+		try {
+			return this.select(camBody);
+		} finally {
+			meshTuning.updateMs += (performance.now() - t0 - meshTuning.updateMs) * 0.05;
+		}
+	}
+
+	/** The camera the patches were selected for, and the frames of the selected patches (with the node range). */
+	private selectedFor: Vec3 | null = null;
+	private frames: PatchFrame[] = [];
+
+	private select(camBody: Vec3): number {
+		const last = this.selectedFor;
+		const moved = last
+			? Math.hypot(camBody[0] - last[0], camBody[1] - last[1], camBody[2] - last[2])
+			: Infinity;
+		if (moved > RESELECT_DISTANCE) this.reselect(camBody);
+		else if (moved === 0 && this.uploaded) return this.count;
+		// the patch centres move with the camera: the only fields that change between selections
+		const d = this.data;
+		const frames = this.frames;
+		for (let i = 0; i < frames.length; i++) {
+			const c = frames[i]!.centre;
+			const k = i * INSTANCE_FLOATS;
+			d[k] = c[0] - camBody[0];
+			d[k + 1] = c[1] - camBody[1];
+			d[k + 2] = c[2] - camBody[2];
+		}
+		this.buffer.needsUpdate = true;
+		this.uploaded = true;
+		this.geometry.instanceCount = frames.length;
+		this.count = frames.length;
+		return frames.length;
+	}
+
+	private uploaded = false;
+
+	/** Walks the quadtree for `camBody` and writes the fields of each patch that do not depend on the camera's exact place. */
+	private reselect(camBody: Vec3): void {
 		const cache = this.heights;
 		if (cache.size > 40_000) cache.clear();
-		const out = writeInstances(
-			camBody,
-			{
-				radius: this.radius,
-				maxLevel: MESH_MAX_LEVEL,
-				range0: MESH_RANGE0,
-				minHeight: this.minHeight,
-				maxHeight: this.maxHeight,
-				maxSlope: MAX_SLOPE,
-				heightAt: (dir: Vec3, node: QuadNode) => {
-					const key = `${node.face}:${node.level}:${node.x}:${node.y}`;
-					let h = cache.get(key);
-					if (h === undefined) {
-						h = this.heightAt(dir);
-						cache.set(key, h);
-					}
-					return h;
+		const o = {
+			radius: this.radius,
+			maxLevel: meshTuning.maxLevel,
+			range0: meshTuning.range0,
+			minHeight: this.minHeight,
+			maxHeight: this.maxHeight,
+			maxSlope: MAX_SLOPE,
+			heightAt: (dir: Vec3, node: QuadNode) => {
+				const key = `${node.face}:${node.level}:${node.x}:${node.y}`;
+				let h = cache.get(key);
+				if (h === undefined) {
+					h = this.heightAt(dir);
+					cache.set(key, h);
 				}
-			},
-			this.data
-		);
-		if (out.data !== this.data) {
-			this.data = out.data as Float32Array<ArrayBuffer>;
+				return h;
+			}
+		};
+		const nodes = selectNodes(camBody, o);
+		if (this.data.length < nodes.length * INSTANCE_FLOATS) {
+			this.data = new Float32Array(
+				Math.ceil((nodes.length * INSTANCE_FLOATS) / 1024) * 1024 + 1024
+			) as Float32Array<ArrayBuffer>;
 			this.buffer = new InstancedInterleavedBuffer(this.data, INSTANCE_FLOATS, 1);
 			this.buffer.setUsage(35048);
 			for (const [name, offset] of [
@@ -233,11 +289,26 @@ export class TerrainMesh {
 			] as const)
 				this.geometry.setAttribute(name, new InterleavedBufferAttribute(this.buffer, 4, offset));
 		}
-		this.buffer.addUpdateRange(0, out.count * INSTANCE_FLOATS);
-		this.buffer.needsUpdate = true;
-		this.geometry.instanceCount = out.count;
-		this.count = out.count;
-		return out.count;
+		const d = this.data;
+		this.frames = nodes.map((node, i) => {
+			const p = patchFrame(node, this.radius);
+			const k = i * INSTANCE_FLOATS;
+			d[k + 3] = p.rho;
+			d[k + 4] = p.chat[0];
+			d[k + 5] = p.chat[1];
+			d[k + 6] = p.chat[2];
+			d[k + 7] = p.span;
+			d[k + 8] = p.U[0];
+			d[k + 9] = p.U[1];
+			d[k + 10] = p.U[2];
+			d[k + 11] = rangeOf(node.level, o);
+			d[k + 12] = p.V[0];
+			d[k + 13] = p.V[1];
+			d[k + 14] = p.V[2];
+			d[k + 15] = node.level;
+			return p;
+		});
+		this.selectedFor = [camBody[0], camBody[1], camBody[2]];
 	}
 
 	/**
@@ -254,6 +325,9 @@ export class TerrainMesh {
 		far: number
 	): void {
 		if (this.count === 0) return;
+		const t0 = performance.now();
+		width = Math.max(1, Math.round(width * meshTuning.scale));
+		height = Math.max(1, Math.round(height * meshTuning.scale));
 		if (this.target.width !== width || this.target.height !== height)
 			this.target.setSize(width, height);
 		const cam = this.camera;
@@ -275,11 +349,14 @@ export class TerrainMesh {
 		renderer.render(this.scene, cam);
 		renderer.setRenderTarget(prev);
 		renderer.setClearColor(clear, alpha);
+		meshTuning.drawMs += (performance.now() - t0 - meshTuning.drawMs) * 0.05;
 	}
 
 	/** Builds the pipeline now (the loading screen's warm-up): one degenerate patch drawn into a small target. */
 	warm(renderer: WebGPURenderer): void {
 		this.data.fill(0);
+		this.selectedFor = null;
+		this.uploaded = false;
 		this.data[3] = 1;
 		this.data[7] = 1e-6;
 		this.data[11] = 1;
