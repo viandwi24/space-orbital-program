@@ -91,6 +91,7 @@ await context.addInitScript(
 			}),
 		record0
 	);
+	await seed.reload();
 	await seed.close();
 }
 await setupVessel(await context.newPage());
@@ -110,6 +111,7 @@ const rows: Row[] = [];
 async function open(scene: string): Promise<Page> {
 	const page = await context.newPage();
 	page.on('pageerror', (e) => console.log('  pageerror', e.message));
+	page.on('console', (m) => m.type() === 'error' && console.log('  console', m.text().slice(0, 200)));
 	if (scene === 'space-center') {
 		await page.goto('/space-center');
 		await page.waitForFunction(() => (window as any).__orbital?.renderer?.(), null, {
