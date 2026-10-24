@@ -213,6 +213,7 @@ When a queue is empty, take the next free plan from this list, in order: 299, 32
   - full suites;
   - the build;
   - measurements.
+- **The measuring flag has an owner.** Before a run, check that `/tmp/orbital-measuring` does not exist. Then write your name into it (`echo "Worker X" > /tmp/orbital-measuring`). An exit trap removes it only if it still holds your name. Never start a run while it holds another worker's name.
 - **Measurements need a quiet machine.** Before a timing run, `touch /tmp/orbital-measuring`, and remove it when the run ends (in a trap). While that file exists, nobody starts any test or build: wait with `while [ -e /tmp/orbital-measuring ]; do sleep 30; done`.
 
 ## Graphics and playability together (CTO order, 2026-10-24, corrected by the owner)
