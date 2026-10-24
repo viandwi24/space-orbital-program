@@ -77,7 +77,7 @@ describe("a body's albedo and normal images", () => {
 		expect(dress.hasImages).toBe(true);
 		// the far sphere's program never changes: it has a map and a normal map before, while and after the images
 		const programKey = (): string => {
-			const m = dress.far.material as { map: unknown; normalMap: unknown };
+			const m = dress.far.material as unknown as { map: unknown; normalMap: unknown };
 			return `${m.map !== null}:${m.normalMap !== null}`;
 		};
 		const before = programKey();

@@ -22,8 +22,22 @@
 - The manager first evicted farther bakes that were still wanted and thrashed in the unit test; it now drops only unwanted ones and uses a hysteresis band.
 - Frame time (M5, this machine, load average 8 to 9 from other jobs, so noisy; `measure-120hz.ts`, WebGPU High, governor off, a development build): orbit p95 10.4 ms with the work, 15.0 and 10.4 ms for `origin/main`; 12 km p95 50 and 58 ms with it, 42 and 50 ms for main, 66 and 50 ms with the 2048 faces turned back to 1536: the runs differ from one another by more than the branches do, so no regression is *shown*, and none is *excluded* below about 10 ms at 12 km. GPU time per frame read 2 to 4 ms in every build. Plan 392's tooling, one `/tmp/orbital-measuring` flag held while it ran.
 
+## Relevance gates and the on/off measurement (ADR 0364)
+
+After the CTO's rule (a look is paid for only where the view needs it, nothing compiles or reallocates in play, each is measured on and off) the parts above were gated in a follow-up: the far cloud shell is off below 12 km of altitude and full above 30 km; Home's faces are 2048 only on `m5`, `discrete-high` and a 120 Hz `apple` (1536 elsewhere, and until the GPU is known); no bake starts or lands, and the dress's palette slices stop, for 1.5 s after a key press; the far sphere's material always carries a (flat) normal map so a mod's relief never changes its program. Tests: `cloud-far` (the gate), `scaled-space-model` (the tiers), `body-bakes` (the hold), `body-dress-images` (the program is the same before, during and after).
+
+**On and off** (`measure-120hz.ts`, WebGPU, High, governor off, 15 s a cell after 6 s of warm-up, a development build, M5 on AC; `off` is the build before plan 403's second stage, `on` is the gated one; two alternating rounds, `/tmp/orbital-measuring` held; the machine's load average was 4 to 7 (other sessions), not the 3 asked for, so read the 12 km cells as noise):
+
+| view | off, round 1 / 2 (p95 ms) | on, round 1 / 2 (p95 ms) | GPU ms off / on |
+|---|---|---|---|
+| pad | 39.0 / 25.7 | 25.8 / 25.8 | 11.5, 4.6 / 4.9, 4.8 |
+| 12 km | 57.2 / 58.3 | 41.8 / 66.7 | 9.5, 3.4 / 3.4, 2.1 |
+| orbit | 18.0 / 10.3 | 10.3 / 10.3 | 5.0, 2.0 / 2.2, 2.1 |
+
+Pad and orbit: no difference beyond the noise (the first `off` round ran against the machine's other jobs). 12 km: the rounds differ from each other by more than the builds do. The Space Center is not in this tool and none of these parts is drawn there (no bake source, no shell: the scene has Home only); it was not measured.
+
 ## Not done
 
 - A locked 60 on Low and Medium measured with throttling or on the Windows integrated GPUs, and the memory budget measured in the browser (the test checks the manager's arithmetic): [manual] for the real machine.
-- No warm-list test for the bake variants: the bake is a texture upload and a worker, it builds no pipeline.
+- No warm-list test for the bake variants: the bake is a texture upload and a worker, it builds no pipeline; the compile counter of plan 410 will say it.
 - The owner's look at Home by day and night, the Moon and two other bodies against reference image 07 ([manual]).

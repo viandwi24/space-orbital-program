@@ -338,8 +338,7 @@ export function graphicsStart(backend: string): {
 	return {
 		preset,
 		warmPresets: warmPresetsFor(preset, adjust, governorCeiling(saved, adjust, preset)),
-		warmTaau:
-			adjust && lockCeiling(caps, globalThis.navigator?.userAgent ?? '') >= 120 ? 0.75 : 0
+		warmTaau: adjust && lockCeiling(caps, globalThis.navigator?.userAgent ?? '') >= 120 ? 0.75 : 0
 	};
 }
 
