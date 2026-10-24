@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { compilesInPlay, lookCostLines, lookCostTotal, playCompilesText } from './compile-play';
 	/**
 	 * The Debug panel (plan 203, ADR 0200): cheats, set orbit, set location, resources, the log, the
 	 * overlay stub and the Info tab. Every change goes through the debug API, so it is a sim command.
@@ -245,6 +246,15 @@
 			noteBad = true;
 		}
 	}
+	const playCompiles = $derived.by(() => {
+		void infoNow;
+		return playCompilesText(compilesInPlay(worldRenderer.compiledPipelines()));
+	});
+	const lookCostsNow = $derived.by(() => {
+		void infoNow;
+		return worldRenderer.lookCosts();
+	});
+	const lookCosts = $derived(lookCostLines(lookCostsNow));
 	const loadLine = $derived.by(() => {
 		void infoNow;
 		const d = worldRenderer.report()?.data;
@@ -590,6 +600,14 @@
 					<Button onclick={() => void copyLoadReport()} data-testid="debug-copy-load"
 						>Copy load report</Button
 					>
+				</dd>
+				<dt>Compiled in play</dt>
+				<dd data-testid="debug-play-compiles">{playCompiles}</dd>
+				<dt>Look costs</dt>
+				<dd data-testid="debug-look-costs">
+					{lookCosts.length
+						? `${lookCostTotal(lookCostsNow).toFixed(2)} ms: ${lookCosts.join(' · ')}`
+						: 'not reported yet'}
 				</dd>
 				<dt>Frame pacing</dt>
 				<dd data-testid="debug-governor-pacing">

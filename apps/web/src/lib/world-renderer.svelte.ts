@@ -419,6 +419,18 @@ class WorldRenderer {
 		this.canvasEl = null;
 	}
 
+	/** The renderer's compiled pipelines, for the Debug rows (plan 410): empty before a renderer exists. */
+	compiledPipelines(): readonly { label: string; phase: string; at: number }[] {
+		return this.renderer?.compiles.pipelines ?? [];
+	}
+
+	/** Each look's cost and relevance level this frame, once the renderer reports them (plan 410); else empty. */
+	lookCosts(): readonly { look: string; ms: number; level: 0 | 1 | 2 }[] {
+		const debug = this.renderer?.debug as
+			{ lookCosts?: () => { look: string; ms: number; level: 0 | 1 | 2 }[] } | undefined;
+		return debug?.lookCosts?.() ?? [];
+	}
+
 	/**
 	 * The load report (plan 370, ADR 0308): steps, renderer, cache and compile summary; null before a
 	 * renderer exists. The compile part keeps growing after `ready` (the background presets).
