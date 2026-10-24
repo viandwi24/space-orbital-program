@@ -1,8 +1,8 @@
 ---
 id: 283
 title: "Rovers, part two: wheel suspension, an external seat, scanning arms, surface features, the drill remodel"
-status: draft
-owner: ""
+status: done
+owner: "Worker B"
 depends: [291, 303, 306, 307]
 phase: 0
 created: 2026-10-21
@@ -65,6 +65,7 @@ Rover wheels ride on a spring and damper with visible travel, a crew member can 
 
 ## Log
 
+- 2026-10-24 — Done by Worker B (ADR 0354, API 0.1.128): wheel suspension (spring and damper, a hub as the bump stop), `vessel.nearestFeature`, the rock study and three scanning arms, the external seat, the drill's rig. Open: visible wheel travel, features on Home, the 0.3 m step (the ground is a plane), screens.
 - 2026-10-24 — Rewritten by the coordinator after an audit against main @ 4c546c02: wheels, chassis, drive mode and the Trailblazer (307), the rover cab (303) and the drive test (309) are done; this plan keeps suspension, the external seat, scanning arms, surface features and the drill remodel; depends on 307 (and 306 for arms).
 - 2026-10-21 — No longer waits for robotics (owner: rocket parts first, rovers next, robotics last). Suspension is a force in the single body (ADR 0262 point 8); the scanning arm is a deploy animation.
 - 2026-10-21 — Drafted from the part-visuals research and the owner's decisions of 2026-10-21 (CTO calls delegated by the owner). Not to be started until the owner releases the parts work: on 2026-10-21 main is busy with renderer fixes and a UI/UX agent.

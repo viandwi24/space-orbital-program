@@ -2,17 +2,19 @@
  * Module hook runner: builds the `ModuleContext` (including the `VesselApi` capabilities,
  * ADR 0015) for one module instance and calls its hooks.
  */
-import type {
-	Ambient,
-	BodyHandle,
-	EntityId,
-	ModuleContext,
-	PhysicsBackend,
-	Transform,
-	Vec3,
-	VesselApi
+import {
+	bodyHasStones,
+	stonesAround,
+	type Ambient,
+	type BodyHandle,
+	type EntityId,
+	type ModuleContext,
+	type PhysicsBackend,
+	type Transform,
+	type Vec3,
+	type VesselApi
 } from '@orbital/core';
-import { add, length, scale } from '@orbital/kepler';
+import { add, length, normalize, scale, sub } from '@orbital/kepler';
 import { motionOf, orientationOf } from './orbit.ts';
 import { resolveTarget } from './target.ts';
 import { ambientAt } from './atmosphere.ts';
@@ -36,7 +38,7 @@ import { signalOf } from './comms.ts';
 import { isFailed } from './reliability.ts';
 import { moduleAction } from './actions.ts';
 import { sunExposure } from './sunlight.ts';
-import { terrainBelow } from './terrain.ts';
+import { terrainBelow, toBodyFixed } from './terrain.ts';
 import { notePower } from './power.ts';
 import { queueDebris, shieldedBy } from './debris.ts';
 import { waterUnder } from './water.ts';
@@ -112,6 +114,33 @@ export function makeContext(core: SimCore, partId: EntityId, moduleId: string): 
 			const planet = bodyOfFrame(core, frame);
 			const ground = waterUnder(core, planet, r) ? 0 : (terrainBelow(core, planet, r) ?? 0);
 			return length(r) - planet.def.radius - ground;
+		},
+		nearestFeature(reach, point) {
+			if (!frame) return undefined;
+			const planet = bodyOfFrame(core, frame);
+			if (!planet.terrain || !bodyHasStones(planet.def)) return undefined;
+			const { transform } = pose();
+			const local = point ?? { x: 0, y: 0, z: 0 };
+			const tip = toBodyFixed(
+				core,
+				planet,
+				add(frame.origin, add(transform.position, qRotate(transform.rotation, local)))
+			);
+			const radius = planet.def.radius;
+			const seed = planet.def.terrain?.kind === 'craters' ? (planet.def.terrain.seed ?? 0) : 0;
+			let best: { id: string; kind: 'rock'; distance: number; radius: number } | undefined;
+			for (const stone of stonesAround(normalize(tip), radius, reach + 2, 64, seed)) {
+				const ground = scale(stone.direction, radius + planet.terrain.heightAt(stone.direction));
+				const distance = length(sub(ground, tip));
+				if (distance > reach || (best && distance >= best.distance)) continue;
+				best = {
+					id: `${planet.def.id}:${stone.face}:${stone.i}:${stone.j}`,
+					kind: 'rock',
+					distance,
+					radius: stone.radius
+				};
+			}
+			return best;
 		},
 		applyForce(force, point) {
 			finiteVec(force, 'force');

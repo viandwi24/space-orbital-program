@@ -56,6 +56,7 @@ import { rcsBlock } from './rcs-block.ts';
 import { tailCone } from './tail-cone.ts';
 import { tank } from './tank.ts';
 import { engineMini, separatron } from './small-motors.ts';
+import { drillRig, scanArm, seatExternal } from './rover-gear.ts';
 import { tankSphere, tankTaper, tankToroid } from './tank-shapes.ts';
 import { reactionWheel } from './wheel.ts';
 import { wing } from './wing.ts';
@@ -162,6 +163,10 @@ export function registerStockGenerators(): void {
 	// plan 307: rover
 	registerPartGenerator('rover-wheel', roverWheel);
 	registerPartGenerator('rover-chassis', roverChassis);
+	// plan 283: a scanning arm, an external seat, the drill's rig
+	registerPartGenerator('scan-arm', scanArm);
+	registerPartGenerator('seat-external', seatExternal);
+	registerPartGenerator('drill-rig', drillRig);
 	// A plain painted barrel for mods that only give a colour: a tank without stripe and bands.
 	registerPartGenerator('plain', (ctx: GenContext) =>
 		tank({

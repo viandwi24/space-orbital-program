@@ -40,6 +40,7 @@ import {
 	ExperimentMaterials,
 	ExperimentObservation,
 	ExperimentPressure,
+	ExperimentRockStudy,
 	ExperimentSeismic,
 	ExperimentSurfaceSample,
 	ExperimentTemperature,
@@ -806,6 +807,54 @@ export const PartRoverCab = pod({
 	attach: stackNodes(1.0)
 });
 
+/**
+ * The external seat (plan 283): a chair on a base plate with a harness and a life-support pack, no
+ * hull. A crew member sits in it on a rover deck or a platform; it is no command source.
+ */
+export const PartSeatExternal = pod({
+	id: 'stock.seat-external',
+	title: 'OrbitX PS-X "Perch"',
+	massKg: 120,
+	crew: 1,
+	shape: cyl(0.625, 1.2),
+	kind: 'seat-external',
+	attach: bottomOnly(1.2, 1.25),
+	command: false
+});
+
+/**
+ * A scanning arm (plan 283): a boom on a rover's side whose head studies a rock lying within its
+ * reach of the tip (`stock.rock-study`, landed only). The arm is a drawn boom, not a joint: the
+ * reach is a sim check against the surface features (ADR 0354).
+ */
+function scanArm(id: string, title: string, massKg: number, length: number, reach: number) {
+	const size: [number, number, number] = [0.3, length, 0.3];
+	return definePart({
+		id,
+		title,
+		mass: kg(massKg),
+		cost: partCost(massKg, 'command'),
+		impactTolerance: 6,
+		shape: box(...size),
+		visual: { kind: 'scan-arm', palette: WHITE },
+		attach: radialAt(size[0] / 2),
+		modules: [
+			[
+				ModuleExperiment,
+				{
+					experiment: ExperimentRockStudy.id,
+					label: 'Study a rock',
+					reach,
+					tip: [-0.06, -length / 2, 0]
+				}
+			]
+		]
+	});
+}
+export const PartScanArmS = scanArm('stock.scan-arm-s', 'OrbitX SA-1 "Reach"', 15, 1, 1.4);
+export const PartScanArmM = scanArm('stock.scan-arm-m', 'OrbitX SA-2 "Stretch"', 40, 1.8, 2.6);
+export const PartScanArmL = scanArm('stock.scan-arm-l', 'OrbitX SA-3 "Long Reach"', 110, 3, 4.5);
+
 export const PartRadiator = definePart({
 	id: 'stock.radiator',
 	title: 'OrbitX TH-R "Fin"',
@@ -1531,5 +1580,10 @@ export const STOCK_MISSION_PARTS = [
 	PartEnginePlateF1,
 	PartEnginePlateJ2,
 	// system audit D6: Apollo's Boost Protective Cover over the docking port
-	PartBoostCover
+	PartBoostCover,
+	// plan 283: the external seat and the scanning arms
+	PartSeatExternal,
+	PartScanArmS,
+	PartScanArmM,
+	PartScanArmL
 ] as const;

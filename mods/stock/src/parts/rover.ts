@@ -21,6 +21,10 @@ function roverWheel(spec: {
 	drive: number;
 	charge: number;
 	topSpeed: number;
+	/** Suspension: travel m, spring N/m, damper N·s/m (plan 283, ADR 0354). */
+	travel: number;
+	spring: number;
+	damper: number;
 }) {
 	const mount: [number, number, number] = [
 		Math.max(0.3, spec.radius * 0.6),
@@ -54,7 +58,10 @@ function roverWheel(spec: {
 					driveForce: spec.drive,
 					driveCharge: spec.charge,
 					topSpeed: spec.topSpeed,
-					motorOn: true
+					motorOn: true,
+					travel: spec.travel,
+					spring: spec.spring,
+					damper: spec.damper
 				}
 			]
 		],
@@ -72,7 +79,10 @@ export const PartRoverWheelSmall = roverWheel({
 	steer: 0,
 	drive: 500,
 	charge: 0.4,
-	topSpeed: 8
+	topSpeed: 8,
+	travel: 0.07,
+	spring: 20000,
+	damper: 3000
 });
 
 export const PartRoverWheelSmallSteer = roverWheel({
@@ -85,7 +95,10 @@ export const PartRoverWheelSmallSteer = roverWheel({
 	steer: 25,
 	drive: 500,
 	charge: 0.4,
-	topSpeed: 8
+	topSpeed: 8,
+	travel: 0.07,
+	spring: 20000,
+	damper: 3000
 });
 
 export const PartRoverWheelMedium = roverWheel({
@@ -98,7 +111,10 @@ export const PartRoverWheelMedium = roverWheel({
 	steer: 0,
 	drive: 1_200,
 	charge: 1,
-	topSpeed: 12
+	topSpeed: 12,
+	travel: 0.12,
+	spring: 45000,
+	damper: 6000
 });
 
 export const PartRoverWheelMediumSteer = roverWheel({
@@ -111,7 +127,10 @@ export const PartRoverWheelMediumSteer = roverWheel({
 	steer: 22,
 	drive: 1_200,
 	charge: 1,
-	topSpeed: 12
+	topSpeed: 12,
+	travel: 0.12,
+	spring: 45000,
+	damper: 6000
 });
 
 export const PartRoverWheelLarge = roverWheel({
@@ -124,7 +143,10 @@ export const PartRoverWheelLarge = roverWheel({
 	steer: 15,
 	drive: 4_000,
 	charge: 2.5,
-	topSpeed: 10
+	topSpeed: 10,
+	travel: 0.2,
+	spring: 110000,
+	damper: 14000
 });
 
 /** A flat rover deck: nose along +Y, a battery inside, wheels hung under its sides. */

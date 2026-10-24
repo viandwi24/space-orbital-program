@@ -340,3 +340,4 @@ An ADR records one decision, its context, and its consequences. ADRs are **appen
 ||||||| d743a107
 | 0351 | [Deployables break in strong airflow; the Hangar names the part that replaces a hidden one](0351-deployables-break-in-airflow-and-replaced-parts.md) | accepted | 2026-10-24 |
 | 0353 | [A vessel's static parts are merged per material](0353-vessel-parts-merged-per-material.md) | accepted | 2026-10-24 |
+| 0354 | [Rover suspension, scanning arms that study rocks, the external seat and the drill's rig](0354-rover-suspension-scanning-arms-and-surface-features.md) | accepted | 2026-10-24 |

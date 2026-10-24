@@ -301,6 +301,16 @@ export interface VesselApi {
 	 * Optional in test fakes.
 	 */
 	targetDirection?(): Vec3 | undefined;
+	/**
+	 * The nearest surface feature (a rock the arm can study, plan 283) within `reach` m of `point`
+	 * (part frame, m; the part's origin when absent), or undefined: none in reach, the body has no
+	 * features (only the cratered airless bodies show stones), or off flight. `id` names the feature
+	 * for good: the same rock has the same id in every session. Optional in test fakes.
+	 */
+	nearestFeature?(
+		reach: number,
+		point?: Vec3
+	): { id: string; kind: 'rock'; distance: number; radius: number } | undefined;
 	/** The vessel's science situation (plan 103, ADR 0178 point 6), or undefined when none matches. */
 	situation(): string | undefined;
 	/**
@@ -431,6 +441,12 @@ export interface WheelSpec {
 	drive?: number;
 	/** The motor's force fades to nothing at this rolling speed, m/s (plan 307; absent: no limit). */
 	topSpeed?: number;
+	/**
+	 * Suspension (plan 283): the wheel's box is a hub `travel` m smaller each way than the tyre, and
+	 * while the tyre is pressed into the ground the sim pushes back with `spring` N/m of compression
+	 * and `damper` N·s/m of closing speed, along the ground's normal. Absent or `travel` 0: rigid.
+	 */
+	suspension?: { travel: number; spring: number; damper: number };
 }
 
 /**

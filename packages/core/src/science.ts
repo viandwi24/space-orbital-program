@@ -54,7 +54,7 @@ export interface ExperimentDefinition {
 	/** Fraction of the value a transmission credits (kind `data`). */
 	transmitFactor: number;
 	/** Conditions of a run beyond the situation (plan 298), see the schema. */
-	needs?: { open?: string; pointing?: number };
+	needs?: { open?: string; pointing?: number; feature?: boolean };
 }
 
 export const situationDefinitionSchema = z.object({
@@ -91,7 +91,9 @@ export const experimentDefinitionSchema = z
 		needs: z
 			.object({
 				open: z.string().min(1).optional(),
-				pointing: z.number().positive().max(90).optional()
+				pointing: z.number().positive().max(90).optional(),
+				/** A surface feature (a rock) within the part's reach (plan 283): `config.reach` m of `config.tip`. */
+				feature: z.boolean().optional()
 			})
 			.optional()
 	})

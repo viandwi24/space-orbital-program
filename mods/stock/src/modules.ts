@@ -1453,7 +1453,15 @@ export const wheelConfigSchema = z.object({
 	retractable: z.boolean().default(false),
 	deployed: z.boolean().default(false),
 	/** Above this airspeed it will not lower, m/s (0: no limit). */
-	deploySpeed: z.number().nonnegative().default(0)
+	deploySpeed: z.number().nonnegative().default(0),
+	/**
+	 * Suspension (plan 283, ADR 0354): travel m, spring N/m and damper N·s/m. The wheel's collider is
+	 * a hub `travel` smaller than the tyre; the sim's spring pushes back through the travel and the hub
+	 * is the bump stop. 0: a rigid wheel, as landing gear is.
+	 */
+	travel: z.number().nonnegative().default(0),
+	spring: z.number().nonnegative().default(0),
+	damper: z.number().nonnegative().default(0)
 });
 export type WheelConfig = z.output<typeof wheelConfigSchema>;
 export interface WheelState {
@@ -1474,6 +1482,8 @@ export interface WheelState {
 	deployed?: boolean;
 	/** Too fast to lower the gear now (plan 361). */
 	tooFast?: boolean;
+	/** How far the suspension is compressed, 0..1 of its travel; written by the sim each step (plan 283). */
+	compression?: number;
 }
 
 /** A fixed wheel is always down; retractable gear only when lowered (plan 361). */
@@ -1593,14 +1603,27 @@ export const ModuleWheel = defineModule({
 					{
 						offset: { x: config.offset[0], y: config.offset[1], z: config.offset[2] },
 						// the rolling direction (+Y) and out (+X) span the wheel's disc; its width is along Z
-						halfExtents: { x: config.radius, y: config.radius, z: config.width / 2 },
+						halfExtents: {
+							x: Math.max(0.02, config.radius - config.travel),
+							y: Math.max(0.02, config.radius - config.travel),
+							z: config.width / 2
+						},
 						wheel: {
 							rolling: config.rolling,
 							grip: config.grip,
 							brake: state.brakes ? 1 : 0,
 							steer: (config.steer * wheelSteerSign(config, state) * Math.PI) / 180,
 							drive: wheelDrive(config, state),
-							...(config.topSpeed > 0 ? { topSpeed: config.topSpeed } : {})
+							...(config.topSpeed > 0 ? { topSpeed: config.topSpeed } : {}),
+							...(config.travel > 0 && config.spring > 0
+								? {
+										suspension: {
+											travel: config.travel,
+											spring: config.spring,
+											damper: config.damper
+										}
+									}
+								: {})
 						}
 					}
 				]
@@ -1673,6 +1696,9 @@ export const ModuleWheel = defineModule({
 		...(state.motorLimit !== undefined && state.motorLimit !== 1
 			? { motorLimit: state.motorLimit }
 			: {}),
-		...(state.reverse === true ? { reverse: true } : {})
+		...(state.reverse === true ? { reverse: true } : {}),
+		...(state.compression !== undefined && state.compression > 0
+			? { compression: Math.round(state.compression * 1000) / 1000 }
+			: {})
 	})
 });

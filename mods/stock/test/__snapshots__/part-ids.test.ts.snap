@@ -4176,6 +4176,95 @@ exports[`stock part ids, masses, costs and modules match the snapshot 1`] = `
     ],
   },
   {
+    "cost": 1200,
+    "id": "stock.seat-external",
+    "mass": 120,
+    "modules": [
+      [
+        "stock.paint",
+        {
+          "offers": [
+            "default",
+            "steel",
+          ],
+        },
+      ],
+      [
+        "stock.resource-container",
+        {
+          "contents": {
+            "stock.electric-charge": {
+              "capacity": 100,
+            },
+            "stock.monopropellant": {
+              "capacity": 10,
+            },
+          },
+        },
+      ],
+    ],
+  },
+  {
+    "cost": 150,
+    "id": "stock.scan-arm-s",
+    "mass": 15,
+    "modules": [
+      [
+        "stock.experiment",
+        {
+          "experiment": "stock.rock-study",
+          "label": "Study a rock",
+          "reach": 1.4,
+          "tip": [
+            -0.06,
+            -0.5,
+            0,
+          ],
+        },
+      ],
+    ],
+  },
+  {
+    "cost": 400,
+    "id": "stock.scan-arm-m",
+    "mass": 40,
+    "modules": [
+      [
+        "stock.experiment",
+        {
+          "experiment": "stock.rock-study",
+          "label": "Study a rock",
+          "reach": 2.6,
+          "tip": [
+            -0.06,
+            -0.9,
+            0,
+          ],
+        },
+      ],
+    ],
+  },
+  {
+    "cost": 1100,
+    "id": "stock.scan-arm-l",
+    "mass": 110,
+    "modules": [
+      [
+        "stock.experiment",
+        {
+          "experiment": "stock.rock-study",
+          "label": "Study a rock",
+          "reach": 4.5,
+          "tip": [
+            -0.06,
+            -1.5,
+            0,
+          ],
+        },
+      ],
+    ],
+  },
+  {
     "cost": 400,
     "id": "stock.hinge-s",
     "mass": 40,
@@ -4474,6 +4563,7 @@ exports[`stock part ids, masses, costs and modules match the snapshot 1`] = `
       [
         "stock.wheel",
         {
+          "damper": 3000,
           "driveCharge": 0.4,
           "driveForce": 500,
           "grip": 1,
@@ -4485,8 +4575,10 @@ exports[`stock part ids, masses, costs and modules match the snapshot 1`] = `
           ],
           "radius": 0.25,
           "rolling": 0.03,
+          "spring": 20000,
           "steer": 0,
           "topSpeed": 8,
+          "travel": 0.07,
           "width": 0.16,
         },
       ],
@@ -4500,6 +4592,7 @@ exports[`stock part ids, masses, costs and modules match the snapshot 1`] = `
       [
         "stock.wheel",
         {
+          "damper": 3000,
           "driveCharge": 0.4,
           "driveForce": 500,
           "grip": 1,
@@ -4511,8 +4604,10 @@ exports[`stock part ids, masses, costs and modules match the snapshot 1`] = `
           ],
           "radius": 0.25,
           "rolling": 0.03,
+          "spring": 20000,
           "steer": 25,
           "topSpeed": 8,
+          "travel": 0.07,
           "width": 0.16,
         },
       ],
@@ -4526,6 +4621,7 @@ exports[`stock part ids, masses, costs and modules match the snapshot 1`] = `
       [
         "stock.wheel",
         {
+          "damper": 6000,
           "driveCharge": 1,
           "driveForce": 1200,
           "grip": 1,
@@ -4537,8 +4633,10 @@ exports[`stock part ids, masses, costs and modules match the snapshot 1`] = `
           ],
           "radius": 0.42,
           "rolling": 0.03,
+          "spring": 45000,
           "steer": 0,
           "topSpeed": 12,
+          "travel": 0.12,
           "width": 0.26,
         },
       ],
@@ -4552,6 +4650,7 @@ exports[`stock part ids, masses, costs and modules match the snapshot 1`] = `
       [
         "stock.wheel",
         {
+          "damper": 6000,
           "driveCharge": 1,
           "driveForce": 1200,
           "grip": 1,
@@ -4563,8 +4662,10 @@ exports[`stock part ids, masses, costs and modules match the snapshot 1`] = `
           ],
           "radius": 0.42,
           "rolling": 0.03,
+          "spring": 45000,
           "steer": 22,
           "topSpeed": 12,
+          "travel": 0.12,
           "width": 0.26,
         },
       ],
@@ -4578,6 +4679,7 @@ exports[`stock part ids, masses, costs and modules match the snapshot 1`] = `
       [
         "stock.wheel",
         {
+          "damper": 14000,
           "driveCharge": 2.5,
           "driveForce": 4000,
           "grip": 1,
@@ -4589,8 +4691,10 @@ exports[`stock part ids, masses, costs and modules match the snapshot 1`] = `
           ],
           "radius": 0.75,
           "rolling": 0.03,
+          "spring": 110000,
           "steer": 15,
           "topSpeed": 10,
+          "travel": 0.2,
           "width": 0.42,
         },
       ],
