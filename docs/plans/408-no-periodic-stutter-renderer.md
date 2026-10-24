@@ -1,7 +1,7 @@
 ---
 id: 408
 title: "No periodic stutter, renderer side: preset warming that never blocks play, governor steps without reallocation, honest HUD, TAAU per page, pacing above 144 Hz, a cheap autosave thumbnail"
-status: ready
+status: done
 owner: "Worker A"
 depends: []
 phase: 9
@@ -89,3 +89,4 @@ Remove every recurring long frame (> 2 frame intervals) the renderer causes duri
 ## Log
 
 - 2026-10-24 — Created by the coordinator from the owner's stutter report and `refs/graphics-v2/06-periodic-spikes.md`. Highest priority for Worker A.
+- 2026-10-24 — Worker A: done, with open items. ADR 0367: warming on the loading screen (not on a boot load), a page starts from the player's quality, the HUD says the drawn preset and TAAU, display rates to 240 Hz, an async thumbnail, gentler rebakes, a long-frame recorder, Automatic stops at medium on a base M2. On the M5 neither build shows the owner's stalls at the pad; M2 and Windows are [manual]. Open: time-sliced terrain patches, the pad flicker check, the unmarked 70-90 ms frames.
