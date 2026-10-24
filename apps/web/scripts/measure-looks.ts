@@ -38,6 +38,10 @@ const looks = (process.env.LOOKS ?? 'bakes,farShell,rocks,images').split(',') as
 	| 'vessels'
 	| 'trees'
 	| 'tufts'
+	| 'floods'
+	| 'structures'
+	| 'people'
+	| 'steam'
 >;
 const backend = process.env.BACKEND ?? 'webgpu';
 const preset = process.env.PRESET ?? 'high';
@@ -58,14 +62,17 @@ const record0 = {
 	order: 0
 };
 
+// headed: a headless page is paced at 60 Hz whatever the display does
 const browser = await chromium.launch({
+	headless: process.env.MEASURE_HEADLESS === '1',
 	args: [
 		'--use-angle=metal',
 		'--enable-gpu',
 		'--ignore-gpu-blocklist',
 		'--enable-unsafe-webgpu',
 		'--disable-background-timer-throttling',
-		'--disable-renderer-backgrounding'
+		'--disable-renderer-backgrounding',
+		'--disable-backgrounding-occluded-windows'
 	]
 });
 const context = await browser.newContext({
@@ -84,8 +91,9 @@ await context.addInitScript(
 	},
 	[backend, preset]
 );
-// the sample planet mod goes into the page's IndexedDB store, then the booster into the Hangar
-{
+// the sample planet mod goes into the page's IndexedDB store, then the booster into the Hangar; only
+// for the looks and scenes that need it (with a mod installed every frame read 16.7 ms: the pace of a modded world)
+if (looks.includes('images') || scenes.includes('verdant')) {
 	const seed = await context.newPage();
 	await seed.goto('/vab');
 	await seed.evaluate(

@@ -1,4 +1,4 @@
-# 07 — What each look costs, on and off (plans 403, 410, 413)
+# 07 — What each look costs, on and off (plans 403, 410, 413, 414)
 
 Measured by Worker B on the owner's M5 MacBook Pro (WebGPU, High, the governor off, a development build, 1512 x 945 at a device pixel ratio of 2, the display at 120 Hz, on AC), 2026-10-24, with `apps/web/scripts/measure-looks.ts` under `/tmp/orbital-measuring`. Each cell is 10 s after 5 s of warm-up, two alternating rounds of on and off, a fresh page for each look. The load average was 3 to 4 (other sessions), not 3 or less in every run. `renderer.debug.setLookOff(look, off)` switches a look.
 
@@ -60,3 +60,27 @@ SCENES=pad,12km,orbit,space-center LOOKS=vegetation,site,tufts,trees SHOT_URL=ht
 ```
 
 Looks: `bakes farShell rocks images ocean clouds terrain vegetation shadows site vessels trees tufts`.
+
+
+## Correction: headed numbers (plan 414)
+
+`measure-looks.ts` launched Chromium **headless**, which is paced at 60 Hz whatever the display does, so every cell above has a floor of 16.7 ms (orbit read 16.7; headed it reads 8.3). The tables above are from that run: their ordering holds, their absolute numbers do not. The script is headed now (`MEASURE_HEADLESS=1` for the old behaviour). The same cells, **headed** (WebGPU High, 10 s, two rounds, mean frame interval, on / off), after the lawn thinning and the tree, bush and tuft levels of detail (ADR 0372):
+
+| scene | look off | mean on | mean off | frames over 16.7 ms, on / off |
+|---|---|---|---|---|
+| pad | **site** (the whole launch site) | 18.2 | **11.9** | 32 % / 6 % |
+| pad | floods (4 idle point lights) | 19.2 | 17.7 | 42 % / 29 % |
+| pad | vegetation | 19.4 | 18.6 | 44 % / 37 % |
+| pad | trees | 19.4 | 18.7 | 45 % / 39 % |
+| pad | tufts | 20.7 | 19.9 | 58 % / 54 % |
+| pad | people | 19.5 | 19.1 | 46 % / 44 % |
+| pad | structures (buildings, tower, masts: 190 k triangles) | 18.0 | 17.8 | 30 % / 27 % |
+| pad | steam, vessels, shadows, terrain, clouds | within 0.3 ms of on | | |
+| orbit | every look | 8.3 | 8.3 | 0 % |
+
+(Rows come from runs of different build moments and the machine's load of 2 to 4; read differences under 0.5 ms as noise.)
+
+- The M5 holds 120 Hz in orbit with every look on (8.3 ms).
+- At the pad the frame is 18 to 20 ms. Without the launch site it is 11.9 to 12.3; the site is 6 to 7 ms.
+- The parts of the site add up to about 3 ms (the four floodlights, idle by day, 1.5; vegetation 0.8; people 0.4; the structures 0.2); about 3.5 ms of the site's cost is not accounted for by any part tried.
+- Without the site the pad is still 3.6 ms over the orbit's 8.3: the vessel, the ground and the planet pass near the ground.

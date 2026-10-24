@@ -356,3 +356,4 @@ An ADR records one decision, its context, and its consequences. ADRs are **appen
 | 0369 | [Relevance: each look is paid for only where the view can show it](0369-relevance-gates.md) | accepted | 2026-10-24 |
 | 0370 | [The launch site's grass is drawn thinner with distance](0370-thin-the-lawn-by-distance.md) | accepted | 2026-10-24 |
 | 0371 | [The ground below 20 km is a mesh: a CDLOD quadtree drawn into a distance image](0371-mesh-terrain.md) | accepted | 2026-10-24 |
+| 0372 | [Vegetation with two levels of detail](0372-vegetation-levels-of-detail.md) | accepted | 2026-10-24 |

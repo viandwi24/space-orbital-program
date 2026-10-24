@@ -12,6 +12,8 @@
 | `refs/graphics-v2/07-look-costs.md` | the tables |
 | tests | `renderer/test/site.test.ts`: density is monotone, under half the lawn for a camera on the pad |
 
+> **Correction (journal 414):** the measuring script launched a headless Chromium, paced at 60 Hz, so the absolute frame times below (and the 16.7 ms floor) are not the M5's; headed, the pad is 18 to 20 ms and the vegetation under 1 ms of it. The ordering of the looks holds.
+
 ## Findings
 
 - At the pad the main thread was idle 36 of 48 ms (a CPU profile, 10 ms busy a frame): the frame is waiting on the GPU, not on script.

@@ -157,6 +157,8 @@ export function debugFacade(model: SceneModel): DebugFacade {
 			else if (look === 'vegetation') env.setVegetationOff(off);
 			else if (look === 'shadows') env.setShadowsOff(off);
 			else if (look === 'trees' || look === 'tufts') env.setVegetationPart(look, off);
+			else if (look === 'floods' || look === 'structures' || look === 'people' || look === 'steam')
+				env.site.setPartHidden(look, off);
 			else if (look === 'site') env.site.root.visible = !off;
 			else if (look === 'vessels') model.setVesselsHidden(off);
 			else model.setImagesOff(off);

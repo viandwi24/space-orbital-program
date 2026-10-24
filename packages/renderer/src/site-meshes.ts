@@ -699,6 +699,16 @@ export class LaunchSite {
 		}
 	}
 
+	/** Measurement (plan 414): one part of the site hidden or shown. */
+	setPartHidden(part: 'floods' | 'structures' | 'people' | 'steam', hidden: boolean): void {
+		if (part === 'floods') for (const l of this.floods) l.visible = !hidden;
+		else if (part === 'structures') {
+			for (const m of this.structureMeshes) m.visible = !hidden;
+			this.rebuildBundle(); // the bundle keeps what it recorded
+		} else if (part === 'people') for (const m of this.people.meshes) m.visible = !hidden;
+		else this.steam.mesh.visible = !hidden;
+	}
+
 	/** 0 by day to 1 at night. */
 	setLamps(level: number): void {
 		const k = Math.min(Math.max(level, 0), 1);
