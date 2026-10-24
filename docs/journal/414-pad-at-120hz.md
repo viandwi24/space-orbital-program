@@ -38,3 +38,8 @@
 - The dusk probe (`probe-dusk.ts`, the sun from 35 degrees to -14): 0 pipelines built on the change and on main.
 - Screens: `414-pad-day.jpg`, `414-pad-night.jpg` (the change) against `414base-pad-day.jpg`, `414base-pad-night.jpg` (main). At night the tower and the buildings are no longer warm-lit; the pad and the grass have the glow's pool. The look at night is for the owner to judge.
 - The pad is still 16 to 18 ms headed, over the goal of 8.3 ms; the rest is plan 415's.
+
+## Update (light sets per material)
+
+- The site, its vegetation, its people and the ground rocks see only the sun and the sky (`material.lightsNode`, ADR 0374); only vessels see the four pooled lamps. Interleaved A/B on the M5, headed, four pairs: 21.2 ms (main) against 19.5 ms mean at the pad; the dusk probe still builds 0 pipelines. Day shot with the sun's shadow: `414ls-pad-day.jpg`.
+- The pad is still 15 to 24 ms in a noisy machine; the goal of 8.3 ms is plan 415's.

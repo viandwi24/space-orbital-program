@@ -102,3 +102,5 @@ No part of the site, drawn alone, is worth more than 0.3 ms; the whole site is 6
 ### The lights (plan 414, ADR 0373)
 
 The scene held 11 point and spot lights by day; each is in every lit material's loop. After: the site holds none (its floodlights are drawn glow) and the pools are 2 lamps and 2 plume cluster lights. Interleaved A/B on the M5, headed, the pad: mean 19.7 to 16.8 ms, frames over 16.7 ms 62 % to 44 %; dusk builds 0 pipelines.
+
+Further, the site, vegetation, people and rocks restricted to the sun and the sky (ADR 0374): the pad's mean 21.2 to 19.5 ms, interleaved A/B, headed.

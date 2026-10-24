@@ -43,3 +43,4 @@ Pad mean frame at most 8.3 ms and frames over 8.4 ms at most 5 % on the M5 at Hi
 
 - 2026-10-24 — Step 1 by Worker B (ADR 0372). The measurement showed the vegetation is under 1 ms of the pad's frame; the rest is in steps 2 and 3.
 - 2026-10-25 — Lights by Worker B (ADR 0373): the pad's mean frame 19.7 to 16.8 ms, dusk builds 0 pipelines. Stays in progress for the owner's look at night and plan 415.
+- 2026-10-25 — Light sets per material by Worker B (ADR 0374): the pad's mean frame 21.2 to 19.5 ms in an interleaved A/B; dusk builds 0 pipelines.
