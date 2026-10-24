@@ -54,4 +54,3 @@ When this is done, the per-part transforms reach the main thread without a struc
 - 2026-10-22 — Drafted by plan 363.
 - 2026-10-24 — Rewritten by the coordinator after an audit against main @ 4c546c02: still valid; snapshots are still structured-cloned; the snapshot grew (overlays, winch ropes), so the first step is a new baseline; overlays and ropes stay on the cloned path.
 - 2026-10-24 — Worker A: done. ADR 0358: deltas instead of a binary layout (the consumers need objects); the main-thread cost per message at 20 vessels 1.17 to 0.56 ms, 285 to 125 KB; the worker's encode 0.19 ms.
-- 2026-10-24 — Folded into plan 409 (no periodic stutter, page side). Dropped by the coordinator.

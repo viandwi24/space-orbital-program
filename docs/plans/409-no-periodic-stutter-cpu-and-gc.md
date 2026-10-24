@@ -33,7 +33,7 @@ Stop the major-GC pauses that make the game stutter every few seconds. The owner
 
 **In:**
 - **Change detection without strings:** replace per-snapshot and per-frame `JSON.stringify` comparisons with version counters or shallow field compares, on every page. Search for other `JSON.stringify` uses in hot paths too.
-- **Snapshot transport (absorbs draft 365):**
+- **Snapshot transport.** Plan 365 is already done: check what it changed, then extend it only if the measured clone cost remains:
   - send the large static parts once, and only the deltas after that;
   - use a transferable binary layout for vessel and part arrays;
   - keep overlays and ropes on the cloned path.
@@ -54,7 +54,7 @@ Stop the major-GC pauses that make the game stutter every few seconds. The owner
 
 1. Find every per-snapshot and per-frame `JSON.stringify` and allocation, and list them in the journal.
 2. Replace them, adding the allocation test.
-3. Do the binary and delta snapshot transport (plan 365's scope). Add a round-trip test.
+3. Measure the snapshot clone cost after plan 365. Extend the transport only if it is still a source of garbage.
 4. Measure the heap sawtooth for 2 minutes at the Space Center and in flight. Use Chrome's performance memory, or `usedJSHeapSize` sampling, under `/tmp/orbital-measuring`.
 
 ## Acceptance criteria
@@ -68,8 +68,7 @@ Stop the major-GC pauses that make the game stutter every few seconds. The owner
 
 - [ ] STATUS row.
 - [ ] Journal with the before/after heap traces.
-- [ ] Plan 365 marked dropped, with "folded into 409".
 
 ## Log
 
-- 2026-10-24 — Created by the coordinator from the owner's stutter report and `refs/graphics-v2/06-periodic-spikes.md`. It absorbs draft 365. Highest priority for Worker C.
+- 2026-10-24 — Created by the coordinator from the owner's stutter report and `refs/graphics-v2/06-periodic-spikes.md`. Plan 365 (snapshot transport) is already done. Highest priority for Worker C.
