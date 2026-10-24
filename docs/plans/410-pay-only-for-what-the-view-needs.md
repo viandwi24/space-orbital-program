@@ -90,4 +90,4 @@ The game is playable on every device tier, and it keeps the new looks. Each look
 
 ## Log
 
-- 2026-10-24 — Created by the coordinator after the owner reported that today's graphics work made the game less playable. Runs right after plan 408 on Worker A. Looks plans still open (398, 403, 405, 406) must follow its relevance rules.
+- 2026-10-24 — Created by the coordinator after the owner reported that today's graphics work made the game less playable. Runs right after plan 408 on Worker A. Looks plans still open (398, 403, 405, 406) continue in parallel with their own relevance gates; 410 moves them onto the shared model.
