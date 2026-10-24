@@ -1,8 +1,8 @@
 ---
 id: 342
 title: "The first map toggle and the last frame hitch after the world's loading screen"
-status: draft
-owner: ""
+status: done
+owner: "Worker A"
 depends: [340, 370, 373]
 phase: 8
 created: 2026-10-22
@@ -54,3 +54,4 @@ Those numbers predate plans 370, 373 and 380–384, so they may have moved. Meas
 
 - 2026-10-22: Drafted from plan 340's leftovers.
 - 2026-10-24 — Rewritten by the coordinator after an audit against main @ 4c546c02: still valid; `warmViews` already draws the map views; the missing `.tmp-measure.ts` replaced by `measure-load.ts` / `measure-sunrise.ts`; first step is to measure again after plans 370 and 373; depends adds 370 and 373.
+- 2026-10-24 — Worker A: done. Measured again: the first map toggle was 4.5 s and every toggle rebuilt the pipelines (three disposes render objects when the scene's cache key changes). ADR 0359 keeps pipelines, programs and node states alive: no frame over 100 ms in the 8 s after the loading screen or in later toggles on both backends; the first Flight → Map is 126 ms (WebGPU) and 237 ms (WebGL), open.
