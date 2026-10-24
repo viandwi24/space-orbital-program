@@ -336,6 +336,8 @@
 | 405 | [Mod visual data: plasma palettes, plume templates, cloud and weather maps, sky and ocean coefficients, post profiles, larger caps, KTX2 and WebP, and the guide](plans/405-mod-visual-data.md) | in-progress | Worker B | ADR 0345: plasma palettes, post profiles, KTX2/WebP images shipped (stage 1); cloud/weather maps, sky and ocean coefficients, Meshopt open. |
 | 406 | [Planet mods: albedo, height and normal maps for a mod body; the height map feeds the sim terrain; non-Home hills bodies get sky, sea and clouds](plans/406-planet-mods.md) | in-progress | Worker B | ADR 0346: a planet from a PNG biome map shipped (stage 1); albedo/normal images, sky/sea/clouds on a mod planet, streaming open. |
 | 407 | [The orbiter flies from re-entry to a stop on the runway: approach guidance and a headless landing test](plans/407-orbiter-runway-landing.md) | draft | | Split from plan 389 (2026-10-24). |
+| 408 | [No periodic stutter, renderer side: preset warming that never blocks play, governor steps without reallocation, honest HUD, TAAU per page, pacing above 144 Hz, a cheap autosave thumbnail](plans/408-no-periodic-stutter-renderer.md) | ready | Worker A | Owner's stutter report 2026-10-24 (`refs/graphics-v2/06-periodic-spikes.md`). |
+| 409 | [No periodic stutter, page side: no JSON churn per snapshot, cheaper snapshot transport, no per-frame allocations, so no major GC pauses](plans/409-no-periodic-stutter-cpu-and-gc.md) | ready | Worker C | Owner's stutter report 2026-10-24; absorbs 365. |
 
 Statuses: `draft` (needs refinement before an agent takes it) · `ready` · `in-progress` · `done` · `blocked`.
 
