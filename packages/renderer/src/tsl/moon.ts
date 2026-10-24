@@ -38,6 +38,7 @@ import {
 	type Uniform
 } from 'three';
 import * as TSL from 'three/tsl';
+import { restrictLights } from '../light-sets.ts';
 import {
 	MeshBasicNodeMaterial,
 	MeshLambertNodeMaterial,
@@ -214,6 +215,8 @@ export class MoonTSL {
 	private readonly R: number;
 	/** The colour map nodes of the layers (plan 381): their texture follows `pass.look` each frame. */
 	private readonly lookNodes: N[] = [];
+	/** The light set of the layers (the sun and the sky), built with the first layer. */
+	private lightSet: unknown = null;
 
 	constructor(
 		readonly pass: MoonPass,
@@ -516,6 +519,8 @@ export class MoonTSL {
 		const stone = kind === 'stone';
 		const m = new MoonMaterial();
 		m.color = new Color(0xffffff);
+		// the ground of a moon or hills body sees the sun and the sky only, not the vessels' pooled lamps (plan 414, ADR 0374)
+		restrictLights([m], (this.lightSet ??= TSL.lights([this.lights.sun, this.lights.hemisphere])));
 		const uRadius = u('uRadius');
 
 		// the patch this layer reads (a stone stands on the fine one)

@@ -19,3 +19,7 @@ After ADR 0373 four pooled lamps remain in the scene (two vessel lamps, two plum
 
 - Interleaved A/B on the M5, headed, the pad, four pairs against main with the glow (ADR 0373): mean frame 18.8, 16.2, 25.2, 24.4 ms against 15.2, 16.3, 23.5, 22.8: 21.2 against 19.5 ms (the second pair equal, the other three 1.6 to 3.6 ms lower; the last two pairs were in a slow stretch of the machine).
 - A new lit material of the site must be listed in `LaunchSite.litMaterials` to be restricted; `light-sets.test.ts` fails if a material the site draws is missing.
+
+## Addendum (plan 415): the moon and hills layers
+
+`MoonTSL.layer()` gives each layer's material the same `lights([sun, hemisphere])` set (one per `MoonTSL`), so a moon or hills body does not loop over the vessels' pooled lamps either. `light-sets.test.ts` guards that the layer builder restricts its material. Checked: the dusk probe builds 0 pipelines (92 before, 92 after); the Cinder body from 3 km has the same mean brightness with and without the restriction (44.2 against 44.2, `414ml-cinder-3km.jpg`).

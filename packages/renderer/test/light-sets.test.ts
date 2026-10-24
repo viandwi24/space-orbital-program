@@ -35,3 +35,12 @@ describe('the site materials', () => {
 		site.dispose();
 	});
 });
+
+describe('the moon and hills layers', () => {
+	test('take the sun and sky only: the layer material is restricted where it is built', async () => {
+		const src = await Bun.file(new URL('../src/tsl/moon.ts', import.meta.url)).text();
+		const layer = src.slice(src.indexOf('new MoonMaterial()'));
+		expect(layer.slice(0, 900)).toContain('restrictLights([m]');
+		expect(layer.slice(0, 900)).toContain('this.lights.sun, this.lights.hemisphere');
+	});
+});
