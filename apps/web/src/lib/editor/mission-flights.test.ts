@@ -1109,6 +1109,240 @@ describe('mission flights (plans 307, 309)', () => {
 		}
 	}, 240_000);
 
+	// plan 286: Moonwatch arrives at the moon on a hyperbola and its own engine captures it
+	it('Moonwatch Orbiter brakes into a closed lunar orbit on its own engine (800 m/s at arrival)', async () => {
+		const full = blueprint('moonwatch-orbiter');
+		const engine = indexOf(full, 'stock.engine-vacuum');
+		// the probe without the launcher under its decoupler
+		const decoupler = full.parts.find((p) => p.parent?.index === engine)!.index;
+		const gone = new Set(subtreeOf(full, decoupler));
+		const probe: VesselDesign = {
+			...full,
+			parts: full.parts.filter((p) => !gone.has(p.index)),
+			stages: [[engine]]
+		};
+		const sim = await newSim();
+		try {
+			const moon = registries.bodies.get('stock.cinder')!;
+			const mu = moon.mass * 6.6743e-11;
+			const r = moon.radius + 100_000;
+			const arrival = Math.sqrt(800 ** 2 + (2 * mu) / r);
+			const placed = sim.dispatch({
+				type: 'load-vessel',
+				design: probe,
+				placement: {
+					kind: 'state',
+					body: 'stock.cinder',
+					position: { x: r, y: 0, z: 0 },
+					velocity: { x: 0, y: 0, z: -arrival }
+				}
+			} as never);
+			if (!placed.ok || placed.vessel === undefined)
+				throw new Error(placed.ok ? 'no vessel' : placed.reason);
+			const id = placed.vessel;
+			const at = () => sim.snapshot().vessels.find((v) => v.id === id)!;
+			const orbit = () => {
+				const v = at();
+				const rr = len(v.position);
+				const energy = len(v.velocity) ** 2 / 2 - mu / rr;
+				const h = len(cross3(v.position, v.velocity));
+				const a = -mu / (2 * energy);
+				const e = Math.sqrt(Math.max(0, 1 - (h * h) / (mu * a)));
+				return { energy, e, periapsis: a * (1 - e) - moon.radius };
+			};
+			expect(orbit().energy).toBeGreaterThan(0); // an open hyperbola to begin with
+			expect(sim.dispatch({ type: 'sas', vessel: id, mode: 'retrograde' } as never).ok).toBe(true);
+			run(sim, 60); // turns to retrograde
+			expect(sim.dispatch({ type: 'stage', vessel: id }).ok).toBe(true);
+			expect(sim.dispatch({ type: 'throttle', vessel: id, value: 1 } as never).ok).toBe(true);
+			let burned = 0;
+			for (; burned < 600; burned += 0.1) {
+				sim.step(0.1);
+				const o = orbit();
+				if (o.energy < 0 && o.e < 0.9 && o.periapsis > 20_000) break;
+			}
+			sim.dispatch({ type: 'throttle', vessel: id, value: 0 } as never);
+			const o = orbit();
+			console.log(
+				`moonwatch capture: burn ${burned.toFixed(0)} s, e ${o.e.toFixed(2)}, pe ${(o.periapsis / 1000).toFixed(0)} km`
+			);
+			// a closed orbit that clears the surface, reached inside ten minutes of burning
+			expect(o.energy).toBeLessThan(0);
+			expect(o.e).toBeLessThan(0.9);
+			expect(o.periapsis).toBeGreaterThan(20_000);
+			expect(burned).toBeLessThan(600);
+		} finally {
+			sim.dispose();
+		}
+	}, 300_000);
+
+	// plan 286: the satellites' own work in orbit, without the launcher under them
+	/** `design` without the launcher: the subtree under the part hanging on the root's bottom node (or under `engine`). */
+	const withoutLauncher = (design: VesselDesign, engine?: string): VesselDesign => {
+		const cut = engine
+			? design.parts.find((p) => p.part === engine)!.index
+			: design.parts.find((p) => p.parent?.index === 0 && p.parent.parentNode === 'bottom')!.index;
+		const drop = new Set(subtreeOf(design, cut));
+		if (engine) drop.delete(cut);
+		return {
+			...design,
+			parts: design.parts.filter((p) => !drop.has(p.index)),
+			stages: []
+		};
+	};
+	/** Load `design` in a circular orbit `altitude` m up with its +Y pointing `off` degrees from straight down. */
+	const inOrbit = async (design: VesselDesign, altitude: number, off = 0) => {
+		const sim = await newSim();
+		const home = sim.registries.bodies.get('stock.home')!;
+		const mu = home.mass * 6.6743e-11;
+		const r = home.radius + altitude;
+		const a = ((90 - off) * Math.PI) / 180;
+		const id = place(
+			sim,
+			design,
+			'stock.home',
+			{ x: r, y: 0, z: 0 },
+			{ x: 0, y: 0, z: -Math.sqrt(mu / r) },
+			{ x: 0, y: 0, z: Math.sin(a / 2), w: Math.cos(a / 2) }
+		);
+		const vessel = () => sim.snapshot().vessels.find((v) => Number(v.id) === id)!;
+		const part = (def: string) => vessel().parts.find((p) => p.definition === def)!;
+		const act = (def: string, module: string, action: string) =>
+			sim.dispatch({ type: 'action', vessel: id, part: part(def).id, module, action } as never);
+		const experiment = (def: string) =>
+			part(def).modules['stock.experiment'] as { status: string; reason: string | null };
+		const run = (seconds: number) => {
+			for (let i = 0; i < seconds / 0.02; i++) sim.step(0.02);
+		};
+		return { sim, vessel, part, act, experiment, run };
+	};
+
+	it('Horizon Telescope opens its door, points at the planet and observes (plan 298 condition)', async () => {
+		const tele = withoutLauncher(blueprint('horizon-telescope'), 'stock.engine-vacuum');
+		const { sim, act, experiment, run } = await inOrbit(tele, 300_000);
+		try {
+			act('stock.telescope', 'stock.experiment', 'run');
+			expect(experiment('stock.telescope').reason).toMatch(/door is closed/);
+			expect(act('stock.telescope', 'stock.animate', 'open').ok).toBe(true);
+			expect(act('stock.telescope', 'stock.experiment', 'run').ok).toBe(true);
+			expect(experiment('stock.telescope').status).toBe('RUNNING');
+			run(40);
+			expect(experiment('stock.telescope').status).toBe('READY');
+		} finally {
+			sim.dispose();
+		}
+	}, 120_000);
+
+	it('Aurora Research Satellite runs its magnetometer in high orbit and its thermometer in low orbit', async () => {
+		const aurora = withoutLauncher(blueprint('aurora-satellite'));
+		const high = await inOrbit(aurora, 300_000);
+		try {
+			expect(high.act('stock.magnetometer-boom', 'stock.experiment', 'run').ok).toBe(true);
+			high.run(60);
+			expect(high.experiment('stock.magnetometer-boom').status).toBe('READY');
+			// the thermometer needs lower orbit than this
+			high.act('stock.thermometer-radial', 'stock.experiment', 'run');
+			expect(high.experiment('stock.thermometer-radial').status).toBe('INVALID');
+			expect(high.experiment('stock.thermometer-radial').reason).toMatch(/space-low/);
+		} finally {
+			high.sim.dispose();
+		}
+		const low = await inOrbit(aurora, 100_000);
+		try {
+			// the magnetometer reads in high orbit only; low orbit is the thermometer's
+			low.act('stock.magnetometer-boom', 'stock.experiment', 'run');
+			expect(low.experiment('stock.magnetometer-boom').status).toBe('INVALID');
+			expect(low.act('stock.thermometer-radial', 'stock.experiment', 'run').ok).toBe(true);
+			low.run(60);
+			expect(low.experiment('stock.thermometer-radial').status).toBe('READY');
+			// the whip antenna and the folded arrays are fitted and working
+			expect(low.part('stock.antenna-whip-radial')).toBeDefined();
+			expect(low.part('stock.solar-fold').modules['stock.solar-panel']).toBeDefined();
+		} finally {
+			low.sim.dispose();
+		}
+	}, 180_000);
+
+	// plan 286: the station takes a crew member from a ferry through the docked ports
+	it('a ferry crew member docks with Horizon Station and transfers into its habitat', async () => {
+		const station = blueprint('horizon-station');
+		const R = registries.bodies.get('stock.home')!.radius;
+		const far = { x: 0, y: R + 600_000, z: 0 };
+		const still = { x: 0, y: 0, z: 0 };
+		const ferry: VesselDesign = {
+			formatVersion: 4,
+			name: 'Crew ferry',
+			parts: [
+				{ index: 0, part: 'stock.docking-port' as never, parent: null },
+				{
+					index: 1,
+					part: 'stock.command-pod' as never,
+					parent: { index: 0, parentNode: 'bottom', node: 'top' }
+				}
+			],
+			stages: []
+		};
+		const flipped = { x: 1, y: 0, z: 0, w: 0 };
+		const loadFerry = (sim: Sim, at: Vec3) => {
+			const r = sim.dispatch({
+				type: 'load-vessel',
+				design: ferry,
+				placement: {
+					kind: 'state',
+					body: 'stock.home',
+					position: at,
+					velocity: { x: 0, y: -0.25, z: 0 },
+					orientation: flipped
+				},
+				crew: [{ member: 'c1', part: 1 }]
+			} as never);
+			if (!r.ok || r.vessel === undefined) throw new Error(r.ok ? 'no vessel' : r.reason);
+			return Number(r.vessel);
+		};
+		const scratch = await newSim();
+		scratch.dispatch({ type: 'crew-hire', profession: 'pilot' });
+		const f0 = loadFerry(scratch, far);
+		const s0 = scratch.snapshot().vessels.find((v) => Number(v.id) === f0)!;
+		const comToRoot = {
+			x: s0.position.x - far.x,
+			y: s0.position.y - far.y,
+			z: s0.position.z - far.z
+		};
+		scratch.dispose();
+		const sim = await newSim();
+		try {
+			sim.dispatch({ type: 'crew-hire', profession: 'pilot' });
+			const st = place(sim, station, 'stock.home', far, still);
+			const sv = sim.snapshot().vessels.find((v) => Number(v.id) === st)!;
+			const port = sv.parts.find((p) => p.definition === 'stock.docking-port')!;
+			const goal = {
+				x: sv.position.x + port.position.x,
+				y: sv.position.y + port.position.y + 0.9,
+				z: sv.position.z + port.position.z
+			};
+			loadFerry(sim, { x: goal.x - comToRoot.x, y: goal.y - comToRoot.y, z: goal.z - comToRoot.z });
+			const count = () => sim.snapshot().vessels.length;
+			const before = count();
+			for (let i = 0; i < 40 / 0.02 && count() === before; i++) sim.step(0.02);
+			expect(count()).toBe(before - 1);
+			const merged = sim.snapshot().vessels[0]!;
+			const pod = merged.parts.find((p) => p.definition === 'stock.command-pod')!;
+			const hab = merged.parts.find((p) => p.definition === 'stock.hab-module')!;
+			expect(merged.crew?.find((c) => c.member === 'c1')?.part).toBe(pod.id);
+			const moved = sim.dispatch({
+				type: 'crew-transfer',
+				vessel: merged.id,
+				member: 'c1',
+				to: hab.id
+			} as never);
+			expect(moved.ok, moved.ok ? '' : moved.reason).toBe(true);
+			const after = sim.snapshot().vessels[0]!;
+			expect(after.crew?.find((c) => c.member === 'c1')?.part).toBe(hab.id);
+		} finally {
+			sim.dispose();
+		}
+	}, 240_000);
+
 	// owner, 2026-10-21: opening the bay flung its payload; the petals are single use (plan 345)
 	it('the Kronos petals are thrown off: four panels leave, the lander stays, nothing is pushed', async () => {
 		const design = blueprint('kronos-selene');

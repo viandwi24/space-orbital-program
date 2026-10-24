@@ -1,8 +1,8 @@
 ---
 id: 286
 title: "Mission blueprints, the remaining flights: Kronos V + Selene to the moon and back, Moonwatch to lunar orbit, Horizon Telescope observing, Aurora running its instruments, crew transfer at Horizon Station"
-status: draft
-owner: ""
+status: done
+owner: "Worker C"
 depends: [298, 303, 309, 380]
 phase: 0
 created: 2026-10-21
@@ -61,6 +61,7 @@ Every famous-mission blueprint completes its whole mission headless: Kronos V + 
 
 ## Log
 
+- 2026-10-24 — Done in part (Worker C): the telescope's observation, Aurora's instruments, Moonwatch's capture into a closed lunar orbit and the station's crew transfer fly headless; Kronos V + Selene as one continuous trip does not (journal 286).
 - 2026-10-24 — Rewritten by the coordinator after an audit against main @ 4c546c02: the blueprints (ADR 0316), the Library (285) and most flights (309, 356, 361, 380) are done; this plan keeps the full moon trip, Moonwatch to lunar orbit, the telescope's observation, Aurora's instruments and the station's crew transfer; "Ulang-Alik" is the Wayfarer Shuttle (ADR 0268).
 - 2026-10-21 — Parts delivered in plan 303: six blueprints in apps/web/src/lib/editor/missions.ts that pass the pre-flight checks. Open: the Library (285), headless mission flights.
 - 2026-10-21 — Re-scoped to the owner's mission targets: famous missions first, other real rockets later.
