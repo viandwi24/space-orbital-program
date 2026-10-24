@@ -50,8 +50,8 @@ console.log(
 	await page.evaluate(() =>
 		(window as any).__orbital
 			.renderer()
-			.compiles.pipelines.filter((p: any) => /planet-pass/.test(p.label))
-			.map((p: any) => `${p.phase}:${p.label.replace('renderPipeline_planet-pass-tsl', 'pp')}`)
+			.compiles.pipelines.filter((p: any) => /planet/.test(p.label))
+			.map((p: any) => `${p.phase}:${p.label.replace("renderPipeline_", "")}`)
 			.join(' ')
 	)
 );
@@ -108,6 +108,8 @@ const result = await page.evaluate(
 				performance.now() - t0 > ((stepped + 1) * seconds * 1000) / (steps.length + 1)
 			) {
 				r.setPreset(steps[stepped], { governed: true });
+				// the governor's rung of that preset (plan 395): TAAU follows the preset's own share
+				r.setTaau?.(null);
 				stepped++;
 			}
 			await new Promise((res) => requestAnimationFrame(res));

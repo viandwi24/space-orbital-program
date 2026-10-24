@@ -313,13 +313,18 @@ export function warmPresetsFor(
 export function graphicsStart(backend: string): {
 	preset: GraphicsPreset;
 	warmPresets: GraphicsPreset[];
+	/** The TAAU share the governor's fast axis uses, warmed at load on a tier that locks at 120 (plan 395); 0 elsewhere. */
+	warmTaau: number;
 } {
 	const saved = loadGraphicsPreset();
 	const preset = startPreset(saved, saved ? null : loadLearnedLevel(backend), probeCapabilities());
 	const adjust = loadAutoQuality();
+	const caps = probeCapabilities();
 	return {
 		preset,
-		warmPresets: warmPresetsFor(preset, adjust, governorCeiling(saved, adjust, preset))
+		warmPresets: warmPresetsFor(preset, adjust, governorCeiling(saved, adjust, preset)),
+		warmTaau:
+			adjust && lockCeiling(caps, globalThis.navigator?.userAgent ?? '') >= 120 ? 0.75 : 0
 	};
 }
 

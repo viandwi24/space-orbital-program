@@ -218,3 +218,32 @@ describe('camera after the active vessel is destroyed', () => {
 		m.dispose();
 	});
 });
+
+describe('the plume cluster lights (plan 342)', () => {
+	test("stay in the scene, the same three lights, whatever the preset: they are in every lit material's cache key", () => {
+		const m = make('high');
+		m.sync(snap(0, vessel(1, stack(engineOn))));
+		m.prepareFrame(1 / 60, true);
+		const lights = () => {
+			const found: Object3D[] = [];
+			m.scene.traverse((o) => {
+				if (o.name === 'plume-cluster') found.push(o);
+			});
+			return found;
+		};
+		const first = lights();
+		expect(first.length).toBeGreaterThan(0);
+		for (const preset of ['low', 'medium', 'low', 'high'] as const) {
+			m.setPreset(preset);
+			m.prepareFrame(1 / 60, true);
+			const now = lights();
+			expect(now.length).toBe(first.length);
+			expect(now.every((l, i) => l === first[i])).toBe(true);
+		}
+		// off at `low`: intensity 0
+		m.setPreset('low');
+		m.prepareFrame(1 / 60, true);
+		for (const l of lights()) expect((l as unknown as { intensity: number }).intensity).toBe(0);
+		m.dispose();
+	});
+});

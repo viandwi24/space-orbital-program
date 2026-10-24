@@ -10,8 +10,11 @@
 import {
 	BufferAttribute,
 	BufferGeometry,
+	Matrix3,
 	Matrix4,
 	Mesh,
+	Sphere,
+	Vector3,
 	type Group,
 	type InterleavedBufferAttribute,
 	type Material
@@ -24,6 +27,97 @@ export interface BatchPart {
 	model: Pick<PartModel, 'root' | 'staticMesh'> & { readonly cloned?: boolean };
 }
 
+type Typed = Float32Array | Uint8Array | Uint16Array | Uint32Array | Int8Array | Int16Array;
+
+/** `count` vertices of an attribute from `from`, as a new attribute (a typed-array copy for a plain one). */
+function copyRange(
+	a: BufferAttribute | InterleavedBufferAttribute,
+	from: number,
+	count: number
+): BufferAttribute {
+	const size = a.itemSize;
+	if ((a as BufferAttribute).isBufferAttribute === true) {
+		const src = a.array as Typed;
+		return new BufferAttribute(src.slice(from * size, (from + count) * size), size, a.normalized);
+	}
+	const array = new (a.array.constructor as new (n: number) => Typed)(count * size);
+	for (let k = 0; k < count; k++)
+		for (let c = 0; c < size; c++) array[k * size + c] = a.getComponent(from + k, c);
+	return new BufferAttribute(array, size, a.normalized);
+}
+
+/** The attributes of `source` gathered by `pick` (vertex indices), or a range when `pick` is null. */
+function gather(
+	source: BufferGeometry,
+	pick: Int32Array | number[] | null,
+	start: number,
+	count: number
+): BufferGeometry {
+	const out = new BufferGeometry();
+	for (const name of Object.keys(source.attributes)) {
+		const a = source.attributes[name] as BufferAttribute | InterleavedBufferAttribute;
+		if (!pick) {
+			out.setAttribute(name, copyRange(a, start, count));
+			continue;
+		}
+		const size = a.itemSize;
+		const array = new (a.array.constructor as new (n: number) => Typed)(pick.length * size);
+		const plain = (a as BufferAttribute).isBufferAttribute === true;
+		const src = a.array as Typed;
+		for (let k = 0; k < pick.length; k++) {
+			const v = pick[k]!;
+			if (plain) for (let c = 0; c < size; c++) array[k * size + c] = src[v * size + c]!;
+			else for (let c = 0; c < size; c++) array[k * size + c] = a.getComponent(v, c);
+		}
+		out.setAttribute(name, new BufferAttribute(array, size, a.normalized));
+	}
+	return out;
+}
+
+/** Moves the positions and normals of `g` by `m` in place (float arrays; anything else goes through three). */
+function transform(g: BufferGeometry, m: Matrix4): void {
+	const position = g.getAttribute('position') as BufferAttribute | undefined;
+	const normal = g.getAttribute('normal') as BufferAttribute | undefined;
+	const floats = (a: BufferAttribute | undefined): boolean => !a || a.array instanceof Float32Array;
+	if (!floats(position) || !floats(normal) || (position && position.itemSize !== 3)) {
+		g.applyMatrix4(m);
+		return;
+	}
+	const e = m.elements;
+	if (position) {
+		const a = position.array as Float32Array;
+		for (let i = 0; i < a.length; i += 3) {
+			const x = a[i]!;
+			const y = a[i + 1]!;
+			const z = a[i + 2]!;
+			const w = 1 / (e[3]! * x + e[7]! * y + e[11]! * z + e[15]!);
+			a[i] = (e[0]! * x + e[4]! * y + e[8]! * z + e[12]!) * w;
+			a[i + 1] = (e[1]! * x + e[5]! * y + e[9]! * z + e[13]!) * w;
+			a[i + 2] = (e[2]! * x + e[6]! * y + e[10]! * z + e[14]!) * w;
+		}
+	}
+	if (normal && normal.itemSize === 3) {
+		// the normal matrix: the inverse transpose of the upper 3 × 3
+		const n = new Matrix3().getNormalMatrix(m).elements;
+		const a = normal.array as Float32Array;
+		for (let i = 0; i < a.length; i += 3) {
+			const x = a[i]!;
+			const y = a[i + 1]!;
+			const z = a[i + 2]!;
+			let nx = n[0]! * x + n[3]! * y + n[6]! * z;
+			let ny = n[1]! * x + n[4]! * y + n[7]! * z;
+			let nz = n[2]! * x + n[5]! * y + n[8]! * z;
+			const l = Math.hypot(nx, ny, nz) || 1;
+			nx /= l;
+			ny /= l;
+			nz /= l;
+			a[i] = nx;
+			a[i + 1] = ny;
+			a[i + 2] = nz;
+		}
+	}
+}
+
 /** The part of `geometry` that one material draws, compacted to the vertices it uses and moved by `matrix`. */
 export function groupGeometry(
 	source: BufferGeometry,
@@ -31,24 +125,12 @@ export function groupGeometry(
 	count: number,
 	matrix: Matrix4
 ): BufferGeometry | null {
-	const index = source.getIndex();
 	if (count <= 0) return null;
+	const index = source.getIndex();
 	if (!index) {
 		// a non-indexed geometry (the parts' own): the range of vertices is the group
-		const flat = new BufferGeometry();
-		for (const name of Object.keys(source.attributes)) {
-			const a = source.attributes[name] as BufferAttribute | InterleavedBufferAttribute;
-			const size = a.itemSize;
-			const array = new (
-				a.array.constructor as new (n: number) => ArrayLike<number> & {
-					[i: number]: number;
-				}
-			)(count * size);
-			for (let k = 0; k < count; k++)
-				for (let c = 0; c < size; c++) array[k * size + c] = a.getComponent(start + k, c);
-			flat.setAttribute(name, new BufferAttribute(array as never, size, a.normalized));
-		}
-		flat.applyMatrix4(matrix);
+		const flat = gather(source, null, start, count);
+		transform(flat, matrix);
 		return flat;
 	}
 	const remap = new Map<number, number>();
@@ -64,21 +146,9 @@ export function groupGeometry(
 		}
 		out[i] = n;
 	}
-	const sub = new BufferGeometry();
-	for (const name of Object.keys(source.attributes)) {
-		const a = source.attributes[name] as BufferAttribute | InterleavedBufferAttribute;
-		const size = a.itemSize;
-		const array = new (
-			a.array.constructor as new (n: number) => ArrayLike<number> & {
-				[i: number]: number;
-			}
-		)(used.length * size);
-		for (let k = 0; k < used.length; k++)
-			for (let c = 0; c < size; c++) array[k * size + c] = a.getComponent(used[k]!, c);
-		sub.setAttribute(name, new BufferAttribute(array as never, size, a.normalized));
-	}
+	const sub = gather(source, used, 0, 0);
 	sub.setIndex(new BufferAttribute(out, 1));
-	sub.applyMatrix4(matrix);
+	transform(sub, matrix);
 	return sub;
 }
 
@@ -90,6 +160,43 @@ const serialOf = (o: object): number => {
 	if (n === undefined) serials.set(o, (n = nextSerial++));
 	return n;
 };
+
+/** The bounding sphere of a merged geometry from its float positions (three's own walks the points one by one). */
+function boundingSphereOf(g: BufferGeometry): void {
+	const a = g.getAttribute('position') as BufferAttribute | undefined;
+	if (!a || !(a.array instanceof Float32Array) || a.itemSize !== 3) return;
+	const p = a.array;
+	let x0 = Infinity;
+	let y0 = Infinity;
+	let z0 = Infinity;
+	let x1 = -Infinity;
+	let y1 = -Infinity;
+	let z1 = -Infinity;
+	for (let i = 0; i < p.length; i += 3) {
+		const x = p[i]!;
+		const y = p[i + 1]!;
+		const z = p[i + 2]!;
+		if (x < x0) x0 = x;
+		if (x > x1) x1 = x;
+		if (y < y0) y0 = y;
+		if (y > y1) y1 = y;
+		if (z < z0) z0 = z;
+		if (z > z1) z1 = z;
+	}
+	if (x0 === Infinity) return;
+	const cx = (x0 + x1) / 2;
+	const cy = (y0 + y1) / 2;
+	const cz = (z0 + z1) / 2;
+	let r2 = 0;
+	for (let i = 0; i < p.length; i += 3) {
+		const dx = p[i]! - cx;
+		const dy = p[i + 1]! - cy;
+		const dz = p[i + 2]! - cz;
+		const d = dx * dx + dy * dy + dz * dz;
+		if (d > r2) r2 = d;
+	}
+	g.boundingSphere = new Sphere(new Vector3(cx, cy, cz), Math.sqrt(r2));
+}
 
 /** A cheap signature of the batch's inputs: part ids, transforms and which parts are out of it. */
 export function batchSignature(parts: ReadonlyMap<number, BatchPart>): number {
@@ -124,6 +231,11 @@ export class VesselBatch {
 
 	/** Rebuilds the merged meshes when the vessel's parts, their transforms or their glow changed. */
 	sync(parts: ReadonlyMap<number, BatchPart>): void {
+		// a measuring switch (plan 367): `globalThis.__orbitalNoBatch = true` draws the parts one by one
+		if ((globalThis as { __orbitalNoBatch?: boolean }).__orbitalNoBatch === true) {
+			if (this.meshes.length > 0) this.dispose();
+			return;
+		}
 		const signature = batchSignature(parts);
 		if (signature === this.signature) return;
 		this.signature = signature;
@@ -172,7 +284,7 @@ export class VesselBatch {
 			const merged = list.length === 1 ? list[0]! : mergeGeometries(list, false);
 			if (!merged) continue;
 			if (list.length > 1) for (const g of list) g.dispose();
-			merged.computeBoundingSphere();
+			boundingSphereOf(merged);
 			const mesh = new Mesh(merged, material);
 			mesh.name = 'vessel-batch';
 			mesh.castShadow = true;

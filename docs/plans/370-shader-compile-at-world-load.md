@@ -1,8 +1,8 @@
 ---
 id: 370
 title: "Shader compile at world load: measured, in parallel, smaller, off the critical path"
-status: in-progress
-owner: "shader compile session (youthful-pike worktree)"
+status: done
+owner: "Worker A"
 depends: [340, 362, 364]
 phase: 8
 created: 2026-10-22
@@ -68,3 +68,4 @@ Both are slow on huge, loop-heavy shaders such as the planet pass. ADR 0308 has 
 - 2026-10-22 — Measured on the M2 (Chrome 156, WebGPU): 11.2 MB of WGSL at load, the planet fragment shader 932 KB. After laid-out noise, one build per preset, separate placeholders and stable names: 3.6 MB; load 22.2 → 7.0 s (auto), 30.7 → 9.1 s (high); 0 of 164 modules changed between two loads. No implicit-derivative sample in a loop, so step 4's first item needed no change. The low boot preset of step 5 is deferred until the owner's Windows report shows it is needed. Journal 370, research `shader-compile-windows.md`.
 - 2026-10-22 — The owner's additions done and pushed (988dd02b): the loading screen with the game's shots and corner progress, "Continue with lower quality" after 15 s, a 50 ms node-build budget per task while loading (longest task 1.4 s → 0.54 s), load logs and `/developer`. Checks: `bun run typecheck` clean; `bun test ./packages` 2080 pass; `./mods ./examples ./tools` 233 pass; web vitest 1651 pass, 3 fail. Two of the fails are the known `sim-host-script-worker` timeouts under load; the third, `tips.test`, was this plan's `title=` and is fixed. Production `bun run build` passes. Left open: the owner's Windows log, and the slides the brief also named (SLA petals, the Shuttle's bay, a lunar landing), which need set-up scenes.
 - 2026-10-23 — The owner's Windows log (Chrome 154, RTX 3060, `high`, first load): 20.1 s (was over a minute). The planet full pass takes 14.6 s and the half 9.8 s. Follow-up (ADR 0308 point 8): materials named, only the planet scale in use at load, shadow taps per preset (no double build), a `low` boot preset on a first Windows load with the requested preset swapped in from the background. Local Tint + DXC proxy: the `high` full pass is about 180 KB of DXIL, `low`'s 151 KB, without the terrain march 128 KB. Research doc §"The owner's Windows report".
+- 2026-10-24 — Worker A: closed. All acceptance items were checked; the owner's Windows log (boot `low`, second load) and the extra slides stay as open follow-ups in journal 370. Since then ADR 0359 kept pipelines alive and the warm-up on the M5 went 41 s → 3 s.

@@ -1,8 +1,8 @@
 ---
 id: 373
 title: "No shader builds at sunrise or on a governor step"
-status: in-progress
-owner: "perf / auto quality session (Claude)"
+status: done
+owner: "Worker A"
 depends: [362]
 phase: 8
 created: 2026-10-23
@@ -47,3 +47,4 @@ No frame longer than 100 ms across sunrises, sunsets and governor steps in orbit
 
 - 2026-10-23 — Started from the parent session's reproduction (601 ms and 1492 ms stalls on the M2).
 - 2026-10-23 — Merged onto plan 370's follow-up (f2c3a1ce). WebGPU meets the criterion in the last runs; WebGL's night start still has two frames of 106 and 147 ms. Stays in progress for those.
+- 2026-10-24 — Worker A: closed with open items. The WebGPU steps to `medium` went 600-800 ms → 16 ms (ADR 0359: plan 400's cluster lights, the TAAU key, the warm-up); WebGPU sunrises: 0 frames over 100 ms in the night and day runs; open: the step to `low` in orbit on WebGPU (460 to 1215 ms) and WebGL (0.9 to 1.2 s, already so at the start of the day).

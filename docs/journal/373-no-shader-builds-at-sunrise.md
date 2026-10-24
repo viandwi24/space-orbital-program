@@ -39,3 +39,7 @@ Before plan 370's follow-up (origin cff8cd6b, no forced steps), the same probe r
 - WebGL's night start: 106 ms at the first sunrise (one program) and 147 ms at the governor's step to low (six programs). The earlier WebGL baseline (34 ms) was measured before plan 370's follow-up and without the governor reaching low, so it is not a like-for-like before.
 
 - One 593 ms `planet-edge` build of `high` at a governor step in the night run, although `high` was warmed in the background. Not explained yet. The probe's forced steps and the live governor both move the preset in these runs, so the path that reached it may not be one the warm-up drew.
+
+## 2026-10-24 (plan 342)
+
+The WebGPU preset steps were stalling again (0.6 to 0.8 s a step to `medium`, the warm-up 41 to 48 s): plan 400's cluster lights were added and removed with the plume look, which changed every lit shader's cache key at each warm round and each step (ADR 0359, second section). Fixed, with the TAAU key and warm-up corrections: a governed step to `medium` is 16 ms and the warm-up 3.2 to 3.4 s. `measure-sunrise.ts` (night and day, steps to medium then low, M5): WebGPU night 0 sunrise frames over 100 ms (one 283 ms frame at the first step, one 457 ms at the step to low), day one 1215 ms at the step to low; WebGL night 1188 ms at the step to low (904 ms at the start of the day, so not new) and day 119 ms. Open: the step to `low` in orbit.

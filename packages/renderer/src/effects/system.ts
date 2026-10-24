@@ -615,18 +615,21 @@ export class Effects {
 	/** The cluster lights of this frame (plan 400): a pooled light per cluster, the rest at intensity 0. */
 	private writeClusterLights(): void {
 		const on = lookLevel(this.settings, 'plume') !== 'low';
-		if (on && this.clusterPool.length === 0) {
+		// the pool stays in the scene whatever the level, at intensity 0 when off: the lights are part of
+		// every lit material's cache key, so adding or removing them (a warm-up frame at `low` and back)
+		// rebuilt every lit material's shader each time, 0.5 s a step (plan 342, as `LampPool`'s note)
+		if (this.clusterPool.length === 0) {
 			for (let i = 0; i < CLUSTER_LIGHTS; i++) {
 				const light = new PointLight(0xffa860, 0, 0, 2);
 				light.name = 'plume-cluster';
 				this.clusterPool.push(light);
 				this.root.add(light);
 			}
-		} else if (!on && this.clusterPool.length > 0) {
-			for (const light of this.clusterPool) this.root.remove(light);
-			this.clusterPool.length = 0;
 		}
-		if (!on) return;
+		if (!on) {
+			for (const light of this.clusterPool) light.intensity = 0;
+			return;
+		}
 		const lights = clusterLights(this.litEngines);
 		for (const [i, light] of this.clusterPool.entries()) {
 			const c = lights[i];
