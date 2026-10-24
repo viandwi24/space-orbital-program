@@ -367,3 +367,7 @@ Each is a `data:` URL of an SVG, PNG, WebP or JPEG image of at most 128 KiB (`il
 ## Wheel suspension and surface features (API 0.1.128, plan 283, ADR 0354)
 
 A wheel module's `travel`, `spring` and `damper` give the wheel a hub `travel` smaller than its tyre; the sim pushes back along the ground's normal while the tyre is pressed in (`WheelSpec.suspension`), and writes the compression (0..1) into the module state. `vessel.nearestFeature(reach, point)` answers the nearest rock of the stone lattice within `reach` of a part-frame point (cratered airless bodies only); an experiment with `needs.feature` runs only with one in reach (`stock.experiment` takes `reach` and `tip`).
+
+## Cargo and deployed stations (API 0.1.129, plan 284, ADR 0356)
+
+`PartDefinition.cargo = { volume, deployable? }` marks a part an astronaut carries; `stock.inventory` holds items (`{ part, state? }`). The commands `cargo-move`, `cargo-attach`, `cargo-detach` and `cargo-place` move them, fix one to a hull (an engineer) and set a deployable one on the ground. `stock.station-item` (`role`, `experiment`) makes an item part of a station: the items within 40 m of a control item form one, which yields its `station: true` experiments once a day with enough power and a link (`Snapshot.stations`).

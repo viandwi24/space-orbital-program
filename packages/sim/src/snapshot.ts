@@ -6,6 +6,7 @@ import { techSnapshot } from './tech.ts';
 import { debugSnapshot } from './debug.ts';
 import { warpLimit } from './warp-limits.ts';
 import { milestonesSnapshot } from './milestones.ts';
+import { stations } from './stations.ts';
 import { rangeSnapshot } from './range.ts';
 import { reliabilitySnapshot } from './reliability.ts';
 import { alarmsSnapshot } from './alarms.ts';
@@ -270,6 +271,19 @@ export function takeSnapshot(core: SimCore): Snapshot {
 	const science = scienceSnapshot(core);
 	const network = networkSnapshot(core);
 	const milestones = milestonesSnapshot(core);
+	const stationList = stations(core).map((s) => ({
+		control: s.control,
+		items: s.items.map((i) => ({
+			vessel: i.vessel,
+			role: i.role,
+			...(i.experiment ? { experiment: i.experiment } : {})
+		})),
+		power: s.power,
+		linked: s.linked,
+		experiments: s.experiments,
+		working: s.working,
+		...(s.reason ? { reason: s.reason } : {})
+	}));
 	const tech = techSnapshot(core);
 	const range = rangeSnapshot(core);
 	const reliability = reliabilitySnapshot(core);
@@ -300,6 +314,7 @@ export function takeSnapshot(core: SimCore): Snapshot {
 		...(science ? { science } : {}),
 		...(network ? { network } : {}),
 		...(milestones ? { milestones } : {}),
+		...(stationList.length > 0 ? { stations: stationList } : {}),
 		...(tech ? { tech } : {}),
 		...(range ? { range } : {}),
 		...(reliability ? { reliability } : {}),

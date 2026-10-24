@@ -1587,6 +1587,12 @@ exports[`stock part ids, masses, costs and modules match the snapshot 1`] = `
         },
       ],
       [
+        "stock.inventory",
+        {
+          "capacity": 12,
+        },
+      ],
+      [
         "stock.antenna",
         {
           "antenna": "stock.suit-radio",
@@ -2653,6 +2659,149 @@ exports[`stock part ids, masses, costs and modules match the snapshot 1`] = `
               "capacity": 6,
             },
           },
+        },
+      ],
+    ],
+  },
+  {
+    "cost": 60,
+    "id": "stock.cargo-locker",
+    "mass": 30,
+    "modules": [
+      [
+        "stock.inventory",
+        {
+          "capacity": 60,
+        },
+      ],
+    ],
+  },
+  {
+    "cost": 400,
+    "id": "stock.station-control",
+    "mass": 40,
+    "modules": [
+      [
+        "stock.station-item",
+        {
+          "role": "control",
+        },
+      ],
+    ],
+  },
+  {
+    "cost": 300,
+    "id": "stock.station-rtg",
+    "mass": 30,
+    "modules": [
+      [
+        "stock.station-item",
+        {
+          "role": "power",
+        },
+      ],
+      [
+        "stock.rtg",
+        {},
+      ],
+    ],
+  },
+  {
+    "cost": 100,
+    "id": "stock.station-solar",
+    "mass": 10,
+    "modules": [
+      [
+        "stock.station-item",
+        {
+          "role": "power",
+        },
+      ],
+      [
+        "stock.solar-panel",
+        {
+          "deployable": false,
+          "normal": [
+            1,
+            0,
+            0,
+          ],
+          "rate": 0.35,
+        },
+      ],
+    ],
+  },
+  {
+    "cost": 150,
+    "id": "stock.station-antenna",
+    "mass": 15,
+    "modules": [
+      [
+        "stock.station-item",
+        {
+          "role": "antenna",
+        },
+      ],
+      [
+        "stock.antenna",
+        {
+          "antenna": "stock.dish",
+        },
+      ],
+    ],
+  },
+  {
+    "cost": 120,
+    "id": "stock.station-goo",
+    "mass": 12,
+    "modules": [
+      [
+        "stock.station-item",
+        {
+          "experiment": "stock.station-goo",
+          "role": "science",
+        },
+      ],
+    ],
+  },
+  {
+    "cost": 120,
+    "id": "stock.station-weather",
+    "mass": 12,
+    "modules": [
+      [
+        "stock.station-item",
+        {
+          "experiment": "stock.station-weather",
+          "role": "science",
+        },
+      ],
+    ],
+  },
+  {
+    "cost": 120,
+    "id": "stock.station-ionograph",
+    "mass": 12,
+    "modules": [
+      [
+        "stock.station-item",
+        {
+          "experiment": "stock.station-ionograph",
+          "role": "science",
+        },
+      ],
+    ],
+  },
+  {
+    "cost": 120,
+    "id": "stock.station-seismic",
+    "mass": 12,
+    "modules": [
+      [
+        "stock.station-item",
+        {
+          "experiment": "stock.station-seismic",
+          "role": "science",
         },
       ],
     ],

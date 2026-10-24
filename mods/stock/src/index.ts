@@ -130,6 +130,8 @@ import {
 	STOCK_EXPERIMENTS,
 	STOCK_SITUATIONS
 } from './science.ts';
+import { ModuleInventory, ModuleStationItem } from './inventory.ts';
+import { STOCK_STATION_EXPERIMENTS } from './parts/station.ts';
 import { ModuleAntenna, STOCK_ANTENNAS, STOCK_BANDS, STOCK_ROUTE_POLICIES } from './comms.ts';
 
 /** Pure helpers other plugins and the sim can use through `ctx.stock` (a `depends: [Stock]` plugin). */
@@ -213,6 +215,10 @@ export const Stock = definePlugin({
 		for (const situation of STOCK_SITUATIONS) ctx.situations.register(situation);
 		for (const experiment of STOCK_EXPERIMENTS) ctx.experiments.register(experiment);
 		ctx.modules.register(ModuleExperiment);
+		// plan 284: inventory and the station's experiments
+		for (const experiment of STOCK_STATION_EXPERIMENTS) ctx.experiments.register(experiment);
+		ctx.modules.register(ModuleInventory);
+		ctx.modules.register(ModuleStationItem);
 		for (const entry of STOCK_DOSSIER_ENTRIES) ctx.dossierEntries.register(entry);
 		for (const antenna of STOCK_ANTENNAS) ctx.antennas.register(antenna);
 		for (const band of STOCK_BANDS) ctx.bands.register(band);
@@ -339,6 +345,7 @@ export * from './missions.ts';
 export * from './contracts.ts';
 export * from './tech.ts';
 export * from './science.ts';
+export * from './inventory.ts';
 export * from './comms.ts';
 export * from './market.ts';
 export * from './bases.ts';

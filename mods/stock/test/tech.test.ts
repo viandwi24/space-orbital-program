@@ -16,6 +16,8 @@ function yieldOf(body: string, situations: readonly string[], only?: readonly st
 	let cap = 0;
 	for (const e of experiments) {
 		if (only && !only.includes(e.id)) continue;
+		// a station's experiments yield over days from other bodies' ground (plan 284), apart from the ascent
+		if (e.station) continue;
 		for (const s of situations) {
 			if (!e.situations.includes(s)) continue;
 			const c = subjectCap(e, mult(body));

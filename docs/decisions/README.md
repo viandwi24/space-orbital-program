@@ -340,3 +340,5 @@ An ADR records one decision, its context, and its consequences. ADRs are **appen
 | 0353 | [A vessel's static parts are merged per material](0353-vessel-parts-merged-per-material.md) | accepted | 2026-10-24 |
 | 0354 | [Rover suspension, scanning arms that study rocks, the external seat and the drill's rig](0354-rover-suspension-scanning-arms-and-surface-features.md) | accepted | 2026-10-24 |
 | 0355 | [Lessons are a registry; stock owns the game's](0355-lessons-registry.md) | accepted | 2026-10-24 |
+||||||| parent of a3ff3926 (feat(core,sim,stock): cargo and inventories, an engineer's attach and detach, deployed science stations with eight items; ADR 0355, API 0.1.129 (plan 284))
+| 0356 | [Cargo, inventories and deployed science stations](0356-cargo-inventories-and-deployed-stations.md) | accepted | 2026-10-24 |

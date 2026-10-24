@@ -371,6 +371,23 @@ export const commandSchema: z.ZodType<Command> = z.discriminatedUnion('type', [
 		heading: z.number().finite(),
 		speed: z.number().finite().min(0)
 	}),
+	z.object({
+		type: z.literal('cargo-move'),
+		suit: entity,
+		part: entity,
+		index: z.number().int().min(0),
+		direction: z.enum(['take', 'store'])
+	}),
+	z.object({
+		type: z.literal('cargo-attach'),
+		suit: entity,
+		host: entity,
+		index: z.number().int().min(0),
+		angle: z.number().finite(),
+		y: z.number().min(-1).max(1)
+	}),
+	z.object({ type: z.literal('cargo-detach'), suit: entity, part: entity }),
+	z.object({ type: z.literal('cargo-place'), suit: entity, index: z.number().int().min(0) }),
 	z.object({ type: z.literal('plant-flag'), vessel: entity }),
 	z.object({ type: z.literal('transmit-data'), vessel: entity, item: z.string().min(1) }),
 	z.object({ type: z.literal('strategy-activate'), strategy: z.string().min(1) }),

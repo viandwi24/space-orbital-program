@@ -681,6 +681,12 @@ export const partDefinitionSchema = z.object({
 	/** The tech node that unlocks this part (plan 105, ADR 0154 point 1). */
 	techNode: definitionIdSchema.optional(),
 	/**
+	 * A small part an astronaut carries (plan 284, ADR 0264): `volume` litres of a container's or a
+	 * suit's inventory. An engineer on EVA attaches it to a hull or detaches it back; `deployable`
+	 * lets any astronaut set it on the ground as a station item.
+	 */
+	cargo: z.object({ volume: z.number().positive(), deployable: z.boolean().optional() }).optional(),
+	/**
 	 * Where the part sits in the editor's catalogue (ADR 0082). `category` overrides the one the
 	 * part's modules imply (`ModuleInfo.category`, an engine, a separator, ...); `order` sorts the
 	 * part within its category, ascending, default 0, ties in registration order.
