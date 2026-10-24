@@ -215,6 +215,16 @@ When a queue is empty, take the next free plan from this list, in order: 299, 32
   - measurements.
 - **Measurements need a quiet machine.** Before a timing run, `touch /tmp/orbital-measuring`, and remove it when the run ends (in a trap). While that file exists, nobody starts any test or build: wait with `while [ -e /tmp/orbital-measuring ]; do sleep 30; done`.
 
+## Playability first (CTO order, 2026-10-24, after the owner's report)
+
+The owner reports that today's graphics work made the game less playable: stalls up to 700 ms and periodic stutter on the M2 and on Windows. Until plans 408, 409, 410 and 411 are merged:
+- **No new looks merge.** The open looks plans (398, 403, 405, 406, 374) pause their GPU work. Their data-only and test-only parts may still merge. After 410, every look follows its relevance rules.
+- **Queues:**
+  - A: 408 → 410 → (398 under 410's rules);
+  - C: 409 → 411 → 385 → 407;
+  - B: the data-only parts of 403, 405 and 406, then help measure with A.
+- **After 411, every renderer or looks plan runs `bun run perf:gate`** and puts its table in the journal before merging.
+
 ## Doing a plan
 
 **UI fixes come first (owner's rule, ADR 0222):** when the coordinator reports that a screen you built is off the design package (`refs/space-orbital-program-ui-v2/`), finish and merge your current plan, then fix that screen (plan 233 and the like) before taking any other plan. Always compare UI work with the matching `.dc.html` source and `docs/BASE_LAYOUT.md`.
