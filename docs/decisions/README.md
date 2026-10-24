@@ -342,3 +342,5 @@ An ADR records one decision, its context, and its consequences. ADRs are **appen
 | 0355 | [Lessons are a registry; stock owns the game's](0355-lessons-registry.md) | accepted | 2026-10-24 |
 ||||||| parent of a3ff3926 (feat(core,sim,stock): cargo and inventories, an engineer's attach and detach, deployed science stations with eight items; ADR 0355, API 0.1.129 (plan 284))
 | 0356 | [Cargo, inventories and deployed science stations](0356-cargo-inventories-and-deployed-stations.md) | accepted | 2026-10-24 |
+| 0357 | [A cached shadow map for the static site is not built](0357-site-shadow-cache-not-built.md) | accepted | 2026-10-24 |
+
