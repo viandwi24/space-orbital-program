@@ -94,7 +94,12 @@ await context.addInitScript(
 	await seed.reload();
 	await seed.close();
 }
-await setupVessel(await context.newPage());
+{
+	// the Hangar page is closed: a world is open in one tab at a time
+	const hangar = await context.newPage();
+	await setupVessel(hangar);
+	await hangar.close();
+}
 
 interface Row {
 	scene: string;
@@ -111,7 +116,10 @@ const rows: Row[] = [];
 async function open(scene: string): Promise<Page> {
 	const page = await context.newPage();
 	page.on('pageerror', (e) => console.log('  pageerror', e.message));
-	page.on('console', (m) => m.type() === 'error' && console.log('  console', m.text().slice(0, 1500)));
+	page.on(
+		'console',
+		(m) => m.type() === 'error' && console.log('  console', m.text().slice(0, 1500))
+	);
 	if (scene === 'space-center') {
 		await page.goto('/space-center');
 		await page.waitForFunction(() => (window as any).__orbital?.renderer?.(), null, {
@@ -120,7 +128,15 @@ async function open(scene: string): Promise<Page> {
 		await page.getByTestId('world-loading').waitFor({ state: 'detached', timeout: 300_000 });
 	} else {
 		await page.goto('/flight');
-		await waitForFlight(page);
+		await waitForFlight(page, 60_000).catch(async (e) => {
+			console.log(
+				'  flight stuck:',
+				(await page.evaluate(() => document.body.innerText.slice(0, 400))).replace(/\s+/g, ' '),
+				'url',
+				page.url()
+			);
+			throw e;
+		});
 	}
 	await page.waitForTimeout(4000);
 	// the other bodies from 300 and 900 km up: where the bakes and the mod planet's images are drawn

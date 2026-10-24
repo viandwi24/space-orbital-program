@@ -77,12 +77,12 @@ export interface Report {
 	cells: Cell[];
 }
 
-export async function waitForFlight(page: Page): Promise<void> {
+export async function waitForFlight(page: Page, timeout = 300_000): Promise<void> {
 	await page.waitForFunction(
 		() => (window as any).__orbital?.snapshot?.()?.vessels?.length > 0,
 		null,
 		{
-			timeout: 300_000
+			timeout
 		}
 	);
 	await page.getByTestId('world-loading').waitFor({ state: 'detached', timeout: 300_000 });
