@@ -23,3 +23,10 @@
 - The pad's mean frame is 18 ms against the 8.3 ms goal; frames over 8.4 ms are not near 5 %.
 - What is in the site's other 3.5 ms, and the 3.6 ms the pad costs over the orbit with no site (the vessel, the ground near it, the planet pass).
 - The floodlights' 1.5 ms, `perf:gate`, the M2 and Windows (`[manual]`).
+
+## Update (the site's parts, the floodlights)
+
+- One at a time the site's bushes, rocks, trees, tufts and structures are each under 0.3 ms at the pad; the whole site is 6 ms (21.8 to 15.8). The cost is not in any mesh.
+- The floodlights: hiding the four idle point lights by day saves 1.5 ms, but their lit-material variants were not built by the load warm-up (the probe saw 48 pipelines built at dusk), so the change was dropped; why the warm-up's draws with the lights in asked for nothing new is not known (parts' warm scene and the view frames both tried). The seven visible point lights in the scene by day (four floods and three others) are the open candidate.
+- `perf:gate --quick` was run while a build ran; its numbers are discarded.
+- Plan 415 (Worker A) takes the pad's breakdown from here.

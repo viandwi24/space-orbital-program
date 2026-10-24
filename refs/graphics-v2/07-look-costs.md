@@ -84,3 +84,17 @@ Looks: `bakes farShell rocks images ocean clouds terrain vegetation shadows site
 - At the pad the frame is 18 to 20 ms. Without the launch site it is 11.9 to 12.3; the site is 6 to 7 ms.
 - The parts of the site add up to about 3 ms (the four floodlights, idle by day, 1.5; vegetation 0.8; people 0.4; the structures 0.2); about 3.5 ms of the site's cost is not accounted for by any part tried.
 - Without the site the pad is still 3.6 ms over the orbit's 8.3: the vessel, the ground and the planet pass near the ground.
+
+### The site's parts one at a time (plan 414, headed, mean frame ms on / off, 20 s settle)
+
+| look off | pad |
+|---|---|
+| **site** (everything) | 21.8 / **15.8** |
+| bushes | 21.1 / 21.1 |
+| rocks of the site | 20.8 / 20.5 |
+| trees | 20.9 / 20.7 |
+| tufts | 21.4 / 21.1 |
+| structures (190 k triangles, in a render bundle) | 21.5 / 21.5 |
+| floodlights (4 point lights, idle by day) | 1.5 ms (an earlier run) |
+
+No part of the site, drawn alone, is worth more than 0.3 ms; the whole site is 6 ms. The cost is in the site as a whole, not in a mesh of it: the lit materials' light loop over the site's seven point lights (the four floods and three others) is the one candidate, and removing the floods at dusk-safe cost is not done (their variants were not built by the warm-up: see the journal). Plan 415 breaks the pad down further.
