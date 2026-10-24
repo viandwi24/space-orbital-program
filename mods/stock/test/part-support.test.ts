@@ -6,6 +6,7 @@ import {
 	ModuleAnimate,
 	ModuleAntenna,
 	ModuleBay,
+	ModuleExperiment,
 	ModuleFuelCell,
 	ModuleSolarPanel,
 	Oxidizer,
@@ -165,5 +166,58 @@ describe('deployables break in strong airflow (plan 280)', () => {
 		expect(breakQ('stock.solar-array-xl', 'stock.solar-panel')).toBe(25_000);
 		expect(breakQ('stock.antenna-dish-fold', 'stock.antenna')).toBe(20_000);
 		expect(breakQ('stock.solar-flat', 'stock.solar-panel')).toBeUndefined();
+	});
+});
+
+describe('the scanning arm (plan 283)', () => {
+	const armed = (found: boolean) => {
+		const vessel = fakeVessel({ 'stock.electric-charge': 10 });
+		vessel.situation = () => 'stock.landed';
+		const asked: Array<{ reach: number; point?: { x: number; y: number; z: number } }> = [];
+		vessel.nearestFeature = (reach, point) => {
+			asked.push(point ? { reach, point } : { reach });
+			return found
+				? { id: 'stock.cinder:0:3:4', kind: 'rock', distance: 1, radius: 0.3 }
+				: undefined;
+		};
+		vessel.science.result = (experiment) => ({ subject: `${experiment}@landed@cinder`, value: 8 });
+		const stored: unknown[] = [];
+		vessel.data.store = (item) => (stored.push(item), 'item-1');
+		const ctx = contextFor(
+			ModuleExperiment,
+			{ experiment: 'stock.rock-study', reach: 2.6, tip: [-0.06, -0.9, 0] },
+			vessel
+		);
+		return { ctx, asked, stored };
+	};
+
+	test('a rock within reach of the tip lets the study run and yield a result', () => {
+		const { ctx, asked, stored } = armed(true);
+		ModuleExperiment.actions!.run!(ctx);
+		expect(ctx.state.status).toBe('RUNNING');
+		expect(asked[0]).toEqual({ reach: 2.6, point: { x: -0.06, y: -0.9, z: 0 } });
+		for (let i = 0; i < 200 && ctx.state.status === 'RUNNING'; i++)
+			ModuleExperiment.update!(ctx, 0.1);
+		expect(ctx.state.status).toBe('READY');
+		expect(stored).toHaveLength(1);
+		expect(stored[0]).toMatchObject({ subject: 'stock.rock-study@landed@cinder', value: 8 });
+	});
+
+	test('no rock in reach: nothing runs and nothing is stored', () => {
+		const { ctx, stored } = armed(false);
+		ModuleExperiment.actions!.run!(ctx);
+		expect(ctx.state.status).toBe('INVALID');
+		expect(ctx.state.reason).toContain('no rock within reach');
+		expect(stored).toHaveLength(0);
+	});
+
+	test('the arms and the seat are parts with their own reach and a crew seat', () => {
+		const get = (id: string) => loaded.registries.parts.get(id)!;
+		const reach = (id: string) =>
+			(get(id).modules!.find(([m]) => m === 'stock.experiment')![1] as { reach: number }).reach;
+		expect(reach('stock.scan-arm-s')).toBeLessThan(reach('stock.scan-arm-m'));
+		expect(reach('stock.scan-arm-m')).toBeLessThan(reach('stock.scan-arm-l'));
+		expect(get('stock.seat-external').crewCapacity).toBe(1);
+		expect(get('stock.seat-external').modules?.some(([m]) => m === 'stock.command')).toBe(false);
 	});
 });

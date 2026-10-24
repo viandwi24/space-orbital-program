@@ -397,14 +397,28 @@ export interface FlightBody {
 	/** Identifies the module-contributed colliders the body was built with (see `collectColliders`). */
 	signature: string;
 	/** Wheel colliders by collider index: the part, its module and the collider's place in that list (ADR 0161). */
-	wheels?: Map<number, { part: EntityId; module: string; k: number }>;
+	wheels?: Map<number, WheelRef>;
 	/** The corners of the colliders in body axes, without repeats: what the ground plane must clear (plan 391). */
 	corners?: Vec3[];
 }
 
 /** The kinematic slab standing in for the ground under one vessel (ADR 0019). */
+/** A wheel collider of a vessel's body (plan 063; `at`, `half` and `turn` for the suspension, plan 283). */
+export interface WheelRef {
+	part: EntityId;
+	module: string;
+	k: number;
+	/** The box's centre in the body frame, m. */
+	at: Vec3;
+	half: Vec3;
+	/** The box's turn in the body frame (the part's turn); absent: none. */
+	turn?: Quat;
+}
+
 export interface GroundTile {
 	handle: BodyHandle;
+	/** Frame-local position of the tile's top face (a point on the ground plane), m. */
+	surface?: Vec3;
 	/** Unit normal of the tile's top face (away from the body's centre), BCI axes. */
 	up: Vec3;
 	/** The stones round the vessel as colliders, on an airless body with stones (plan 060, ADR 0092). */

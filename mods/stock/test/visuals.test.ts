@@ -11,6 +11,10 @@ const KINDS = [
 	'tank-taper',
 	// plan 276
 	'engine-mini',
+	// plan 283
+	'scan-arm',
+	'seat-external',
+	'drill-rig',
 	'separatron',
 	'engine',
 	'engine-cluster',

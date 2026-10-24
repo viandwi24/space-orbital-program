@@ -173,7 +173,6 @@ An ADR records one decision, its context, and its consequences. ADRs are **appen
 | 0172 | [Data items: shape, ids, value curve, and where storage lives](0172-data-items-shape-ids-value-curve-and-storage.md) | accepted | 2026-10-17 |
 | 0173 | [The trajectory provider: its interface and how consumers reach it](0173-trajectory-provider-interface-and-how-consumers-reach-it.md) | accepted | 2026-10-17 |
 | 0174 | [Part action descriptors: how they call actions, the compact snapshot, and custom groups](0174-part-action-descriptors-calls-compact-snapshot-and-custom-groups.md) | accepted | 2026-10-17 |,
-| 0174 | [Part action descriptors: how they call actions, the compact snapshot, and custom groups](0174-part-action-descriptors-calls-compact-snapshot-and-custom-groups.md) | accepted | 2026-10-17 |
 | 0175 | [Objectives: trees, primitives, scheduling, vessel binding and the save](0175-objective-trees-scheduling-vessel-binding-and-save.md) | accepted | 2026-10-17 |
 | 0176 | [Crew core: roster, places and XP, seats, death and salaries](0176-crew-roster-places-xp-seats-death-salaries.md) | accepted | 2026-10-17 |
 | 0177 | [Site templates: criteria, the resolver, consequences and founding a site](0177-site-templates-resolver-consequences-and-founding.md) | accepted | 2026-10-17 |
@@ -229,7 +228,6 @@ An ADR records one decision, its context, and its consequences. ADRs are **appen
 | 0231 | [Career content: a tiered tech tree with every part placed, contracts that see milestones and spawn a rescue, a richer objective view, per-item panel actions](0231-career-content-tech-tiers-rescue-spawn-objective-view.md) | accepted | 2026-10-19 |
 | 0232 | [The script sandbox lives with the world, not with Flight](0232-script-sandbox-lives-with-the-world.md) | accepted | 2026-10-20 |
 | 0233 | [The Abort group is the design's custom slot 0; trim on three axes; keys that were pending](0233-abort-group-trim-axes-held-brakes.md) | accepted | 2026-10-20 |
-| 0233 | [The quality governor: a locked 60 or 30, fast down, up only on evidence](0233-governor-paced-fast-down-measured-up.md) | accepted | 2026-10-20 |
 | 0234 | [A pixel budget for the planet pass, and the other Retina quick wins](0234-planet-pixel-budget-retina-quick-wins.md) | accepted | 2026-10-20 |
 | 0235 | [Surface links: a part attached at a point and normal of its parent's surface](0235-surface-links.md) | accepted | 2026-10-20 |
 | 0236 | [The snapshot says splashed; heat bars, touchdown dust and reduced motion in the flight view](0236-splashed-flag-heat-bars-dust-reduced-motion.md) | accepted | 2026-10-20 |
@@ -339,4 +337,5 @@ An ADR records one decision, its context, and its consequences. ADRs are **appen
 | 0351 | [Deployables break in strong airflow; the Hangar names the part that replaces a hidden one](0351-deployables-break-in-airflow-and-replaced-parts.md) | accepted | 2026-10-24 |
 | 0352 | [A member vessel refuels from its site's storage](0352-refuel-from-site-storage.md) | accepted | 2026-10-24 |
 | 0353 | [A vessel's static parts are merged per material](0353-vessel-parts-merged-per-material.md) | accepted | 2026-10-24 |
+| 0354 | [Rover suspension, scanning arms that study rocks, the external seat and the drill's rig](0354-rover-suspension-scanning-arms-and-surface-features.md) | accepted | 2026-10-24 |
 | 0355 | [Lessons are a registry; stock owns the game's](0355-lessons-registry.md) | accepted | 2026-10-24 |

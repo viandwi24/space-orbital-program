@@ -399,6 +399,11 @@ export const STOCK_TECH = [
 			'A rover cab and its chassis and wheels (plan 307), and hinges, servos, rotors and pistons (plan 306). The base kit and drill wait for their flow (plan 386).',
 		unlocks: [
 			'stock.rover-cab',
+			// plan 283: an open seat and the arms that study rocks
+			'stock.seat-external',
+			'stock.scan-arm-s',
+			'stock.scan-arm-m',
+			'stock.scan-arm-l',
 			// plan 307: rover
 			'stock.rover-chassis',
 			'stock.rover-wheel-s',

@@ -363,3 +363,7 @@ Each is a `data:` URL of an SVG, PNG, WebP or JPEG image of at most 128 KiB (`il
 ## Breaking in airflow and replaced parts (API 0.1.127, plan 280, ADR 0351)
 
 `stock.solar-panel` and `stock.antenna` take `breakQ` (Pa): deployed above that dynamic pressure the part breaks and stays broken (`broken` in its state and snapshot). `PartDefinition.catalog.replacedBy` names the successor of a hidden part; the Hangar's pre-flight report lists such parts (`legacy-part`).
+
+## Wheel suspension and surface features (API 0.1.128, plan 283, ADR 0354)
+
+A wheel module's `travel`, `spring` and `damper` give the wheel a hub `travel` smaller than its tyre; the sim pushes back along the ground's normal while the tyre is pressed in (`WheelSpec.suspension`), and writes the compression (0..1) into the module state. `vessel.nearestFeature(reach, point)` answers the nearest rock of the stone lattice within `reach` of a part-frame point (cratered airless bodies only); an experiment with `needs.feature` runs only with one in reach (`stock.experiment` takes `reach` and `tip`).

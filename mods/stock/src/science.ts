@@ -202,6 +202,23 @@ export const ExperimentMagnetometer = defineExperiment({
 	transmitFactor: 0.7
 });
 
+/** Plan 283: a scanning arm studies a rock on the ground within its reach. */
+export const ExperimentRockStudy = defineExperiment({
+	id: 'stock.rock-study',
+	label: 'Rock study',
+	kind: 'data',
+	situations: ['stock.landed'],
+	// small: the tech pacing counts it at Home too (tests/tech.test.ts), though only the cratered
+	// bodies have rocks to study
+	baseValue: 8,
+	repeatFactor: 0.5,
+	duration: 8,
+	power: 0.1,
+	bits: 48 * KBIT,
+	transmitFactor: 0.6,
+	needs: { feature: true }
+});
+
 export const STOCK_EXPERIMENTS = [
 	ExperimentTemperature,
 	ExperimentPressure,
@@ -211,7 +228,8 @@ export const STOCK_EXPERIMENTS = [
 	ExperimentGoo,
 	ExperimentMaterials,
 	ExperimentObservation,
-	ExperimentMagnetometer
+	ExperimentMagnetometer,
+	ExperimentRockStudy
 ] as const;
 
 // ---- the experiment module (ADR 0178 point 5) ----
@@ -226,7 +244,10 @@ export const experimentConfigSchema = z.object({
 	 * sends it to the vessel's storage for the antennas and leaves the part spent, Reset readies it
 	 * again. Recovery credits a held result in full.
 	 */
-	held: z.boolean().default(false)
+	held: z.boolean().default(false),
+	/** A study arm (plan 283): how far from `tip` (part frame, m) a rock may lie, m. */
+	reach: z.number().positive().optional(),
+	tip: z.tuple([z.number(), z.number(), z.number()]).optional()
 });
 export type ExperimentConfig = z.output<typeof experimentConfigSchema>;
 
@@ -249,6 +270,7 @@ const SPENT = 'spent: reset it first';
 const NO_POWER = 'no electric charge';
 const DOOR_CLOSED = 'the aperture door is closed';
 const NO_TARGET = 'no target to point at';
+const NO_FEATURE = 'no rock within reach of the arm';
 
 function experimentOf(ctx: ModuleContext<ExperimentConfig, ExperimentState>): ExperimentDefinition {
 	const def = ctx.registries.experiments.get(ctx.config.experiment);
@@ -266,6 +288,15 @@ function needsProblem(
 	if (needs.open !== undefined) {
 		const door = ctx.vessel.sibling?.(needs.open) as { open?: boolean } | undefined;
 		if (door?.open !== true) return DOOR_CLOSED;
+	}
+	if (needs.feature) {
+		const reach = ctx.config.reach ?? 1.5;
+		const tip = ctx.config.tip;
+		const found = ctx.vessel.nearestFeature?.(
+			reach,
+			tip ? { x: tip[0], y: tip[1], z: tip[2] } : undefined
+		);
+		if (!found) return NO_FEATURE;
 	}
 	if (needs.pointing !== undefined) {
 		const toward = ctx.vessel.targetDirection?.();

@@ -67,9 +67,8 @@ export const PartDrill = definePart({
 	impactTolerance: 8,
 	shape: cylinder(0.6),
 	visual: {
-		kind: 'tank',
-		palette: { primary: '#2a2e35', secondary: '#d5d8dc', accent: '#e0a33e' },
-		params: { stripe: 0.5, bands: 1 }
+		kind: 'drill-rig',
+		palette: { primary: '#2a2e35', secondary: '#d5d8dc', accent: '#e0a33e' }
 	},
 	attach: nodes(0.6),
 	modules: [[ModuleDrill, { perDay: 50 }]]
