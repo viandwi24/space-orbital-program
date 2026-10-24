@@ -75,6 +75,13 @@ describe("a body's albedo and normal images", () => {
 		const look = loadPlugins([Stock, both]).registries.bodies.get('stock.vesper')!.appearance!;
 		const dress = new BodyDress('stock.vesper', 1_000_000, look, new SphereGeometry(1, 8, 4));
 		expect(dress.hasImages).toBe(true);
+		// the far sphere's program never changes: it has a map and a normal map before, while and after the images
+		const programKey = (): string => {
+			const m = dress.far.material as unknown as { map: unknown; normalMap: unknown };
+			return `${m.map !== null}:${m.normalMap !== null}`;
+		};
+		const before = programKey();
+		expect(before).toBe('true:true');
 		dress.frame(DRESS_NEAR_PX - 5, 1e6, false);
 		await tick();
 		expect(dress.authoredResident).toBe(false);
@@ -82,11 +89,13 @@ describe("a body's albedo and normal images", () => {
 		await tick();
 		expect(dress.authoredResident).toBe(true);
 		expect(bodyImageResident('stock.vesper', 'albedo')).toBe(true);
+		expect(programKey()).toBe(before);
 		dress.frame(DRESS_FAR_PX + 1, 1e6, false);
 		expect(dress.authoredResident).toBe(true);
 		dress.frame(DRESS_FAR_PX - 1, 1e6, false);
 		expect(dress.authoredResident).toBe(false);
 		expect(bodyImageResident('stock.vesper', 'albedo')).toBe(false);
+		expect(programKey()).toBe(before);
 		dress.dispose();
 	});
 });

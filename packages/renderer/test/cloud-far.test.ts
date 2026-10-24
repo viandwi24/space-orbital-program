@@ -1,6 +1,14 @@
 /** The far cloud shell (plan 403): it takes over where the march fades out, and reads the weather's map. */
 import { describe, expect, test } from 'bun:test';
-import { CLOUD_FAR, cloudFarAlpha, cloudFarSun, cloudWeights, farBlend } from '../src/cloud-far.ts';
+import {
+	CLOUD_FAR,
+	CLOUD_FAR_GATE,
+	cloudFarAlpha,
+	cloudFarSun,
+	cloudWeights,
+	farBlend,
+	farGate
+} from '../src/cloud-far.ts';
 import { planetFragment } from '../src/shaders/planet.glsl.ts';
 import { weatherCover } from '../src/weather.ts';
 
@@ -57,5 +65,20 @@ describe('the far cloud shell', () => {
 	test('the GLSL pass carries the same shell', () => {
 		expect(planetFragment).toContain('cloudFarAlpha');
 		expect(planetFragment).toContain('cloudFarSun');
+	});
+});
+
+describe('the far cloud shell relevance gate (plan 403)', () => {
+	test('is off near the ground, ramps up with altitude and is on in orbit', () => {
+		expect(farGate(0)).toBe(0);
+		expect(farGate(CLOUD_FAR_GATE.from)).toBe(0);
+		expect(farGate(CLOUD_FAR_GATE.to)).toBe(1);
+		expect(farGate(900_000)).toBe(1);
+		const mid = farGate((CLOUD_FAR_GATE.from + CLOUD_FAR_GATE.to) / 2);
+		expect(mid).toBeGreaterThan(0);
+		expect(mid).toBeLessThan(1);
+	});
+	test('the gate sits above the slab, so the near march alone draws below it', () => {
+		expect(CLOUD_FAR_GATE.from).toBeGreaterThanOrEqual(10_000);
 	});
 });

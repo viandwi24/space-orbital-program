@@ -104,6 +104,8 @@ export interface RendererDebug {
 	setPixelRatio(ratio: number | null): void;
 	/** The bodies whose map is baked from their own ground and resident now (plan 403). */
 	bodyBakes(): string[];
+	/** The player is flying: bakes of other bodies start nothing and take nothing in for `ms` (plan 403). */
+	holdBakes(ms: number): void;
 	/** Rocks on the ground now: placed, drawn near and far, and whether the group is shown (plan 402). */
 	groundRocks(): { count: number; visible: boolean; near: number; far: number };
 	/** Force the skin temperature of every part (K) for glow screenshots, or `null` for the snapshot values. */

@@ -14,7 +14,8 @@ import {
 	type LookChoices
 } from '@orbital/renderer/presets';
 
-import { refreshOf, tierOf } from '@orbital/renderer/device-tier';
+import { deviceTier, refreshOf, tierOf } from '@orbital/renderer/device-tier';
+import { scaledCapFor, setScaledSpaceCap } from '@orbital/renderer/scaled-space-model';
 import {
 	parseRendererChoice,
 	rendererBackendFrom,
@@ -124,6 +125,13 @@ export function lockCeiling(caps: DeviceCapabilities, userAgent = ''): 120 | 60 
 /** The display's refresh rate from rAF periods at load, before the game loads the machine; 0 until known. */
 let refreshHz = 0;
 let refreshProbing = false;
+/** Home's baked faces are 2048 only on a tier that can pay for them (plan 403): 1536 until the GPU is known. */
+function applyScaledCap(gpu: string | undefined, mobile: boolean): void {
+	if (!gpu) return;
+	const tier = deviceTier({ gpu, refreshHz: refreshHz || 60, mobile });
+	setScaledSpaceCap(scaledCapFor(tier, refreshHz));
+}
+let probedGpu: { gpu: string; mobile: boolean } | null = null;
 export const measuredRefreshHz = (): number => refreshHz;
 export function probeRefreshHz(frames = 45): void {
 	if (refreshProbing || typeof requestAnimationFrame !== 'function') return;
@@ -134,7 +142,10 @@ export function probeRefreshHz(frames = 45): void {
 		if (last > 0) periods.push(now - last);
 		last = now;
 		if (periods.length < frames) requestAnimationFrame(step);
-		else refreshHz = refreshOf(periods);
+		else {
+			refreshHz = refreshOf(periods);
+			if (probedGpu) applyScaledCap(probedGpu.gpu, probedGpu.mobile);
+		}
 	};
 	requestAnimationFrame(step);
 }
@@ -182,6 +193,10 @@ export function probeCapabilities(): DeviceCapabilities {
 			...(gpu ? { gpu } : {})
 		};
 		gl.getExtension('WEBGL_lose_context')?.loseContext();
+		if (gpu) {
+			probedGpu = { gpu, mobile: base.mobile === true };
+			applyScaledCap(gpu, base.mobile === true);
+		}
 		return out;
 	} catch {
 		return base;
@@ -323,8 +338,7 @@ export function graphicsStart(backend: string): {
 	return {
 		preset,
 		warmPresets: warmPresetsFor(preset, adjust, governorCeiling(saved, adjust, preset)),
-		warmTaau:
-			adjust && lockCeiling(caps, globalThis.navigator?.userAgent ?? '') >= 120 ? 0.75 : 0
+		warmTaau: adjust && lockCeiling(caps, globalThis.navigator?.userAgent ?? '') >= 120 ? 0.75 : 0
 	};
 }
 

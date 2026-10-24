@@ -1673,7 +1673,7 @@ export class SceneModel {
 				px: (s.body.radius / d / halfTan) * (this.viewport.height / 2)
 			});
 		}
-		bakes.frame(targets);
+		bakes.frame(targets, performance.now() < this.bakeHoldUntil);
 	}
 
 	private makeBodyBakes(): BodyBakes {
@@ -1726,6 +1726,13 @@ export class SceneModel {
 	}
 
 	/** Bakes resident now, by body id (plan 403): for tests and the capture scripts. */
+	/** Nothing is baked or taken in until `ms` after the last call (the player's hands are on the controls). */
+	holdBakes(ms: number): void {
+		this.bakeHoldUntil = Math.max(this.bakeHoldUntil, performance.now() + ms);
+	}
+
+	private bakeHoldUntil = 0;
+
 	bakedBodies(): string[] {
 		return this.bodyBakes?.ready() ?? [];
 	}
@@ -1740,6 +1747,8 @@ export class SceneModel {
 		const halfTan = Math.tan((this.camera.fov * Math.PI) / 360);
 		const soi = this.lastView?.active?.soi;
 		let baked = false;
+		// no map is built on the main thread while the player's hands are on the controls (plan 403)
+		const flying = performance.now() < this.bakeHoldUntil;
 		for (const [id, dress] of this.dresses) {
 			const entry = this.bodies.get(id);
 			if (!entry) continue;
@@ -1770,7 +1779,7 @@ export class SceneModel {
 				}
 			}
 			if (sun) dress.light(sun, entry.holder.quaternion);
-			if (dress.frame(px, d - dress.radius, !baked)) baked = true;
+			if (dress.frame(px, d - dress.radius, !baked && !flying)) baked = true;
 		}
 	}
 

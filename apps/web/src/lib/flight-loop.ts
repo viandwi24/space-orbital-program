@@ -973,6 +973,7 @@ export function startFlight(options: FlightOptions): Flight {
 	}
 
 	function onKeyDown(e: KeyboardEvent): void {
+		renderer?.debug.holdBakes(1500); // no bake starts or lands while the hands are on the controls (plan 403)
 		dropStaleModifiers(held, e); // a stuck Shift is a throttle that climbs by itself (plan 262)
 		if (e.key === 'Escape' && !e.repeat && pickTool.armed) {
 			// Escape drops an armed map pick first (plan 366)

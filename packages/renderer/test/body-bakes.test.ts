@@ -42,6 +42,24 @@ function rig(budgetBytes: number, store = memoryStore()) {
 }
 
 describe('the bakes in flight', () => {
+	test('while the player flies nothing starts and nothing lands; it all comes when the hold ends', async () => {
+		const r = rig(10 * bakeBytes(SIZE));
+		r.bakes.frame([target('a', 300)], true);
+		await settle();
+		expect(r.baked).toEqual([]);
+		r.bakes.frame([target('a', 300)], false);
+		await settle();
+		expect(r.baked).toEqual(['a']);
+		// a bake that finishes under a hold waits to be taken in
+		const q = rig(10 * bakeBytes(SIZE));
+		q.bakes.frame([target('b', 300)]);
+		q.bakes.frame([target('b', 300)], true);
+		await settle();
+		expect(q.ready).toEqual([]);
+		q.bakes.frame([target('b', 300)], false);
+		expect(q.ready).toEqual([['b', 'baked']]);
+	});
+
 	test('a body under the near size is not baked; a near one is, once', async () => {
 		const r = rig(10 * bakeBytes(SIZE));
 		r.bakes.frame([target('a', 10)]);

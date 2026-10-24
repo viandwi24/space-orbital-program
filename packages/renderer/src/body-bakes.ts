@@ -37,6 +37,14 @@ export class BodyBakes {
 	private targets = new Map<string, BakeTarget>();
 	private generation = 0;
 	private disposed = false;
+	/** The player is flying: no job starts and no finished map is taken until it stops (the owner's rule). */
+	private held = false;
+	private waiting: {
+		id: string;
+		bytes: Uint8Array;
+		size: BakeSize;
+		from: 'baked' | 'cache';
+	} | null = null;
 
 	constructor(private readonly options: BodyBakesOptions) {
 		this.size = options.size;
@@ -52,14 +60,17 @@ export class BodyBakes {
 		for (const id of this.manager.ready()) this.options.onEvict(id);
 		if (this.running) this.options.baker.cancel(this.running);
 		this.generation++;
+		this.waiting = null;
 		this.running = null;
 		this.size = size;
 		this.manager = this.make(size, budgetBytes);
 	}
 
 	/** Once a frame: the bodies and how big each is on screen. */
-	frame(targets: readonly BakeTarget[]): void {
+	frame(targets: readonly BakeTarget[], held = false): void {
 		if (this.disposed || !this.size) return;
+		this.held = held;
+		if (!held && this.waiting) this.deliver(this.waiting);
 		this.targets = new Map(targets.map((t) => [t.id, t]));
 		// nearer is more pixels: the manager orders by a distance that grows with remoteness
 		// a body is wanted from `BAKE_NEAR_PX` of radius and stays wanted until it is under `BAKE_FAR_PX`: the gap is
@@ -75,6 +86,7 @@ export class BodyBakes {
 			this.manager.evict(id);
 			this.options.onEvict(id);
 		}
+		if (held) return;
 		const job = this.manager.next();
 		if (!job) return;
 		for (const id of job.evict) this.options.onEvict(id);
@@ -117,13 +129,25 @@ export class BodyBakes {
 			bytes = null;
 		}
 		if (generation !== this.generation || this.disposed) return;
-		this.running = null;
 		if (!bytes) {
+			this.running = null;
 			this.manager.fail(id);
 			return;
 		}
-		this.manager.done(id);
-		this.options.onReady(id, bytes, size, from);
+		if (this.held) this.waiting = { id, bytes, size, from };
+		else this.deliver({ id, bytes, size, from });
+	}
+
+	private deliver(r: {
+		id: string;
+		bytes: Uint8Array;
+		size: BakeSize;
+		from: 'baked' | 'cache';
+	}): void {
+		this.waiting = null;
+		this.running = null;
+		this.manager.done(r.id);
+		this.options.onReady(r.id, r.bytes, r.size, r.from);
 	}
 
 	dispose(): void {

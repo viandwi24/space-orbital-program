@@ -5,12 +5,28 @@
 import type { PresetSettings } from './presets.ts';
 
 /**
- * Face size of the bake: low 512, medium 1024, high 2048 (from the terrain cube's size; plan 403
- * raised it from 1536). With the WebGPU atlas's gutters and mips that is about 20, 76 and 268 MB for
- * both maps (`scaledSpaceBytes`).
+ * The largest face the machine is given (plan 403, owner's rule that a look is paid for only where
+ * the machine can): 2048 on the M5-class tiers (`scaledCapFor`), 1536 everywhere else and until the
+ * host has said what the machine is. The host sets it before the first bake; a bake of another size
+ * is taken at once, as for a preset change.
+ */
+let faceCap: 1536 | 2048 = 1536;
+export const setScaledSpaceCap = (cap: 1536 | 2048): void => void (faceCap = cap);
+export const scaledSpaceCap = (): 1536 | 2048 => faceCap;
+
+/** 2048 faces for a tier that holds 120 Hz with room (M5, a recent discrete GPU, a ProMotion Mac); else 1536. */
+export const scaledCapFor = (tier: { id: string }, hz: number): 1536 | 2048 =>
+	tier.id === 'm5' || tier.id === 'discrete-high' || (tier.id === 'apple' && hz >= 120)
+		? 2048
+		: 1536;
+
+/**
+ * Face size of the bake: low 512, medium 1024, high 1536 or 2048 (from the terrain cube's size and
+ * `scaledSpaceCap`; plan 403). With the WebGPU atlas's gutters and mips that is about 20, 76, 164 and
+ * 268 MB for both maps (`scaledSpaceBytes`).
  */
 export function scaledSpaceSize(s: Pick<PresetSettings, 'terrainSize' | 'mapWidth'>): number {
-	if (s.terrainSize >= 1024) return 2048;
+	if (s.terrainSize >= 1024) return faceCap;
 	if (s.terrainSize >= 768) return 1024;
 	return 512;
 }
