@@ -761,6 +761,13 @@ export class LaunchSite {
 		this.geometries.push(...geos);
 	}
 
+	/** The lit materials of the site and its vegetation (plan 414: they see only the sun and the sky). */
+	litMaterials(): MeshStandardMaterial[] {
+		return [...Object.values(this.materials), ...this.people.materials].filter(
+			(m): m is MeshStandardMaterial => (m as MeshStandardMaterial).isMeshStandardMaterial === true
+		);
+	}
+
 	/** Measurement (plan 414): one part of the site hidden or shown. */
 	setPartHidden(
 		part: 'floods' | 'structures' | 'people' | 'steam' | 'bushes' | 'siteRocks',

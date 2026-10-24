@@ -18,6 +18,8 @@ import { HALF_PLANET_SCALE } from './half-res.ts';
 import { postLook } from './post-profile.ts';
 import { ACESFilmicToneMapping, PCFShadowMap, type Camera, type Scene } from 'three';
 import type { RenderPipeline, WebGPURenderer } from 'three/webgpu';
+import { lights } from 'three/tsl';
+import { restrictLights } from './light-sets.ts';
 import type { RendererBackend } from './backend.ts';
 import { wantedLimits } from './device-limits.ts';
 import { FEATURE_NAMES, FeatureSwitches, type FeatureName } from './feature-switches.ts';
@@ -104,6 +106,12 @@ export function createWebGPURenderer(
 			: config
 	);
 	const env = model.environment;
+	// the ground, the site and its vegetation see the sun and the sky only: the pooled lamps are for the vessels
+	// (plan 414, ADR 0374); each is in every lit material's light loop otherwise
+	restrictLights(
+		[...env.site.litMaterials(), env.rocks.litMaterial],
+		lights([env.sunLight, env.hemisphere])
+	);
 	// a mod's post profile (plan 405, ADR 0345): its bloom is built into the pipeline, its exposure is the environment's
 	const look = postLook(config.postProfile);
 	env.setPostExposure(look.exposure);

@@ -92,6 +92,11 @@ export class GroundRocks {
 	}
 
 	/** The preset's density and range; a change of density empties the cache (it is part of a cell's chance). */
+	/** The rocks' lit material (plan 414: it sees only the sun and the sky). */
+	get litMaterial(): MeshStandardMaterial {
+		return this.material;
+	}
+
 	setQuality(q: RockQuality): void {
 		if (q.density !== this.quality.density) {
 			this.cache.clear();
