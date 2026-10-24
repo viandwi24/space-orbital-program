@@ -49,7 +49,12 @@ describe('the graphics profile (plan 404)', () => {
 	it('Ultra is High with every look at its highest and the full scale; Custom follows a hand change', () => {
 		const u = withPreset('ultra');
 		expect(presetOfProfile(u)).toBe('high');
-		expect(effectiveLooks(u)).toEqual({ plasma: 'high', plume: 'high', ocean: 'high', clouds: 'high' });
+		expect(effectiveLooks(u)).toEqual({
+			plasma: 'high',
+			plume: 'high',
+			ocean: 'high',
+			clouds: 'high'
+		});
 		expect(effectiveScale(u)).toBe(1);
 		expect(kindOf(u)).toBe('ultra');
 		expect(effectiveLooks(withLook(u, 'ocean', 'low')).ocean).toBe('low');

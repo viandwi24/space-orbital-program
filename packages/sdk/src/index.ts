@@ -318,6 +318,7 @@ export type {
 	TechNodeDefinition,
 	ScenarioDefinition,
 	BlueprintDefinition,
+	LoadingShotDefinition,
 	BlueprintGoal,
 	BlueprintSystem,
 	ScenarioVessel,

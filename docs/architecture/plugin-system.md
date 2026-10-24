@@ -339,6 +339,10 @@ JSON data files (`part.json`, `resource.json`) that reference module ids by stri
 
 `vessel.detach(node, impulse, { consume: true })` queues a cut whose part is used up by it: after the sim has split the vessel, the part is cut from its other neighbours and removed (`vessel:destroyed` with reason `spent`, which hosts do not report as a loss). Stock's `ModuleDecoupler` takes `consume: true` for its `stock.separator-*` parts, which leave no ring on either stage. The part-visual kinds `tank-toroid`, `tank-sphere` and `tank-taper` (`generators/tank-shapes.ts`) draw the shaped tanks: collars at the node radius, params `core` (collar radius) or `top` and `bottom` (radii).
 
+## Loading-screen shots (API 0.1.126, plan 379, ADR 0349)
+
+`ctx.loadingShots.register({ id, caption, image, order? })` (`defineLoadingShot`) adds a picture and a caption to the world loading screen. `image` is a `.webp` or `.png` path: for the game's own plugins a file of the app's `static/loading/`, for a mod a picture in its package (format 3). Stock registers its ten.
+
 ## A module's calls on other parts (API 0.1.125, plan 282, ADR 0348)
 
 `ModuleDefinition.drive(ctx, dt)` returns `ActionCall`s (`{ part, module, action, args }`, the part by design index) after `update` each step in flight; the sim runs each as the target's own action and skips one that names nothing the vessel has or that the target refuses. The stock sequencer uses it to set the targets of robotic joints from keyframe tracks (`stock.sequencer`, tracks in the part's design settings).

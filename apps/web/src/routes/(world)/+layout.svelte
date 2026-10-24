@@ -38,7 +38,7 @@
 	import { worldSession } from '../../lib/world-session';
 	import { WORLD_LOAD_STEPS, worldRenderer } from '../../lib/world-renderer.svelte';
 	import WorldLoading from '../../lib/ui/WorldLoading.svelte';
-	import { LOADING_SLIDES, LOADING_TIPS } from '../../lib/loading-slides';
+	import { LOADING_TIPS, loadingSlides } from '../../lib/loading-slides';
 	import { isTypingTarget } from '../../lib/typing-target';
 	import { WARP_STEPS, warpStepsFor } from '../../lib/warp';
 	import { bootWorld } from '../../lib/world-boot';
@@ -730,7 +730,7 @@
 				startedAt={worldRenderer.startedAt}
 				lowered={worldRenderer.lowered}
 				onlower={() => worldRenderer.lowerQuality()}
-				slides={LOADING_SLIDES}
+				slides={loadingSlides()}
 				tips={LOADING_TIPS}
 			/>
 		</div>

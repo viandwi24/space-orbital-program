@@ -629,6 +629,20 @@ A mod changes how the game looks with data, never with shaders. Every field is c
 
 Not yet data: cloud and weather maps, sky and ocean coefficients (they wait for what reads them), and Meshopt-compressed models.
 
+## Loading-screen shots (API 0.1.126, plan 379, ADR 0349)
+
+The world loading screen cycles through pictures with a caption each. Register yours:
+
+```ts
+import { defineLoadingShot } from '@orbital/sdk';
+
+ctx.loadingShots.register(
+	defineLoadingShot({ id: 'acme.dawn', caption: 'Dawn over the Acme pad', image: 'shots/dawn.webp' })
+);
+```
+
+`image` is a `.webp` or `.png` in your package (lower-case path, format 3 assets); `order` puts it before or after the game's ten (lower first). A shot whose picture is not in the package is skipped.
+
 ## Dock panels (API 0.1.52, plan 112, ADR 0149)
 
 A mod can add a panel to the flight dock. The view is data: each value is a pure function of the panel input, and a button or switch returns a command that the sim checks like any other.

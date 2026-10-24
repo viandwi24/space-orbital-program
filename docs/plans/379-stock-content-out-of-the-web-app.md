@@ -60,5 +60,6 @@ When this is done, stock registers both through plugin registries and the develo
 
 ## Log
 
+- 2026-10-24 — Loading shots done (Worker C, ADR 0349, API 0.1.126): the `loadingShots` registry, stock's ten shots, the loading screen reads the registries, the guide. Lessons are not moved: their observation, `DebugApi` and Hangar-state types must go to the SDK first (journal 379).
 - 2026-10-23 — Drafted from plan 375 (ADR 0311's later rows).
 - 2026-10-24 — Rewritten by the coordinator after an audit against main @ 4c546c02: partly done; blueprints shipped (ADR 0316); remaining lessons and loading shots registries; the lessons registry must cover the tour (377), the lesson gate and the onboarding hand-off (ADR 0328); shots are now 10; depends adds 377.

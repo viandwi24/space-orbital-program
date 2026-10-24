@@ -23,6 +23,7 @@ import {
 } from './market.ts';
 import { scenarioDefinitionSchema, type ScenarioDefinition } from './scenarios.ts';
 import { blueprintDefinitionSchema, type BlueprintDefinition } from './blueprints.ts';
+import { loadingShotDefinitionSchema, type LoadingShotDefinition } from './loading-shots.ts';
 import { panelDefinitionSchema, type PanelDefinition } from './panels.ts';
 import { autopilotDefinitionSchema, type AutopilotDefinition } from './autopilots.ts';
 import {
@@ -332,6 +333,7 @@ export interface Registries {
 	/** Crew traits and name syllables (plan 106, ADR 0176). */
 	crewTraits: Registry<CrewTraitDefinition>;
 	crewNames: Registry<CrewNamesDefinition>;
+	loadingShots: Registry<LoadingShotDefinition>;
 	/** Crew content (plan 375, ADR 0313). */
 	crewOutfits: Registry<CrewOutfitDefinition>;
 	crewLooks: Registry<CrewLookDefinition>;
@@ -429,6 +431,9 @@ export function createRegistries(): Registries {
 		}),
 		crewTraits: createRegistry<CrewTraitDefinition>('crew-trait', {
 			schema: crewTraitDefinitionSchema
+		}),
+		loadingShots: createRegistry<LoadingShotDefinition>('loading-shot', {
+			schema: loadingShotDefinitionSchema
 		}),
 		crewNames: createRegistry<CrewNamesDefinition>('crew-names', {
 			schema: crewNamesDefinitionSchema

@@ -4,27 +4,78 @@
  * `static/loading/`. No outside art. The tips name no keys: the key profiles differ (ADR 0206).
  */
 import { asset } from '$app/paths';
+import { loadPlugins } from '@orbital/core';
+import { BUILTIN_PLUGINS } from './builtins';
+import { modRuntime } from './mods/runtime';
 import type { LoadingSlide } from './ui/WorldLoading.svelte';
 
-/** File name in `static/loading/` and its caption, in showing order. */
-export const SLIDE_FILES: readonly { file: string; caption: string }[] = [
-	{ file: 'pad-sunset.webp', caption: 'Kronos V on the pad at sunset' },
-	{ file: 'staging.webp', caption: 'The first stage falls away, 45 km up' },
-	{ file: 'orbit-day.webp', caption: 'In orbit, 100 km above Home' },
-	{ file: 'shuttle-bay.webp', caption: 'Wayfarer in orbit, its bay doors open' },
-	{ file: 'space-center-night.webp', caption: 'The Space Center at night' },
-	{ file: 'sla-petals.webp', caption: 'The petals open round the Selene lander' },
-	{ file: 'ascent.webp', caption: 'Climbing through the upper atmosphere' },
-	{ file: 'lunar-landing.webp', caption: 'Selene down on Cinder' },
-	{ file: 'orbit-night.webp', caption: 'Dusk over the night side' },
-	{ file: 'space-center-day.webp', caption: 'The Space Center' }
-];
+/** What the registry gives the screen: shots in order, from `ctx.loadingShots` (plan 379, ADR 0349). */
+export interface ShotSource {
+	id: string;
+	caption: string;
+	image: string;
+	order?: number | undefined;
+	/** The plugin that registered it. */
+	owner: string | undefined;
+}
 
-export const LOADING_SLIDES: readonly LoadingSlide[] = SLIDE_FILES.map((s) => ({
-	// the files exist once the capture script ran; asset() types only literal paths
-	src: asset(`/loading/${s.file}` as Parameters<typeof asset>[0]),
-	caption: s.caption
-}));
+/**
+ * The slides of `shots`: lower `order` first, then registration order. A shot of a game plugin is
+ * a file of `static/loading/`; a mod's is a picture of its package (`assetOf` gives its bytes), shown
+ * through an object URL (`blobUrl`). A shot whose picture is missing is left out, never an error.
+ */
+export function slidesOf(
+	shots: readonly ShotSource[],
+	options: {
+		builtin: ReadonlySet<string>;
+		staticUrl(file: string): string;
+		assetOf(owner: string, path: string): Uint8Array | undefined;
+		blobUrl(bytes: Uint8Array, path: string): string;
+	}
+): LoadingSlide[] {
+	return shots
+		.map((s, i) => ({ s, i }))
+		.sort((a, b) => (a.s.order ?? 0) - (b.s.order ?? 0) || a.i - b.i)
+		.flatMap(({ s }): LoadingSlide[] => {
+			if (s.owner && options.builtin.has(s.owner))
+				return [{ src: options.staticUrl(s.image), caption: s.caption }];
+			const bytes = s.owner ? options.assetOf(s.owner, s.image) : undefined;
+			return bytes ? [{ src: options.blobUrl(bytes, s.image), caption: s.caption }] : [];
+		});
+}
+
+const blobs = new Map<string, string>();
+
+/** The slides of the booted plugins (plan 379): the game's shots first, then the mods'. */
+export function loadingSlides(): LoadingSlide[] {
+	const registries = modRuntime().registries ?? loadPlugins([...BUILTIN_PLUGINS]).registries;
+	const shots = registries.loadingShots.entries().map((e): ShotSource => ({
+		id: e.def.id,
+		caption: e.def.caption,
+		image: e.def.image,
+		order: e.def.order,
+		owner: e.by
+	}));
+	return slidesOf(shots, {
+		builtin: new Set(BUILTIN_PLUGINS.map((p) => p.meta.id)),
+		// the files exist once the capture script ran; asset() types only literal paths
+		staticUrl: (file) => asset(`/loading/${file}` as Parameters<typeof asset>[0]),
+		assetOf: (owner, path) => modRuntime().assets.get(owner)?.get(path),
+		blobUrl: (bytes, path) => {
+			const key = `${path}:${bytes.length}`;
+			let url = blobs.get(key);
+			if (!url) {
+				url = URL.createObjectURL(
+					new Blob([bytes as BlobPart], {
+						type: path.endsWith('.png') ? 'image/png' : 'image/webp'
+					})
+				);
+				blobs.set(key, url);
+			}
+			return url;
+		}
+	});
+}
 
 export const LOADING_TIPS: readonly string[] = [
 	'Turn gradually once you are a few hundred metres per second fast: a gravity turn saves a lot of fuel.',

@@ -105,6 +105,7 @@ import { ModuleRtg, ModuleSolarPanel } from './solar.ts';
 import { ModuleAnimate, ModuleBay, ModuleCoverShell, ModuleFuelCell } from './animate.ts';
 import { ModuleRobotic } from './robotics.ts';
 import { ModuleSequencer } from './sequencer.ts';
+import { STOCK_LOADING_SHOTS } from './loading-shots.ts';
 import { ModuleStrut, ModuleTetherSocket, ModuleWinch } from './tether.ts';
 import { STOCK_TETHER_PARTS } from './parts/tethers.ts';
 import { PartOrbiterGear, PartOrbiterNoseGear } from './parts/ground.ts';
@@ -280,6 +281,7 @@ export const Stock = definePlugin({
 		// the parts of the famous-mission blueprints (plans 276, 280, 281, 295–300)
 		for (const part of STOCK_MISSION_PARTS) ctx.parts.register(part);
 		for (const part of STOCK_ROBOTIC_PARTS) ctx.parts.register(part);
+		for (const shot of STOCK_LOADING_SHOTS) ctx.loadingShots.register(shot);
 		for (const part of STOCK_TETHER_PARTS) ctx.parts.register(part);
 		// plan 361: the orbiter's landing gear and brake chute
 		for (const part of [PartOrbiterGear, PartOrbiterNoseGear, PartDragChute])
@@ -313,6 +315,7 @@ export * from './animate.ts';
 export * from './launch-clamp.ts';
 export * from './fairing.ts';
 export * from './sequencer.ts';
+export { STOCK_LOADING_SHOTS } from './loading-shots.ts';
 export { ROBOTIC_KINDS, axisOf, type RoboticConfig, type RoboticKind } from './robotics.ts';
 export * from './docking.ts';
 export * from './parachute.ts';

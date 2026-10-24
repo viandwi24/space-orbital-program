@@ -259,6 +259,7 @@ describe('registration and report', () => {
 			mission: [],
 			'crew-trait': [],
 			'crew-names': [],
+			'loading-shot': [],
 			'crew-outfit': [],
 			'crew-look': [],
 			'crew-expression': [],

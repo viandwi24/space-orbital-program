@@ -7,6 +7,7 @@ import type { TechNodeDefinition } from './tech-tree.ts';
 import type { CommodityDefinition, RecipeDefinition } from './market.ts';
 import type { ScenarioDefinition } from './scenarios.ts';
 import type { BlueprintDefinition } from './blueprints.ts';
+import type { LoadingShotDefinition } from './loading-shots.ts';
 import type { PanelDefinition } from './panels.ts';
 import type { AutopilotDefinition } from './autopilots.ts';
 import type { KeybindingDefinition, StoreDefinition } from './mod-api.ts';
@@ -193,6 +194,8 @@ export interface BasePluginContext {
 	readonly crewAnimations: Registrar<CrewAnimationDefinition>;
 	readonly crewPortraits: Registrar<CrewPortraitDefinition>;
 	readonly crewNames: Registrar<CrewNamesDefinition>;
+	/** Loading-screen shots (plan 379, ADR 0349). */
+	readonly loadingShots: Registrar<LoadingShotDefinition>;
 	/**
 	 * Typed data patches over other plugins' parts, resources and bodies (ADR 0170), applied once
 	 * after every plugin booted.
@@ -258,6 +261,7 @@ export const REGISTRY_KINDS = [
 	'autopilot',
 	'crew-trait',
 	'crew-names',
+	'loading-shot',
 	'crew-outfit',
 	'crew-look',
 	'crew-expression',
@@ -348,6 +352,7 @@ const RESERVED_KEYS: ReadonlySet<string> = new Set([
 	'overlays',
 	'crewTraits',
 	'crewNames',
+	'loadingShots',
 	'crewOutfits',
 	'crewLooks',
 	'crewExpressions',
@@ -567,6 +572,7 @@ export function loadPlugins(plugins: readonly Plugin[], options: LoadOptions = {
 			crewAnimations: registrar(registries.crewAnimations),
 			crewPortraits: registrar(registries.crewPortraits),
 			crewNames: registrar(registries.crewNames),
+			loadingShots: registrar(registries.loadingShots),
 			patches: {
 				register(def) {
 					if (!(PATCH_TARGETS as readonly string[]).includes(def.target)) {
@@ -764,6 +770,7 @@ export function loadPlugins(plugins: readonly Plugin[], options: LoadOptions = {
 				'crew-animation': section(registries.crewAnimations),
 				'crew-portrait': section(registries.crewPortraits),
 				'crew-names': section(registries.crewNames),
+				'loading-shot': section(registries.loadingShots),
 				store: section(registries.stores),
 				keybinding: section(registries.keybindings),
 				overlay: section(registries.overlays)

@@ -13,6 +13,7 @@ import type {
 	TechNodeDefinition,
 	ScenarioDefinition,
 	BlueprintDefinition,
+	LoadingShotDefinition,
 	PanelDefinition,
 	AutopilotDefinition,
 	ExperimentDefinition,
@@ -482,6 +483,12 @@ export function defineAutopilot<Memory>(def: AutopilotDefinition<Memory>): Autop
  * world. Create World offers it. Register with `ctx.scenarios`.
  */
 export const defineScenario = (def: ScenarioDefinition): ScenarioDefinition => def;
+
+/**
+ * A loading-screen shot (plan 379, ADR 0349): a picture and its caption for the world loading
+ * screen. Register with `ctx.loadingShots`.
+ */
+export const defineLoadingShot = (def: LoadingShotDefinition): LoadingShotDefinition => def;
 
 /**
  * A blueprint (plan 285, ADR 0263): a ready-made design for the Hangar's Library, with its goal,
