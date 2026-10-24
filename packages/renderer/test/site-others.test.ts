@@ -61,3 +61,32 @@ describe('a branch site', () => {
 		hq.dispose();
 	});
 });
+
+describe('a base on another body (plan 386)', () => {
+	const MOON_R = 190_000;
+	test('stands on the Moon at its place and height, carried with the Moon', () => {
+		const hq = new LaunchSite(R, { latitude: 0, longitude: 0 }, 0, 0, true);
+		hq.setBuildings([HANGAR], []);
+		const at = { latitude: 0.2, longitude: -0.6 };
+		const flat = 42; // the height of the flat zone over the reference sphere
+		const base = new SiteBuildings(hq.sharedMaterials, MOON_R + flat, at);
+		base.setBuildings([HANGAR], []);
+		const moon = { x: 3.8e8, y: -1e6, z: 2e5 };
+		// the Moon turned a quarter about +Y: the base turns with it
+		const s = Math.SQRT1_2;
+		const turn = { x: 0, y: s, z: 0, w: s };
+		base.place(moon, turn);
+		const up = siteAxes(at.latitude, at.longitude).up;
+		const turned = new Vector3(up.x, up.y, up.z).applyQuaternion({ ...turn } as never);
+		const p = base.root.position;
+		expect(p.x - moon.x).toBeCloseTo(turned.x * (MOON_R + flat), 2);
+		expect(p.y - moon.y).toBeCloseTo(turned.y * (MOON_R + flat), 2);
+		expect(p.z - moon.z).toBeCloseTo(turned.z * (MOON_R + flat), 2);
+		expect(Math.hypot(p.x - moon.x, p.y - moon.y, p.z - moon.z)).toBeCloseTo(MOON_R + flat, 2);
+		// it draws with the HQ's materials: showing it compiles nothing
+		const theirs = materialsOf(hq);
+		for (const m of materialsOf(base)) expect(theirs.has(m)).toBe(true);
+		base.dispose();
+		hq.dispose();
+	});
+});

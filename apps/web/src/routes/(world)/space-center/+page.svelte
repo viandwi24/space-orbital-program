@@ -9,6 +9,7 @@
 		branchHqOf,
 		homeBodyOf,
 		hqReady,
+		isTraded,
 		loadPlugins,
 		SITE_BLEND_WIDTH,
 		SITE_FLAT_RADIUS,
@@ -56,6 +57,7 @@
 		type GhostCheck,
 		type SiteState
 	} from '../../../lib/space-center/model';
+	import { routeCommand, type RouteForm } from '../../../lib/space-center/route-form';
 	import { startSpaceCenter, type SpaceCenter } from '../../../lib/space-center/space-center-loop';
 	import {
 		bestView,
@@ -215,6 +217,36 @@
 			label
 		})
 	);
+
+	/** The route form and the chosen site's routes (plan 386); only with the economy on and a second site. */
+	const routing = $derived.by(() => {
+		if (!economy?.enabled || allSites.length < 2) return null;
+		const fee = registries.commodities.get('stock.launch-service')?.basePrice ?? null;
+		return {
+			commodities: registries.commodities
+				.list()
+				.filter((c) => isTraded(c) && c.id !== 'stock.launch-service')
+				.map((c) => ({ id: c.id, label: c.label })),
+			fee,
+			routes: (economy.routes ?? [])
+				.filter((r) => r.from === siteInfo.id || r.to === siteInfo.id)
+				.map((r) => ({
+					id: r.id,
+					label: `${label(r.from)} to ${label(r.to)}: ${label(r.commodity)}`
+				})),
+			onroute: async (form: RouteForm): Promise<string | null> => {
+				const made = routeCommand(
+					form,
+					allSites.map((s) => ({ id: s.id, label: s.name })),
+					(economy?.routes ?? []).map((r) => r.id)
+				);
+				if ('reason' in made) return made.reason;
+				const r = await center?.dispatch(made.command);
+				return !r ? 'The Space Center is not ready yet' : r.ok ? null : r.reason;
+			},
+			ondelete: (id: string) => void center?.dispatch({ type: 'delete-route', id })
+		};
+	});
 
 	function onSnapshot(s: Snapshot): void {
 		today = s.day;
@@ -603,6 +635,7 @@
 			if (lastSnapshot) drawSites(lastSnapshot);
 		}}
 		{flows}
+		{routing}
 		market={marketRows(economy, site?.id)}
 		onfoundbranch={() => (branchOpen = true)}
 	/>

@@ -26,14 +26,14 @@ describe('the build menu', () => {
 		expect(of('Launch')).toEqual(['Launchpad S', 'Launchpad M', 'Launchpad L', 'Runway']);
 		expect(of('Comms')).toEqual(['Tracking dish', 'Deep-space dish']);
 		expect(of('Science')).toEqual(['R&D', 'Test stand']);
-		// at home the off-world kinds are left out: no flow founds an off-world site yet (player-
-		// journey audit Q5, plan 386)
+		// at home the off-world kinds come after the buildable ones, disabled with the reason
 		const production = menu.find((c) => c.label === 'Production')!.cards;
-		expect(production.map((k) => k.label)).toEqual(['Propellant plant']);
-		// every stock building for the home site has a card, and a generator for its thumbnail
-		expect(menu.flatMap((c) => c.cards).length).toBe(
-			buildings.filter((b) => b.placement !== 'off-world').length
+		expect(production[0]).toMatchObject({ label: 'Propellant plant', reason: null });
+		expect(production.slice(1).map((k) => k.reason)).toEqual(
+			production.slice(1).map(() => 'Only at an off-world base')
 		);
+		// every stock building has a card, and a generator for its thumbnail
+		expect(menu.flatMap((c) => c.cards).length).toBe(buildings.length);
 		expect(menu.flatMap((c) => c.cards).every((k) => k.generator !== null)).toBe(true);
 	});
 

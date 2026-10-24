@@ -322,6 +322,17 @@ export interface VesselSnapshot {
 		site?: string;
 	};
 	/**
+	 * What the vessel can do about off-world bases here (plan 386, ADR 0125): present while it is
+	 * landed at rest and one of them is on offer. `found`: it carries a base kit and may found a
+	 * base at this spot (`refusal` says why not); `join`: it stands inside a site's flat zone;
+	 * `refuel`: it is a member of a site whose storage holds propellant.
+	 */
+	baseOffer?: {
+		found?: { body: string; latitude: number; longitude: number; refusal?: string };
+		join?: { site: string; name: string };
+		refuel?: { site: string; name: string; stored: Record<string, number> };
+	};
+	/**
 	 * Present while the vessel takes no control commands (ADR 0109; plan 208, ADR 0214): it has no
 	 * control source, or every source needs power the vessel has run out of.
 	 */

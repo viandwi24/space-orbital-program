@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { routeCommand, routeFeeLine, type RouteForm } from './route-form';
 	import { scFeed } from '../onboarding/sc-tour-store.svelte';
 	import { resolve } from '$app/paths';
 	/**
@@ -33,6 +34,7 @@
 		siteId = null,
 		onsite = () => {},
 		flows = [],
+		routing = null,
 		onfoundbranch,
 		labelMode = 'hover',
 		onlabelmode = () => {},
@@ -69,6 +71,14 @@
 		onsite?: (id: string) => void;
 		/** The Flows panel of the chosen site (ADR 0125 point 7). */
 		flows?: readonly string[];
+		/** The route form and the routes of the chosen site (plan 386); null without the economy or a second site. */
+		routing?: {
+			commodities: readonly { id: string; label: string }[];
+			fee: number | null;
+			routes: readonly { id: string; label: string }[];
+			onroute: (form: RouteForm) => Promise<string | null>;
+			ondelete: (id: string) => void;
+		} | null;
 		/** Open the branch picker (plan 236, ADR 0229). */
 		onfoundbranch?: () => void;
 		/** Plan 259: names on hover and selection (the default), or always. */
@@ -106,6 +116,20 @@
 		void buildFolded;
 		onstrip(listOpen);
 	});
+	let routeForm = $state<RouteForm>({ from: '', to: '', commodity: '', amount: 100 });
+	let routeNote = $state<string | null>(null);
+	async function sendRoute(e: SubmitEvent): Promise<void> {
+		e.preventDefault();
+		if (!routing) return;
+		const form = { ...routeForm, from: routeForm.from || (sites[0]?.id ?? '') };
+		const made = routeCommand(
+			form,
+			sites,
+			routing.routes.map((r) => r.id)
+		);
+		routeNote = 'reason' in made ? made.reason : await routing.onroute(form);
+		if (routeNote === null) routeForm.commodity = '';
+	}
 	/** The strip's Flows or Market line, opened from its header (plan 349). */
 	let extra = $state<'flows' | 'market' | null>(null);
 	/** The card under the pointer or focus: its building is boxed in the scene (plan 349). */
@@ -405,7 +429,7 @@
 						</ul>
 					{/if}
 				</span>
-				{#if flows.length > 0}
+				{#if flows.length > 0 || routing !== null}
 					<button
 						type="button"
 						class="more"
@@ -434,10 +458,61 @@
 					>
 				{/if}
 			</div>
-			{#if extra === 'flows' && flows.length > 0}
+			{#if extra === 'flows' && (flows.length > 0 || routing)}
 				<ul class="plain" data-testid="sc-flows">
 					{#each flows as f (f)}<li>{f}</li>{/each}
+					{#each routing?.routes ?? [] as r (r.id)}
+						<li>
+							<ListRow name={r.label} sub="Route {r.id}" testid="sc-route-{r.id}" />
+							<button
+								type="button"
+								class="more"
+								aria-label="Delete the route {r.id}"
+								onclick={() => routing?.ondelete(r.id)}>Delete</button
+							>
+						</li>
+					{/each}
 				</ul>
+				{#if routing}
+					<form class="route" data-testid="sc-route-form" onsubmit={sendRoute}>
+						<span class="route-title">New route</span>
+						<label
+							>From
+							<select bind:value={routeForm.from} data-testid="sc-route-from">
+								{#each sites as s (s.id)}<option value={s.id}>{s.label}</option>{/each}
+							</select></label
+						>
+						<label
+							>To
+							<select bind:value={routeForm.to} data-testid="sc-route-to">
+								<option value="">Choose…</option>
+								{#each sites as s (s.id)}<option value={s.id}>{s.label}</option>{/each}
+							</select></label
+						>
+						<label
+							>Carries
+							<select bind:value={routeForm.commodity} data-testid="sc-route-commodity">
+								<option value="">Choose…</option>
+								{#each routing.commodities as c (c.id)}<option value={c.id}>{c.label}</option
+									>{/each}
+							</select></label
+						>
+						<label
+							>A window
+							<input
+								type="number"
+								min="1"
+								step="10"
+								bind:value={routeForm.amount}
+								data-testid="sc-route-amount"
+							/></label
+						>
+						<button type="submit" class="more" data-testid="sc-route-send">Create route</button>
+						<p class="route-note" data-testid="sc-route-note">
+							{routeNote ?? routeFeeLine(routing.fee)}
+						</p>
+					</form>
+				{/if}
 			{/if}
 			{#if extra === 'market' && market.length > 0}
 				<ul class="plain market" data-testid="sc-market">
@@ -1377,5 +1452,31 @@
 		.back {
 			min-height: var(--touch-min);
 		}
+	}
+	.route {
+		display: flex;
+		flex-wrap: wrap;
+		align-items: center;
+		gap: 0.5rem 0.75rem;
+		margin-top: 0.5rem;
+		font-size: var(--t-small);
+	}
+	.route label {
+		display: flex;
+		gap: 0.35rem;
+		align-items: center;
+		color: var(--text-secondary);
+	}
+	.route-title {
+		font-weight: 700;
+		color: var(--text-primary);
+	}
+	.route input {
+		width: 5rem;
+	}
+	.route-note {
+		flex-basis: 100%;
+		margin: 0;
+		color: var(--text-muted);
 	}
 </style>

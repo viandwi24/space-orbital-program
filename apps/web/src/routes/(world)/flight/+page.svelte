@@ -70,6 +70,8 @@
 	import { ascentScript } from '@orbital/scripting/samples/ascent';
 	import CrewPanel from '../../../lib/hud/CrewPanel.svelte';
 	import RecoverDialog from '../../../lib/hud/RecoverDialog.svelte';
+	import BaseCard from '../../../lib/hud/BaseCard.svelte';
+	import { baseCommand } from '../../../lib/hud/base-model';
 	import MapSwitch from '../../../lib/hud/MapSwitch.svelte';
 	import MapFilterBar from '../../../lib/map/MapFilterBar.svelte';
 	import { mapFilters } from '../../../lib/map/map-filters.svelte';
@@ -752,6 +754,32 @@
 		const r = view.getBoundingClientRect();
 		const label = flight?.regionLabelAt(e.clientX - r.left, e.clientY - r.top) ?? null;
 		regionHover = label ? { label, x: e.clientX, y: e.clientY } : null;
+	}
+
+	/** A commodity's or a body's id as words for the base card (plan 386). */
+	const baseLabel = (id: string): string =>
+		id
+			.replace(/^stock\./, '')
+			.replace(/-/g, ' ')
+			.replace(/^./, (c) => c.toUpperCase());
+	/** Send one of the base card's commands; the reason it was refused, or null. */
+	async function baseAct(
+		button: 'found' | 'join' | 'refuel',
+		name?: string
+	): Promise<string | null> {
+		const vesselId = flight?.debug.vessel();
+		if (!hud?.base || vesselId === null || vesselId === undefined) return 'there is no vessel';
+		const command = baseCommand(button, vesselId, hud.base, {
+			...(name !== undefined ? { name } : {}),
+			taken: launchSites.map((s) => s.id)
+		});
+		if ('reason' in command) return command.reason;
+		const { vessel: _v, ...rest } = command.command as Extract<
+			Command,
+			{ type: 'deploy-base' | 'join-site' | 'refuel' }
+		>;
+		const r = await flight?.baseAction(rest);
+		return r && !r.ok ? r.reason : null;
 	}
 
 	/** Recover the landed vessel (plan 132, ADR 0113 point 6): credit the funds, save, back to the Hangar. */
@@ -2002,6 +2030,15 @@
 					>
 				{/if}
 				<Toasts toasts={model?.toasts ?? []} />
+				{#if hud?.base}
+					<BaseCard
+						offers={hud.base}
+						label={baseLabel}
+						onfound={(name) => baseAct('found', name)}
+						onjoin={() => baseAct('join')}
+						onrefuel={() => baseAct('refuel')}
+					/>
+				{/if}
 				{#if hud?.recovery}
 					<RecoverDialog
 						open={recoverOpen}

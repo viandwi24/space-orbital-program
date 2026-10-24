@@ -3,6 +3,7 @@
  * renderer, the rAF loop and the keyboard live here as plain TypeScript. Svelte only receives a
  * ~10 Hz `FlightHud` copy through `onHud` and paints it.
  */
+import type { BaseOffers } from './hud/base-model';
 import type { RecoveryQuoteView } from './hud/recovery-model';
 import { vesselNearPoint } from './vessel-menu';
 import { defaultFilters, hiddenVessels, type MapFilters } from './map/map-filters';
@@ -126,7 +127,12 @@ import { createTargetView, type TargetView } from './target-view';
 import { computeTelemetry, type Telemetry } from './telemetry';
 import { createVesselPresence } from './vessel-presence';
 import type { ContentLookups } from './delta-v';
-import { homeSiteDraws, siteViews, type BuildingLookup } from './space-center/site-views';
+import {
+	homeSiteDraws,
+	offWorldSiteDraws,
+	siteViews,
+	type BuildingLookup
+} from './space-center/site-views';
 import { resumeInfo, type GameSave } from './save/game-save';
 import type { SaveRequest } from './save/saves';
 import { captureThumbnail } from './save/thumbnail';
@@ -213,6 +219,8 @@ export interface FlightHud {
 	drive?: boolean;
 	/** The focused vessel's recovery quote while it can be recovered (plan 132, ADR 0113 point 6). */
 	recovery: RecoveryQuoteView | null;
+	/** What the focused vessel can do about bases here (plan 386): found, join, refuel. */
+	base: BaseOffers | null;
 }
 
 /** Near the ground with a wheel motor on: drive mode turns on by itself (plan 307). */
@@ -388,6 +396,10 @@ export interface Flight {
 	setThrottle(value: number): void;
 	/** Everything a save needs from the running flight (plan 043); rejects when there is no vessel to save. */
 	collectSave(): Promise<SaveRequest>;
+	/** A base command for the focused vessel (plan 386): `deploy-base`, `join-site` or `refuel`, its `vessel` filled in. */
+	baseAction(
+		command: Omit<Extract<Command, { type: 'deploy-base' | 'join-site' | 'refuel' }>, 'vessel'>
+	): Promise<{ ok: true } | { ok: false; reason: string }>;
 	/**
 	 * Recover the focused vessel (plan 132): `recover-vessel`, then the flight can still be saved
 	 * without a focus, so the credit is in the world's newest save.
@@ -550,7 +562,8 @@ export function startFlight(options: FlightOptions): Flight {
 		eva: null,
 		broadcasts: [],
 		funds: null,
-		recovery: null
+		recovery: null,
+		base: null
 	};
 	// Dev-only cost counters for the HUD (journal 021): per-frame paint and 10 Hz model build.
 	const stats = {
@@ -1769,6 +1782,8 @@ export function startFlight(options: FlightOptions): Flight {
 				hud.funds = snap.economy?.enabled ? snap.economy.funds : null;
 				const quote = snap.vessels.find((v) => Number(v.id) === Number(vessel))?.recovery;
 				hud.recovery = quote && !recovered ? { ...quote } : null;
+				const offers = snap.vessels.find((v) => Number(v.id) === Number(vessel))?.baseOffer;
+				hud.base = offers ? structuredClone(offers) : null;
 			}
 			const m = hud.model;
 			const soi = snap?.vessels.find((v) => Number(v.id) === Number(vessel))?.soi;
@@ -1813,6 +1828,9 @@ export function startFlight(options: FlightOptions): Flight {
 	function showSite(s: Snapshot): void {
 		if (!options.buildings || !renderer) return;
 		const key = JSON.stringify(s.sites?.map((x) => [x.id, x.buildings, x.roads]));
+		const bases = options.sites?.length
+			? offWorldSiteDraws(s, options.sites, options.buildings, homeBody)
+			: [];
 		if (key === siteKey) return;
 		siteKey = key;
 		const draws = options.sites?.length
@@ -1825,6 +1843,8 @@ export function startFlight(options: FlightOptions): Flight {
 			return;
 		}
 		for (const d of draws) renderer.setSiteBuildings(d.views, d.roads, d.place);
+		// a base on another body stands on that body's ground (plan 386)
+		for (const d of bases) renderer.setSiteBuildings(d.views, d.roads, d.place);
 	}
 	let homeBody: string | undefined;
 
@@ -2345,6 +2365,11 @@ export function startFlight(options: FlightOptions): Flight {
 			scriptRuns.set(Number(vessel), (scriptRuns.get(Number(vessel)) ?? 0) + 1);
 			client.stopScript(false, Number(vessel));
 			sandboxOf(Number(vessel))?.close();
+		},
+		async baseAction(command) {
+			if (vessel === null) return { ok: false, reason: 'there is no vessel' };
+			const r = await client.dispatch({ ...command, vessel } as Command);
+			return r.ok ? { ok: true } : { ok: false, reason: r.reason };
 		},
 		async recover() {
 			if (vessel === null) return { ok: false, reason: 'there is no vessel to recover' };

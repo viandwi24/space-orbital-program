@@ -78,9 +78,6 @@ describe('stock tech tree pacing', () => {
 			.map((p) => p.id);
 		// a thrown-off fairing panel is debris, never built (plan 219)
 		expect(untiered.sort()).toEqual([
-			// waiting for their flow (player-journey audit Q5, plan 386)
-			'stock.base-kit',
-			'stock.drill',
 			'stock.eva-suit',
 			'stock.fairing-panel',
 			'stock.flag',

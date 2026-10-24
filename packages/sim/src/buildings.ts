@@ -242,7 +242,7 @@ export const foundedInThisRun = (core: SimCore, site: string): boolean =>
 	foundedThisRun.get(core)?.has(site) ?? false;
 
 /** Why a new site cannot go at this spot on `body`, or undefined (ADR 0177 point 6). */
-function siteRefusal(
+export function siteRefusal(
 	core: SimCore,
 	command: { id: string; latitude: number; longitude: number },
 	body: string

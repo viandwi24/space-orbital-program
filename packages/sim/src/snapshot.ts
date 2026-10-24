@@ -61,6 +61,7 @@ import { autopilotSnapshot } from './autopilot.ts';
 import { terrainUnder } from './terrain.ts';
 import { economySnapshot, recoveryBlocker } from './economy.ts';
 import { quoteRecovery } from './recovery.ts';
+import { baseOffer } from './bases.ts';
 import { marketSnapshot } from './market.ts';
 import { sitesSnapshot } from './buildings.ts';
 import { vesselSituationNow } from './situation.ts';
@@ -200,6 +201,8 @@ export function vesselSnapshot(core: SimCore, id: EntityId): VesselSnapshot {
 		snapshot.target = port ? { ...target, port } : target;
 	}
 	if (recoveryBlocker(core, id) === undefined) snapshot.recovery = quoteRecovery(core, id);
+	const bases = baseOffer(core, id);
+	if (bases) snapshot.baseOffer = bases;
 	const atSite = siteSpotOf(core, id);
 	if (atSite) snapshot.atSite = atSite;
 	const uncontrolled = controlProblem(core, vessel);

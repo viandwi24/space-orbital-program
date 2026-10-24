@@ -13,11 +13,12 @@ import {
 	type EntityId,
 	type Site,
 	type SupplyRoute,
-	type Vec3
+	type Vec3,
+	type VesselSnapshot
 } from '@orbital/core';
 import { normalize } from '@orbital/kepler';
 import { bodyById, bodyOfVessel, rotationAt, type BodyRuntime } from './bodies.ts';
-import { foundSite } from './buildings.ts';
+import { foundSite, siteRefusal } from './buildings.ts';
 import { partOf, vesselIds, vesselOf, type SimCore } from './core.ts';
 import { costMultiplier, economyOn, record, recoveryBlocker } from './economy.ts';
 import { qConj, qRotate } from './math.ts';
@@ -167,6 +168,41 @@ export function refuelFromSite(
 		);
 	core.events.emit('site:refuelled', { site: site.id, vessel: command.vessel, moved });
 	return { ok: true };
+}
+
+/**
+ * What a landed vessel at rest can do about bases here (plan 386): found one with a kit, join the
+ * site it stands in, refuel from the storage of the site it belongs to. Undefined when nothing.
+ */
+export function baseOffer(core: SimCore, id: EntityId): VesselSnapshot['baseOffer'] {
+	if (!landedAtRest(core, id)) return undefined;
+	const { body, dir } = bodyFixed(core, id);
+	const out: NonNullable<VesselSnapshot['baseOffer']> = {};
+	const [latitude, longitude] = directionLatLon(dir);
+	if (hasModule(core, id, BASE_KIT) && body.def.id !== core.root.def.id) {
+		const refusal = siteRefusal(core, { id: '', latitude, longitude }, body.def.id);
+		out.found = { body: body.def.id, latitude, longitude, ...(refusal ? { refusal } : {}) };
+	}
+	for (const site of sitesOf(core.info)) {
+		if (site.body !== body.def.id) continue;
+		const member = (site.members ?? []).includes(Number(id));
+		if (
+			!member &&
+			site.kind === 'base' &&
+			arcToSite(site, dir, body.def.radius) <= site.flatRadius
+		) {
+			out.join ??= { site: site.id, name: site.name };
+		}
+		if (member) {
+			const held = core.economy.storage?.[site.id] ?? {};
+			const stored: Record<string, number> = {};
+			for (const def of core.registries.commodities.list()) {
+				if (def.resource && (held[def.id] ?? 0) > 0) stored[def.id] = held[def.id]!;
+			}
+			if (Object.keys(stored).length > 0) out.refuel ??= { site: site.id, name: site.name, stored };
+		}
+	}
+	return Object.keys(out).length > 0 ? out : undefined;
 }
 
 /** Members that drove off, took off or are gone leave their site (ADR 0125 point 4). */

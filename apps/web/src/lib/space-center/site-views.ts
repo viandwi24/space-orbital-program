@@ -89,3 +89,26 @@ export function homeSiteDraws(
 	}
 	return out;
 }
+
+/**
+ * The bases on other bodies (plan 386), each at its own place on its body: the renderer stands them
+ * on that body's flat ground and carries them with it. Home sites are `homeSiteDraws`.
+ */
+export function offWorldSiteDraws(
+	snapshot: Pick<Snapshot, 'sites' | 'day'>,
+	sites: readonly Pick<Site, 'id' | 'body' | 'latitude' | 'longitude'>[],
+	registry: BuildingLookup,
+	homeBody: string | undefined
+): SiteDraw[] {
+	const out: SiteDraw[] = [];
+	for (const live of snapshot.sites ?? []) {
+		const site = sites.find((x) => x.id === live.id);
+		if (!site || homeBody === undefined || site.body === homeBody) continue;
+		out.push({
+			place: { ...sitePlace(site), body: site.body },
+			views: siteViews(live, registry, snapshot.day),
+			roads: live.roads ?? []
+		});
+	}
+	return out;
+}

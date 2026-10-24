@@ -345,3 +345,6 @@ An ADR records one decision, its context, and its consequences. ADRs are **appen
 | 0357 | [A cached shadow map for the static site is not built](0357-site-shadow-cache-not-built.md) | accepted | 2026-10-24 |
 | 0358 | [Snapshot deltas: the worker posts only what changed](0358-snapshot-deltas.md) | accepted | 2026-10-24 |
 | 0359 | [Pipelines, shader programs and node states are kept alive](0359-keep-pipelines-alive.md) | accepted | 2026-10-24 |
+||||||| parent of e105b60b (feat(core,sim,web,renderer,stock): the base flow: found, join and refuel offers in Flight, the route form, a base drawn on its body, the kit and drill back; ADR 0359, API 0.1.130 (plan 386))
+
+| 0360 | [The base flow: the sim says what is on offer, the HUD and the Space Center act on it](0360-the-base-flow-in-the-hud.md) | accepted | 2026-10-24 |
