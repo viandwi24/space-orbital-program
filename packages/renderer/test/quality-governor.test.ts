@@ -653,3 +653,34 @@ describe('QualityGovernor: the 120 Hz lock (plan 395)', () => {
 		expect(level.taau).toBe(0.6);
 	});
 });
+
+describe('the governor copies no window per steady frame (plan 409)', () => {
+	test('a minute of steady 180 Hz frames makes almost no array copies', () => {
+		const g = new QualityGovernor('medium');
+		const frame = 1000 / 180;
+		// fill the windows first, then count
+		for (let i = 0; i < 180 * 20; i++) g.tick(frame, 2);
+		const names = ['slice', 'filter', 'map', 'concat'] as const;
+		const originals = names.map((n) => Array.prototype[n]);
+		let copies = 0;
+		names.forEach((n, i) => {
+			(Array.prototype as unknown as Record<string, unknown>)[n] = function (
+				this: unknown[],
+				...args: unknown[]
+			) {
+				copies++;
+				return (originals[i] as (...a: unknown[]) => unknown).apply(this, args);
+			};
+		});
+		const frames = 180 * 60;
+		try {
+			for (let i = 0; i < frames; i++) g.tick(frame, 2);
+		} finally {
+			names.forEach((n, i) => {
+				(Array.prototype as unknown as Record<string, unknown>)[n] = originals[i];
+			});
+		}
+		// two windows were copied (and filtered) every frame: tens of thousands of copies a minute
+		expect(copies).toBeLessThan(frames * 0.1);
+	});
+});

@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { deepEqual } from '../../../lib/deep-equal';
 	import { resolve } from '$app/paths';
 	/**
 	 * The Mission Center (plan 113, ADR 0118): the whole system of the world's save in map view,
@@ -254,8 +255,8 @@
 		}));
 		// the Network layer (plan 115, ADR 0158): every link, coloured by its state, and the stations
 		const nextNetwork = projectNetwork(s, (w) => project(w));
-		if (JSON.stringify(nextLabels) !== JSON.stringify(labels)) labels = nextLabels;
-		if (JSON.stringify(nextNetwork) !== JSON.stringify(network)) network = nextNetwork;
+		if (!deepEqual(nextLabels, labels)) labels = nextLabels;
+		if (!deepEqual(nextNetwork, network)) network = nextNetwork;
 	}
 
 	/** The pick list for `keys` at `at` when two or more are vessels still there; true when it opened. */

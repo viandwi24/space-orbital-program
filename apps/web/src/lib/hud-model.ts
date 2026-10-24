@@ -12,14 +12,22 @@ import type { FlightPhase } from './telemetry';
 export const DEFAULT_DESIGN_NAME = 'Untitled vessel';
 
 /** FNV-1a over the design's parts and stages, 32 bit. */
+let hashedParts: unknown = null;
+let hashedStages: unknown = null;
+let hashed = 0;
 function fingerprint(design: VesselDesign): number {
+	// the HUD asks every update: the same design objects hash once (plan 409)
+	if (design.parts === hashedParts && design.stages === hashedStages) return hashed;
 	const text = JSON.stringify([design.parts, design.stages]);
 	let h = 0x811c9dc5;
 	for (let i = 0; i < text.length; i++) {
 		h ^= text.charCodeAt(i);
 		h = Math.imul(h, 0x01000193);
 	}
-	return h >>> 0;
+	hashedParts = design.parts;
+	hashedStages = design.stages;
+	hashed = h >>> 0;
+	return hashed;
 }
 
 /**

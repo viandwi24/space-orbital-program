@@ -252,6 +252,9 @@ const quantile = (values: number[], q: number): number => {
 	return sorted[Math.min(sorted.length - 1, Math.floor(q * sorted.length))]!;
 };
 
+/** Samples that may pile up past a window before the array is cut (about 0.7 s at 180 Hz). */
+const TRIM_CHUNK = 128;
+
 export class QualityGovernor {
 	private ladder: GovernorLevel[];
 	private index = 0;
@@ -496,11 +499,14 @@ export class QualityGovernor {
 		for (let i = this.displayRaf.length - 1; i >= 0; i--) {
 			total += this.displayRaf[i]! / 1000;
 			if (total > this.config.cadenceSeconds) {
-				this.displayRaf = this.displayRaf.slice(i);
+				// in chunks (the estimate below takes the fastest quarter, so a few old intervals do not matter)
+				if (i > TRIM_CHUNK) this.displayRaf = this.displayRaf.slice(i);
 				break;
 			}
 		}
 		if (this.displayRaf.length < 30) return;
+		// the sort copies the window: once in a few frames is enough for a rate that changes in seconds
+		if (++this.cadenceTick % 6 !== 0) return;
 		const fast = quantile(this.displayRaf, 0.1);
 		const hz = 1000 / fast;
 		// the nearest known rate from 60 up by ratio: a slow machine's intervals only ever raise `fast`,
@@ -586,11 +592,11 @@ export class QualityGovernor {
 		}
 		if (this.trial120 && this.clock - this.trial120.since >= this.config.probeSeconds * 2)
 			this.trial120 = null;
-		const recent = this.window(this.config.dropWindowSeconds);
-		if (recent.span >= this.config.dropWindowSeconds * 0.9) {
-			const over = recent.samples.filter((x) => x.ms > overMs);
-			const share = over.length / recent.samples.length;
+		const recentScan = this.scan(this.config.dropWindowSeconds, overMs);
+		if (recentScan.span >= this.config.dropWindowSeconds * 0.9) {
+			const share = recentScan.over / recentScan.count;
 			if (share >= this.config.dropShare) {
+				const recent = this.window(this.config.dropWindowSeconds);
 				const p95 = quantile(
 					recent.samples.map((x) => x.ms),
 					0.95
@@ -600,9 +606,9 @@ export class QualityGovernor {
 				return this.drop(heavy ? 2 : 1, heavy ? `p95 ${p95.toFixed(0)} ms, ${text}` : text);
 			}
 		}
-		const steady = this.window(this.config.sustainedSeconds);
+		const steady = this.scan(this.config.sustainedSeconds, overMs);
 		if (steady.span >= this.config.sustainedSeconds * 0.9 && this.judderFutile !== this.scene) {
-			const share = steady.samples.filter((x) => x.ms > overMs).length / steady.samples.length;
+			const share = steady.over / steady.count;
 			const needed =
 				this.targetFps >= 120 ? this.config.sustainedShare120 : this.config.sustainedShare;
 			if (share >= needed) {
@@ -641,6 +647,32 @@ export class QualityGovernor {
 		return this.consider(budget);
 	}
 
+	private cadenceTick = 0;
+
+	/** Reused by `scan`: no allocation per frame. */
+	private readonly scanned = { span: 0, count: 0, over: 0 };
+
+	/**
+	 * The time the samples of the last `seconds` cover, how many there are and how many took more than
+	 * `overMs`: what the per-frame checks need, without copying the window.
+	 */
+	private scan(seconds: number, overMs: number): { span: number; count: number; over: number } {
+		const out = this.scanned;
+		let span = 0;
+		let count = 0;
+		let over = 0;
+		for (let i = this.samples.length - 1; i >= 0 && span < seconds; i--) {
+			const x = this.samples[i]!;
+			span += x.dt;
+			count++;
+			if (x.ms > overMs) over++;
+		}
+		out.span = span;
+		out.count = count;
+		out.over = over;
+		return out;
+	}
+
 	/** The samples of the last `seconds` and the time they cover. */
 	private window(seconds: number): { samples: Sample[]; span: number } {
 		let span = 0;
@@ -665,7 +697,8 @@ export class QualityGovernor {
 			from--;
 			span += this.samples[from]!.dt;
 		}
-		if (from > 0) this.samples = this.samples.slice(from);
+		// copied in chunks, not every frame: the windows count back from the end, so a few old samples are harmless
+		if (from > TRIM_CHUNK) this.samples = this.samples.slice(from);
 	}
 
 	/** Evidence for a step up, or the reason there is none yet. */

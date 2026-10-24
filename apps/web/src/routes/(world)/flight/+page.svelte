@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { resolve } from '$app/paths';
+	import { deepEqual } from '../../../lib/deep-equal';
 	import { readReplay } from '@orbital/core';
 	import GhostLayer from '../../../lib/replays/GhostLayer.svelte';
 	import { ghostTrack, type ScreenGhost } from '../../../lib/replays/ghost-model';
@@ -527,9 +528,10 @@
 	/** The Network layer in map view (plan 115, ADR 0158). */
 	let mapNetwork = $state.raw<ScreenNetwork | null>(null);
 	// the serialised forms the paint compares against, so each frame serialises once (plan 396)
-	let mapNetworkKey = '';
-	let mapBodyLabelsKey = '';
-	let ghostFrameKey = '';
+	// the last value handed on, to compare the next frame's by value (plan 409: no string per frame)
+	let mapNetworkLast: unknown = null;
+	let mapBodyLabelsLast: unknown = null;
+	let ghostFrameLast: unknown = null;
 	/** The names of the bodies in the map (plan 382). */
 	let mapBodyLabels = $state.raw<BodyLabel[] | null>(null);
 	/** A replay's ghost over this flight (plan 131, ADR 0159 point 7). */
@@ -1180,21 +1182,18 @@
 					}
 				}
 				const net = f.network ?? null;
-				const netKey = net === null ? '' : JSON.stringify(net);
-				if (netKey !== mapNetworkKey) {
-					mapNetworkKey = netKey;
+				if (!deepEqual(net, mapNetworkLast)) {
+					mapNetworkLast = net;
 					mapNetwork = net;
 				}
 				const bl = f.bodyLabels ?? null;
-				const blKey = bl === null ? '' : JSON.stringify(bl);
-				if (blKey !== mapBodyLabelsKey) {
-					mapBodyLabelsKey = blKey;
+				if (!deepEqual(bl, mapBodyLabelsLast)) {
+					mapBodyLabelsLast = bl;
 					mapBodyLabels = bl;
 				}
 				const g = f.ghost ?? null;
-				const ghostKey = g === null ? '' : JSON.stringify(g);
-				if (ghostKey !== ghostFrameKey) {
-					ghostFrameKey = ghostKey;
+				if (!deepEqual(g, ghostFrameLast)) {
+					ghostFrameLast = g;
 					ghostFrame = g;
 				}
 				targetMarks?.place(f.target ?? null);
@@ -1423,32 +1422,29 @@
 	});
 	// The bars take new values only when what they show changes, not on every HUD frame: T+ in
 	// whole seconds, the warp level, its limit and the vessel's situation.
-	const shellTime = $derived.by(() => {
-		const steps = warpSteps;
-		const warp = hud?.warp ?? 1;
+	// the shell's clock, as separate values: a primitive that did not change does not re-run the effect
+	// (plan 409: no string built and parsed to tell)
+	const timeIndex = $derived(
+		warpSteps.reduce((at, step, i) => (step <= (hud?.warp ?? 1) ? i : at), 0)
+	);
+	const timeLimit = $derived(hud?.warpLimit?.max ?? null);
+	const timeReason = $derived.by(() => {
 		const limit = hud?.warpLimit ?? null;
 		const clamp = hud?.warpClamp ?? null;
-		const index = steps.reduce((at, step, i) => (step <= warp ? i : at), 0);
-		const limited = limit?.reason && limit.max < steps[steps.length - 1]!;
-		return JSON.stringify({
-			steps,
-			index,
-			limit: limit?.max ?? null,
-			reason: clamp ?? (limited ? `Max ${warpText(limit.max)} — ${limit.reason}` : ''),
-			elapsed: Math.floor(model ? (model.prelaunch ? model.time : model.met) : 0),
-			date: model?.date ?? '',
-			usable: warpUsable
-		});
+		const limited = limit?.reason && limit.max < warpSteps[warpSteps.length - 1]!;
+		return clamp ?? (limited ? `Max ${warpText(limit!.max)} — ${limit!.reason}` : '');
 	});
+	const timeElapsed = $derived(Math.floor(model ? (model.prelaunch ? model.time : model.met) : 0));
+	const timeDate = $derived(model?.date ?? '');
 	$effect(() => {
-		const t = JSON.parse(shellTime) as {
-			steps: number[];
-			index: number;
-			limit: number | null;
-			reason: string;
-			elapsed: number;
-			date: string;
-			usable: boolean;
+		const t = {
+			steps: warpSteps,
+			index: timeIndex,
+			limit: timeLimit,
+			reason: timeReason,
+			elapsed: timeElapsed,
+			date: timeDate,
+			usable: warpUsable
 		};
 		pageShell.time = {
 			...t,
@@ -1463,10 +1459,11 @@
 				})
 		};
 	});
-	const shellPlace = $derived(model ? JSON.stringify([model.name, model.situation]) : '');
+	const placeName = $derived(model?.name ?? null);
+	const placeSituation = $derived(model?.situation ?? '');
 	$effect(() => {
-		const place = shellPlace ? (JSON.parse(shellPlace) as [string, string]) : null;
-		pageShell.location = place ? { icon: 'vessel', text: place[0], situation: place[1] } : null;
+		pageShell.location =
+			placeName === null ? null : { icon: 'vessel', text: placeName, situation: placeSituation };
 	});
 	const mapOn = $derived(hud?.map ?? false);
 	$effect(() => {

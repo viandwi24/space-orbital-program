@@ -29,6 +29,7 @@
 	import { branchId, type BranchContext } from '../../../lib/space-center/branch-model';
 	import { buildingThumbnails } from '../../../lib/space-center/thumbnails';
 	import { bodyLabel } from '../../../lib/hud-model';
+	import { deepEqual } from '../../../lib/deep-equal';
 	import { GAME_NAME } from '../../../lib/public/about';
 	import { bootedMods, modHint } from '../../../lib/save/mods';
 	import { SaveController } from '../../../lib/save/save-controller.svelte';
@@ -47,7 +48,7 @@
 		confirmPlacement,
 		ghostCell,
 		nextRotation,
-		pinPositions,
+		pinPositionsOrPrev,
 		upkeepWarning,
 		flowRows,
 		firstFreeCell,
@@ -251,7 +252,7 @@
 	function onSnapshot(s: Snapshot): void {
 		today = s.day;
 		funds = s.economy?.enabled ? s.economy.funds : undefined;
-		if (JSON.stringify(s.economy) !== JSON.stringify(economy)) economy = s.economy;
+		if (!deepEqual(s.economy, economy)) economy = s.economy;
 		if (s.vessels.length !== vessels.length || s.sites?.some((x) => x.members?.length))
 			vessels = s.vessels;
 		lastSnapshot = s;
@@ -264,7 +265,7 @@
 				finished = [...finished, `${label} is ready (level ${b.level + 1})`];
 			}
 		}
-		if (JSON.stringify(next) === JSON.stringify(site)) return;
+		if (deepEqual(next, site)) return;
 		site = next;
 		// on opening the page (and on a site switch) the camera frames the whole site (ADR 0326)
 		if (next && framedSite !== next.id && center?.renderer) {
@@ -286,17 +287,47 @@
 	/** The welcome on the world's first visit (plan 377, ADR 0314 point 1). */
 	let offerTour = $state(false);
 	let lastSnapshot: Snapshot | null = null;
-	let drawnKey = '';
+	// what the last drawn layout was made from, by reference: a snapshot that changed none of it is skipped
+	// before the draws are built, and a rebuilt layout equal to the drawn one is not sent again (plan 409)
+	let drawnFor: {
+		sites: unknown;
+		day: number | undefined;
+		all: unknown;
+		home: unknown;
+		selected: boolean;
+		info: unknown;
+	} | null = null;
+	let drawnDraws: ReturnType<typeof homeSiteDraws> | null = null;
+	let drawnView: ReturnType<typeof sitePlace> | undefined;
 	/**
 	 * Every home space center at its own place, and the view on the chosen one (plan 384, ADR
 	 * 0321); a base on another body keeps the primary site's view (ADR 0125 point 7).
 	 */
 	function drawSites(s: Snapshot): void {
+		const f = drawnFor;
+		if (
+			f &&
+			f.sites === s.sites &&
+			f.day === s.day &&
+			f.all === allSites &&
+			f.home === homeId &&
+			f.selected === homeSelected &&
+			f.info === siteInfo
+		)
+			return;
+		drawnFor = {
+			sites: s.sites,
+			day: s.day,
+			all: allSites,
+			home: homeId,
+			selected: homeSelected,
+			info: siteInfo
+		};
 		const draws = homeSiteDraws(s, allSites, buildingRegistry, homeId);
 		const view = homeSelected ? sitePlace(siteInfo) : undefined;
-		const key = JSON.stringify([draws, view]);
-		if (key === drawnKey) return;
-		drawnKey = key;
+		if (drawnDraws && deepEqual(draws, drawnDraws) && deepEqual(view, drawnView)) return;
+		drawnDraws = draws;
+		drawnView = view;
 		center?.setBuildings(draws, view);
 	}
 
@@ -549,8 +580,8 @@
 				client,
 				onSnapshot,
 				onFrame: (project) => {
-					const steady = pinPositions(rows, project, labels);
-					if (JSON.stringify(steady) !== JSON.stringify(labels)) labels = steady;
+					const steady = pinPositionsOrPrev(rows, project, labels);
+					if (steady !== labels) labels = steady;
 				},
 				onClick: (at) => void onClick(at),
 				onHover: ghostAt,

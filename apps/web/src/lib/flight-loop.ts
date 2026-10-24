@@ -150,6 +150,7 @@ import {
 	type RadioBars
 } from './comms/suit-radio';
 import { logBuffer } from './log-buffer';
+import { deepEqual } from './deep-equal';
 import type { DebugHost } from './debug/api';
 import { simEventLine } from './debug/model';
 import {
@@ -172,6 +173,22 @@ const THROTTLE_RATE = 0.5;
  * key press. The HUD shows it at once; the sim gets it with the first stage, so the vessel stays at
  * rest on the pad (a raised throttle wakes it and caps warp).
  */
+/** Whether two snapshots' sites carry the same ids, buildings and roads. */
+const NO_SITES: NonNullable<Snapshot['sites']> = [];
+function siteLayoutSame(a: Snapshot['sites'] | null, snapshotSites: Snapshot['sites']): boolean {
+	const b = snapshotSites ?? NO_SITES;
+	if (a === b) return true;
+	if (!a || a.length !== b.length) return false;
+	for (let i = 0; i < a.length; i++) {
+		const x = a[i]!;
+		const y = b[i]!;
+		if (x === y) continue;
+		if (x.id !== y.id || !deepEqual(x.buildings, y.buildings) || !deepEqual(x.roads, y.roads))
+			return false;
+	}
+	return true;
+}
+
 export const DEFAULT_THROTTLE = 0.5;
 /** Governor changes Debug → Info lists (plan 201). */
 const GOVERNOR_LOG = 5;
@@ -1824,15 +1841,16 @@ export function startFlight(options: FlightOptions): Flight {
 
 	// Every home site's buildings at its own place (plan 384, ADR 0321), redrawn when the world's
 	// layout changed (built in the Space Center): a launch from a branch stands among its buildings
-	let siteKey = '';
+	let shownSites: Snapshot['sites'] | null = null;
 	function showSite(s: Snapshot): void {
 		if (!options.buildings || !renderer) return;
-		const key = JSON.stringify(s.sites?.map((x) => [x.id, x.buildings, x.roads]));
+		// unchanged when every site keeps its id, buildings and roads (by value; by reference when the
+		// snapshot delta left them alone): no string is built per snapshot (plan 409)
+		if (siteLayoutSame(shownSites, s.sites)) return;
+		shownSites = s.sites ?? NO_SITES;
 		const bases = options.sites?.length
 			? offWorldSiteDraws(s, options.sites, options.buildings, homeBody)
 			: [];
-		if (key === siteKey) return;
-		siteKey = key;
 		const draws = options.sites?.length
 			? homeSiteDraws(s, options.sites, options.buildings, homeBody)
 			: [];

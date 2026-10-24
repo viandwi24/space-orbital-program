@@ -597,7 +597,7 @@ export class Environment {
 		}
 		this.time += input.dt;
 		this.site.setLamps(siteLamps);
-		const shadowMatrix = new Matrix4().copy(this.sunLight.shadow.matrix);
+		const shadowMatrix = this.shadowCopy.copy(this.sunLight.shadow.matrix);
 		this.planet.update({
 			camera,
 			pixelHeight: input.pixelHeight,
@@ -622,11 +622,16 @@ export class Environment {
 			}
 		});
 
-		const key = [
-			Math.round(elevDeg / 2),
-			air ? 'airless' : Math.round(Math.log2(Math.max(alt, 1)) * 2),
-			this.preset
-		].join('|');
+		// the key changes a few times a flight: its string is built only then, not every frame
+		const elevStep = Math.round(elevDeg / 2);
+		const altStep = air ? -1 : Math.round(Math.log2(Math.max(alt, 1)) * 2);
+		if (elevStep !== this.keyElev || altStep !== this.keyAlt || this.preset !== this.keyPreset) {
+			this.keyElev = elevStep;
+			this.keyAlt = altStep;
+			this.keyPreset = this.preset;
+			this.keyText = [elevStep, air ? 'airless' : altStep, this.preset].join('|');
+		}
+		const key = this.keyText;
 		this.state.sun = sun;
 		this.state.sunElevationDeg = elevDeg;
 		this.state.altitude = alt;
@@ -636,6 +641,12 @@ export class Environment {
 		this.state.up = up;
 		this.state.airless = air;
 	}
+
+	private readonly shadowCopy = new Matrix4();
+	private keyElev = NaN;
+	private keyAlt = NaN;
+	private keyPreset: string | null = null;
+	private keyText = '';
 
 	dispose(): void {
 		this.planet.dispose();

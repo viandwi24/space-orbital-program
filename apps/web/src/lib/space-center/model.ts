@@ -337,6 +337,34 @@ export function pinPositions(
 }
 
 /**
+ * `pinPositions` for the per-frame loop (plan 409): the same steadied positions, but `prev` itself
+ * when nothing moved a pixel, so a steady frame builds no record and the caller can compare by
+ * reference.
+ */
+export function pinPositionsOrPrev(
+	rows: readonly { id: string; anchor: { east: number; north: number; up?: number } }[],
+	project: (p: { east: number; north: number; up?: number }) => { x: number; y: number } | null,
+	prev: Readonly<Record<string, { x: number; y: number } | null>>
+): Record<string, { x: number; y: number } | null> {
+	let same = true;
+	let known = 0;
+	for (const k in prev) {
+		void k;
+		known++;
+	}
+	if (known !== rows.length) same = false;
+	for (let i = 0; same && i < rows.length; i++) {
+		const r = rows[i]!;
+		const p = project(r.anchor);
+		const q = prev[r.id];
+		if (!p ? q !== null : !q || Math.abs(q.x - p.x) >= 1 || Math.abs(q.y - p.y) >= 1) same = false;
+	}
+	return same
+		? (prev as Record<string, { x: number; y: number } | null>)
+		: pinPositions(rows, project, prev);
+}
+
+/**
  * "Needs attention" lines beyond the building rows (plan 096, ADR 0123 point 6): the next upkeep
  * when it is more than the funds. `upkeep` is the total per 30 days after the cost multiplier.
  */
