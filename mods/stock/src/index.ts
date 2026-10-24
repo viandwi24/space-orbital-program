@@ -104,6 +104,7 @@ import { ModuleLight } from './lights.ts';
 import { ModuleRtg, ModuleSolarPanel } from './solar.ts';
 import { ModuleAnimate, ModuleBay, ModuleCoverShell, ModuleFuelCell } from './animate.ts';
 import { ModuleRobotic } from './robotics.ts';
+import { ModuleSequencer } from './sequencer.ts';
 import { ModuleStrut, ModuleTetherSocket, ModuleWinch } from './tether.ts';
 import { STOCK_TETHER_PARTS } from './parts/tethers.ts';
 import { PartOrbiterGear, PartOrbiterNoseGear } from './parts/ground.ts';
@@ -164,6 +165,7 @@ export const Stock = definePlugin({
 		ctx.modules.register(ModuleCoverShell);
 		ctx.modules.register(ModuleFuelCell);
 		ctx.modules.register(ModuleRobotic);
+		ctx.modules.register(ModuleSequencer);
 		// plan 313: winches, sockets and releasable struts
 		ctx.modules.register(ModuleWinch);
 		ctx.modules.register(ModuleTetherSocket);
@@ -310,6 +312,8 @@ export * from './rcs.ts';
 export * from './animate.ts';
 export * from './launch-clamp.ts';
 export * from './fairing.ts';
+export * from './sequencer.ts';
+export { ROBOTIC_KINDS, axisOf, type RoboticConfig, type RoboticKind } from './robotics.ts';
 export * from './docking.ts';
 export * from './parachute.ts';
 export * from './engine.ts';

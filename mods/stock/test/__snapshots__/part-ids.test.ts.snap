@@ -4197,6 +4197,56 @@ exports[`stock part ids, masses, costs and modules match the snapshot 1`] = `
     ],
   },
   {
+    "cost": 1100,
+    "id": "stock.hinge-alligator",
+    "mass": 110,
+    "modules": [
+      [
+        "stock.robotic",
+        {
+          "kind": "hinge",
+          "max": 150,
+          "min": 0,
+          "pivot": [
+            0,
+            -0.238,
+            -0.3,
+          ],
+          "power": 1,
+          "speed": 25,
+        },
+      ],
+    ],
+  },
+  {
+    "cost": 1400,
+    "id": "stock.piston-t",
+    "mass": 140,
+    "modules": [
+      [
+        "stock.robotic",
+        {
+          "kind": "piston",
+          "max": 1.35,
+          "min": 0,
+          "power": 1,
+          "speed": 0.3,
+        },
+      ],
+    ],
+  },
+  {
+    "cost": 250,
+    "id": "stock.sequencer",
+    "mass": 25,
+    "modules": [
+      [
+        "stock.sequencer",
+        {},
+      ],
+    ],
+  },
+  {
     "cost": 300,
     "id": "stock.winch",
     "mass": 150,

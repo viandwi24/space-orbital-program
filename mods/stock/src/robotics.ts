@@ -45,6 +45,10 @@ export interface RoboticState {
 
 const UNIT = (kind: RoboticKind): string => (kind === 'piston' ? 'm' : '°');
 
+/** The axis value -1..1 a target sits at in the joint's travel (plan 282: an analogue axis or a key pair drives it). */
+export const axisOf = (config: Pick<RoboticConfig, 'min' | 'max'>, target: number): number =>
+	config.max === config.min ? 0 : ((target - config.min) / (config.max - config.min)) * 2 - 1;
+
 export const ModuleRobotic = defineModule({
 	id: 'stock.robotic',
 	config: roboticConfigSchema,
@@ -102,6 +106,18 @@ export const ModuleRobotic = defineModule({
 							icon: 'wheel'
 						},
 						{
+							id: 'setAxis',
+							label: 'Axis',
+							kind: 'value',
+							value: axisOf(config, state.target),
+							min: -1,
+							max: 1,
+							step: 0.05,
+							enabled: !state.locked,
+							more: true,
+							icon: 'wheel'
+						},
+						{
 							id: 'toggle',
 							label: config.kind === 'piston' ? 'Extend / retract' : 'Swing',
 							kind: 'trigger',
@@ -154,6 +170,15 @@ export const ModuleRobotic = defineModule({
 		setTarget: (ctx, ...args) => {
 			const [target] = z.tuple([z.number()]).parse(args);
 			ctx.state.target = Math.min(ctx.config.max, Math.max(ctx.config.min, target));
+		},
+		/**
+		 * An axis -1..1 across the whole travel (plan 282): the target follows a stick or a key pair
+		 * bound to the joint in a group; the joint moves at its own speed.
+		 */
+		setAxis: (ctx, ...args) => {
+			const [axis] = z.tuple([z.number().min(-1).max(1)]).parse(args);
+			const { min, max } = ctx.config;
+			ctx.state.target = min + ((axis + 1) / 2) * (max - min);
 		},
 		/** Swing to the far end of the travel, or back to the near one (an action group's press). */
 		toggle: (ctx) => {

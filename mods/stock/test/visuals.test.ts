@@ -89,6 +89,7 @@ const KINDS = [
 	'hinge-joint',
 	'rotary-joint',
 	'piston-joint',
+	'alligator-joint',
 	'rover-wheel',
 	'rover-chassis',
 	'light-panel',

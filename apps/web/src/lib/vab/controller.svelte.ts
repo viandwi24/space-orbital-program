@@ -180,6 +180,8 @@ import { indexedDbStore, requestPersistence } from './library-idb';
 import { indexedDbThumbs, memoryThumbs, thumbKey, type ThumbStore } from './thumbnail-cache';
 import { checklistOf, type ChecklistItem } from '../editor/blueprint-checklist';
 import type { VesselItem } from '../launch/vessel-library';
+import { applySequencer, jointsOf, sequencerOf } from '../editor/sequencer-edit';
+import type { SequencerConfig } from '@orbital/mod-stock';
 import { MOVE_FINE, MOVE_STEP, ROTATE_FINE, ROTATE_STEP, snapTo, toolKeyEffect } from './tool-keys';
 import { nextPlacement, SNAP_PX } from './placement-pick';
 import { frontFirst, nextPick, type PickCycle } from './pick-cycle';
@@ -2096,6 +2098,21 @@ export class VabController {
 	copyMode = $state(false);
 	/** Fairing edit mode (plan 219): a click in the view adds a section to the selected base. */
 	fairingEdit = $state(false);
+	/** The selected part's sequencer (plan 282): its tracks and mode, or null when it is not one. */
+	readonly selectedSequencer = $derived(
+		this.selected === null ? null : sequencerOf(this.current.design, this.lookup, this.selected)
+	);
+	/** The joints a sequencer track may drive. */
+	readonly sequencerJoints = $derived(jointsOf(this.current.design, this.lookup));
+	/** Writes edited tracks into the selected sequencer's settings: one undo step. */
+	editSequencer(edit: (config: SequencerConfig) => SequencerConfig): void {
+		const sel = this.selected;
+		const now = this.selectedSequencer;
+		if (sel === null || !now) return;
+		this.attempt(() => {
+			this.editor = applySequencer(this.editor, this.editorContent, sel, edit(now));
+		});
+	}
 	/** The selected part's fairing, or null (plan 219). */
 	readonly selectedFairing = $derived(
 		this.selected === null ? null : fairingOf(this.current.design, this.lookup, this.selected)

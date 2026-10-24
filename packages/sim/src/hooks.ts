@@ -34,6 +34,7 @@ import { dataUse, storeData } from './data.ts';
 import { creditScience, makeResult, vesselSituation } from './science.ts';
 import { signalOf } from './comms.ts';
 import { isFailed } from './reliability.ts';
+import { moduleAction } from './actions.ts';
 import { sunExposure } from './sunlight.ts';
 import { terrainBelow } from './terrain.ts';
 import { notePower } from './power.ts';
@@ -254,9 +255,38 @@ export function runUpdateHooks(core: SimCore, vesselId: EntityId, dt: number): v
 			const hook = rails ? (def.background ? undefined : def.updateOnRails) : def.update;
 			// a failed module stops working (plan 130, ADR 0156 point 2)
 			if (hook && !isFailed(core, partId, m.id)) hook(makeContext(core, partId, m.id), dt);
+			// a flying module may call actions on other parts (plan 282: a sequencer's keyframes)
+			if (!rails && def.drive && !isFailed(core, partId, m.id))
+				runDrive(core, vesselId, partId, m.id, dt);
 		}
 	}
 	notePower(core, vesselId);
+}
+
+/** Runs the calls `drive` asks for, as the target modules' own actions; a call with no target is skipped. */
+function runDrive(
+	core: SimCore,
+	vesselId: EntityId,
+	partId: EntityId,
+	moduleId: string,
+	dt: number
+): void {
+	const def = moduleDefOf(core, moduleId);
+	const calls = def.drive!(makeContext(core, partId, moduleId), dt);
+	if (calls.length === 0) return;
+	const vessel = vesselOf(core, vesselId);
+	for (const call of calls) {
+		const target = vessel.parts.find((id) => partOf(core, id).index === call.part);
+		if (target === undefined || !partOf(core, target).modules.some((m) => m.id === call.module))
+			continue;
+		const action = moduleAction(moduleDefOf(core, call.module), call.action);
+		if (!action) continue;
+		try {
+			action(makeContext(core, target, call.module), ...call.args);
+		} catch {
+			// a call the target refuses (a locked joint, a bad value) is skipped, not fatal
+		}
+	}
 }
 
 /** Calls `onStage` on every module of `partId`. */

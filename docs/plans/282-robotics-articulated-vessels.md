@@ -1,8 +1,8 @@
 ---
 id: 282
 title: "Robotics, part two: the sequencer, the alligator hinge, the telescoping piston and axis groups"
-status: draft
-owner: ""
+status: done
+owner: "Worker C"
 depends: [306]
 phase: 0
 created: 2026-10-21
@@ -64,6 +64,7 @@ On top of plan 306's kinematic joints, a sequencer part plays keyframe tracks fo
 
 ## Log
 
+- 2026-10-24 — Done in part (Worker C, ADR 0348): the sequencer (a `drive` hook in core and the sim, API 0.1.125), the alligator hinge, the long-reach piston, `setAxis` and the Hangar's track editor. Left: the axis groups' key and stick binding, a timeline panel in Flight; journal 282.
 - 2026-10-24 — Rewritten by the coordinator after an audit against main @ 4c546c02: plan 306 built robotics per ADR 0269; this plan is now a follow-up for the sequencer, the alligator hinge, the telescoping piston and axis groups; depends on 306, no longer on the 288 spike.
 - 2026-10-21 — Plan 288's spike: no-go for ADR 0262 as written (no multibody motors in Rapier 0.21 JS; a 6-joint impulse chain sags and costs 5–6× at dt 0.02). ADR 0265 is proposed; this plan waits for its decision.
 - 2026-10-21 — The joint spike moved to plan 288 (Linux worker); this plan starts only on its "go" verdict.

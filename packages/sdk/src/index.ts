@@ -255,6 +255,7 @@ export type {
 	ModuleCollider,
 	JointSpec,
 	WheelSpec,
+	ActionCall,
 	ModuleContext,
 	ModuleDefinition,
 	ModuleId,

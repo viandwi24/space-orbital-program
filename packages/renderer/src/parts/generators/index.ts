@@ -33,7 +33,7 @@ import {
 	orbiterGear,
 	orbiterNose
 } from './shuttle.ts';
-import { hingeJoint, pistonJoint, rotaryJoint } from './robotic.ts';
+import { alligatorJoint, hingeJoint, pistonJoint, rotaryJoint } from './robotic.ts';
 import { roverChassis, roverWheel } from './rover-wheel.ts';
 import {
 	ascentCabin,
@@ -153,6 +153,8 @@ export function registerStockGenerators(): void {
 	registerPartGenerator('hinge-joint', hingeJoint);
 	registerPartGenerator('rotary-joint', rotaryJoint);
 	registerPartGenerator('piston-joint', pistonJoint);
+	// plan 282: the alligator hinge
+	registerPartGenerator('alligator-joint', alligatorJoint);
 	// plan 307: rover
 	registerPartGenerator('rover-wheel', roverWheel);
 	registerPartGenerator('rover-chassis', roverChassis);

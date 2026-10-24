@@ -333,3 +333,4 @@ An ADR records one decision, its context, and its consequences. ADRs are **appen
 | 0345 | [Mod visual data: plasma palettes, post profiles, bigger images, KTX2](0345-mod-visual-data.md) | accepted | 2026-10-24 |
 | 0346 | [Planet maps from mod images: the biome map of a hills body](0346-planet-maps-from-mod-images.md) | accepted | 2026-10-24 |
 | 0347 | [Shaped tanks, a separator that is used up, and the catalogue size filter](0347-shaped-tanks-and-the-separator.md) | accepted | 2026-10-24 |
+| 0348 | [The sequencer: keyframe tracks over robotic joints, and a module's calls on other parts](0348-sequencer-and-drive-calls.md) | accepted | 2026-10-24 |

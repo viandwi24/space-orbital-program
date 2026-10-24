@@ -411,6 +411,10 @@ export const STOCK_TECH = [
 			'stock.rotor-s',
 			'stock.piston-s',
 			'stock.piston-m',
+			// plan 282: the alligator hinge, the long-reach piston and the sequencer
+			'stock.hinge-alligator',
+			'stock.piston-t',
+			'stock.sequencer',
 			// plan 313: tethers
 			'stock.winch',
 			'stock.tether-socket'

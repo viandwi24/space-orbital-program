@@ -370,6 +370,16 @@ export interface ModuleContext<Config = unknown, State = unknown> {
 	readonly vessel: VesselApi;
 }
 
+/** A call a module's `drive` hook makes on another part of its vessel (plan 282). */
+export interface ActionCall {
+	/** The target part's design index. */
+	part: number;
+	module: string;
+	/** The target module's action id (`setTarget`, or `name:key`). */
+	action: string;
+	args: readonly unknown[];
+}
+
 /**
  * A module that holds resources. The sim sums their mass and routes `VesselApi.resources` through
  * them without knowing the module. Method syntax keeps the typed definition assignable to the
@@ -573,6 +583,13 @@ export interface ModuleDefinition<In = unknown, Out = In, State = unknown> {
 	onStage?: Bivariant<(ctx: ModuleContext<Out, State>) => void>;
 	/** Every fixed step while the owning vessel is in flight mode. */
 	update?: Bivariant<(ctx: ModuleContext<Out, State>, dt: number) => void>;
+	/**
+	 * Calls this part makes on other parts of its vessel, asked after `update` each step in flight
+	 * (plan 282, ADR 0347: a sequencer sets the targets of robotic joints). Each names a part by its
+	 * design index, one of its modules and an action; the sim runs it as the part's own action, and
+	 * skips a call that names nothing the vessel has.
+	 */
+	drive?: Bivariant<(ctx: ModuleContext<Out, State>, dt: number) => ReadonlyArray<ActionCall>>;
 	/** Every step while on rails (e.g. resource generation). Must not use the physics backend. */
 	updateOnRails?: Bivariant<(ctx: ModuleContext<Out, State>, dt: number) => void>;
 	/**

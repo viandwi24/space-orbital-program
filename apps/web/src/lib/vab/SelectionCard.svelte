@@ -6,6 +6,7 @@
 	import type { VabController } from './controller.svelte';
 	import { settings } from '../settings/settings.svelte';
 	import FairingEditor from './FairingEditor.svelte';
+	import SequencerEditor from './SequencerEditor.svelte';
 	import BuildSettings from './BuildSettings.svelte';
 
 	let { vab }: { vab: VabController } = $props();
@@ -140,6 +141,7 @@
 
 		<BuildSettings {vab} />
 		<FairingEditor {vab} />
+		<SequencerEditor {vab} />
 
 		{#if !vab.selectedLoose}
 			<label class="row">

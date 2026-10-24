@@ -3,7 +3,9 @@
  * articulation from the joint's applied pose:
  * - `hinge`: two plates on a knuckle across X, the top plate turns about X (`hinge` mode);
  * - `servo` and `rotor`: a drum whose top plate turns about Y (`spin` mode);
- * - `piston`: a barrel whose rod and top cap slide up (`slide` mode).
+ * - `piston`: a barrel whose rod and top cap slide up (`slide` mode), a stepped rod when it has stages;
+ * - the alligator hinge (plan 282): a fixed lower jaw and an upper jaw that swings open about the
+ *   back edge (`hinge` mode, pivot at the edge).
  */
 import type { GenContext, GeneratedPart } from '../registry.ts';
 import { boltCircle, hazardStripe, rim } from './kit.ts';
@@ -86,7 +88,8 @@ export function pistonJoint(ctx: GenContext): GeneratedPart {
 	const { radius: R, height: H, builder: b, moving: m, detail } = ctx;
 	const h2 = H / 2;
 	const cap = Math.min(0.08, H * 0.12);
-	const travel = ctx.param('travel', H * 0.8, 0.05, H * 0.9);
+	const stages = Math.round(ctx.param('stages', 1, 1, 4));
+	const travel = ctx.param('travel', H * 0.8, 0.05, H * 0.95);
 	b.revolve('paint-primary', [
 		{ r: R, y: -h2 },
 		{ r: R, y: h2 - cap - 0.02 },
@@ -96,12 +99,65 @@ export function pistonJoint(ctx: GenContext): GeneratedPart {
 		rim(b, 'dark-metal', R - 0.008, -h2 + 0.05, 0.04, 0.008);
 		hazardStripe(b, R - 0.006, -h2 + 0.1, -h2 + 0.14, { out: 0.005 });
 	}
-	// the rod hides in the barrel when retracted
-	m.cylinder('metal', R * 0.5, travel, [0, h2 - cap - travel / 2, 0]);
+	// the rod hides in the barrel when retracted; stages are steps of it, thinner toward the cap
+	for (let i = 0; i < stages; i++) {
+		const len = travel / stages;
+		const r = R * (stages === 1 ? 0.5 : 0.62 - (0.32 * i) / stages);
+		m.cylinder(i % 2 === 0 ? 'metal' : 'dark-metal', r, len, [
+			0,
+			h2 - cap - travel + len * (i + 0.5),
+			0
+		]);
+	}
 	m.revolve('dark-metal', [
 		{ r: R * 0.62, y: h2 - cap },
 		{ r: R, y: h2 - cap + 0.02 },
 		{ r: R, y: h2 }
 	]);
 	return { pivot: [0, 0, 0] };
+}
+
+/**
+ * The alligator hinge (plan 282): a lower jaw fixed to the base and an upper jaw, with a back web,
+ * that swings open about the back edge. The pivot is the generator's (`GeneratedPart.pivot`) and
+ * must equal the joint's `pivot` in the part's module config.
+ */
+export function alligatorJoint(ctx: GenContext): GeneratedPart {
+	const [sx, sy, sz] = ctx.size;
+	const { builder: b, moving: m, detail } = ctx;
+	const h2 = sy / 2;
+	const plate = sy * 0.16;
+	const pivot: [number, number, number] = [0, -h2 + plate, -sz / 2];
+	// the lower jaw: a plate with a back hinge block
+	b.box('dark-metal', [sx, plate, sz], [0, -h2 + plate / 2, 0]);
+	b.box('paint-primary', [sx * 0.9, plate * 1.2, sz * 0.18], [0, -h2 + plate * 1.1, -sz * 0.41]);
+	// teeth along the front edge of the lower jaw
+	const teeth = detail.extras >= 1 ? 5 : 3;
+	for (let i = 0; i < teeth; i++) {
+		const x = (-0.5 + (i + 0.5) / teeth) * sx * 0.9;
+		b.box(
+			'paint-accent',
+			[((sx * 0.9) / teeth) * 0.6, plate * 0.8, sz * 0.08],
+			[x, -h2 + plate * 1.4, sz * 0.46]
+		);
+	}
+	// the upper jaw and its web turn about the back edge
+	m.box('dark-metal', [sx, plate, sz], [0, h2 - plate / 2, 0]);
+	m.box(
+		'paint-primary',
+		[sx * 0.9, h2 - plate - pivot[1] - plate * 0.2, sz * 0.14],
+		[0, (pivot[1] + plate * 0.1 + h2 - plate) / 2, -sz * 0.43]
+	);
+	for (let i = 0; i < teeth; i++) {
+		const x = (-0.5 + (i + 0.5) / teeth) * sx * 0.9;
+		m.box(
+			'paint-accent',
+			[((sx * 0.9) / teeth) * 0.6, plate * 0.8, sz * 0.08],
+			[x, h2 - plate * 1.4, sz * 0.46]
+		);
+	}
+	m.cylinder('paint-accent', plate * 0.55, sx * 0.96, [0, pivot[1], pivot[2]], {
+		tiltZ: Math.PI / 2
+	});
+	return { pivot };
 }
