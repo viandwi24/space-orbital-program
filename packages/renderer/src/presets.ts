@@ -90,6 +90,8 @@ export interface PresetSettings {
 	nightLights: boolean;
 	/** The sea (plan 401): Low the analytic waves with the sky reflection; Medium adds the scrolled detail normals; High is for the 64² FFT on WebGPU (plan 401 follow-up). */
 	ocean: 'low' | 'medium' | 'high';
+	/** The clouds (plan 397): Low the cheap march, Medium the middle, High the full one (`CLOUD_LEVELS`). */
+	clouds: 'low' | 'medium' | 'high';
 }
 
 /**
@@ -158,7 +160,8 @@ export const PRESETS: Readonly<Record<GraphicsPreset, PresetSettings>> = {
 		debrisShards: 0,
 		plasma: 'low',
 		plume: 'low',
-		ocean: 'low'
+		ocean: 'low',
+		clouds: 'low'
 	},
 	medium: {
 		pixelRatioCap: 1.5,
@@ -197,7 +200,8 @@ export const PRESETS: Readonly<Record<GraphicsPreset, PresetSettings>> = {
 		debrisShards: 24,
 		plasma: 'medium',
 		plume: 'medium',
-		ocean: 'medium'
+		ocean: 'medium',
+		clouds: 'medium'
 	},
 	high: {
 		pixelRatioCap: 2,
@@ -236,7 +240,8 @@ export const PRESETS: Readonly<Record<GraphicsPreset, PresetSettings>> = {
 		debrisShards: 48,
 		plasma: 'high',
 		plume: 'high',
-		ocean: 'high'
+		ocean: 'high',
+		clouds: 'high'
 	}
 };
 
@@ -288,7 +293,7 @@ export const RESOURCE_SETTINGS = ['mapWidth', 'terrainSize', 'terrainPatch'] as 
 
 /** `preset`'s settings with the resource sizes of `resources` (none: the preset's own). Pure (tested). */
 export function settingsFor(preset: GraphicsPreset, resources?: GraphicsPreset): PresetSettings {
-	const s = PRESETS[preset];
+	const s = withCloudLook(PRESETS[preset]);
 	if (!resources || resources === preset) return s;
 	const r = PRESETS[resources];
 	return { ...s, mapWidth: r.mapWidth, terrainSize: r.terrainSize, terrainPatch: r.terrainPatch };
@@ -320,7 +325,7 @@ export function detailOf(settings: PresetSettings): PartDetail {
  * look's level (`PresetSettings.plasma`, `plume`, `ocean`); the player may pin one, which wins over the
  * preset and over the governor's steps (a governor step changes the preset, never a pinned look).
  */
-export const LOOKS = ['plasma', 'plume', 'ocean'] as const;
+export const LOOKS = ['plasma', 'plume', 'ocean', 'clouds'] as const;
 export type LookId = (typeof LOOKS)[number];
 export type LookLevel = 'low' | 'medium' | 'high';
 /** The player's choice for a look: a level, or `auto` to follow the preset. */
@@ -328,7 +333,12 @@ export type LookChoice = LookLevel | 'auto';
 export type LookChoices = Record<LookId, LookChoice>;
 
 export const LOOK_LEVELS: readonly LookLevel[] = ['low', 'medium', 'high'];
-export const AUTO_LOOKS: Readonly<LookChoices> = { plasma: 'auto', plume: 'auto', ocean: 'auto' };
+export const AUTO_LOOKS: Readonly<LookChoices> = {
+	plasma: 'auto',
+	plume: 'auto',
+	ocean: 'auto',
+	clouds: 'auto'
+};
 
 /** The pinned levels (`auto` looks have none). Set by the host from the player's profile. */
 const pinned: Partial<Record<LookId, LookLevel>> = {};
@@ -345,6 +355,21 @@ export function setLookChoices(choices: Partial<LookChoices>): void {
 /** The level a look is drawn at: the player's pin, else the preset's. */
 export const lookLevel = (settings: PresetSettings, id: LookId): LookLevel =>
 	pinned[id] ?? settings[id];
+
+/** What a clouds level draws: the march's steps, the density's octaves and the billow detail (plan 397). */
+export const CLOUD_LEVELS: Readonly<
+	Record<LookLevel, { cloudSteps: number; cloudOctaves: number; cloudDetail: 1 | 2 | 3 }>
+> = {
+	low: { cloudSteps: 3, cloudOctaves: 3, cloudDetail: 1 },
+	medium: { cloudSteps: 4, cloudOctaves: 3, cloudDetail: 2 },
+	high: { cloudSteps: 6, cloudOctaves: 4, cloudDetail: 3 }
+};
+
+/** The settings with the clouds' march taken from the clouds look (the player's pin, else the preset's). */
+export const withCloudLook = (settings: PresetSettings): PresetSettings => {
+	const level = lookLevel(settings, 'clouds');
+	return level === settings.clouds ? settings : { ...settings, ...CLOUD_LEVELS[level] };
+};
 
 /** Whether the player pinned a look. */
 export const lookPinned = (id: LookId): boolean => pinned[id] !== undefined;

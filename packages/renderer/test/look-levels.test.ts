@@ -2,11 +2,13 @@
 import { afterEach, describe, expect, test } from 'bun:test';
 import {
 	AUTO_LOOKS,
+	CLOUD_LEVELS,
 	LOOKS,
 	PRESETS,
 	lookLevel,
 	lookPinned,
-	setLookChoices
+	setLookChoices,
+	settingsFor
 } from '../src/presets.ts';
 
 afterEach(() => setLookChoices(AUTO_LOOKS));
@@ -42,5 +44,23 @@ describe('look levels (plan 404)', () => {
 			expect(rank[PRESETS.low[id]]).toBeLessThanOrEqual(rank[PRESETS.medium[id]]);
 			expect(rank[PRESETS.medium[id]]).toBeLessThanOrEqual(rank[PRESETS.high[id]]);
 		}
+	});
+});
+
+describe('the clouds look (plan 397)', () => {
+	test('the presets keep the march they had, and a pin changes steps, octaves and detail', () => {
+		for (const p of ['low', 'medium', 'high'] as const) {
+			const s = settingsFor(p);
+			expect({ a: s.cloudSteps, b: s.cloudOctaves, c: s.cloudDetail }).toEqual({
+				a: PRESETS[p].cloudSteps,
+				b: PRESETS[p].cloudOctaves,
+				c: PRESETS[p].cloudDetail
+			});
+		}
+		setLookChoices({ clouds: 'low' });
+		expect(settingsFor('high').cloudSteps).toBe(CLOUD_LEVELS.low.cloudSteps);
+		expect(settingsFor('high').cloudDetail).toBe(1);
+		setLookChoices({ clouds: 'high' });
+		expect(settingsFor('low').cloudSteps).toBe(6);
 	});
 });

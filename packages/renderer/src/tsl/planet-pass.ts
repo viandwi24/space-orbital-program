@@ -244,6 +244,17 @@ function disposeVariant(v: Variant): void {
 	for (const m of [v.full, v.half, v.edge, v.up, v.pre, v.bake]) m.dispose();
 }
 
+/** The cloud march's steps while TAAU integrates the offsets: half, at least 2 (plan 397). */
+export const taauCloudSteps = (steps: number): number =>
+	Math.max(Math.min(steps, 2), Math.ceil(steps / 2));
+
+/** The steps a frame marches: the preset's, or half under TAAU except on the first frame after a cut. */
+export const cloudStepsFor = (steps: number, taau: boolean, cut: boolean): number =>
+	taau && !cut ? taauCloudSteps(steps) : steps;
+
+/** The offset of the per-pixel start of the march at a frame (the golden ratio, so any run of frames covers [0, 1) evenly). */
+export const cloudFrameOffset = (frame: number): number => (frame * 0.618034) % 1;
+
 export class PlanetPassTSL {
 	readonly mesh: Mesh;
 	private readonly sky: LutSky;
@@ -352,6 +363,15 @@ export class PlanetPassTSL {
 	private baked = false;
 	private terrain: TerrainTSL | null = null;
 	private cloudMap: CloudMapTSL | null = null;
+	/**
+	 * The cloud march's step count and frame offset (plan 397, ADR 0342): under TAAU half the steps with a
+	 * per-pixel start offset that changes every frame, so the history integrates the missing samples;
+	 * the first frame after a cut marches in full. Uniforms, so a switch compiles nothing.
+	 */
+	private readonly cloudStepsU = uniform(1);
+	private readonly cloudFrameU = uniform(0);
+	private cloudFrame = 0;
+	private cutPending = false;
 	/** The night sky's baked map (plan 364). */
 	private readonly skyMap = new SkyMapTSL();
 	/** The ground detail maps (plan 364): the WebGL pass's texture, one image for both. */
@@ -488,6 +508,11 @@ export class PlanetPassTSL {
 		this.prevAlt.value = this.lastAlt;
 		this.prevProj.value.copy(this.lastProj);
 		this.curProj.value.copy(camera.projectionMatrix);
+		const base = this.settings.cloudSteps;
+		this.cloudStepsU.value = cloudStepsFor(base, this.taauOn, this.cutPending);
+		this.cloudFrame = this.taauOn ? this.cloudFrame + 1 : 0;
+		this.cloudFrameU.value = cloudFrameOffset(this.cloudFrame);
+		this.cutPending = false;
 		this.lastRot.setFromMatrix4(camera.matrixWorld);
 		this.lastUp.copy(u.uCamUp!.value as Vector3);
 		this.lastAlt = u.uAlt!.value as number;
@@ -599,6 +624,7 @@ export class PlanetPassTSL {
 	/** A camera cut (warp, map toggle, launch, scene change): the next frame has no previous camera (plan 393). */
 	cut(): void {
 		this.haveLast = false;
+		this.cutPending = true;
 	}
 
 	/** Warm-up frames only: draw at this scale whatever the budget says (1 the full path, below 1 the half). */
@@ -2458,7 +2484,9 @@ export class PlanetPassTSL {
 					If(a1.greaterThan(a0), () => {
 						const len = a1.sub(a0).toVar();
 						const marchLen = min(len, CLOUD_MAX_PATH).toVar();
-						const dt = marchLen.div(cfg.cloudSteps).toVar();
+						// inside the slab the steps bunch toward the camera (squared spacing), so a vessel flying
+						// through a cloud gets its detail where it looks (plan 397)
+						const inSlab = r0.greaterThan(uCloudAlt).and(r0.lessThan(uCloudTop)).toVar();
 						const tm = a0.add(marchLen.mul(0.5)).toVar();
 						const nm = normalize(ro.add(rd.mul(tm))).toVar();
 						const fp = tm
@@ -2477,7 +2505,7 @@ export class PlanetPassTSL {
 							.mul(smoothstep(45000.0, 120000.0, tm).oneMinus())
 							.toVar();
 						If(cover.mul(mask).greaterThanEqual(0.004), () => {
-							const cj = fract(jitter.add(0.381966)).mul(0.5).add(0.25);
+							const cj = fract(jitter.add(0.381966).add(this.cloudFrameU)).mul(0.5).add(0.25);
 							const cosS = dot(rd, uSunDir).toVar();
 							const sunTc = sky
 								.sunlight(nm.mul(uCloudAlt.add(0.5 * CLOUD_THICKNESS)), uSunDir)
@@ -2486,9 +2514,17 @@ export class PlanetPassTSL {
 							const acc = vec3(0.0).toVar();
 							const densSum = float(0.0).toVar();
 							Loop(
-								{ start: 0, end: cfg.cloudSteps, type: 'int', name: 'ci' },
+								{ start: 0, end: this.cloudStepsU.toInt(), type: 'int', name: 'ci' },
 								({ ci }: { ci: N }) => {
-									const t = a0.add(float(ci).add(cj).mul(dt));
+									const sN = float(ci).add(cj).div(this.cloudStepsU);
+									const t = a0.add(marchLen.mul(select(inSlab, sN.mul(sN), sN)));
+									const dt = marchLen.mul(
+										select(
+											inSlab,
+											sN.mul(2.0).div(this.cloudStepsU),
+											float(1.0).div(this.cloudStepsU)
+										)
+									);
 									const pp = ro.add(rd.mul(t)).toVar();
 									const rr = length(pp);
 									const np = pp.div(rr).toVar();
@@ -2537,7 +2573,7 @@ export class PlanetPassTSL {
 							If(len.greaterThan(marchLen), () => {
 								// the rest of a grazing path: the average density, lit like what was marched
 								const eTau = densSum
-									.div(cfg.cloudSteps)
+									.div(this.cloudStepsU)
 									.mul(CLOUD_SIGMA)
 									.mul(min(len.sub(marchLen), CLOUD_EXTRA_PATH));
 								const Lm = acc.div(max(opacity, 1e-3));
