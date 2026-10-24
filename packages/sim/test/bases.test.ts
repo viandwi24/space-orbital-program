@@ -339,3 +339,42 @@ describe('refuelling from site storage (plan 386, ADR 0352)', () => {
 		sim.dispose();
 	}, 120_000);
 });
+
+describe('the base offers of a landed vessel (plan 386)', () => {
+	const offer = (sim: Sim, id: EntityId) =>
+		sim.snapshot().vessels.find((v) => v.id === id)!.baseOffer;
+
+	test('a kit offers to found a base, a lander in the flat zone to join, a member to refuel', async () => {
+		const first = await make();
+		const kit = landOnMoon(first, ['stock.command-pod', 'stock.base-kit']);
+		// the kit on the Moon may found a base at its spot; the spot's facts are the sim's
+		expect(offer(first, kit)?.found).toMatchObject({ body: MOON });
+		expect(offer(first, kit)?.found?.refusal).toBeUndefined();
+		expect(first.dispatch({ type: 'deploy-base', vessel: kit, id: 'b', name: 'B' }).ok).toBe(true);
+		const sim = await resume(first);
+		first.dispose();
+		const site = sim.worldInfo.sites.find((s) => s.id === 'b')!;
+		const lander = landOnMoon(
+			sim,
+			['stock.command-pod', 'stock.tank-small', 'stock.engine-lv'],
+			site.latitude,
+			site.longitude + 400 / MoonBody.radius,
+			[[2]]
+		);
+		// inside the flat zone: join, and nothing to refuel before it is a member
+		expect(offer(sim, lander)).toEqual({ join: { site: 'b', name: 'B' } });
+		expect(sim.dispatch({ type: 'join-site', vessel: lander, site: 'b' }).ok).toBe(true);
+		sim.step(0.02);
+		// a member of a site with nothing stored: no offer
+		expect(offer(sim, lander)).toBeUndefined();
+		expect(
+			sim.dispatch({ type: 'market-buy', commodity: 'stock.liquid-fuel', amount: 50, site: 'b' }).ok
+		).toBe(true);
+		expect(offer(sim, lander)?.refuel).toEqual({
+			site: 'b',
+			name: 'B',
+			stored: { 'stock.liquid-fuel': 50 }
+		});
+		sim.dispose();
+	}, 120_000);
+});

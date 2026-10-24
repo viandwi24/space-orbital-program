@@ -28,6 +28,7 @@ import { crewTick } from './crew.ts';
 import { buildingsTick } from './buildings.ts';
 import { marketDay } from './market.ts';
 import { membersTick } from './bases.ts';
+import { stationTick } from './stations.ts';
 import { resetStations } from './comms.ts';
 
 export interface TickState {
@@ -143,6 +144,7 @@ export function runDueTicks(
 		contractsTick(core, day); // expiry and at most one new offer (plan 099, ADR 0186)
 		discoveryTick(core, time); // lab work and peer review (plan 129, ADR 0192)
 		crewTick(core); // returns and salaries (plan 106, ADR 0176)
+		stationTick(core); // deployed stations yield their science (plan 284, ADR 0264)
 		membersTick(core); // outposts that drove off leave their site (plan 128, ADR 0125 point 4)
 		marketDay(core, day); // production, then the markets, after the day's charges (plan 097, ADR 0124)
 		core.events.emit('world:tick', { day, time });

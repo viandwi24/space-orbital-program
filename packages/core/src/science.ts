@@ -55,6 +55,11 @@ export interface ExperimentDefinition {
 	transmitFactor: number;
 	/** Conditions of a run beyond the situation (plan 298), see the schema. */
 	needs?: { open?: string; pointing?: number; feature?: boolean };
+	/**
+	 * A deployed station's experiment (plan 284, ADR 0264): it is not run by hand; the sim yields it
+	 * once a day while its station has power and a link, and it draws `power` EC/s all the while.
+	 */
+	station?: boolean;
 }
 
 export const situationDefinitionSchema = z.object({
@@ -95,7 +100,9 @@ export const experimentDefinitionSchema = z
 				/** A surface feature (a rock) within the part's reach (plan 283): `config.reach` m of `config.tip`. */
 				feature: z.boolean().optional()
 			})
-			.optional()
+			.optional(),
+		/** A deployed station's experiment: yielded once a day by the sim, not run by hand (plan 284). */
+		station: z.boolean().optional()
 	})
 	.refine((e) => e.kind !== 'data' || e.bits !== undefined, 'a data experiment needs bits')
 	.refine((e) => e.kind !== 'sample' || e.mass !== undefined, 'a sample experiment needs a mass');

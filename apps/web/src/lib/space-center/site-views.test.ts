@@ -2,7 +2,7 @@
 import { describe, expect, it } from 'vitest';
 import { loadPlugins } from '@orbital/core';
 import Stock from '@orbital/mod-stock';
-import { constructionOf, homeSiteDraws, siteViews } from './site-views';
+import { constructionOf, homeSiteDraws, offWorldSiteDraws, siteViews } from './site-views';
 
 const buildings = loadPlugins([Stock]).registries.buildings;
 
@@ -118,5 +118,48 @@ describe('homeSiteDraws (plan 384, ADR 0321)', () => {
 		]);
 		expect(draws[1]!.views.map((v) => v.id)).toEqual(['pad2']);
 		expect(draws[1]!.roads).toEqual([{ i: 1, j: 1 }]);
+	});
+});
+
+describe('bases on other bodies (plan 386)', () => {
+	const sites = [
+		{ id: 'legacy', body: 'stock.home', latitude: 0, longitude: 0 },
+		{ id: 'b', body: 'stock.cinder', latitude: 0.1, longitude: 0.2 }
+	];
+	const snapshot = {
+		day: 3,
+		sites: [
+			{ id: 'legacy', buildings: [], roads: [] },
+			{
+				id: 'b',
+				body: 'stock.cinder',
+				buildings: [
+					{
+						id: 'hub',
+						kind: 'stock.base-hub',
+						cell: { i: -1, j: -1 },
+						rotation: 0,
+						level: 0,
+						state: 'active'
+					}
+				],
+				roads: [{ i: 0, j: 0 }]
+			}
+		]
+	} as never;
+
+	it('are the draws the home ones leave out, each with its body in its place', () => {
+		const draws = offWorldSiteDraws(snapshot, sites, buildings, 'stock.home');
+		expect(draws.map((d) => d.place)).toEqual([
+			{ id: 'b', latitude: 0.1, longitude: 0.2, body: 'stock.cinder' }
+		]);
+		expect(draws[0]!.roads).toEqual([{ i: 0, j: 0 }]);
+		expect(homeSiteDraws(snapshot, sites, buildings, 'stock.home').map((d) => d.place.id)).toEqual([
+			'legacy'
+		]);
+	});
+
+	it('draw nothing before the home body is known', () => {
+		expect(offWorldSiteDraws(snapshot, sites, buildings, undefined)).toEqual([]);
 	});
 });

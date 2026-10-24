@@ -524,6 +524,7 @@ export function createWebGPURenderer(
 	const hookPipelines = (r: WebGPURenderer): void => {
 		const pipes = (r as unknown as { _pipelines?: { getForRender: GetForRender } })._pipelines;
 		if (!pipes || typeof pipes.getForRender !== 'function') return;
+		keepPipelines(r);
 		const own = pipes.getForRender.bind(pipes);
 		pipes.getForRender = (ro, promises = null) => {
 			const o = ro.object as { isQuadMesh?: boolean } | undefined;
@@ -537,6 +538,39 @@ export function createWebGPURenderer(
 			}
 			return out;
 		};
+	};
+	/**
+	 * Keeps every pipeline, shader program and built node state alive (plan 342, ADR 0359). Three
+	 * disposes a render object, and releases what it held, when its cache key changes (the flight
+	 * scene's lights, fog and environment against the map's); coming back it builds the object, its
+	 * shader and its pipeline again. So each Flight → Map → Flight toggle rebuilt the planet pass and
+	 * every material (0.5 to 1.3 s), and the map's warm-up pipelines were gone as soon as the flight
+	 * view drew again. Nothing is released before the renderer goes: the set is the shaders and
+	 * states the session has used.
+	 */
+	const keepPipelines = (r: WebGPURenderer): void => {
+		const rr = r as unknown as {
+			_pipelines?: { _releasePipeline?: unknown; _releaseProgram?: unknown };
+			_nodes?: {
+				delete: (o: unknown) => unknown;
+				get: (o: unknown) => { nodeBuilderState?: { usedTimes: number } };
+			};
+		};
+		const pipes = rr._pipelines;
+		if (pipes && typeof pipes._releasePipeline === 'function') pipes._releasePipeline = () => {};
+		if (pipes && typeof pipes._releaseProgram === 'function') pipes._releaseProgram = () => {};
+		const nodes = rr._nodes;
+		if (nodes && typeof nodes.delete === 'function' && typeof nodes.get === 'function') {
+			const del = nodes.delete.bind(nodes);
+			nodes.delete = (o) => {
+				const state = (o as { isRenderObject?: boolean }).isRenderObject
+					? nodes.get(o).nodeBuilderState
+					: undefined;
+				// one more use, so that the count never reaches zero and the state stays cached
+				if (state) state.usedTimes++;
+				return del(o);
+			};
+		}
 	};
 	/** How long each other preset's warm-up frames took at load, ms (plan 362; Debug, the measure script). */
 	const presetWarmMs: Partial<Record<GraphicsPreset, number>> = {};

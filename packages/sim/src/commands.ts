@@ -3,6 +3,7 @@
  * core, then semantic checks against the world) and applies them. Refusals are results, not
  * exceptions: commands come from outside the sim.
  */
+import { cargoAttach, cargoDetach, cargoMove, cargoPlace } from './cargo.ts';
 import { endRent, ownedRefusal, rentRelay } from './agencies.ts';
 import { DEFAULT_TRANSFER_RATE, transferRefusal } from './transfer.ts';
 import { setFlowLock } from './resources.ts';
@@ -882,6 +883,14 @@ export function dispatch(
 			return crewEva(core, command.vessel, command.member);
 		case 'crew-board':
 			return crewBoard(core, command.suit, command.vessel);
+		case 'cargo-move':
+			return cargoMove(core, command);
+		case 'cargo-attach':
+			return cargoAttach(core, command);
+		case 'cargo-detach':
+			return cargoDetach(core, command);
+		case 'cargo-place':
+			return cargoPlace(core, command);
 		case 'crew-take':
 			return crewTakeSample(core, command.suit, command.vessel, command.part);
 		case 'crew-walk':

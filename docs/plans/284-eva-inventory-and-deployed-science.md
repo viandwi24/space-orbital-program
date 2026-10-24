@@ -1,8 +1,8 @@
 ---
 id: 284
 title: "EVA inventory, containers and deployed science stations"
-status: draft
-owner: ""
+status: done
+owner: "Worker B"
 depends: [303]
 phase: 0
 created: 2026-10-21
@@ -56,5 +56,6 @@ Per ADR 0264.
 
 ## Log
 
+- 2026-10-24 — Done by Worker B (ADR 0356, API 0.1.129): cargo, the inventory module, EVA take/store/attach/detach/place commands, deployed stations with eight items and a daily yield, sim tests. Open: the HUD and Hangar for it, the scientist and seismometer bonuses, screens.
 - 2026-10-24 — Rewritten by the coordinator after an audit against main @ 4c546c02: still valid and untouched; depends on 303 only (280 and 281 now hold only small remainders), and the station uses the sim's base system, not plan 386.
 - 2026-10-21 — Drafted from the part-visuals research and the owner's decisions of 2026-10-21 (CTO calls delegated by the owner). Not to be started until the owner releases the parts work: on 2026-10-21 main is busy with renderer fixes and a UI/UX agent.

@@ -18,6 +18,7 @@ import { AntennaSuitRadio, ModuleAntenna } from './comms.ts';
 import { partCost } from './costs.ts';
 import { ModuleParachute } from './parachute.ts';
 import { ModuleCommand, ModuleReactionWheel, ModuleResourceContainer } from './modules.ts';
+import { ModuleInventory } from './inventory.ts';
 import { ElectricCharge, Food, Oxygen, Supplies, Water } from './resources.ts';
 import { ExperimentSurfaceSample, ModuleExperiment } from './science.ts';
 
@@ -214,6 +215,8 @@ export const PartEvaSuit = definePart({
 		[ModuleHelmet],
 		[ModuleParachute, { ...PERSONAL_CHUTE }],
 		[ModuleExperiment, { experiment: ExperimentSurfaceSample.id, label: 'Take surface sample' }],
+		// what an astronaut carries on EVA (plan 284)
+		[ModuleInventory, { capacity: 12 }],
 		// relayed by a crewed vessel in sight (plan 121, ADR 0193 point 1)
 		[ModuleAntenna, { antenna: AntennaSuitRadio.id }]
 	]

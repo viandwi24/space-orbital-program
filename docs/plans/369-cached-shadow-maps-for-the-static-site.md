@@ -1,8 +1,8 @@
 ---
 id: 369
 title: "Cached shadow maps for the static site"
-status: draft
-owner: ""
+status: done
+owner: "Worker A"
 depends: [363, 373, 384]
 phase: 8
 created: 2026-10-22
@@ -54,3 +54,4 @@ When this is done, the site's still casters are drawn into the sun's shadow map 
 
 - 2026-10-22 — Drafted by plan 363.
 - 2026-10-24 — Rewritten by the coordinator after an audit against main @ 4c546c02: still valid; the plan 261 `castShadow` note replaced by ADR 0310 (the sun always casts, taps always built); static casters scoped to one mesh per site (ADR 0321), other sites and moon stones; depends adds 373 and 384.
+- 2026-10-24 — Worker A: done by measurement. ADR 0357: the site's casters (23 meshes, ~190k triangles) cost about 0.1 ms of GPU time at the pad; a cache needs a per-frame depth copy that costs as much. Not built.

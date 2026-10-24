@@ -101,14 +101,14 @@ function horizon(
 }
 
 /** `distance` m east of vessel `nearId`'s centre (SOI-relative). */
-function eastOf(core: SimCore, nearId: EntityId, distance: number): Vec3 {
+export function eastOf(core: SimCore, nearId: EntityId, distance: number): Vec3 {
 	const motion = motionOf(core, vesselOf(core, nearId));
 	const { east } = horizon(core, nearId, motion.r);
 	return add(motion.r, scale(east, distance));
 }
 
 /** A point given in a part's frame, SOI-relative, from the vessel's design and attitude. */
-function pointOf(core: SimCore, vesselId: EntityId, partId: EntityId, p: Vec3): Vec3 {
+export function pointOf(core: SimCore, vesselId: EntityId, partId: EntityId, p: Vec3): Vec3 {
 	const vessel = vesselOf(core, vesselId);
 	const part = partOf(core, partId);
 	const local = add(part.designPos, isTurned(part) ? qRotate(partRotation(part), p) : p);
@@ -121,7 +121,7 @@ function pointOf(core: SimCore, vesselId: EntityId, partId: EntityId, p: Vec3): 
  * when that vessel stands, else at its velocity in space; then puts it in flight. Returns the new
  * id or a reason.
  */
-function spawnBeside(
+export function spawnBeside(
 	core: SimCore,
 	nearId: EntityId,
 	part: PartDefinition,
@@ -158,7 +158,7 @@ function spawnBeside(
 	return id;
 }
 
-const standing = (core: SimCore, vesselId: EntityId): boolean => {
+export const standing = (core: SimCore, vesselId: EntityId): boolean => {
 	const v = vesselOf(core, vesselId);
 	return v.landed || v.rails?.kind === 'surface';
 };
@@ -202,7 +202,7 @@ export function crewEva(core: SimCore, vesselId: EntityId, memberId: string): Co
 	return { ok: true, vessel: id };
 }
 
-const TAKE_RANGE = EVA_TAKE_RANGE;
+export const TAKE_RANGE = EVA_TAKE_RANGE;
 
 /**
  * `crew-take` (plan 260): a suit takes the sample a part of `vessel` holds. The suit must carry a

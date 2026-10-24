@@ -1,8 +1,8 @@
 ---
 id: 386
 title: "Off-world bases from the player's side: deploy a base kit, join a site, routes, refuelling"
-status: draft
-owner: ""
+status: done
+owner: "Worker B"
 depends: [128, 384]
 phase: 7
 created: 2026-10-23
@@ -70,3 +70,4 @@ Plan 128 built bases, outposts and cargo routes in the sim, but no web screen se
 - 2026-10-23: Written as a draft for the player-journey audit's Q5 (a).
 - 2026-10-24 — Rewritten by the coordinator after an audit against main @ 4c546c02: partly done; the Flows panel already lists members (dropped); no web UI sends the base commands; refuel needs a new sim and protocol command with an ADR; off-world site meshes need `otherSite` taken off the home planet; parts still hidden.
 - 2026-10-24 — Worker C, first slice (plan stays `draft`): steps 1 and 2 done: ADR 0352 and the `refuel` command with a headless test (`packages/sim/test/bases.test.ts`). Steps 3 to 6 (web offers and route form, off-world site meshes, unhiding the parts, the lesson) are open; see the journal.
+- 2026-10-24 — Worker B, steps 3 to 6 (ADR 0360, API 0.1.130): the Flight HUD offers (found, join, refuel) from `VesselSnapshot.baseOffer`, the route form in the Flows panel, a base drawn on its body, the kit and drill back in the catalogue and the tree. Open: the lesson "A base on the Moon", the Space Center's 3D view of an off-world site.

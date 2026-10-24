@@ -6,7 +6,7 @@
 import { TetherLayer } from './effects/tethers.ts';
 import { addOverlay, HighlightMaterials, removeOverlay } from './vab/highlight.ts';
 import type { SiteBuildingView, SitePlace } from './site-list.ts';
-import type { LaunchSite } from './site-meshes.ts';
+import { SiteBuildings, type LaunchSite } from './site-meshes.ts';
 import type {
 	BodyDefinition,
 	EntityId,
@@ -374,6 +374,8 @@ export class SceneModel {
 	private primarySite: { latitude: number; longitude: number } = { latitude: 0, longitude: 0 };
 	/** The site the view is on (the primary or a branch): the site camera's frame turns with it (plan 388). */
 	private sitePlaceNow: { latitude: number; longitude: number } = { latitude: 0, longitude: 0 };
+	/** Bases on bodies with a moon pass (plan 386), by site id: their buildings follow the body. */
+	private readonly offWorld = new Map<string, { body: string; buildings: SiteBuildings }>();
 	private siteRadius = 1;
 	private siteListMode = false;
 	/** A site whose place is the primary's is the primary (ADR 0321 point 4). */
@@ -1520,6 +1522,7 @@ export class SceneModel {
 			? this.environment.sunDirection(this.frameState.bodyRotation)
 			: undefined;
 		this.updateDresses(sunInertial);
+		this.placeOffWorldSites();
 		for (const [id, moon] of this.moons) {
 			if (this.dormant.has(id)) continue;
 			const entry = this.bodies.get(id);
@@ -1952,6 +1955,10 @@ export class SceneModel {
 		roads: readonly { i: number; j: number }[],
 		site?: SitePlace
 	): void {
+		if (site?.body !== undefined && this.moons.has(site.body)) {
+			this.offWorldSite(site, site.body).setBuildings(list, roads);
+			return;
+		}
 		const other = this.otherPlace(site);
 		if (!other) this.environment.site.setBuildings(list, roads);
 		else if (this.siteListMode)
@@ -1959,6 +1966,42 @@ export class SceneModel {
 				.otherSite(other.id, other.latitude, other.longitude)
 				.setBuildings(list, roads);
 	}
+	/**
+	 * The buildings of a base on another body (plan 386): stood on that body's flat ground at the
+	 * site's place, with the home site's materials, and carried with the body each frame.
+	 */
+	private offWorldSite(site: SitePlace, body: string): SiteBuildings {
+		let entry = this.offWorld.get(site.id);
+		if (!entry) {
+			const moon = this.moons.get(body)!;
+			const dir = latLonDir(site, 1);
+			const buildings = new SiteBuildings(
+				this.environment.site.sharedMaterials,
+				moon.radius + moon.groundHeight(dir),
+				{ latitude: site.latitude, longitude: site.longitude }
+			);
+			this.scene.add(buildings.root);
+			entry = { body, buildings };
+			this.offWorld.set(site.id, entry);
+		}
+		return entry.buildings;
+	}
+
+	/** Moves each base's buildings with its body, and hides them while the body sleeps. */
+	private placeOffWorldSites(): void {
+		for (const { body, buildings } of this.offWorld.values()) {
+			const entry = this.bodies.get(body);
+			const rot = this.bodyRot.get(body);
+			const shown = entry !== undefined && rot !== undefined && !this.dormant.has(body);
+			buildings.root.visible = shown;
+			if (!shown) continue;
+			buildings.place(
+				{ x: entry.holder.position.x, y: entry.holder.position.y, z: entry.holder.position.z },
+				rot
+			);
+		}
+	}
+
 	setSiteGhost(g: Parameters<LaunchSite['setGhost']>[0]): void {
 		this.environment.viewBuildings.setGhost(g);
 	}
@@ -2298,6 +2341,7 @@ export class SceneModel {
 		this.effects.dispose();
 		this.sphere.dispose();
 		this.environment.dispose();
+		for (const { buildings } of this.offWorld.values()) buildings.dispose();
 		for (const moon of this.moons.values()) moon.dispose();
 		for (const dress of this.dresses.values()) dress.dispose();
 		for (const b of this.bodies.values()) {

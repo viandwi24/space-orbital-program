@@ -49,6 +49,7 @@ describe('stock boots through the loader', () => {
 			'stock.fuel-cell',
 			'stock.heat-shield',
 			'stock.helmet',
+			'stock.inventory',
 			'stock.jetpack',
 			'stock.landing-leg',
 			'stock.launch-clamp',
@@ -64,6 +65,7 @@ describe('stock boots through the loader', () => {
 			'stock.scrubber',
 			'stock.sequencer',
 			'stock.solar-panel',
+			'stock.station-item',
 			'stock.strut',
 			'stock.tether-socket',
 			'stock.wheel',
@@ -97,6 +99,7 @@ describe('stock boots through the loader', () => {
 			'stock.capsule-cone',
 			'stock.capsule-sphere',
 			'stock.cargo-bay',
+			'stock.cargo-locker',
 			'stock.command-pod',
 			'stock.control-surface',
 			'stock.coupler-2',
@@ -259,6 +262,14 @@ describe('stock boots through the loader', () => {
 			'stock.srb-large',
 			'stock.srb-small',
 			'stock.srb-xl',
+			'stock.station-antenna',
+			'stock.station-control',
+			'stock.station-goo',
+			'stock.station-ionograph',
+			'stock.station-rtg',
+			'stock.station-seismic',
+			'stock.station-solar',
+			'stock.station-weather',
 			'stock.strut',
 			'stock.surface-sampler',
 			'stock.surface-sampler-radial',
@@ -338,6 +349,10 @@ describe('stock boots through the loader', () => {
 			'stock.pressure',
 			'stock.rock-study',
 			'stock.seismic',
+			'stock.station-goo',
+			'stock.station-ionograph',
+			'stock.station-seismic',
+			'stock.station-weather',
 			'stock.surface-sample',
 			'stock.temperature'
 		]);
@@ -469,7 +484,17 @@ describe('stock boots through the loader', () => {
 			// the R-7 strap-on tank hangs radially too (plan 275)
 			'stock.tank-booster',
 			// the separatron hangs on a stage's side (plan 276)
-			'stock.separatron'
+			'stock.separatron',
+			// deployable items hang on a hull's side too (plan 284)
+			'stock.cargo-locker',
+			'stock.station-control',
+			'stock.station-rtg',
+			'stock.station-solar',
+			'stock.station-antenna',
+			'stock.station-goo',
+			'stock.station-weather',
+			'stock.station-ionograph',
+			'stock.station-seismic'
 		]);
 		// the mission parts of plans 276–300 with other node sets: radial-only, bottom-only, a
 		// hub's side ports, a coupler's several bottoms

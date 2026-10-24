@@ -40,9 +40,6 @@ const nodes = (height: number) => ({
 export const PartBaseKit = definePart({
 	id: 'stock.base-kit',
 	title: 'Base Kit',
-	// no flow deploys a kit or joins a drill's vessel to a site yet (player-journey audit Q5, plan
-	// 386): kept for old designs, out of the catalogue and the tree until that flow exists
-	catalog: { hidden: true },
 	mass: kg(1_200),
 	cost: partCost(1_200, 'command'),
 	impactTolerance: 8,
@@ -59,9 +56,6 @@ export const PartBaseKit = definePart({
 export const PartDrill = definePart({
 	id: 'stock.drill',
 	title: 'Surface Drill',
-	// no flow deploys a kit or joins a drill's vessel to a site yet (player-journey audit Q5, plan
-	// 386): kept for old designs, out of the catalogue and the tree until that flow exists
-	catalog: { hidden: true },
 	mass: kg(250),
 	cost: partCost(250, 'engine'),
 	impactTolerance: 8,

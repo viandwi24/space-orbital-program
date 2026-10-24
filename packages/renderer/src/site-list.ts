@@ -211,4 +211,6 @@ export interface SitePlace {
 	id: string;
 	latitude: number;
 	longitude: number;
+	/** The body it stands on when it is not the home planet (plan 386: a base on the Moon). */
+	body?: string;
 }

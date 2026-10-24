@@ -56,6 +56,24 @@ export type SasMode = (typeof SAS_MODES)[number];
 /** Which velocity prograde/retrograde follow: relative to the rotating ground, or the inertial one. */
 export type SasReference = 'surface' | 'orbit';
 
+/** One deployed station: its control unit's vessel, its items, its power and link, and whether it yields (plan 284). */
+export interface StationSnapshot {
+	control: EntityId;
+	/** The vessels of its items, with their roles. */
+	items: Array<{
+		vessel: EntityId;
+		role: 'control' | 'power' | 'antenna' | 'science';
+		experiment?: string;
+	}>;
+	/** EC/s its panels and RTGs give (a panel at its day average) and its experiments draw. */
+	power: { supply: number; demand: number };
+	linked: boolean;
+	experiments: string[];
+	working: boolean;
+	/** Why it yields nothing. */
+	reason?: string;
+}
+
 export interface SasSnapshot {
 	mode: SasMode;
 	reference: SasReference;
@@ -304,6 +322,17 @@ export interface VesselSnapshot {
 		site?: string;
 	};
 	/**
+	 * What the vessel can do about off-world bases here (plan 386, ADR 0125): present while it is
+	 * landed at rest and one of them is on offer. `found`: it carries a base kit and may found a
+	 * base at this spot (`refusal` says why not); `join`: it stands inside a site's flat zone;
+	 * `refuel`: it is a member of a site whose storage holds propellant.
+	 */
+	baseOffer?: {
+		found?: { body: string; latitude: number; longitude: number; refusal?: string };
+		join?: { site: string; name: string };
+		refuel?: { site: string; name: string; stored: Record<string, number> };
+	};
+	/**
 	 * Present while the vessel takes no control commands (ADR 0109; plan 208, ADR 0214): it has no
 	 * control source, or every source needs power the vessel has run out of.
 	 */
@@ -501,6 +530,8 @@ export interface Snapshot {
 	science?: Array<{ id: string; count: number; produced: number; credited: number; cap: number }>;
 	/** The world's firsts (plan 102, ADR 0147); absent while there are none. */
 	milestones?: MilestoneRecord[];
+	/** The deployed science stations (plan 284, ADR 0264); absent while there are none. */
+	stations?: StationSnapshot[];
 	/** The tech tree's state (plan 105, ADR 0154 point 3); absent while nothing was researched and the tree is off. */
 	tech?: { enabled: boolean; researched: string[] };
 	/** Range safety (plan 127, ADR 0155 point 6); absent when the rule is off. */
@@ -1109,6 +1140,30 @@ export type Command =
 	 * rides in the suit and comes aboard with it at a hatch.
 	 */
 	| { type: 'crew-take'; suit: EntityId; vessel: EntityId; part: EntityId }
+	/**
+	 * Cargo (plan 284, ADR 0264): a suit moves item `index` between its own inventory and the one of
+	 * `part` (a container of `vessel`), within reach: `take` into the suit, `store` into the part.
+	 */
+	| {
+			type: 'cargo-move';
+			suit: EntityId;
+			part: EntityId;
+			index: number;
+			direction: 'take' | 'store';
+	  }
+	/** An engineer's suit attaches inventory item `index` to the side of `host` (a part of its vessel) at `angle` rad round it and `y` of its half height. */
+	| {
+			type: 'cargo-attach';
+			suit: EntityId;
+			host: EntityId;
+			index: number;
+			angle: number;
+			y: number;
+	  }
+	/** An engineer's suit detaches the cargo part `part` from its hull into the suit's inventory. */
+	| { type: 'cargo-detach'; suit: EntityId; part: EntityId }
+	/** A suit sets inventory item `index` (a deployable one) on the ground beside it: a station item, a vessel of its own. */
+	| { type: 'cargo-place'; suit: EntityId; index: number }
 	/** Walk a landed vessel that can (its part declares `walk`): heading from north, rad; speed 0 stops. */
 	| { type: 'crew-walk'; vessel: EntityId; heading: number; speed: number }
 	/** A suit on the ground plants a flag beside it: a kept one-part vessel (ADR 0120 point 5). */

@@ -16,6 +16,8 @@ function yieldOf(body: string, situations: readonly string[], only?: readonly st
 	let cap = 0;
 	for (const e of experiments) {
 		if (only && !only.includes(e.id)) continue;
+		// a station's experiments yield over days from other bodies' ground (plan 284), apart from the ascent
+		if (e.station) continue;
 		for (const s of situations) {
 			if (!e.situations.includes(s)) continue;
 			const c = subjectCap(e, mult(body));
@@ -76,9 +78,6 @@ describe('stock tech tree pacing', () => {
 			.map((p) => p.id);
 		// a thrown-off fairing panel is debris, never built (plan 219)
 		expect(untiered.sort()).toEqual([
-			// waiting for their flow (player-journey audit Q5, plan 386)
-			'stock.base-kit',
-			'stock.drill',
 			'stock.eva-suit',
 			'stock.fairing-panel',
 			'stock.flag',

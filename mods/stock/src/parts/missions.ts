@@ -91,6 +91,7 @@ export const PartSolarFlat = definePart({
 		kind: 'solar-flat',
 		palette: { primary: '#d5d8dc', secondary: '#2b2f36', accent: '#7a8aa6' }
 	},
+	cargo: { volume: 6 },
 	attach: radialAt(0.02),
 	modules: [[ModuleSolarPanel, { rate: 0.35, deployable: false, normal: [1, 0, 0] }]]
 });
@@ -158,6 +159,7 @@ export const PartBatteryRadial = definePart({
 		palette: { primary: '#d5d8dc', secondary: '#2b2f36', accent: '#e3a61f' },
 		params: { radial: true }
 	},
+	cargo: { volume: 4 },
 	attach: radialAt(0.04),
 	modules: [[ModuleResourceContainer, { contents: { [ElectricCharge.id]: { capacity: 100 } } }]]
 });
@@ -201,6 +203,7 @@ export const PartWhipRadial = definePart({
 		params: { length: 1.2 },
 		deploy: { module: ModuleAntenna.id, flag: 'enabled', seconds: 1.5 }
 	},
+	cargo: { volume: 2 },
 	attach: radialAt(0.04),
 	modules: [[ModuleAntenna, { antenna: AntennaWhip.id, breakQ: 60_000 }]]
 });
@@ -261,6 +264,8 @@ function radialInstrument(
 			...(doors ? { deploy: { module: ModuleAnimate.id, flag: 'open', seconds: 1.5 } } : {})
 		},
 		attach: radialAt(size[0] / 2),
+		// an engineer carries it in a container or a suit (plan 284)
+		cargo: { volume: 3 },
 		modules: [
 			[ModuleExperiment, { experiment, label, ...(held ? { held: true } : {}) }],
 			...(doors ? [[ModuleAnimate, { label: 'Doors' }] as const] : [])
@@ -388,6 +393,7 @@ export const PartDataRadial = definePart({
 	impactTolerance: 8,
 	shape: box(0.16, 0.3, 0.24),
 	visual: { kind: 'container', palette: WHITE, params: { kind: 'data' } },
+	cargo: { volume: 5 },
 	attach: radialAt(0.08),
 	modules: [[ModuleDataStorage, { capacity: 64 * 1024 * 1024 }]]
 });
