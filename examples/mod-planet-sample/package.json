@@ -1,0 +1,24 @@
+{
+	"name": "@orbital/example-mod-planet-sample",
+	"version": "0.0.0",
+	"license": "Apache-2.0",
+	"private": true,
+	"description": "Sample mod for a planet with its own continents (plan 406, ADR 0346): a hills body whose elevation, moisture, temperature and rockiness are one PNG in the package; the sim stands vessels on the height it draws. Built into a package with tools/mod-build/build-mod.ts.",
+	"type": "module",
+	"scripts": {
+		"typecheck": "tsc --noEmit -p tsconfig.json",
+		"build": "bun run ../../tools/mod-build/build-mod.ts .",
+		"test": "bun test"
+	},
+	"peerDependencies": {
+		"@orbital/sdk": "workspace:*"
+	},
+	"devDependencies": {
+		"@orbital/core": "workspace:*",
+		"@orbital/mod-stock": "workspace:*",
+		"@orbital/sdk": "workspace:*",
+		"typescript": "catalog:",
+		"@types/bun": "latest",
+		"@orbital/kepler": "workspace:*"
+	}
+}

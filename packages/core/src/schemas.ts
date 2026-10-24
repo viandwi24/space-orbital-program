@@ -6,7 +6,7 @@ import * as z from 'zod';
 import { ACTION_KINDS } from './action-groups.ts';
 import { categoryRefSchema } from './categories.ts';
 import { DEFINITION_ID_PATTERN, PLUGIN_ID_PATTERN } from './ids.ts';
-import { assetPathSchema } from './mod-assets.ts';
+import { assetPathSchema, imageAssetPathSchema } from './mod-assets.ts';
 import { siteSchema } from './sites.ts';
 
 export const definitionIdSchema = z
@@ -85,7 +85,24 @@ export const resourceDefinitionSchema = z.object({
  * own pass, so a mod picks a kind and a seed rather than supplying a function.
  */
 export const bodyTerrainSchema = z.discriminatedUnion('kind', [
-	z.object({ kind: z.literal('hills'), seed: z.int().min(0).max(2_147_483_647).optional() }),
+	z
+		.object({
+			kind: z.literal('hills'),
+			seed: z.int().min(0).max(2_147_483_647).optional(),
+			/**
+			 * The body's continents from an image in the mod's package (plan 406, ADR 0346): an RGBA PNG,
+			 * twice as wide as it is high, 128 to 4096 across; red is the elevation (0.46 is the sea),
+			 * green the moisture, blue the temperature, alpha the rockiness. It is bound to this
+			 * body's `seed`, which it then needs.
+			 */
+			map: imageAssetPathSchema
+				.refine((p) => p.endsWith('.png'), 'a terrain map is a .png')
+				.optional()
+		})
+		.refine((t) => t.map === undefined || t.seed !== undefined, {
+			message: "a terrain map needs the body's own seed (the map is bound to it)",
+			path: ['seed']
+		}),
 	z.object({
 		kind: z.literal('craters'),
 		seed: z.int().min(0).max(999).optional(),

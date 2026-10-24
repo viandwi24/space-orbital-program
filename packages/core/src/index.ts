@@ -29,6 +29,8 @@ export * from './design.ts';
 export * from './rng.ts';
 export * from './noise.ts';
 export * from './planet-map.ts';
+export * from './png.ts';
+export * from './terrain-maps.ts';
 export * from './terrain.ts';
 export * from './terrain-gradient.ts';
 export * from './sites.ts';

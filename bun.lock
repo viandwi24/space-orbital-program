@@ -60,6 +60,21 @@
         "@orbital/sdk": "workspace:*",
       },
     },
+    "examples/mod-planet-sample": {
+      "name": "@orbital/example-mod-planet-sample",
+      "version": "0.0.0",
+      "devDependencies": {
+        "@orbital/core": "workspace:*",
+        "@orbital/kepler": "workspace:*",
+        "@orbital/mod-stock": "workspace:*",
+        "@orbital/sdk": "workspace:*",
+        "@types/bun": "latest",
+        "typescript": "catalog:",
+      },
+      "peerDependencies": {
+        "@orbital/sdk": "workspace:*",
+      },
+    },
     "examples/mod-sample": {
       "name": "@orbital/example-mod-sample",
       "version": "0.0.0",
@@ -320,6 +335,8 @@
     "@orbital/core": ["@orbital/core@workspace:packages/core"],
 
     "@orbital/example-mod-crew-sample": ["@orbital/example-mod-crew-sample@workspace:examples/mod-crew-sample"],
+
+    "@orbital/example-mod-planet-sample": ["@orbital/example-mod-planet-sample@workspace:examples/mod-planet-sample"],
 
     "@orbital/example-mod-sample": ["@orbital/example-mod-sample@workspace:examples/mod-sample"],
 

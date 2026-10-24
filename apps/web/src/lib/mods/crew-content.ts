@@ -3,7 +3,7 @@
  * registered for crew looks and moves, handed to the renderer once, with the mods' portrait images.
  * A portrait whose image is missing goes into the loader log.
  */
-import { loadPlugins, type Plugin, type Registries } from '@orbital/core';
+import { installTerrainMaps, loadPlugins, type Plugin, type Registries } from '@orbital/core';
 import { crewContentOf, setCrewContent, type CrewContent } from '@orbital/renderer/crew';
 import { BUILTIN_PLUGINS } from '../builtins';
 import { noteAssetProblem } from './boot-log';
@@ -41,4 +41,30 @@ export function installPageCrewContent(builtin: readonly Plugin[] = BUILTIN_PLUG
 		}
 	}
 	installCrewContent(registries, rt.assets);
+}
+
+/**
+ * After the mod runtime: the maps of the mods' planets (plan 406, ADR 0346), so the page's renderer
+ * bakes the same continents the sim's Worker (which does the same from the same package) stands
+ * vessels on. A map that cannot be read goes into the loader log and the body keeps its seed's.
+ */
+export async function installPageTerrainMaps(
+	builtin: readonly Plugin[] = BUILTIN_PLUGINS
+): Promise<void> {
+	const rt = modRuntime();
+	const problems = await installTerrainMaps(
+		[...builtin, ...rt.plugins],
+		new Map(
+			[...rt.assets].map(([mod, files]) => [
+				mod,
+				new Map([...files].map(([p, bytes]) => [p, { bytes }]))
+			])
+		)
+	);
+	for (const p of problems)
+		noteAssetProblem({
+			mod: p.mod,
+			what: `planet map "${p.path}" of ${p.body}`,
+			message: p.message
+		});
 }

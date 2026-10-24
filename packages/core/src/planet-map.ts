@@ -181,8 +181,75 @@ export function planetMapKey(width: number, options: PlanetMapOptions = {}): str
 	return `v${PLANET_MAP_VERSION}|${width}|${seed}|${sites}`;
 }
 
-/** `generatePlanetMap` memoised per size, seed and sites (deterministic, treated as read-only). */
+/**
+ * Maps a mod supplied for a terrain seed (plan 406, ADR 0346): the biome map of a hills body whose
+ * `terrain.map` names an image, in place of the generated one. Set once per world before the sim and
+ * the renderer ask for a map; keyed by the body's terrain seed, so every consumer (the sim's field,
+ * the renderer's bakes) reads the same data.
+ */
+const overrides = new Map<number, PlanetMap>();
+/** The overrides at the widths asked for (a resample is not free), by seed and width. */
+const resampled = new Map<string, PlanetMap>();
+
+/** Makes `map` (RGBA8 elevation, moisture, temperature, rock; 2:1) the map of terrain seed `seed`. */
+export function setMapOverride(seed: number, map: PlanetMap): void {
+	overrides.set(seed, map);
+	resampled.clear();
+}
+
+/** Forgets every mod map (a new world boots). */
+export function clearMapOverrides(): void {
+	overrides.clear();
+	resampled.clear();
+}
+
+/** `map` at `width` texels across: its own data when it is that wide, else a box-filtered copy. */
+export function resampleMap(map: PlanetMap, width: number): PlanetMap {
+	if (map.width === width) return map;
+	const height = Math.max(1, Math.floor(width / 2));
+	const data = new Uint8Array(width * height * 4);
+	if (width > map.width) {
+		// larger: the same bilinear read the height function makes, so a stretched map is smooth
+		for (let j = 0; j < height; j++) {
+			const lat = ((j + 0.5) / height - 0.5) * Math.PI;
+			for (let i = 0; i < width; i++) {
+				const lon = ((i + 0.5) / width - 0.5) * 2 * Math.PI;
+				const v = sampleMap(map, lat, lon);
+				for (let c = 0; c < 4; c++) data[(j * width + i) * 4 + c] = Math.round(v[c]! * 255);
+			}
+		}
+		return { width, height, data };
+	}
+	for (let j = 0; j < height; j++) {
+		const y0 = Math.floor((j * map.height) / height);
+		const y1 = Math.max(y0 + 1, Math.floor(((j + 1) * map.height) / height));
+		for (let i = 0; i < width; i++) {
+			const x0 = Math.floor((i * map.width) / width);
+			const x1 = Math.max(x0 + 1, Math.floor(((i + 1) * map.width) / width));
+			for (let c = 0; c < 4; c++) {
+				let sum = 0;
+				let n = 0;
+				for (let y = y0; y < Math.min(y1, map.height); y++)
+					for (let x = x0; x < Math.min(x1, map.width); x++) {
+						sum += map.data[(y * map.width + x) * 4 + c]!;
+						n++;
+					}
+				data[(j * width + i) * 4 + c] = Math.round(sum / Math.max(1, n));
+			}
+		}
+	}
+	return { width, height, data };
+}
+
+/** `generatePlanetMap` memoised per size, seed and sites (deterministic, treated as read-only); a mod's map for the seed when there is one. */
 export function cachedPlanetMap(width: number, options: PlanetMapOptions = {}): PlanetMap {
+	const custom = overrides.get(options.seed ?? LEGACY_TERRAIN_SEED);
+	if (custom) {
+		const key = `${options.seed ?? LEGACY_TERRAIN_SEED}|${width}`;
+		let map = resampled.get(key);
+		if (!map) resampled.set(key, (map = resampleMap(custom, width)));
+		return map;
+	}
 	const key = planetMapKey(width, options);
 	let map = cache.get(key);
 	if (!map) {

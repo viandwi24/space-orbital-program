@@ -7,6 +7,7 @@ import {
 	installModSdk,
 	resolveMods,
 	createBodyTerrainField,
+	installTerrainMaps,
 	type ModBundle
 } from '@orbital/core';
 import { BUILTIN_PLUGINS } from './builtins';
@@ -44,6 +45,8 @@ const host = createSimHost({
 			builtin: [...BUILTIN_PLUGINS],
 			importModule: importModBundle
 		});
+		// a mod planet's continents are an image in its package (plan 406, ADR 0346): the ground reads it
+		await installTerrainMaps([...BUILTIN_PLUGINS, ...mods.plugins], mods.assets);
 		current = await createSim({
 			plugins: [...BUILTIN_PLUGINS, ...mods.plugins],
 			backendFactory: () => createRapierBackend({ solverIterations: 16 }),

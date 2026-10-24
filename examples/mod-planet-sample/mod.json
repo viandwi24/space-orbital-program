@@ -1,0 +1,12 @@
+{
+	"id": "planet-sample",
+	"version": "1.0.0",
+	"api": "^0.1.123",
+	"title": "Verdant (planet sample)",
+	"description": "A second planet with continents from an image: a pair of landmasses, a polar sea, and a highland to land on. The reference for planet maps.",
+	"author": "Orbital",
+	"licence": "Apache-2.0",
+	"dependencies": {
+		"stock": "*"
+	}
+}

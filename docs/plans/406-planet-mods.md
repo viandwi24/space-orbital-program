@@ -1,9 +1,9 @@
 ---
 id: 406
 title: "Planet mods: albedo, height and normal maps for a mod body; the height map feeds the sim terrain; non-Home hills bodies get sky, sea and clouds"
-status: draft
+status: in-progress
 owner: "Worker B"
-depends: [405, 391, 403]
+depends: [391]
 phase: 9
 created: 2026-10-24
 updated: 2026-10-24
@@ -84,3 +84,4 @@ A mod can add a planet with its own textures: albedo, height and normal maps. Th
 ## Log
 
 - 2026-10-24 — Created by the coordinator from refs/graphics-v2 (ADR 0330).
+- 2026-10-24 — Stage 1 by Worker B (ADR 0346, API 0.1.123): a hills body takes its biome map from a PNG in its mod's package; the sim and the renderer read the same map; sample mod and tests. Albedo and normal images, the home planet's sky, sea and clouds on a mod planet, streaming and the owner's landing are open. Draft 071 was already done.

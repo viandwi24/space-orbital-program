@@ -331,6 +331,10 @@ JSON data files (`part.json`, `resource.json`) that reference module ids by stri
 
 `BodyDefinition.plasma` (a re-entry palette), the `postProfiles` registry (`ctx.postProfiles`, `definePostProfile`: bloom and exposure) and image assets of kind `image/ktx2` (package format 4; 4 MiB an image, 32 MiB a package) are additive. The catalog carries the profiles (`Catalog.postProfiles`) and the body's palette to the renderer; the last registered profile is drawn. See the guide's "Changing the look".
 
+## Planet maps (API 0.1.123, plan 406, ADR 0346)
+
+`BodyDefinition.terrain` for a `hills` body takes `map`, the path of a PNG in the mod's package (with the body's own `seed`): the image is the body's biome map (`setMapOverride` in core), so the sim's ground and the renderer's bakes read it. The host calls `installTerrainMaps(plugins, assets)` once per world; core has `decodePng`.
+
 ## Card art for presets and system variants (API 0.1.101, plan 317, ADR 0273)
 
 `PresetDefinition` and `SystemVariantDefinition` take two optional fields:
