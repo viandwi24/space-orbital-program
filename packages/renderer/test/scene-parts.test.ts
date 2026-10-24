@@ -84,13 +84,18 @@ describe('SceneModel with part visuals (plan 020)', () => {
 		const m = make();
 		m.sync(snap(0, vessel(1, stack())));
 		const group = m.scene.children.find((c) => c.name.startsWith('vessel-'))!;
-		expect(group.children.map((c) => c.name)).toEqual([
+		const models = group.children.filter((c) => c.name.startsWith('part:'));
+		expect(models.map((c) => c.name)).toEqual([
 			'part:stock.command-pod',
 			'part:stock.tank-small',
 			'part:stock.decoupler',
 			'part:stock.engine-lv'
 		]);
-		const tank = group.children[1] as Object3D;
+		// their static meshes are drawn merged, once per material (plan 367, ADR 0353)
+		const merged = group.children.filter((c) => c.name === 'vessel-batch');
+		expect(merged.length).toBeGreaterThan(0);
+		expect(merged.length).toBeLessThan(models.length * 3);
+		const tank = models[1] as Object3D;
 		expect(tank.position.y).toBe(1.6);
 		m.dispose();
 	});

@@ -339,3 +339,4 @@ An ADR records one decision, its context, and its consequences. ADRs are **appen
 | 0352 | [A member vessel refuels from its site's storage](0352-refuel-from-site-storage.md) | accepted | 2026-10-24 |
 ||||||| d743a107
 | 0351 | [Deployables break in strong airflow; the Hangar names the part that replaces a hidden one](0351-deployables-break-in-airflow-and-replaced-parts.md) | accepted | 2026-10-24 |
+| 0353 | [A vessel's static parts are merged per material](0353-vessel-parts-merged-per-material.md) | accepted | 2026-10-24 |

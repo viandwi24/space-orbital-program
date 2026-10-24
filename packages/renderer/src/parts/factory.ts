@@ -178,6 +178,10 @@ class ProceduralModel implements PartModel {
 		}
 	}
 
+	get cloned(): boolean {
+		return this.owned.length > 0;
+	}
+
 	get lamp(): PartModel['lamp'] {
 		const lamp = this.lampEffect;
 		return lamp ? { object: lamp.object, read: () => lamp.read() } : undefined;
