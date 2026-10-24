@@ -337,5 +337,49 @@ export const ADVANCED_LESSONS: readonly Lesson[] = [
 		debrief:
 			'A tidy orbit. Recover brings a landed vessel home for its value; Terminate removes what you no longer need. When the pad is taken, the launch asks the same: recover, terminate or wait.',
 		hint: 'In your world, clear old stages from the Mission Center now and then: fewer vessels, fewer warp stops.'
+	},
+	{
+		id: 'moon-base',
+		level: 'advanced',
+		title: 'A base on the Moon',
+		summary:
+			'A lander with a base kit stands on flat ground on the Moon: read the base card, found a base, and see it in the Space Center.',
+		design: DESIGNS.moonBase,
+		setup: [
+			{
+				fn: 'setLocation',
+				args: [{ kind: 'surface', body: 'stock.cinder', latitude: 0.02, longitude: 0.03 }]
+			}
+		],
+		blocked: {
+			actions: { stage: 'The kit lander has nothing to stage: it founds a base where it stands.' },
+			places: closedPlaces()
+		},
+		steps: [
+			{
+				id: 'card',
+				point: 'base-card',
+				title: 'Read the base card',
+				text: 'The kit lander stands on the Moon. The base card, under the vessel panel, lists what you can do here with a base kit: Found a base here, with the body and the spot.',
+				targets: { testids: ['base-card'] },
+				done: (o) => o.baseOffers.includes('found')
+			},
+			{
+				id: 'found',
+				title: 'Found the base',
+				text: 'Press Found a base here…, give it a name and press Found it. The kit and the lander are used up: the base is where they stood.',
+				targets: { testids: ['base-found-confirm'], commands: ['deploy-base'] },
+				done: (o) => o.bases >= 1
+			},
+			{
+				id: 'see',
+				title: 'See it in the Space Center',
+				text: 'Open the Space Center from the menu bar: the site switcher lists the new base beside the home center.',
+				done: (o) => o.place === 'space-center' && o.bases >= 1
+			}
+		],
+		debrief:
+			'A base is a site of its own: its hub stores what the drills of vessels standing in its flat zone dig up (Join), an ISRU plant turns ice into propellant, and a landed vessel of the base can Refuel from that storage.',
+		hint: 'In your world, carry a base kit to the Moon with a drill rig: found the base, build an ISRU plant in the Space Center, and refuel the lander for the flight home.'
 	}
 ];

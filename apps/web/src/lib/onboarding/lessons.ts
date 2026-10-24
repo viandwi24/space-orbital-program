@@ -80,6 +80,8 @@ export const QUIET: LessonObservation = {
 	joint: 0,
 	jointsMoved: 0,
 	drive: false,
+	bases: 0,
+	baseOffers: [],
 	vessels: 0,
 	debris: 0,
 	vab: null
@@ -87,7 +89,10 @@ export const QUIET: LessonObservation = {
 
 /** What the flight page has at hand, once per HUD model. */
 export interface LessonInput {
-	vessel: Pick<VesselSnapshot, 'soi' | 'position' | 'velocity' | 'surface' | 'ports'> &
+	vessel: Pick<
+		VesselSnapshot,
+		'soi' | 'position' | 'velocity' | 'surface' | 'ports' | 'baseOffer'
+	> &
 		Partial<
 			Pick<
 				VesselSnapshot,
@@ -118,7 +123,7 @@ export interface LessonInput {
 	eva?: { walking: boolean } | null;
 	drive?: boolean;
 	/** The whole snapshot: flags, debris, science credited and the comms route. */
-	snapshot?: Pick<Snapshot, 'vessels'> & Partial<Pick<Snapshot, 'science' | 'network'>>;
+	snapshot?: Pick<Snapshot, 'vessels'> & Partial<Pick<Snapshot, 'science' | 'network' | 'sites'>>;
 }
 
 const moduleOf = (part: { modules?: Record<string, unknown> }, id: string) =>
@@ -126,15 +131,23 @@ const moduleOf = (part: { modules?: Record<string, unknown> }, id: string) =>
 
 /** Counts and totals that come from the whole snapshot (any page). */
 export function observeWorld(
-	snapshot: (Pick<Snapshot, 'vessels'> & Partial<Pick<Snapshot, 'science' | 'network'>>) | null,
+	snapshot:
+		(Pick<Snapshot, 'vessels'> & Partial<Pick<Snapshot, 'science' | 'network' | 'sites'>>) | null,
 	vessel?: EntityId
-): Pick<LessonObservation, 'flags' | 'vessels' | 'debris' | 'scienceCredited' | 'linkHops'> {
-	if (!snapshot) return { flags: 0, vessels: 0, debris: 0, scienceCredited: 0, linkHops: 0 };
+): Pick<
+	LessonObservation,
+	'flags' | 'vessels' | 'debris' | 'scienceCredited' | 'linkHops' | 'bases'
+> {
+	if (!snapshot)
+		return { flags: 0, vessels: 0, debris: 0, scienceCredited: 0, linkHops: 0, bases: 0 };
 	const link =
 		vessel === undefined
 			? undefined
 			: snapshot.network?.vessels.find((v) => Number(v.vessel) === Number(vessel));
 	return {
+		bases: (snapshot.sites ?? []).filter((s) =>
+			s.buildings.some((b) => b.kind === 'stock.base-hub')
+		).length,
 		flags: snapshot.vessels.filter((v) => v.type === 'flag').length,
 		vessels: snapshot.vessels.filter((v) => v.type !== 'flag').length,
 		debris: snapshot.vessels.filter((v) => v.type === 'debris').length,
@@ -197,14 +210,16 @@ export function observeLesson(input: LessonInput): LessonObservation {
 		targetPort: v.target?.kind === 'vessel' && v.target.part !== undefined,
 		controlPort:
 			v.controlPart !== undefined && (v.ports ?? []).some((p) => p.part === v.controlPart),
-		drive: input.drive === true
+		drive: input.drive === true,
+		baseOffers: Object.keys(v.baseOffer ?? {})
 	};
 }
 
 /** The observation on a page other than Flight: the place, the world's counts, the Hangar. */
 export function observePlace(
 	place: string,
-	snapshot: (Pick<Snapshot, 'vessels'> & Partial<Pick<Snapshot, 'science' | 'network'>>) | null,
+	snapshot:
+		(Pick<Snapshot, 'vessels'> & Partial<Pick<Snapshot, 'science' | 'network' | 'sites'>>) | null,
 	vab: VabLessonState | null = null
 ): LessonObservation {
 	return { ...QUIET, ...observeWorld(snapshot), place, vab };

@@ -25,6 +25,7 @@ import {
 	LESSON_TARGET_LEAD as TARGET_LEAD
 } from '@orbital/mod-stock';
 import { beacon, chaser, lander, pathfinder, pathfinderCapsule, skylark } from './lesson-vessels';
+import { QUIET, lessonDesign, lessonOf, observeWorld } from './lessons';
 
 const { registries } = loadPlugins([Stock, Guidance, AutoDock]);
 const content: ContentLookups = {
@@ -357,6 +358,54 @@ describe('lesson flights (plan 344)', () => {
 			sim.dispose();
 		}
 	}, 900_000);
+});
+
+describe('A base on the Moon (plan 386)', () => {
+	it('the kit lander on the Moon is offered a base, founds it, and the lesson reaches its goal', async () => {
+		const lesson = lessonOf('moon-base')!;
+		const sim = await newSim();
+		try {
+			const id = loaded(
+				sim.dispatch({
+					type: 'load-vessel',
+					design: lessonDesign(lesson)!,
+					placement: { kind: 'surface', body: 'stock.cinder', latitude: 0.02, longitude: 0.03 }
+				} as never)
+			);
+			for (let i = 0; i < 600; i++) sim.step(0.02);
+			const observe = () => {
+				const v = vesselOf(sim, id);
+				return {
+					...QUIET,
+					...observeWorld(sim.snapshot(), id),
+					baseOffers: Object.keys(v?.baseOffer ?? {})
+				};
+			};
+			// the card has its offer; no base yet
+			const before = observe();
+			expect(before.baseOffers).toContain('found');
+			expect(before.bases).toBe(0);
+			expect(lesson.steps[0]!.done(before)).toBe(true);
+			expect(lesson.steps[1]!.done(before)).toBe(false);
+			// found it, as the card's button does
+			const made = sim.dispatch({
+				type: 'deploy-base',
+				vessel: id,
+				id: 'lesson-base',
+				name: 'Tranquility'
+			});
+			expect(made.ok ? '' : made.reason).toBe('');
+			sim.step(0.1);
+			const after = observe();
+			expect(after.bases).toBe(1);
+			expect(lesson.steps[1]!.done(after)).toBe(true);
+			// the kit lander is used up: the page moves on to the Space Center, where the last step reads it
+			expect(lesson.steps[2]!.done(after)).toBe(false);
+			expect(lesson.steps[2]!.done({ ...after, place: 'space-center' })).toBe(true);
+		} finally {
+			sim.dispose();
+		}
+	}, 120_000);
 });
 
 void HOME_RADIUS;

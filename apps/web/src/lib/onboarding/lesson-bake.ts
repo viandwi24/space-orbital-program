@@ -13,7 +13,8 @@ import {
 	relayProbe,
 	relaySatellite,
 	skylark,
-	spentStage
+	spentStage,
+	moonBase
 } from './lesson-vessels';
 
 const BUILDERS = {
@@ -26,7 +27,8 @@ const BUILDERS = {
 	relayProbe,
 	relaySatellite,
 	arm,
-	spentStage
+	spentStage,
+	moonBase
 };
 
 /** Every lesson vessel built against `content`. */

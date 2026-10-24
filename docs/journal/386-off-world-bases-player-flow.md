@@ -24,6 +24,6 @@
 
 ## Not done
 
-- The lesson "A base on the Moon" (a lesson needs an observation for a founded base and a landed lesson scene).
+- ~~The lesson "A base on the Moon"~~ — done later (Worker C): `moon-base` in stock's advanced lessons (a kit lander placed landed on the Moon by `setLocation`; steps: read the base card, found the base, see it in the Space Center), with two new observation fields, `bases` and `baseOffers`; `lesson-flights.test.ts` flies it.
 - The Space Center's own 3D view of an off-world site; a cost line on "Found a base here"; the window days in the route form.
 - Screens of the card and the form (not taken).

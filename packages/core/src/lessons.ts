@@ -88,6 +88,9 @@ export interface LessonObservation {
 	jointsMoved: number;
 	/** Drive mode (rovers). */
 	drive: boolean;
+	/** Bases standing in the world (sites with a base hub; plan 386), and the base offers the focused vessel has: `found`, `join`, `refuel`. */
+	bases: number;
+	baseOffers: readonly string[];
 	/** Vessels in the world, and how many are debris. */
 	vessels: number;
 	debris: number;

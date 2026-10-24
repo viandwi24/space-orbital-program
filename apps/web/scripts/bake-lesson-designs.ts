@@ -26,7 +26,7 @@ const DATA: unknown = ${JSON.stringify(designs, null, '\t')};
 
 /** The lessons' vessels by name. */
 export const DESIGNS = DATA as Record<
-	'skylark' | 'pathfinderCapsule' | 'pathfinder' | 'lander' | 'chaser' | 'beacon' | 'relayProbe' | 'relaySatellite' | 'arm' | 'spentStage',
+	'skylark' | 'pathfinderCapsule' | 'pathfinder' | 'lander' | 'chaser' | 'beacon' | 'relayProbe' | 'relaySatellite' | 'arm' | 'spentStage' | 'moonBase',
 	VesselDesign
 >;
 

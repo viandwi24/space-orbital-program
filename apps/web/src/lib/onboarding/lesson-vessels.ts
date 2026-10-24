@@ -172,6 +172,18 @@ export function arm(content: Content): VesselDesign {
 	return b.done([]);
 }
 
+/**
+ * The Moon lesson's lander: a pod with a base kit under it and a battery, landed on the Moon by the
+ * lesson's setup (plan 386). Founding the base uses the kit up, the ship with it.
+ */
+export function moonBase(content: Content): VesselDesign {
+	const b = new Build(content, 'Kit lander', 'stock.command-pod');
+	b.side('stock.antenna-whip-radial', 0, Math.PI / 2, 0);
+	const kit = b.below('stock.base-kit', 0);
+	b.side('stock.battery-radial', kit, 0, 0, 2);
+	return b.done([]);
+}
+
 /** A spent upper stage left in orbit: the Mission Center lesson's debris. */
 export function spentStage(content: Content): VesselDesign {
 	const b = new Build(content, 'Spent stage', 'stock.decoupler');

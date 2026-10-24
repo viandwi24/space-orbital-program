@@ -251,6 +251,11 @@ const RUNS: Record<string, Partial<LessonObservation>[]> = {
 		{ place: 'mission-center', vessels: 2, debris: 1 },
 		{ place: 'mission-center', vessels: 1, debris: 0 },
 		{ place: 'flight', vessels: 1, debris: 0 }
+	],
+	'moon-base': [
+		{ landed: true, baseOffers: ['found'] },
+		{ landed: true, baseOffers: [], bases: 1 },
+		{ place: 'space-center', bases: 1 }
 	]
 };
 
