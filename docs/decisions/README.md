@@ -228,6 +228,7 @@ An ADR records one decision, its context, and its consequences. ADRs are **appen
 | 0231 | [Career content: a tiered tech tree with every part placed, contracts that see milestones and spawn a rescue, a richer objective view, per-item panel actions](0231-career-content-tech-tiers-rescue-spawn-objective-view.md) | accepted | 2026-10-19 |
 | 0232 | [The script sandbox lives with the world, not with Flight](0232-script-sandbox-lives-with-the-world.md) | accepted | 2026-10-20 |
 | 0233 | [The Abort group is the design's custom slot 0; trim on three axes; keys that were pending](0233-abort-group-trim-axes-held-brakes.md) | accepted | 2026-10-20 |
+| 0233 | [The quality governor: a locked 60 or 30, fast down, up only on evidence](0233-governor-paced-fast-down-measured-up.md) | accepted | 2026-10-20 |
 | 0234 | [A pixel budget for the planet pass, and the other Retina quick wins](0234-planet-pixel-budget-retina-quick-wins.md) | accepted | 2026-10-20 |
 | 0235 | [Surface links: a part attached at a point and normal of its parent's surface](0235-surface-links.md) | accepted | 2026-10-20 |
 | 0236 | [The snapshot says splashed; heat bars, touchdown dust and reduced motion in the flight view](0236-splashed-flag-heat-bars-dust-reduced-motion.md) | accepted | 2026-10-20 |
