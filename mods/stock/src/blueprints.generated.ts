@@ -1292,7 +1292,7 @@ const DATA: unknown = [
 				},
 				{
 					index: 7,
-					part: 'stock.tank-wide-short',
+					part: 'stock.tank-wide',
 					parent: {
 						index: 6,
 						parentNode: 'bottom',

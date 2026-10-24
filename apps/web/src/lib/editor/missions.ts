@@ -224,7 +224,8 @@ function kronos(content: Content, real: boolean): VesselDesign {
 	// the capsule leaves the service module before re-entry (Apollo's CM/SM separation)
 	const cmSep = b.below('stock.decoupler-wide', shield);
 	// Apollo's service module carried 18 t of propellant: the wide tank at real scale
-	const sm = b.below(real ? 'stock.tank-wide' : 'stock.tank-wide-short', cmSep);
+	// a full wide tank at both scales: the burn into lunar orbit and the one home (plan 286)
+	const sm = b.below('stock.tank-wide', cmSep);
 	b.side('stock.rcs-block-5', sm, Math.PI / 4, 0.3, 4);
 	// and on the capsule, ahead of them: thrusters at both ends turn the ship (owner, 2026-10-22)
 	b.side('stock.rcs-block', pod, Math.PI / 4, -0.2, 4);

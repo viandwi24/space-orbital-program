@@ -13,9 +13,10 @@ Four new headless flights in `apps/web/src/lib/editor/mission-flights.test.ts`, 
 | Moonwatch Orbiter | at 100 km above the moon on an 800 m/s hyperbola its own engine, turned retrograde by SAS, brakes it into a closed orbit (e under 0.9, periapsis above 20 km) in about 45 s of burn |
 | Horizon Station | a crewed ferry docks and the crew member is transferred from the ferry's pod into the station's habitat (`crew-transfer`) |
 
-## Not done
+## Kronos V + Selene in one run (second part)
 
-- **Kronos V + Selene in one run** (launch, trans-lunar burn, lunar orbit, landing, ascent, rendezvous, return). The flights are still the pieces plans 309, 356 and 361 left: the capsule's return under chutes, the lander's touchdown, the ascent stage to a 10 km lunar orbit, the petals. Joining them needs the trans-lunar and rendezvous legs, which no autopilot flies from a design headless yet.
-- The ascent from the pad for Moonwatch, the telescope and Aurora (the launcher flight to low orbit is plan 380's `blueprint-systems.test.ts`).
-- Deploying "panels and boom": Aurora's arrays and boom have no deploy action (they are fixed parts); the plan's wording is met by the instruments.
-- The long-run times and Δv left of each flight were not recorded beyond the Moonwatch burn above.
+`kronos-trip.test.ts` (one test, about 7 minutes) joins the pieces: the ascent to 80 km; a trans-lunar burn found by scanning the departure time and Δv over the patched-conic predictor (`@orbital/kepler`); the spent S-II dropped; the petals and service-module decoupler; Auto Dock turns the command ship round and docks with the lander's port; the lander is released from the S-IVB's adapter; burns (SAS on the node, throttle to the Δv left) put the lunar periapsis at about 75 km; the insertion burn at the periapsis; two crew into the lander, which undocks and lands with Guidance Land; the ascent stage lifts off to 20 km; Guidance Rendezvous hands over to Auto Dock; the crew return, the ascent stage is cast off; the burn home is searched the same way (inbound, periapsis 636 km); two corrections aim the entry corridor; the service module goes and the capsule enters under SAS re-entry with the chute armed, landing at under 10 m/s with all its parts.
+
+Findings: the service module needed the full wide tank (the burn home failed on the short one); the chute must be armed with the parachute's own `deploy` action (the docked vessel's stage list no longer holds the pod); the periapsis window for the entry is narrow at lunar-return speed (632 km radius is a steep dive, 640 km skips out); the `vessel.orientation` is the root part's, not the pod's, so alignment checks use SAS's own error.
+
+Left from the plan text: "deploying panels and boom" of Aurora has no action (fixed parts).
