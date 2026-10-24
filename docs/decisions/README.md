@@ -344,4 +344,4 @@ An ADR records one decision, its context, and its consequences. ADRs are **appen
 | 0356 | [Cargo, inventories and deployed science stations](0356-cargo-inventories-and-deployed-stations.md) | accepted | 2026-10-24 |
 | 0357 | [A cached shadow map for the static site is not built](0357-site-shadow-cache-not-built.md) | accepted | 2026-10-24 |
 | 0358 | [Snapshot deltas: the worker posts only what changed](0358-snapshot-deltas.md) | accepted | 2026-10-24 |
-
+| 0359 | [Pipelines, shader programs and node states are kept alive](0359-keep-pipelines-alive.md) | accepted | 2026-10-24 |

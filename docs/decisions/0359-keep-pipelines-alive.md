@@ -2,7 +2,7 @@
 
 **Status:** accepted
 **Date:** 2026-10-24
-**Plan:** plans/342-first-map-toggle-and-last-frame-hitch.md
+**Plan:** plans/342-first-map-toggle-and-post-load-hitch.md
 **Builds on:** ADR 0290 (the world's views are warmed at load), ADR 0310 (every pipeline is built at load or in the background)
 
 ## Context

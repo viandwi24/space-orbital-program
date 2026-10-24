@@ -1,6 +1,6 @@
 # 342 — The first map toggle and the last frame hitch
 
-**Plan:** [plans/342-first-map-toggle-and-last-frame-hitch.md](../plans/342-first-map-toggle-and-last-frame-hitch.md) · **Session:** Worker A, 2026-10-24 · **ADR:** [0359](../decisions/0359-keep-pipelines-alive.md)
+**Plan:** [plans/342-first-map-toggle-and-post-load-hitch.md](../plans/342-first-map-toggle-and-post-load-hitch.md) · **Session:** Worker A, 2026-10-24 · **ADR:** [0359](../decisions/0359-keep-pipelines-alive.md)
 
 ## What was done
 
