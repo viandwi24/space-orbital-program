@@ -51,7 +51,7 @@ console.log(
 		(window as any).__orbital
 			.renderer()
 			.compiles.pipelines.filter((p: any) => /planet/.test(p.label))
-			.map((p: any) => `${p.phase}:${p.label.replace("renderPipeline_", "")}`)
+			.map((p: any) => `${p.phase}:${p.label.replace('renderPipeline_', '')}`)
 			.join(' ')
 	)
 );
