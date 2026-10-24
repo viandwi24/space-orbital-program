@@ -2567,6 +2567,96 @@ exports[`stock part ids, masses, costs and modules match the snapshot 1`] = `
     ],
   },
   {
+    "cost": 12578,
+    "id": "stock.engine-vernier",
+    "mass": 660,
+    "modules": [
+      [
+        "stock.engine",
+        {
+          "gimbal": {
+            "range": 6,
+            "rate": 24,
+          },
+          "ispSeaLevel": 255,
+          "ispVacuum": 306,
+          "propellants": [
+            {
+              "ratio": 0.9,
+              "resource": "stock.liquid-fuel",
+            },
+            {
+              "ratio": 1.1,
+              "resource": "stock.oxidizer",
+            },
+          ],
+          "thrust": 450000,
+        },
+      ],
+    ],
+  },
+  {
+    "cost": 1849,
+    "id": "stock.engine-tiny",
+    "mass": 100,
+    "modules": [
+      [
+        "stock.engine",
+        {
+          "gimbal": {
+            "range": 3,
+            "rate": 20,
+          },
+          "ispSeaLevel": 120,
+          "ispVacuum": 280,
+          "propellants": [
+            {
+              "ratio": 0.9,
+              "resource": "stock.liquid-fuel",
+            },
+            {
+              "ratio": 1.1,
+              "resource": "stock.oxidizer",
+            },
+          ],
+          "thrust": 20000,
+        },
+      ],
+    ],
+  },
+  {
+    "cost": 36,
+    "id": "stock.separatron",
+    "mass": 6,
+    "modules": [
+      [
+        "stock.engine",
+        {
+          "ispSeaLevel": 205,
+          "ispVacuum": 230,
+          "propellants": [
+            {
+              "ratio": 1,
+              "resource": "stock.solid-fuel",
+            },
+          ],
+          "solid": true,
+          "thrust": 18000,
+        },
+      ],
+      [
+        "stock.resource-container",
+        {
+          "contents": {
+            "stock.solid-fuel": {
+              "capacity": 6,
+            },
+          },
+        },
+      ],
+    ],
+  },
+  {
     "cost": 100,
     "id": "stock.solar-flat",
     "mass": 10,

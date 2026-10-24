@@ -335,3 +335,4 @@ An ADR records one decision, its context, and its consequences. ADRs are **appen
 | 0347 | [Shaped tanks, a separator that is used up, and the catalogue size filter](0347-shaped-tanks-and-the-separator.md) | accepted | 2026-10-24 |
 | 0348 | [The sequencer: keyframe tracks over robotic joints, and a module's calls on other parts](0348-sequencer-and-drive-calls.md) | accepted | 2026-10-24 |
 | 0349 | [Loading-screen shots are a registry](0349-loading-shots-registry.md) | accepted | 2026-10-24 |
+| 0350 | [Engine looks, verniers, small motors and the Abort group of Kronos V](0350-engine-looks-verniers-and-the-abort-group.md) | accepted | 2026-10-24 |

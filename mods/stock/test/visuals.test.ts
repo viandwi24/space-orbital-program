@@ -9,6 +9,9 @@ const KINDS = [
 	'tank-toroid',
 	'tank-sphere',
 	'tank-taper',
+	// plan 276
+	'engine-mini',
+	'separatron',
 	'engine',
 	'engine-cluster',
 	'decoupler',

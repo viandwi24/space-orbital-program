@@ -4,7 +4,7 @@
  * core, RCS, power, antennas, parachutes and a heat shield where it comes home. Names are
  * fictional (ADR 0255); `inspiredBy` says which real mission they recall.
  */
-import { partId, type VesselDesign } from '@orbital/core';
+import { ABORT_SLOT, partId, type VesselDesign } from '@orbital/core';
 import type { Paint } from '@orbital/mod-stock';
 import {
 	attachConnector,
@@ -16,6 +16,7 @@ import {
 	type Content,
 	type EditorState
 } from './state';
+import { setGroupMember } from './groups';
 import { autoStages } from './staging';
 
 export interface MissionBlueprint {
@@ -135,6 +136,12 @@ export class Build {
 				)
 			}
 		};
+	}
+	/** Puts `action` of `module` on `part` in custom group `slot` (0 is Abort, plan 276). */
+	group(slot: number, part: number, module: string, action: string): void {
+		this.s = setGroupMember(this.s, this.content, slot, { part, module, action }, true, {
+			single: true
+		});
 	}
 	done(stages?: number[][]): VesselDesign {
 		const design = this.s.design;
@@ -262,6 +269,11 @@ function kronos(content: Content, real: boolean): VesselDesign {
 		);
 	const sicEngine = b.below(real ? 'stock.engine-plate-f1' : 'stock.engine-plate-5', sic);
 	b.side('stock.fin', sic, Math.PI / 4, -0.7, 4);
+	// Abort (plan 276, ADR 0233): the tower's motor lights and the capsule leaves the service
+	// module, in one press of Backspace; the tower pulls the capsule and its cover clear, and the
+	// cover's own joint (the staging) is for later, once the capsule is clear
+	b.group(ABORT_SLOT, tower, 'stock.engine', 'setActive');
+	b.group(ABORT_SLOT, cmSep, 'stock.decoupler', 'decouple');
 	// the Apollo sequence, one press each (owner, 2026-10-22: the lander engines lit at launch):
 	// S-IC; S-II and the tower; S-IVB (orbit, then the burn to the moon); the command ship
 	// leaves the S-IVB and the petals are thrown off, with no engine burning (owner, 2026-10-21:

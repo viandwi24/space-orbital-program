@@ -63,6 +63,7 @@ export const STOCK_FAIRING_PARTS = [
 import { STOCK_CLASS_CONES } from './aero.ts';
 import { PartDockingPort3750, PartDockingPortSide } from './docking.ts';
 import { STOCK_CLASS_HEAT_SHIELDS } from './recovery.ts';
+import { STOCK_SMALL_ENGINES } from './engines.ts';
 import { STOCK_CLASS_STRUCTURE, STOCK_SEPARATORS } from './structure.ts';
 import { STOCK_CLASS_TANKS, STOCK_SHAPED_TANKS } from './tanks.ts';
 
@@ -80,5 +81,7 @@ export const STOCK_SIZE_CLASS_PARTS = [
 	PartDockingPortSide,
 	// plan 275: the toroid, the sphere, the adapter tank and the booster tank
 	...STOCK_SHAPED_TANKS,
-	...STOCK_SEPARATORS
+	...STOCK_SEPARATORS,
+	// plan 276: the vernier engine, the 0.625 m engine and the separatron
+	...STOCK_SMALL_ENGINES
 ] as const;

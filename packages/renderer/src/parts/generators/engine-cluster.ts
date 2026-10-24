@@ -87,6 +87,29 @@ export function engineCluster(ctx: GenContext): GeneratedPart {
 		}
 	}
 
+	// Verniers (plan 276, the RD-107's steering chambers): small bells on the outer rim between
+	// the main ones, each on a pipe from the manifold. They swing with the engine and draw no plume.
+	const verniers = Math.round(ctx.param('verniers', 0, 0, 4));
+	if (verniers > 0) {
+		const vr = Math.min(0.05, R * 0.08);
+		const d = R - vr - 0.012;
+		const vTop = -h2 + 0.42;
+		const profile: ProfilePoint[] = [
+			{ r: vr * 0.7, y: -h2 },
+			{ r: vr, y: -h2 },
+			{ r: vr * 0.82, y: -h2 + 0.12, smooth: true },
+			{ r: vr * 0.5, y: -h2 + 0.26, smooth: true },
+			{ r: vr * 0.6, y: vTop },
+			{ r: 0, y: vTop + 0.04 }
+		];
+		for (let i = 0; i < verniers; i++) {
+			const a = (i / verniers) * Math.PI * 2 + Math.PI / 2;
+			const x = Math.sin(a) * d;
+			const z = Math.cos(a) * d;
+			m.revolveAt('nozzle', profile, [x, 0, z], { segments: 8 });
+		}
+	}
+
 	if (foil) {
 		// engine fairings round the outer bells: cones from the plate down a third of the bell
 		const fair = Math.max(0.05, Math.min(exitR * 1.08, R * 0.995 - ring));

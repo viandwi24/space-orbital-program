@@ -1,8 +1,8 @@
 ---
 id: 276
 title: "Engines and boosters, the rest: open-frame and shrouded presets, vernier engine, 0.625 m engine, segmented SRBs, separatron, the escape tower on Abort"
-status: draft
-owner: ""
+status: done
+owner: "Worker B"
 depends: [291, 303, 380]
 phase: 0
 created: 2026-10-21
@@ -52,24 +52,25 @@ Each liquid engine has its own silhouette (open-frame lifter, fully shrouded lar
 
 ## Acceptance criteria
 
-- [ ] `bun test packages/sim` passes, including an abort test where firing the Abort group on a stack at about 1 km carries the pod at least 500 m from the stack.
-- [ ] `bun test mods/stock` passes, including `realism.test.ts` and `english.test.ts` with the new parts.
-- [ ] The Kronos V + Selene blueprint has the tower in custom slot 0 (web test), and the bake equality test passes.
-- [ ] Every engine icon is distinct (journal sheet).
-- [ ] `bun test`, `bun run typecheck`, `bun run build` and `bun run docs:check` pass.
-- [ ] Screenshots of every new or remodelled part (catalogue icon and in the Hangar) in the journal, before and after.
+- [x] `bun test packages/sim` passes, including an abort test where firing the Abort group on a stack at about 1 km carries the pod at least 500 m from the stack.
+- [x] `bun test mods/stock` passes, including `realism.test.ts` and `english.test.ts` with the new parts.
+- [x] The Kronos V + Selene blueprint has the tower in custom slot 0 (web test), and the bake equality test passes.
+- [x] Every engine icon is distinct (journal sheet).
+- [x] `bun test`, `bun run typecheck`, `bun run build` and `bun run docs:check` pass.
+- [x] Screenshots of every new or remodelled part (catalogue icon and in the Hangar) in the journal, before and after.
 
 ## Docs checklist
 
-- [ ] `docs/STATUS.md` updated (board row, next plan, open issues).
-- [ ] `docs/journal/276-engines-plates-srbs-and-escape-tower.md` written.
-- [ ] Affected `docs/architecture/*.md` updated to match what shipped.
-- [ ] New ADRs written for any decision made here, linked above.
-- [ ] `docs/research/stack-versions.md` updated for anything looked up.
-- [ ] `refs/part-visuals-and-blueprints/parts-tracker.md`: status column of ENG-01/02/03, ENG-06, ENG-07, SRB-01/02, SRB-03, SRB-04.
+- [x] `docs/STATUS.md` updated (board row, next plan, open issues).
+- [x] `docs/journal/276-engines-plates-srbs-and-escape-tower.md` written.
+- [x] Affected `docs/architecture/*.md` updated to match what shipped.
+- [x] New ADRs written for any decision made here, linked above.
+- [x] `docs/research/stack-versions.md` updated for anything looked up.
+- [x] `refs/part-visuals-and-blueprints/parts-tracker.md`: status column of ENG-01/02/03, ENG-06, ENG-07, SRB-01/02, SRB-03, SRB-04.
 
 ## Log
 
+- 2026-10-24 — Done by Worker B (ADR 0350): engine styles, segmented SRBs, the vernier and 0.625 m engines, the separatron (not angled), Kronos V's Abort group and the abort test. Open: the angled separatron, verniers with plumes, Hangar placement screens, the owner's look.
 - 2026-10-24 — Rewritten by the coordinator after an audit against main @ 4c546c02: plates, vacuum XL, SRB XL and the tower are done (303, 380); this plan keeps the presets, vernier and 0.625 m engines, segmented SRBs, the separatron, the tower in the Abort group and the abort test; no longer waits for 275.
 - 2026-10-21 — Parts delivered in plan 303: engine plates 5/8/9, vacuum engine XL, escape tower, SRB XL. Open: engine presets, SRB remodel, separatron, abort test.
 - 2026-10-21 — Drafted from the part-visuals research and the owner's decisions of 2026-10-21 (CTO calls delegated by the owner). Not to be started until the owner releases the parts work: on 2026-10-21 main is busy with renderer fixes and a UI/UX agent.

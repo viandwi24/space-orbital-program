@@ -55,6 +55,7 @@ import { light, lightAngled, lightNav, lightPanel } from './light.ts';
 import { rcsBlock } from './rcs-block.ts';
 import { tailCone } from './tail-cone.ts';
 import { tank } from './tank.ts';
+import { engineMini, separatron } from './small-motors.ts';
 import { tankSphere, tankTaper, tankToroid } from './tank-shapes.ts';
 import { reactionWheel } from './wheel.ts';
 import { wing } from './wing.ts';
@@ -79,6 +80,9 @@ export function registerStockGenerators(): void {
 	registerPartGenerator('tank-taper', tankTaper);
 	registerPartGenerator('engine', engine);
 	registerPartGenerator('engine-cluster', engineCluster);
+	// plan 276: a 0.625 m engine and the separatron
+	registerPartGenerator('engine-mini', engineMini);
+	registerPartGenerator('separatron', separatron);
 	registerPartGenerator('decoupler', decoupler);
 	registerPartGenerator('reaction-wheel', reactionWheel);
 	registerPartGenerator('landing-legs', landingLegs);

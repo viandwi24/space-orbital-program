@@ -39,15 +39,42 @@ export function booster(ctx: GenContext): void {
 			{ r: rb + 0.006, y: h2 - 0.31 - band }
 		]);
 	}
+	// Segments (plan 276): `joints` field joints, each a dark clevis ring with a bolt circle, in
+	// place of the thin welds; the casting segments of a Shuttle-type motor.
+	const joints = Math.round(ctx.param('joints', 0, 0, 6));
 	if (detail.extras >= 1) {
-		for (const t of [0.25, 0.5, 0.75]) {
-			const y = skirtTop + 0.3 + (h2 - 0.5 - skirtTop) * t;
-			b.revolve('metal', [
-				{ r: rb, y: y - 0.03 },
-				{ r: rb + 0.012, y: y - 0.02 },
-				{ r: rb + 0.012, y: y + 0.02 },
-				{ r: rb, y: y + 0.03 }
-			]);
+		const span = h2 - 0.5 - skirtTop;
+		for (const t of joints > 0
+			? Array.from({ length: joints }, (_, i) => (i + 1) / (joints + 1))
+			: [0.25, 0.5, 0.75]) {
+			const y = skirtTop + 0.3 + span * t;
+			if (joints > 0) {
+				const out = R - rb;
+				b.revolve('dark-metal', [
+					{ r: rb, y: y - 0.07 },
+					{ r: rb + out, y: y - 0.055 },
+					{ r: rb + out, y: y + 0.055 },
+					{ r: rb, y: y + 0.07 }
+				]);
+				if (detail.extras >= 2) {
+					for (let k = 0; k < 16; k++) {
+						const a = ((k + 0.5) / 16) * Math.PI * 2;
+						b.box(
+							'metal',
+							[0.016, 0.016, 0.01],
+							[Math.sin(a) * (rb + out * 0.4), y, Math.cos(a) * (rb + out * 0.4)],
+							a
+						);
+					}
+				}
+			} else {
+				b.revolve('metal', [
+					{ r: rb, y: y - 0.03 },
+					{ r: rb + 0.012, y: y - 0.02 },
+					{ r: rb + 0.012, y: y + 0.02 },
+					{ r: rb, y: y + 0.03 }
+				]);
+			}
 		}
 		const ribs = detail.extras >= 2 ? 12 : 6;
 		for (let i = 0; i < ribs; i++) {

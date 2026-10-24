@@ -125,7 +125,10 @@ export const STOCK_TECH = [
 			'stock.srb-large',
 			'stock.booster-liquid',
 			// plan 275: the R-7's tapered strap-on tank
-			'stock.tank-booster'
+			'stock.tank-booster',
+			// plan 276: four chambers with verniers, and the separation motor
+			'stock.engine-vernier',
+			'stock.separatron'
 		]
 	}),
 	defineTechNode({
@@ -136,7 +139,7 @@ export const STOCK_TECH = [
 		requires: ['stock.structures'],
 		milestone: 'orbit:home',
 		description: 'A light engine made for vacuum, for transfers and landings.',
-		unlocks: ['stock.engine-vacuum']
+		unlocks: ['stock.engine-vacuum', 'stock.engine-tiny']
 	}),
 	defineTechNode({
 		id: 'stock.probes',
