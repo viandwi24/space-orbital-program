@@ -118,7 +118,7 @@ import { hasBackground } from './tick.ts';
 import { recoveryBlocker, repayLoan, takeLoan } from './economy.ts';
 import { creditRecovery } from './recovery.ts';
 import { launchSiteOf, marketBuy, marketSell, payLaunch, refuseLaunch } from './market.ts';
-import { createRoute, deleteRoute, deployBase, joinSite } from './bases.ts';
+import { createRoute, deleteRoute, deployBase, joinSite, refuelFromSite } from './bases.ts';
 import { NBODY_MAX_WARP, nBodyOn } from './nbody.ts';
 import {
 	placeBuilding,
@@ -868,6 +868,8 @@ export function dispatch(
 			return joinSite(core, command);
 		case 'create-route':
 			return createRoute(core, command);
+		case 'refuel':
+			return refuelFromSite(core, command);
 		case 'delete-route':
 			return deleteRoute(core, command);
 		case 'market-buy':

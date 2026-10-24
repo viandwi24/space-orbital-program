@@ -348,6 +348,7 @@ export const commandSchema: z.ZodType<Command> = z.discriminatedUnion('type', [
 		amount: z.number().positive()
 	}),
 	z.object({ type: z.literal('delete-route'), id: z.string().min(1) }),
+	z.object({ type: z.literal('refuel'), vessel: entity, site: z.string().min(1) }),
 	z.object({
 		type: z.literal('market-sell'),
 		commodity: z.string().min(1),

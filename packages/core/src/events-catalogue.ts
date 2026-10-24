@@ -36,6 +36,7 @@ export const SIM_EVENTS: readonly SimEventInfo[] = [
 	e('world', 'site:founded', 'A launch site was founded.'),
 	e('world', 'site:joined', 'A vessel joined a site as an outpost.'),
 	e('world', 'site:left', 'A vessel left a site.'),
+	e('world', 'site:refuelled', 'A member vessel took propellant from its site storage.'),
 	e('world', 'route:delivered', 'A supply route ran on its window.'),
 	e(
 		'vessel',

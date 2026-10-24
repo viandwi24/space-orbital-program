@@ -21,6 +21,7 @@ import { foundSite } from './buildings.ts';
 import { partOf, vesselIds, vesselOf, type SimCore } from './core.ts';
 import { costMultiplier, economyOn, record, recoveryBlocker } from './economy.ts';
 import { qConj, qRotate } from './math.ts';
+import { depositInto, roomIn } from './resources.ts';
 import { VESSEL } from './state.ts';
 import { destroyVessel } from './vessel.ts';
 
@@ -124,6 +125,47 @@ export function joinSite(
 	const id = Number(command.vessel);
 	if (!(site.members ?? []).includes(id)) site.members = [...(site.members ?? []), id];
 	core.events.emit('site:joined', { site: site.id, vessel: command.vessel });
+	return { ok: true };
+}
+
+/**
+ * `refuel` (ADR 0352): a member vessel takes, free of charge, the stored commodities that are
+ * resources (fuel, oxidizer, …) into every tank that has room. What the tanks cannot hold stays.
+ */
+export function refuelFromSite(
+	core: SimCore,
+	command: { vessel: EntityId; site: string }
+): CommandResult {
+	if (!core.world.has(command.vessel, VESSEL)) return refuse(`no vessel ${command.vessel}`);
+	const site = sitesOf(core.info).find((s) => s.id === command.site);
+	if (!site) return refuse(`unknown site "${command.site}"`);
+	if (!(site.members ?? []).includes(Number(command.vessel)))
+		return refuse('only a member of the site can refuel from its storage; join the site first');
+	if (!landedAtRest(core, command.vessel))
+		return refuse('refuelling needs a landed vessel at rest');
+	const held = core.economy.storage?.[command.site] ?? {};
+	const parts = vesselOf(core, command.vessel).parts;
+	const moved: Record<string, number> = {};
+	let stocked = false;
+	for (const def of core.registries.commodities.list()) {
+		const resource = def.resource;
+		const have = held[def.id] ?? 0;
+		if (!resource || !(have > 0)) continue;
+		stocked = true;
+		const take = Math.min(have, roomIn(core, parts, resource));
+		if (!(take > 0)) continue;
+		const put = depositInto(core, parts, resource, take);
+		if (put <= 0) continue;
+		held[def.id] = have - put;
+		moved[resource] = put;
+	}
+	if (Object.keys(moved).length === 0)
+		return refuse(
+			stocked
+				? 'the vessel has no room for the propellant in storage'
+				: 'the site stores no propellant yet'
+		);
+	core.events.emit('site:refuelled', { site: site.id, vessel: command.vessel, moved });
 	return { ok: true };
 }
 

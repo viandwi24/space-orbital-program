@@ -95,6 +95,8 @@ export interface EventMap {
 	/** Off-world bases (plan 128, ADR 0125): a vessel joined or left a site as an outpost. */
 	'site:joined': { site: string; vessel: EntityId };
 	'site:left': { site: string; vessel: EntityId };
+	/** A member vessel took propellant from its site's storage (plan 386, ADR 0352). */
+	'site:refuelled': { site: string; vessel: EntityId; moved: Record<string, number> };
 	/** A supply route ran on its window (plan 128, ADR 0125 point 6). */
 	'route:delivered': { route: string; amount: number; cost: number };
 	/** An n-body world held the warp lower to keep its integration in budget (plan 125, ADR 0122 point 5). */

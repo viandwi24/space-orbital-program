@@ -1091,6 +1091,8 @@ export type Command =
 			amount: number;
 	  }
 	| { type: 'delete-route'; id: string }
+	/** Fill a member vessel's tanks from its site's storage (plan 386, ADR 0352). */
+	| { type: 'refuel'; vessel: EntityId; site: string }
 	/** Research a tech node with the world's science (plan 105, ADR 0154 point 2). */
 	| { type: 'research'; node: string }
 	/** Move a crew member to another part of the same vessel (capacity checked). */

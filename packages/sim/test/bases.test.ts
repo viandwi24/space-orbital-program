@@ -241,3 +241,101 @@ describe('supply routes (ADR 0125 point 6)', () => {
 		sim.dispose();
 	});
 });
+
+describe('refuelling from site storage (plan 386, ADR 0352)', () => {
+	/** A lander with empty tanks, landed within the base's flat zone. */
+	function emptyLander(sim: Sim, site: { latitude: number; longitude: number }): EntityId {
+		const design = stack(
+			'Lander',
+			['stock.command-pod', 'stock.tank-small', 'stock.engine-lv'],
+			[[2]]
+		);
+		design.parts[1] = {
+			...design.parts[1]!,
+			settings: {
+				'stock.resource-container': {
+					contents: {
+						'stock.liquid-fuel': { amount: 0, capacity: 400 },
+						'stock.oxidizer': { amount: 0, capacity: 490 }
+					}
+				}
+			}
+		} as never;
+		const r = sim.dispatch({
+			type: 'load-vessel',
+			design,
+			placement: {
+				kind: 'surface',
+				body: MOON,
+				latitude: site.latitude,
+				longitude: site.longitude + 400 / MoonBody.radius
+			},
+			...pilotFor(sim)
+		});
+		if (!r.ok) throw new Error(r.reason);
+		for (let i = 0; i < 600; i++) sim.step(0.02);
+		return r.vessel!;
+	}
+	const tank = (sim: Sim, id: EntityId, resource: string) =>
+		sim
+			.snapshot()
+			.vessels.find((v) => v.id === id)!
+			.resources!.find((x) => x.resource === resource)?.amount ?? 0;
+
+	test('a member takes the stored propellant up to what its tanks hold, and only a member can', async () => {
+		const first = await make();
+		const kit = landOnMoon(first, ['stock.command-pod', 'stock.base-kit']);
+		expect(first.dispatch({ type: 'deploy-base', vessel: kit, id: 'b', name: 'B' }).ok).toBe(true);
+		const sim = await resume(first);
+		first.dispose();
+		const site = sim.worldInfo.sites.find((s) => s.id === 'b')!;
+		const lander = emptyLander(sim, site);
+		expect(tank(sim, lander, 'stock.liquid-fuel')).toBe(0);
+		const stranger = sim.dispatch({ type: 'refuel', vessel: lander, site: 'b' });
+		expect(stranger.ok ? '' : stranger.reason).toContain('join the site first');
+		expect(sim.dispatch({ type: 'join-site', vessel: lander, site: 'b' }).ok).toBe(true);
+		const empty = sim.dispatch({ type: 'refuel', vessel: lander, site: 'b' });
+		expect(empty.ok ? '' : empty.reason).toBe('the site stores no propellant yet');
+		for (const commodity of ['stock.liquid-fuel', 'stock.oxidizer'])
+			expect(sim.dispatch({ type: 'market-buy', commodity, amount: 1_000, site: 'b' }).ok).toBe(
+				true
+			);
+		const moved: Array<Record<string, number>> = [];
+		sim.events.on('site:refuelled', (e) => moved.push(e.moved));
+		const r = sim.dispatch({ type: 'refuel', vessel: lander, site: 'b' });
+		expect(r.ok ? '' : r.reason).toBe('');
+		// the small tank holds 400 u of fuel and 490 u of oxidizer; the rest stays in storage
+		expect(tank(sim, lander, 'stock.liquid-fuel')).toBeCloseTo(400, 6);
+		expect(tank(sim, lander, 'stock.oxidizer')).toBeCloseTo(490, 6);
+		expect(held(sim, 'b', 'stock.liquid-fuel')).toBeCloseTo(600, 6);
+		expect(held(sim, 'b', 'stock.oxidizer')).toBeCloseTo(510, 6);
+		expect(moved).toEqual([{ 'stock.liquid-fuel': 400, 'stock.oxidizer': 490 }]);
+		const full = sim.dispatch({ type: 'refuel', vessel: lander, site: 'b' });
+		expect(full.ok ? '' : full.reason).toBe('the vessel has no room for the propellant in storage');
+		sim.dispose();
+	}, 120_000);
+
+	test('the refuelled lander lifts off on the propellant it took', async () => {
+		const first = await make();
+		const kit = landOnMoon(first, ['stock.command-pod', 'stock.base-kit']);
+		expect(first.dispatch({ type: 'deploy-base', vessel: kit, id: 'b', name: 'B' }).ok).toBe(true);
+		const sim = await resume(first);
+		first.dispose();
+		const site = sim.worldInfo.sites.find((s) => s.id === 'b')!;
+		const lander = emptyLander(sim, site);
+		sim.dispatch({ type: 'join-site', vessel: lander, site: 'b' });
+		for (const commodity of ['stock.liquid-fuel', 'stock.oxidizer'])
+			sim.dispatch({ type: 'market-buy', commodity, amount: 500, site: 'b' });
+		expect(sim.dispatch({ type: 'refuel', vessel: lander, site: 'b' }).ok).toBe(true);
+		const alt = () => {
+			const v = sim.snapshot().vessels.find((x) => x.id === lander)!;
+			return Math.hypot(v.position.x, v.position.y, v.position.z) - MoonBody.radius;
+		};
+		const before = alt();
+		expect(sim.dispatch({ type: 'stage', vessel: lander }).ok).toBe(true);
+		expect(sim.dispatch({ type: 'throttle', vessel: lander, value: 1 }).ok).toBe(true);
+		for (let k = 0; k < 500; k++) sim.step(0.02);
+		expect(alt() - before).toBeGreaterThan(20);
+		sim.dispose();
+	}, 120_000);
+});
