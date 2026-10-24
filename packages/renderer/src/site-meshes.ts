@@ -11,6 +11,9 @@ import {
 	BufferGeometry,
 	Color,
 	DataTexture,
+	AdditiveBlending,
+	BufferAttribute,
+	ConeGeometry,
 	DoubleSide,
 	Euler,
 	InstancedMesh,
@@ -21,7 +24,6 @@ import {
 	MeshBasicMaterial,
 	MeshStandardMaterial,
 	Object3D,
-	PointLight,
 	Quaternion,
 	RGBAFormat,
 	RepeatWrapping,
@@ -67,9 +69,6 @@ import {
 	tuftGeometry
 } from './site-vegetation.ts';
 import {
-	FLOOD_LIGHT_INTENSITY,
-	FLOOD_POOL,
-	FLOOD_POOL_GAIN,
 	floodLightPositions,
 	layoutTufts,
 	layoutVegetation,
@@ -547,7 +546,16 @@ export class LaunchSite {
 	private bundle: StaticBundle | null = null;
 	/** How many times the bundle was marked for a re-record (a test hook, plan 396). */
 	bundleRebuilds = 0;
-	private readonly floods: PointLight[] = [];
+	/** The additive glow of the floodlights (cones and ground pools), one material, opacity by the hour. */
+	private readonly floodGlow: Mesh[] = [];
+	private readonly floodMaterial = new MeshBasicMaterial({
+		vertexColors: true,
+		transparent: true,
+		blending: AdditiveBlending,
+		depthWrite: false,
+		side: DoubleSide,
+		opacity: 0
+	});
 	/** The swing arms (ADR 0073): each pivot turns about its vertical hinge; `armAngle` is the shared angle. */
 	private readonly arms: Object3D[] = [];
 	private armAngle: number | null = null;
@@ -691,33 +699,40 @@ export class LaunchSite {
 	}
 
 	/**
-	 * The floodlights as a fixed pool of `FLOOD_POOL` point lights (plan 414, ADR 0373): every light in the
-	 * scene is in every lit material's light loop all day (four of them cost 1.5 ms at the pad), so the
-	 * four mast banks share one light that stands at the bank nearest the camera (`aimFloods`), at intensity
-	 * 0 by day. It is always visible: the light count is part of the shader's key and never changes.
+	 * The floodlights as light that is not a light (plan 414, ADR 0373): a real point light is in every lit
+	 * material's light loop all day and cost the pad 0.4 ms each (1.5 ms for four). Each mast bank gets a
+	 * cone of additive glow down to the ground and a pool of light on it, both one material whose opacity
+	 * follows the hour: no light is added to the scene, nothing is compiled at dusk (the material is
+	 * drawn, at opacity 0, from the load), and the night pad still looks lit by four floods.
 	 */
 	private buildFloodLights(): void {
-		const at = floodLightPositions()[0]!;
-		for (let i = 0; i < FLOOD_POOL; i++) {
-			const light = new PointLight(0xffd29a, 0, 0, 2);
-			light.position.set(at.x, at.y, at.z);
-			light.name = 'site-flood';
-			this.floods.push(light);
-			this.root.add(light);
+		const cone = (height: number): BufferGeometry => {
+			const g = new ConeGeometry(11, height, 18, 1, true);
+			const p = g.getAttribute('position');
+			const col = new Float32Array(p.count * 3);
+			for (let v = 0; v < p.count; v++) {
+				// bright at the lamp (apex), nothing at the ground: additive blending makes black invisible
+				const k = p.getY(v) > 0 ? 0.55 : 0;
+				col[v * 3] = k;
+				col[v * 3 + 1] = k * 0.82;
+				col[v * 3 + 2] = k * 0.6;
+			}
+			g.setAttribute('color', new BufferAttribute(col, 3));
+			return g;
+		};
+		const geos: BufferGeometry[] = [];
+		for (const p of floodLightPositions()) {
+			const c = cone(p.y);
+			geos.push(c);
+			const m = new Mesh(c, this.floodMaterial);
+			m.position.set(p.x, p.y / 2, p.z);
+			m.name = 'site-flood-glow';
+			m.renderOrder = 4;
+			m.frustumCulled = false;
+			this.floodGlow.push(m);
+			this.root.add(m);
 		}
-	}
-
-	/** Stands the pool's light at the floodlight bank nearest the camera (`cameraRender`, render space). */
-	aimFloods(cameraRender: Vec3): void {
-		const cam = this.root.worldToLocal(new Vector3(cameraRender.x, cameraRender.y, cameraRender.z));
-		const banks = floodLightPositions();
-		const order = banks
-			.map((p, i) => ({ i, d: Math.hypot(p.x - cam.x, p.y - cam.y, p.z - cam.z) }))
-			.sort((a, b) => a.d - b.d);
-		this.floods.forEach((light, k) => {
-			const p = banks[order[k % order.length]!.i]!;
-			light.position.set(p.x, p.y, p.z);
-		});
+		this.geometries.push(...geos);
 	}
 
 	/** Measurement (plan 414): one part of the site hidden or shown. */
@@ -734,7 +749,7 @@ export class LaunchSite {
 			this.siteRocksHidden = hidden;
 			return;
 		}
-		if (part === 'floods') for (const l of this.floods) l.visible = !hidden;
+		if (part === 'floods') for (const m of this.floodGlow) m.visible = !hidden;
 		else if (part === 'structures') {
 			for (const m of this.structureMeshes) m.visible = !hidden;
 			this.rebuildBundle(); // the bundle keeps what it recorded
@@ -745,7 +760,7 @@ export class LaunchSite {
 	/** 0 by day to 1 at night. */
 	setLamps(level: number): void {
 		const k = Math.min(Math.max(level, 0), 1);
-		for (const l of this.floods) l.intensity = FLOOD_LIGHT_INTENSITY * FLOOD_POOL_GAIN * k;
+		this.floodMaterial.opacity = k;
 		this.lastLamps = k;
 	}
 

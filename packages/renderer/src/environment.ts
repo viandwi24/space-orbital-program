@@ -507,7 +507,6 @@ export class Environment {
 			);
 		this.site.setDetail(Math.hypot(frame.camToSite.x, frame.camToSite.y, frame.camToSite.z));
 		this.site.thinTufts(cameraRender);
-		this.site.aimFloods(cameraRender);
 		this.site.animate({
 			dt: input.dt,
 			time: this.time,

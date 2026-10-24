@@ -59,11 +59,8 @@ export const MASTS: readonly { x: number; z: number; height: number }[] = [
 	{ x: 24, z: -24, height: 32 },
 	{ x: -24, z: -24, height: 32 }
 ];
-/** Floodlight banks on the masts: where the lamps are and how bright (candela, night only). */
+/** Floodlight banks on the masts: where the lamps are and how bright (candela, night only; the planet pass lights the ground with them, the site draws their glow, plan 414). */
 export const FLOOD_LIGHT_INTENSITY = 1500;
-/** Floodlights are one pooled light (plan 414): it stands at the nearest bank and is brighter by this much. */
-export const FLOOD_POOL = 1;
-export const FLOOD_POOL_GAIN = 2.2;
 export const floodLightPositions = (): { x: number; y: number; z: number }[] =>
 	MASTS.map((m) => ({ x: m.x, y: m.height - 4, z: m.z }));
 export const BUILDINGS: readonly BoxSpec[] = [

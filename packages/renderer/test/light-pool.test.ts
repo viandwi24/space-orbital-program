@@ -1,12 +1,13 @@
 /**
- * Plan 414 (ADR 0373): the scene's lights are a fixed pool. Every light is in every lit material's
- * light loop and its count is part of the shader's key, so the count must not change with the hour or
- * a lamp toggling, and it is small: each light cost the pad about 0.4 ms a frame.
+ * Plan 414 (ADR 0373): the site adds no light to the scene, and the lamp pool is a fixed set. Every
+ * light is in every lit material's light loop and its count is part of the shader's key, so the count
+ * must not change with the hour or a lamp toggling, and it is small: a point light cost the pad about
+ * 0.4 ms a frame.
  */
 import { describe, expect, test } from 'bun:test';
-import { Light, Scene } from 'three';
+import { Light, Mesh, MeshBasicMaterial, Scene } from 'three';
 import { LampPool, LAMP_BUDGET } from '../src/lamps.ts';
-import { FLOOD_POOL } from '../src/site.ts';
+import { floodLightPositions } from '../src/site.ts';
 import { LaunchSite } from '../src/site-meshes.ts';
 
 const lightsIn = (o: Scene | LaunchSite['root']): Light[] => {
@@ -18,28 +19,30 @@ const lightsIn = (o: Scene | LaunchSite['root']): Light[] => {
 };
 
 describe('the site floodlights', () => {
-	test('are a pool of FLOOD_POOL lights, always visible, whatever the hour', () => {
+	test('are not lights: the site holds none, at any hour', () => {
 		const site = new LaunchSite(600_000, { latitude: 0, longitude: 0 }, 0, 0);
-		const floods = () => lightsIn(site.root).filter((l) => l.name === 'site-flood');
-		expect(floods()).toHaveLength(FLOOD_POOL);
 		for (const level of [0, 0.3, 1, 0]) {
 			site.setLamps(level);
-			expect(floods()).toHaveLength(FLOOD_POOL);
-			expect(floods().every((l) => l.visible)).toBe(true);
+			expect(lightsIn(site.root)).toHaveLength(0);
 		}
-		expect(floods()[0]!.intensity).toBe(0); // day again
-		site.setLamps(1);
-		expect(floods()[0]!.intensity).toBeGreaterThan(0);
 		site.dispose();
 	});
-	test('the pooled light stands at the bank nearest the camera', () => {
+	test('are a glow per mast bank, drawn all day at an opacity that follows the hour', () => {
 		const site = new LaunchSite(600_000, { latitude: 0, longitude: 0 }, 0, 0);
-		site.root.updateMatrixWorld(true);
-		const light = lightsIn(site.root).find((l) => l.name === 'site-flood')!;
-		site.aimFloods({ x: 200, y: 0, z: 200 });
-		const a = light.position.clone();
-		site.aimFloods({ x: -200, y: 0, z: -200 });
-		expect(light.position.distanceTo(a)).toBeGreaterThan(10);
+		const glow = () => {
+			const out: Mesh[] = [];
+			site.root.traverse((x) => {
+				if (x.name === 'site-flood-glow') out.push(x as Mesh);
+			});
+			return out;
+		};
+		expect(glow()).toHaveLength(floodLightPositions().length);
+		const opacity = () => (glow()[0]!.material as MeshBasicMaterial).opacity;
+		site.setLamps(0);
+		expect(opacity()).toBe(0);
+		expect(glow().every((m) => m.visible)).toBe(true); // drawn at 0: its pipeline exists from the load
+		site.setLamps(1);
+		expect(opacity()).toBe(1);
 		site.dispose();
 	});
 });
@@ -56,7 +59,7 @@ describe('the lamp pool', () => {
 });
 
 describe('the light budget', () => {
-	test('the pools add up to a handful', () => {
-		expect(FLOOD_POOL + LAMP_BUDGET).toBeLessThanOrEqual(4);
+	test('a pool of a few lamps and no light from the site', () => {
+		expect(LAMP_BUDGET).toBeLessThanOrEqual(2);
 	});
 });
