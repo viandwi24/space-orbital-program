@@ -50,6 +50,8 @@ export interface PendingDetach {
 	part: EntityId;
 	node: string;
 	impulse: number;
+	/** The part is used up by the cut (a separator, plan 275): it is removed once the split is done. */
+	consume?: boolean;
 }
 
 export interface SimCore {

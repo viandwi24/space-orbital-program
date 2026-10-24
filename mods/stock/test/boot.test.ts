@@ -231,6 +231,9 @@ describe('stock boots through the loader', () => {
 			'stock.scrubber-radial',
 			'stock.seismometer',
 			'stock.seismometer-radial',
+			'stock.separator-1250',
+			'stock.separator-2500',
+			'stock.separator-3750',
 			'stock.service-bay',
 			'stock.service-bay-wide',
 			'stock.servo-m',
@@ -262,8 +265,12 @@ describe('stock boots through the loader', () => {
 			'stock.tank-5000-short',
 			'stock.tank-7500',
 			'stock.tank-7500-long',
+			'stock.tank-adapter-3750-1875',
+			'stock.tank-booster',
 			'stock.tank-medium',
 			'stock.tank-small',
+			'stock.tank-sphere',
+			'stock.tank-toroid',
 			'stock.tank-wide',
 			'stock.tank-wide-short',
 			'stock.telescope',
@@ -446,7 +453,9 @@ describe('stock boots through the loader', () => {
 			// the orbiter's gear and brake chute hang radially (plan 361)
 			'stock.orbiter-gear',
 			'stock.orbiter-gear-nose',
-			'stock.drag-chute'
+			'stock.drag-chute',
+			// the R-7 strap-on tank hangs radially too (plan 275)
+			'stock.tank-booster'
 		]);
 		// the mission parts of plans 276–300 with other node sets: radial-only, bottom-only, a
 		// hub's side ports, a coupler's several bottoms

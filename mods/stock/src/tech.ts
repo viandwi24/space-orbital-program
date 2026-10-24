@@ -80,6 +80,8 @@ export const STOCK_TECH = [
 			'stock.fuel-line',
 			// a small tank for probes (plan 289)
 			'stock.tank-0625',
+			// plan 275: the 1.25 m separator
+			'stock.separator-1250',
 			'stock.truss',
 			'stock.coupler-2',
 			'stock.coupler-3',
@@ -102,7 +104,10 @@ export const STOCK_TECH = [
 			'stock.nose-cone-large',
 			'stock.tail-cone-small',
 			'stock.tail-cone-medium',
-			'stock.tail-cone-large'
+			'stock.tail-cone-large',
+			// plan 275: a ring tank and a ball tank
+			'stock.tank-toroid',
+			'stock.tank-sphere'
 		]
 	}),
 	// ---- tier 2: 60 science, after the first orbit ----
@@ -114,7 +119,14 @@ export const STOCK_TECH = [
 		requires: ['stock.structures'],
 		milestone: 'orbit:home',
 		description: 'More thrust: the cluster engine and the bigger boosters.',
-		unlocks: ['stock.engine-cluster', 'stock.booster', 'stock.srb-large', 'stock.booster-liquid']
+		unlocks: [
+			'stock.engine-cluster',
+			'stock.booster',
+			'stock.srb-large',
+			'stock.booster-liquid',
+			// plan 275: the R-7's tapered strap-on tank
+			'stock.tank-booster'
+		]
 	}),
 	defineTechNode({
 		id: 'stock.orbital-engines',
@@ -277,6 +289,7 @@ export const STOCK_TECH = [
 			'stock.tank-wide',
 			'stock.engine-wide',
 			'stock.decoupler-wide',
+			'stock.separator-2500',
 			'stock.heat-shield-wide',
 			// the 1.875 m class (plan 289)
 			'stock.tank-1875-short',
@@ -434,6 +447,8 @@ export const STOCK_TECH = [
 			'stock.decoupler-3750',
 			'stock.decoupler-5000',
 			'stock.decoupler-7500',
+			'stock.separator-3750',
+			'stock.tank-adapter-3750-1875',
 			'stock.adapter-2500-3750',
 			'stock.adapter-3750-5000',
 			'stock.adapter-5000-7500',

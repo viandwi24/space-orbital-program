@@ -1757,9 +1757,9 @@ exports[`stock part ids, masses, costs and modules match the snapshot 1`] = `
     ],
   },
   {
-    "cost": 17,
+    "cost": 20,
     "id": "stock.tank-0625",
-    "mass": 65,
+    "mass": 80,
     "modules": [
       [
         "stock.paint",
@@ -1767,15 +1767,7 @@ exports[`stock part ids, masses, costs and modules match the snapshot 1`] = `
           "offers": [
             "default",
             "plain",
-            "stripe",
-            "bands",
-            "checker",
-            "half-black",
             "steel",
-            "roll",
-            "top-band",
-            "aft-band",
-            "service",
           ],
         },
       ],
@@ -1784,10 +1776,10 @@ exports[`stock part ids, masses, costs and modules match the snapshot 1`] = `
         {
           "contents": {
             "stock.liquid-fuel": {
-              "capacity": 18,
+              "capacity": 21,
             },
             "stock.oxidizer": {
-              "capacity": 22,
+              "capacity": 26,
             },
           },
         },
@@ -2405,6 +2397,171 @@ exports[`stock part ids, masses, costs and modules match the snapshot 1`] = `
         {
           "node": "side",
           "size": 1.25,
+        },
+      ],
+    ],
+  },
+  {
+    "cost": 406,
+    "id": "stock.tank-toroid",
+    "mass": 300,
+    "modules": [
+      [
+        "stock.paint",
+        {
+          "offers": [
+            "default",
+            "plain",
+            "steel",
+          ],
+        },
+      ],
+      [
+        "stock.resource-container",
+        {
+          "contents": {
+            "stock.liquid-fuel": {
+              "capacity": 434,
+            },
+            "stock.oxidizer": {
+              "capacity": 530,
+            },
+          },
+        },
+      ],
+    ],
+  },
+  {
+    "cost": 307,
+    "id": "stock.tank-sphere",
+    "mass": 280,
+    "modules": [
+      [
+        "stock.paint",
+        {
+          "offers": [
+            "default",
+            "plain",
+            "steel",
+          ],
+        },
+      ],
+      [
+        "stock.resource-container",
+        {
+          "contents": {
+            "stock.liquid-fuel": {
+              "capacity": 328,
+            },
+            "stock.oxidizer": {
+              "capacity": 401,
+            },
+          },
+        },
+      ],
+    ],
+  },
+  {
+    "cost": 1770,
+    "id": "stock.tank-adapter-3750-1875",
+    "mass": 1030,
+    "modules": [
+      [
+        "stock.paint",
+        {
+          "offers": [
+            "default",
+            "plain",
+            "steel",
+          ],
+        },
+      ],
+      [
+        "stock.resource-container",
+        {
+          "contents": {
+            "stock.liquid-fuel": {
+              "capacity": 1890,
+            },
+            "stock.oxidizer": {
+              "capacity": 2310,
+            },
+          },
+        },
+      ],
+    ],
+  },
+  {
+    "cost": 315,
+    "id": "stock.tank-booster",
+    "mass": 975,
+    "modules": [
+      [
+        "stock.paint",
+        {
+          "offers": [
+            "default",
+            "plain",
+            "steel",
+          ],
+        },
+      ],
+      [
+        "stock.resource-container",
+        {
+          "contents": {
+            "stock.liquid-fuel": {
+              "capacity": 336,
+            },
+            "stock.oxidizer": {
+              "capacity": 411,
+            },
+          },
+        },
+      ],
+    ],
+  },
+  {
+    "cost": 70,
+    "id": "stock.separator-1250",
+    "mass": 35,
+    "modules": [
+      [
+        "stock.decoupler",
+        {
+          "consume": true,
+          "ejectionImpulse": 1000,
+          "separates": "top",
+        },
+      ],
+    ],
+  },
+  {
+    "cost": 280,
+    "id": "stock.separator-2500",
+    "mass": 140,
+    "modules": [
+      [
+        "stock.decoupler",
+        {
+          "consume": true,
+          "ejectionImpulse": 4000,
+          "separates": "top",
+        },
+      ],
+    ],
+  },
+  {
+    "cost": 630,
+    "id": "stock.separator-3750",
+    "mass": 315,
+    "modules": [
+      [
+        "stock.decoupler",
+        {
+          "consume": true,
+          "ejectionImpulse": 9000,
+          "separates": "top",
         },
       ],
     ],

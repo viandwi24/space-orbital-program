@@ -153,7 +153,8 @@ export function toastForSimEvent(event: SimEvent, ctx: ToastContext): Toast | nu
 				? { kind: 'success', title: 'Maneuver complete', key: 'maneuver' }
 				: null;
 		case 'vessel-destroyed':
-			return ctx.isActiveVessel(event.vessel)
+			// a separator used up by its cut is not a loss (plan 275)
+			return event.reason !== 'spent' && ctx.isActiveVessel(event.vessel)
 				? { kind: 'danger', title: 'Vessel lost', detail: event.reason }
 				: null;
 		// who flies is never silent (plan 320, ADR 0276 point 4)

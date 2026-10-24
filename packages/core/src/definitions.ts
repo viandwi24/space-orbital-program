@@ -327,9 +327,11 @@ export interface VesselApi {
 	 * Sever the attachment at this part's attach node `node`: whatever hangs off it leaves as its
 	 * own vessel. `impulse` (N·s, default 0) pushes the two halves apart along the node direction,
 	 * equal and opposite. Applied by the sim after the current hook returns. No effect when nothing
-	 * is attached at `node`.
+	 * is attached at `node`. With `consume` the part itself is used up by the cut (a separator,
+	 * plan 275): once the split is done it is cut from its other neighbours too and removed, so it
+	 * leaves no ring on either side.
 	 */
-	detach(node: string, impulse?: number): void;
+	detach(node: string, impulse?: number, options?: { consume?: boolean }): void;
 	/**
 	 * A connector part lets go of its far end (plan 313: a strut released in flight): its link is
 	 * cut, as a split cuts it. No effect on a part without a link. Optional in test fakes.

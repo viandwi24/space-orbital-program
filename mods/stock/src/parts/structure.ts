@@ -97,6 +97,60 @@ export const PartDecoupler7500 = classDecoupler(
 );
 
 /**
+ * A stack separator of class `size` m (plan 275, CPL-02): it cuts the stack as a decoupler does and
+ * is used up by the cut (`consume`), so it leaves no ring on either side. A shaped charge, not a
+ * ring of bolts: a third lighter than the decoupler of its class, and one use.
+ */
+function separator(id: string, title: string, size: number, height: number) {
+	const area = (size / 2.5) ** 2;
+	const massKg = Math.round((140 * area) / 5) * 5;
+	return definePart({
+		id,
+		title,
+		mass: kg(massKg),
+		cost: partCost(massKg, 'structure'),
+		impactTolerance: 8,
+		shape: cylinder(height, size / 2),
+		visual: {
+			kind: 'decoupler',
+			palette: { primary: '#3b4047', accent: '#e3a61f' }
+		},
+		attach: stackNodes(height, size),
+		crossfeed: false,
+		modules: [
+			[
+				ModuleDecoupler,
+				{
+					separates: 'top',
+					consume: true,
+					ejectionImpulse: Math.round((4_000 * area) / 100) * 100
+				}
+			]
+		],
+		stagingIcon: 'decoupler'
+	});
+}
+
+export const PartSeparator1250 = separator(
+	'stock.separator-1250',
+	'OrbitX RS-TS12 "Clean Break"',
+	1.25,
+	0.12
+);
+export const PartSeparator2500 = separator(
+	'stock.separator-2500',
+	'OrbitX RS-TS25 "Clean Break"',
+	2.5,
+	0.16
+);
+export const PartSeparator3750 = separator(
+	'stock.separator-3750',
+	'OrbitX RS-TS37 "Clean Break"',
+	3.75,
+	0.2
+);
+
+/**
  * A plate that bolts to the side of a stack part (radial attachment, ADR 0034) and carries a
  * booster on its `outer` face. Staged, it fires the `radial` link: it leaves with the booster.
  * Boosters are staged with symmetric copies, so the pushes cancel.
@@ -342,6 +396,9 @@ export const PartFairingPanel = definePart({
 });
 
 /** The structural parts of the size classes of plan 289. */
+/** The separators of plan 275. */
+export const STOCK_SEPARATORS = [PartSeparator1250, PartSeparator2500, PartSeparator3750] as const;
+
 export const STOCK_CLASS_STRUCTURE = [
 	PartDecoupler1875,
 	PartDecoupler3750,

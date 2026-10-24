@@ -169,6 +169,9 @@ export const STOCK_TANK_ERA: Record<string, Era> = {
 	'stock.tank-small': 'early',
 	'stock.tank-medium': 'early',
 	'stock.tank-0625': 'early',
+	// plan 275: the shaped tanks (the R-7's strap-on is of 1957)
+	'stock.tank-booster': 'early',
+	'stock.tank-adapter-3750-1875': 'modern',
 	'stock.tank-3750-short': 'modern',
 	'stock.tank-3750': 'modern',
 	'stock.tank-3750-long': 'modern',

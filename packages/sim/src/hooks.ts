@@ -197,7 +197,7 @@ export function makeContext(core: SimCore, partId: EntityId, moduleId: string): 
 			credit: (subject, value) => creditScience(core, subject, value, 'recovered')
 		},
 		signal: () => signalOf(core, part.vessel),
-		detach(node, impulse = 0) {
+		detach(node, impulse = 0, options) {
 			if (!Number.isFinite(impulse) || impulse < 0) {
 				throw new RangeError(`detach impulse must be a finite number >= 0, got ${impulse}`);
 			}
@@ -206,7 +206,12 @@ export function makeContext(core: SimCore, partId: EntityId, moduleId: string): 
 			if (closed !== undefined) {
 				throw new EnclosedError(partDefOf(core, partOf(core, closed)).title);
 			}
-			core.pending.push({ part: partId, node, impulse });
+			core.pending.push({
+				part: partId,
+				node,
+				impulse,
+				...(options?.consume ? { consume: true } : {})
+			});
 		},
 		releaseLink() {
 			// a connector lets go of its far end (plan 313): as a split cuts it

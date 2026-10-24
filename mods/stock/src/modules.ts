@@ -608,7 +608,12 @@ export const decouplerConfigSchema = z.object({
 	 * Whether staging fires it at first (plan 241's switch, as a design's part setting): an escape
 	 * tower on a boost cover leaves with the cover, so its own joint stays shut (system audit D6).
 	 */
-	staged: z.boolean().default(true)
+	staged: z.boolean().default(true),
+	/**
+	 * A separator (plan 275): it is used up by the cut and leaves no ring on either side. It
+	 * counts as spent mass the moment it fires.
+	 */
+	consume: z.boolean().optional()
 });
 export type DecouplerConfig = z.output<typeof decouplerConfigSchema>;
 export interface DecouplerState {
@@ -622,11 +627,15 @@ export interface DecouplerState {
 function fire(ctx: {
 	config: DecouplerConfig;
 	state: DecouplerState;
-	vessel: { detach(node: string, impulse?: number): void };
+	vessel: { detach(node: string, impulse?: number, options?: { consume?: boolean }): void };
 }): void {
 	if (ctx.state.decoupled) return;
 	// detach first: it refuses (throws) for a part inside a closed bay, which must stay armed
-	ctx.vessel.detach(ctx.config.separates, ctx.config.ejectionImpulse);
+	ctx.vessel.detach(
+		ctx.config.separates,
+		ctx.config.ejectionImpulse,
+		ctx.config.consume ? { consume: true } : undefined
+	);
 	ctx.state.decoupled = true;
 }
 

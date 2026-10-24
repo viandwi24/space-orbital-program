@@ -137,14 +137,14 @@ Logika sim RCS sudah ada (`ModuleRcs`, plan 211). Konfigurasinya per nozzle (`no
 |---|---|---|---|---|---|---|
 | TNK-01 | Tangki 1,25 m (`tank-small/medium`) | FL-T100…T800 | barel dengan collar, las, stringer, stripe | E (**livery**: putih, hitam-putih, oranye busa, perak) | 🎨 livery | P1 |
 | TNK-02 | Tangki 2,5 m (`tank-wide*`) | X200 series | sama + kubah ujung terlihat | E | 🎨 livery | P1 |
-| TNK-03 | Tangki 0,625 m | Oscar-B | tangki kecil bulat | E | ✅ `stock.tank-0625` (plan 289, barel; bentuk bulat di 275) | P2 |
+| TNK-03 | Tangki 0,625 m | Oscar-B | tangki kecil bulat | E | ✅ `stock.tank-0625` (bola, plan 275) | P2 |
 | TNK-04 | Tangki 3,75 m dan 5 m | S3 / S4 [MH] | panel besar bergaris | E | ✅ 1,875/3,75/5/7,5 m (plan 289: `tank-1875*`, `tank-3750*`, `tank-5000*`, `tank-7500*`; panel bergaris di 275) | P1 (Kronos V) |
-| TNK-05 | Tangki adapter (meruncing) | C7 / FL-A | kerucut berisi bahan bakar | E | 🆕 | P2 |
+| TNK-05 | Tangki adapter (meruncing) | C7 / FL-A | kerucut berisi bahan bakar | E | ✅ `stock.tank-adapter-3750-1875` (plan 275) | P2 |
 | TNK-06 | Tangki radial | Dumpling / Baguette | kapsul kecil menempel di dinding | E | 🆕 | P3 |
-| TNK-07 | Tangki toroid | Doughnut / FL-R toroid | **cincin** (donat) di antara stack | E | 🆕 | P2 (Briz) |
+| TNK-07 | Tangki toroid | Doughnut / FL-R toroid | **cincin** (donat) di antara stack | E | ✅ `stock.tank-toroid` (plan 275) | P2 (Briz) |
 | TNK-08 | Monoprop (`monoprop-tank`, `monoprop-radial`) | FL-R25 / Stratus-V | bola atau toroid; radial: kapsul | E | 🎨 (sekarang barel) | P1 |
-| TNK-09 | Tangki booster meruncing | (R-7 strap-on) | kerucut panjang yang menyempit ke atas, puncak lancip | E | 🆕 | P1 (Soyuz) |
-| TNK-10 | Tangki bola | Spherotron [KSP2] | bola dengan cincin pemasang | E | 🆕 | P3 |
+| TNK-09 | Tangki booster meruncing | (R-7 strap-on) | kerucut panjang yang menyempit ke atas, puncak lancip | E | ✅ `stock.tank-booster` (plan 275) | P1 (Soyuz) |
+| TNK-10 | Tangki bola | Spherotron [KSP2] | bola dengan cincin pemasang | E | ✅ `stock.tank-sphere` (plan 275) | P3 |
 
 ### 3.4 Mesin dan booster
 
@@ -170,7 +170,7 @@ Logika sim RCS sudah ada (`ModuleRcs`, plan 211). Konfigurasinya per nozzle (`no
 | ID | Part kita | Referensi KSP/KSP2 | Bentuk & detail | Interaksi | Status | Prio |
 |---|---|---|---|---|---|---|
 | CPL-01 | Decoupler stack (`decoupler*`) | TD-06…TD-50 | cakram tipis dengan **pita bahaya** kuning-hitam, baut eksplosif | S, P, E (gaya dorong, crossfeed) | 🎨; kelas 1,875–7,5 m ✅ (plan 289) | P1 |
-| CPL-02 | Separator (hancur sendiri) | TS-06…TS-50 | sama, tanpa sisa | S | 🆕 | P2 |
+| CPL-02 | Separator (hancur sendiri) | TS-06…TS-50 | sama, tanpa sisa | S | ✅ `stock.separator-1250/2500/3750` (plan 275; 5 dan 7,5 m belum) | P2 |
 | CPL-03 | Decoupler radial (`radial-decoupler`) | TT-38K / TT-70 | balok dengan engsel | S | ✅ | — |
 | CPL-04 | Docking port (`docking-port*`) | Clamp-O-Tron Jr./std/Sr. | cincin dengan **3 kelopak pemandu**, lampu sasaran | P (undock, control from here) | 🎨; 3,75 m ✅ (plan 289) | P1 |
 | CPL-05 | Docking port bertutup | Shielded Clamp-O-Tron | port dengan penutup yang membuka | P, A | 🆕 | P2 |

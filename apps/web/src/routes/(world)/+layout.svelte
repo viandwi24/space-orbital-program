@@ -497,9 +497,11 @@
 					scriptRunning = scriptVessels.size > 0;
 				}),
 				client.onSimEvent((e) => {
-					if (e.type === 'vessel-destroyed')
-						bell.push({ source: 'sim', text: `Vessel lost: ${e.reason}` });
-					else if (e.type === 'soi-changed')
+					if (e.type === 'vessel-destroyed') {
+						// a separator used up by its cut is not a loss (plan 275)
+						if (e.reason !== 'spent')
+							bell.push({ source: 'sim', text: `Vessel lost: ${e.reason}` });
+					} else if (e.type === 'soi-changed')
 						bell.push({ source: 'sim', text: `A vessel entered ${e.to}` });
 					else if (e.type === 'maneuver-complete')
 						bell.push({ source: 'sim', text: 'A maneuver node was burned' });

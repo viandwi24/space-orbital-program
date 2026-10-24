@@ -1,8 +1,8 @@
 ---
 id: 275
 title: "Size classes, part two: toroid, sphere and tapered tanks, the round 0.625 m tank, a separator and the catalogue size filter"
-status: draft
-owner: ""
+status: done
+owner: "Worker B"
 depends: [289, 291, 380]
 phase: 0
 created: 2026-10-21
@@ -49,23 +49,24 @@ The stock catalogue gains the tank shapes the size classes still lack (toroid, s
 
 ## Acceptance criteria
 
-- [ ] `bun test mods/stock` passes, including `realism.test.ts` and `english.test.ts` with the new parts, and seam and node-size tests for every new part.
-- [ ] `bun test packages/sim/test/size-classes-pad.test.ts` passes with a 7.5 m, 100 m-tall stack that stands 5 s on the pad and lifts off.
-- [ ] A web test shows the catalogue size filter keeping only the parts of the chosen class.
-- [ ] `bun test`, `bun run typecheck`, `bun run build` and `bun run docs:check` pass.
-- [ ] Screenshots of every new or remodelled part (catalogue icon and in the Hangar) in the journal, before and after.
+- [x] `bun test mods/stock` passes, including `realism.test.ts` and `english.test.ts` with the new parts, and seam and node-size tests for every new part.
+- [x] `bun test packages/sim/test/size-classes-pad.test.ts` passes with a 7.5 m, 100 m-tall stack that stands 5 s on the pad and lifts off.
+- [x] A web test shows the catalogue size filter keeping only the parts of the chosen class.
+- [x] `bun test`, `bun run typecheck`, `bun run build` and `bun run docs:check` pass.
+- [x] Screenshots of every new or remodelled part (catalogue icon and in the Hangar) in the journal, before and after.
 
 ## Docs checklist
 
-- [ ] `docs/STATUS.md` updated (board row, next plan, open issues).
-- [ ] `docs/journal/275-size-classes-to-7-5-m.md` written.
-- [ ] Affected `docs/architecture/*.md` updated to match what shipped.
-- [ ] New ADRs written for any decision made here, linked above.
-- [ ] `docs/research/stack-versions.md` updated for anything looked up.
-- [ ] `refs/part-visuals-and-blueprints/parts-tracker.md`: status column of TNK-03, TNK-05, TNK-07, TNK-09, TNK-10, CPL-02.
+- [x] `docs/STATUS.md` updated (board row, next plan, open issues).
+- [x] `docs/journal/275-size-classes-to-7-5-m.md` written.
+- [x] Affected `docs/architecture/*.md` updated to match what shipped.
+- [x] New ADRs written for any decision made here, linked above.
+- [x] `docs/research/stack-versions.md` updated for anything looked up.
+- [x] `refs/part-visuals-and-blueprints/parts-tracker.md`: status column of TNK-03, TNK-05, TNK-07, TNK-09, TNK-10, CPL-02.
 
 ## Log
 
+- 2026-10-24 — Done by Worker B (ADR 0347, API 0.1.124): the toroid, sphere and tapered tank generators and parts (TNK-05/07/09/10), the round 0.625 m tank, the separators (CPL-02, a decoupler that is used up), the catalogue size filter, the 100 m 7.5 m tower on the pad. Open: the panelled large tanks, radial tanks, the owner's look.
 - 2026-10-24 — Rewritten by the coordinator after an audit against main @ 4c546c02: plan 289 delivered the node sizes, the barrel set and the pad test; this plan keeps the new tank shapes, the round 0.625 m tank, the separator, the size filter and a 100 m pad test, under ADR 0317 realism.
 - 2026-10-21 — The basic set (classes, tanks, decouplers, adapters, cones, heat shields, ports, fairing bases with existing generators) moved to plan 289 for the Linux worker; this plan keeps the new tank shapes (tapered, toroid, sphere), the catalogue size filter, separators and the pad measurement at 7.5 m.
 - 2026-10-21 — Drafted from the part-visuals research and the owner's decisions of 2026-10-21 (CTO calls delegated by the owner). Not to be started until the owner releases the parts work: on 2026-10-21 main is busy with renderer fixes and a UI/UX agent.

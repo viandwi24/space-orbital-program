@@ -9,6 +9,7 @@
 		type CategoryId,
 		type ModuleLookup
 	} from '../editor/categories';
+	import { matchesSize, offeredSizes } from '../editor/size-class';
 	import type { PartFact } from '../editor/part-info';
 	import { formatFunds, formatMass } from '../format';
 	import type { LibraryEntry } from './library';
@@ -45,6 +46,8 @@
 
 	let query = $state('');
 	let category = $state<CategoryId | 'all' | 'assemblies'>('all');
+	/** The size filter (plan 275): a stack size class in metres, or null for every part. */
+	let size = $state<number | null>(null);
 	let focusId = $state<string | null>(null);
 	let search: HTMLInputElement;
 
@@ -78,7 +81,13 @@
 			(p) =>
 				category !== 'assemblies' &&
 				(category === 'all' || categoryOf(p, modules, categories) === category) &&
+				matchesSize(p, size) &&
 				matchesQuery(p, query)
+		)
+	);
+	const sizes = $derived(
+		offeredSizes(
+			parts.filter((p) => category === 'all' || categoryOf(p, modules, categories) === category)
 		)
 	);
 	const heading = $derived(tabs.find((t) => t.id === category)?.label ?? 'All parts');
@@ -174,6 +183,20 @@
 			/>
 		</div>
 
+		{#if category !== 'assemblies' && sizes.length > 1}
+			<div class="sizes" role="group" aria-label="Size class">
+				{#each sizes as s (s.size)}
+					<button
+						type="button"
+						class="size"
+						aria-pressed={size === s.size}
+						data-tip="{s.size} m ({s.count})"
+						onclick={() => (size = size === s.size ? null : s.size)}>{s.label}</button
+					>
+				{/each}
+			</div>
+		{/if}
+
 		<!-- svelte-ignore a11y_no_noninteractive_element_interactions: the keys bubble up from the card buttons -->
 		<div class="grid" bind:this={grid} role="group" aria-label="Parts" onkeydown={gridKey}>
 			{#if category === 'assemblies'}
@@ -245,7 +268,11 @@
 				{:else}
 					<div class="none">
 						<p>No part matches “{query}”.</p>
-						<button type="button" class="link" onclick={() => ((query = ''), (category = 'all'))}>
+						<button
+							type="button"
+							class="link"
+							onclick={() => ((query = ''), (category = 'all'), (size = null))}
+						>
 							Clear search
 						</button>
 					</div>
@@ -393,6 +420,30 @@
 	}
 	.search input::-webkit-search-cancel-button {
 		filter: invert(1);
+	}
+	.sizes {
+		display: flex;
+		flex-wrap: wrap;
+		gap: 2px;
+	}
+	.size {
+		height: 1.375rem;
+		padding: 0 0.4rem;
+		border: 0;
+		border-radius: var(--radius-tile);
+		background: var(--surface-tile);
+		color: var(--text-muted);
+		font: inherit;
+		font-size: var(--t-small);
+		cursor: pointer;
+	}
+	.size[aria-pressed='true'] {
+		background: var(--text-primary);
+		color: var(--surface-inset);
+	}
+	.size:focus-visible {
+		outline: 2px solid var(--text-primary);
+		outline-offset: 1px;
 	}
 	.grid {
 		display: grid;

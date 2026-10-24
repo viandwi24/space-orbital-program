@@ -546,14 +546,26 @@ export function processPending(core: SimCore): void {
 		const live = queue.filter((r) => core.world.hasEntity(r.part));
 		if (live.length <= 1) {
 			for (const req of live) splitVessel(core, req.part, req.node, req.impulse);
-			continue;
+		} else {
+			const kicks = live.flatMap((req) => plannedKicks(core, req));
+			for (const req of live) {
+				if (core.world.hasEntity(req.part)) splitVessel(core, req.part, req.node, 0);
+			}
+			applyKicks(core, kicks);
 		}
-		const kicks = live.flatMap((req) => plannedKicks(core, req));
-		for (const req of live) {
-			if (core.world.hasEntity(req.part)) splitVessel(core, req.part, req.node, 0);
-		}
-		applyKicks(core, kicks);
+		for (const req of live) if (req.consume) spendPart(core, req.part);
 	}
+}
+
+/**
+ * A separator that has cut its node (plan 275) is used up: cut from every other neighbour and
+ * removed as the lone vessel it has become. The event's reason is `spent`, which the host does not
+ * report as a loss.
+ */
+function spendPart(core: SimCore, partId: EntityId): void {
+	if (!core.world.hasEntity(partId)) return;
+	loosePart(core, partId);
+	destroyVessel(core, partOf(core, partId).vessel, 'spent');
 }
 
 /** The change of velocity a cut gives every part of each of its two sides, from the pre-cut graph. */

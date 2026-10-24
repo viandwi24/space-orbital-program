@@ -335,6 +335,10 @@ JSON data files (`part.json`, `resource.json`) that reference module ids by stri
 
 `BodyDefinition.terrain` for a `hills` body takes `map`, the path of a PNG in the mod's package (with the body's own `seed`): the image is the body's biome map (`setMapOverride` in core), so the sim's ground and the renderer's bakes read it. The host calls `installTerrainMaps(plugins, assets)` once per world; core has `decodePng`.
 
+## A separator that is used up (API 0.1.124, plan 275, ADR 0347)
+
+`vessel.detach(node, impulse, { consume: true })` queues a cut whose part is used up by it: after the sim has split the vessel, the part is cut from its other neighbours and removed (`vessel:destroyed` with reason `spent`, which hosts do not report as a loss). Stock's `ModuleDecoupler` takes `consume: true` for its `stock.separator-*` parts, which leave no ring on either stage. The part-visual kinds `tank-toroid`, `tank-sphere` and `tank-taper` (`generators/tank-shapes.ts`) draw the shaped tanks: collars at the node radius, params `core` (collar radius) or `top` and `bottom` (radii).
+
 ## Card art for presets and system variants (API 0.1.101, plan 317, ADR 0273)
 
 `PresetDefinition` and `SystemVariantDefinition` take two optional fields:

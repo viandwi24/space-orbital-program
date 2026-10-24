@@ -63,8 +63,8 @@ export const STOCK_FAIRING_PARTS = [
 import { STOCK_CLASS_CONES } from './aero.ts';
 import { PartDockingPort3750, PartDockingPortSide } from './docking.ts';
 import { STOCK_CLASS_HEAT_SHIELDS } from './recovery.ts';
-import { STOCK_CLASS_STRUCTURE } from './structure.ts';
-import { STOCK_CLASS_TANKS } from './tanks.ts';
+import { STOCK_CLASS_STRUCTURE, STOCK_SEPARATORS } from './structure.ts';
+import { STOCK_CLASS_TANKS, STOCK_SHAPED_TANKS } from './tanks.ts';
 
 /**
  * Plan 289 (ADR 0256): a structural set in the size classes 0.625, 1.875, 3.75, 5 and 7.5 m,
@@ -77,5 +77,8 @@ export const STOCK_SIZE_CLASS_PARTS = [
 	...STOCK_CLASS_HEAT_SHIELDS,
 	PartDockingPort3750,
 	// plan 356: the side port for payloads lying in a cargo bay
-	PartDockingPortSide
+	PartDockingPortSide,
+	// plan 275: the toroid, the sphere, the adapter tank and the booster tank
+	...STOCK_SHAPED_TANKS,
+	...STOCK_SEPARATORS
 ] as const;

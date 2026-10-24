@@ -5,6 +5,10 @@ import { Stock, landingLegConfigSchema } from '../src/index.ts';
 const KINDS = [
 	'capsule',
 	'tank',
+	// plan 275
+	'tank-toroid',
+	'tank-sphere',
+	'tank-taper',
 	'engine',
 	'engine-cluster',
 	'decoupler',

@@ -55,6 +55,7 @@ import { light, lightAngled, lightNav, lightPanel } from './light.ts';
 import { rcsBlock } from './rcs-block.ts';
 import { tailCone } from './tail-cone.ts';
 import { tank } from './tank.ts';
+import { tankSphere, tankTaper, tankToroid } from './tank-shapes.ts';
 import { reactionWheel } from './wheel.ts';
 import { wing } from './wing.ts';
 
@@ -72,6 +73,10 @@ export function registerStockGenerators(): void {
 	registerPartGenerator('light-angled', lightAngled);
 	registerPartGenerator('light-nav', lightNav);
 	registerPartGenerator('tank', tank);
+	// plan 275: the toroid, the sphere with its ring, the tapered booster and adapter tank
+	registerPartGenerator('tank-toroid', tankToroid);
+	registerPartGenerator('tank-sphere', tankSphere);
+	registerPartGenerator('tank-taper', tankTaper);
 	registerPartGenerator('engine', engine);
 	registerPartGenerator('engine-cluster', engineCluster);
 	registerPartGenerator('decoupler', decoupler);
