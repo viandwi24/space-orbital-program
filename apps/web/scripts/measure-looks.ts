@@ -42,6 +42,8 @@ const looks = (process.env.LOOKS ?? 'bakes,farShell,rocks,images').split(',') as
 	| 'structures'
 	| 'people'
 	| 'steam'
+	| 'bushes'
+	| 'siteRocks'
 >;
 const backend = process.env.BACKEND ?? 'webgpu';
 const preset = process.env.PRESET ?? 'high';
@@ -160,7 +162,7 @@ async function open(scene: string): Promise<Page> {
 			throw e;
 		});
 	}
-	await page.waitForTimeout(4000);
+	await page.waitForTimeout(Number(process.env.SETTLE ?? 4000));
 	// the other bodies from 300 and 900 km up: where the bakes and the mod planet's images are drawn
 	const farFrom: Record<string, [string, number]> = {
 		cinder: ['stock.cinder', 300_000],

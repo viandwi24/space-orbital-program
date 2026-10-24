@@ -128,7 +128,9 @@ export interface RendererDebug {
 			| 'floods'
 			| 'structures'
 			| 'people'
-			| 'steam',
+			| 'steam'
+			| 'bushes'
+			| 'siteRocks',
 		off: boolean
 	): void;
 	/** Rocks on the ground now: placed, drawn near and far, and whether the group is shown (plan 402). */

@@ -40,6 +40,9 @@ export class LodInstances {
 	private readonly colours: Float32Array;
 	private readonly xz: Float32Array;
 	private filled = 0;
+	/** Measurement: hidden whatever the detail range says. */
+	hidden = false;
+	tag = '';
 	private sortedAt: { x: number; z: number } | null = null;
 
 	constructor(
@@ -106,8 +109,8 @@ export class LodInstances {
 
 	/** Shows the two meshes (or hides them all): `visible` from the site's detail range. */
 	show(visible: boolean): void {
-		this.near.visible = visible && this.near.count > 0;
-		this.far.visible = visible && this.far.count > 0;
+		this.near.visible = visible && !this.hidden && this.near.count > 0;
+		this.far.visible = visible && !this.hidden && this.far.count > 0;
 	}
 
 	dispose(): void {

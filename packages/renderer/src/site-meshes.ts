@@ -700,7 +700,19 @@ export class LaunchSite {
 	}
 
 	/** Measurement (plan 414): one part of the site hidden or shown. */
-	setPartHidden(part: 'floods' | 'structures' | 'people' | 'steam', hidden: boolean): void {
+	setPartHidden(
+		part: 'floods' | 'structures' | 'people' | 'steam' | 'bushes' | 'siteRocks',
+		hidden: boolean
+	): void {
+		if (part === 'bushes') {
+			for (const set of this.sets.values())
+				for (const l of set.lods) if (l.tag === 'bushes') l.hidden = hidden;
+			return;
+		}
+		if (part === 'siteRocks') {
+			this.siteRocksHidden = hidden;
+			return;
+		}
 		if (part === 'floods') for (const l of this.floods) l.visible = !hidden;
 		else if (part === 'structures') {
 			for (const m of this.structureMeshes) m.visible = !hidden;
@@ -824,6 +836,7 @@ export class LaunchSite {
 				casting,
 				TREE_LOD_RADIUS
 			);
+			lod.tag = 'trees';
 			set.lods.push(lod);
 			set.meshes.push(...lod.meshes);
 			list.forEach((t) => {
@@ -853,6 +866,7 @@ export class LaunchSite {
 				true,
 				BUSH_LOD_RADIUS
 			);
+			lod.tag = 'bushes';
 			set.lods.push(lod);
 			set.meshes.push(...lod.meshes);
 			layout.bushes.forEach((b) => {
@@ -986,6 +1000,7 @@ export class LaunchSite {
 	}
 
 	private lastDistance = 0;
+	private siteRocksHidden = false;
 
 	/**
 	 * Draws only what can be seen from a camera `distance` metres from the site (`siteDetail`,
@@ -996,7 +1011,7 @@ export class LaunchSite {
 		const d = siteDetail(distance);
 		for (const set of this.sets.values()) {
 			for (const m of set.tufts) m.visible = d.tufts;
-			for (const m of set.rocks) m.visible = d.rocks;
+			for (const m of set.rocks) m.visible = d.rocks && !this.siteRocksHidden;
 			for (const m of set.trees) m.visible = d.trees;
 		}
 		// a bundle keeps what it recorded: a change of what is drawn records it again
