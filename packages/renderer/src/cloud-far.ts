@@ -22,10 +22,21 @@ export const CLOUD_FAR = {
 	ambient: 0.9
 } as const;
 
+/**
+ * The shell's relevance gate (plan 403, owner's rule: a look draws only when the view needs it): below
+ * `from` metres of camera altitude the near march is the cloud and the shell is off (the horizon keeps
+ * the clouds it had before the shell); it fades in to full by `to`, where the camera is above the slab.
+ */
+export const CLOUD_FAR_GATE = { from: 12_000, to: 30_000 } as const;
+
 const smooth = (a: number, b: number, x: number): number => {
 	const t = Math.min(1, Math.max(0, (x - a) / (b - a)));
 	return t * t * (3 - 2 * t);
 };
+
+/** The shell's weight at a camera `altitude`, m: 0 near the ground, 1 high up and in orbit. */
+export const farGate = (altitude: number): number =>
+	smooth(CLOUD_FAR_GATE.from, CLOUD_FAR_GATE.to, altitude);
 
 /** How far into the shell's range a slab at `distance` is: 0 inside the march, 1 beyond it. */
 export const farBlend = (distance: number): number =>

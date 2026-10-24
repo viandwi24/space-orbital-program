@@ -71,7 +71,7 @@ import {
 	TERRAIN_MARCH_SLOPE_MIN
 } from '../terrain-model.ts';
 import { TerrainTSL, type TerrainSampler } from './terrain.ts';
-import { CLOUD_FAR } from '../cloud-far.ts';
+import { CLOUD_FAR, CLOUD_FAR_GATE } from '../cloud-far.ts';
 import {
 	CloudMapTSL,
 	cirrusDensity,
@@ -2511,7 +2511,9 @@ export class PlanetPassTSL {
 						const maskAll = clamp(uCloudCover.mul(2.0), 0.0, 1.0);
 						// beyond the march's reach the slab is one thin shell read from the baked weather map
 						// (plan 403, twin: cloudFarShell in cloud-far.ts)
-						const farK = smoothstep(CLOUD_FAR.from, CLOUD_FAR.to, tm).toVar();
+						const farK = smoothstep(CLOUD_FAR.from, CLOUD_FAR.to, tm)
+							.mul(smoothstep(CLOUD_FAR_GATE.from, CLOUD_FAR_GATE.to, uAlt))
+							.toVar();
 						const mask = maskAll.mul(farK.oneMinus()).toVar();
 						const shellA = float(0.0).toVar();
 						const shellL = vec3(0.0).toVar();

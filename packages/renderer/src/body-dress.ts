@@ -74,6 +74,20 @@ function imageTexture(image: BodyImage, kind: BodyMapKind): DataTexture {
 	return t;
 }
 
+/**
+ * A flat tangent-space normal every far sphere starts with, so the Lambert program always has its
+ * normal map and a mod's relief swaps a texture in, never a program (no compile during play, plan 406).
+ */
+let flatNormal: DataTexture | null = null;
+function flat(): DataTexture {
+	if (!flatNormal) {
+		flatNormal = new DataTexture(new Uint8Array([128, 128, 255, 255]), 1, 1);
+		flatNormal.colorSpace = NoColorSpace;
+		flatNormal.needsUpdate = true;
+	}
+	return flatNormal;
+}
+
 /** A ring with its texture's u running from the inner edge (0) to the outer (1). */
 function ringGeometry(inner: number, outer: number): BufferGeometry {
 	const g = new RingGeometry(inner, outer, 160, 1);
@@ -130,7 +144,7 @@ export class BodyDress {
 		const data = new Uint8Array(small.width * small.height * 4);
 		this.rows(small, data, 0, small.height);
 		this.map = mapTexture(data, small.width, small.height);
-		this.farMaterial = new MeshLambertMaterial({ map: this.map });
+		this.farMaterial = new MeshLambertMaterial({ map: this.map, normalMap: flat() });
 		this.far = new Mesh(sphere, this.farMaterial);
 		this.far.name = `far:${id}`;
 		this.far.scale.setScalar(radius);
@@ -210,10 +224,8 @@ export class BodyDress {
 				void loadBodyImage(this.id, kind).then((image) => {
 					if (!image || !a.asked || a[kind]) return;
 					a[kind] = imageTexture(image, kind);
-					if (kind === 'normal') {
-						this.farMaterial.normalMap = a.normal;
-						this.farMaterial.needsUpdate = true;
-					} else this.show();
+					if (kind === 'normal') this.farMaterial.normalMap = a.normal;
+					else this.show();
 				});
 		} else if (a.asked && px < DRESS_FAR_PX) {
 			a.asked = false;
@@ -222,8 +234,7 @@ export class BodyDress {
 			a.albedo = null;
 			a.normal = null;
 			if (normal) {
-				this.farMaterial.normalMap = null;
-				this.farMaterial.needsUpdate = true;
+				this.farMaterial.normalMap = flat();
 				normal.dispose();
 			}
 			this.show();
