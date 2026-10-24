@@ -129,7 +129,7 @@ jobs:
     # `git ls-remote` (no gh, no API). Main pushes need it since merges stopped waiting for CI.
     needs: [scope, docs, check]
     # A run cancelled by a newer push writes no ref, so refs/ci/fail always means a real failure.
-    if: ${{ !cancelled() && (startsWith(github.ref, 'refs/tags/ready/') || github.ref == 'refs/heads/main') }}
+    if: ${{ !cancelled() && needs.check.result != 'cancelled' && needs.docs.result != 'cancelled' && (startsWith(github.ref, 'refs/tags/ready/') || github.ref == 'refs/heads/main') }}
     runs-on: ubuntu-latest
     permissions:
       contents: write
