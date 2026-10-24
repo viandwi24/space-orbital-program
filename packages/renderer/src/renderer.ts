@@ -110,7 +110,20 @@ export interface RendererDebug {
 	/** Each look's relevance level for the view drawn last (0 off, 1 cheap, 2 full) and its measured ms, 0 where unknown (plan 410). */
 	lookCosts(): Array<{ look: string; ms: number; level: 0 | 1 | 2 }>;
 	setLookOff(
-		look: 'bakes' | 'farShell' | 'rocks' | 'images' | 'ocean' | 'clouds' | 'terrain',
+		look:
+			| 'bakes'
+			| 'farShell'
+			| 'rocks'
+			| 'images'
+			| 'ocean'
+			| 'clouds'
+			| 'terrain'
+			| 'vegetation'
+			| 'shadows'
+			| 'site'
+			| 'vessels'
+			| 'trees'
+			| 'tufts',
 		off: boolean
 	): void;
 	/** Rocks on the ground now: placed, drawn near and far, and whether the group is shown (plan 402). */

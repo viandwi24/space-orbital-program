@@ -153,6 +153,11 @@ export function debugFacade(model: SceneModel): DebugFacade {
 			} else if (look === 'bakes') model.setBakesOff(off);
 			else if (look === 'farShell') env.planet.debugFarShell(!off);
 			else if (look === 'rocks') env.setRocksOff(off);
+			else if (look === 'vegetation') env.setVegetationOff(off);
+			else if (look === 'shadows') env.setShadowsOff(off);
+			else if (look === 'trees' || look === 'tufts') env.setVegetationPart(look, off);
+			else if (look === 'site') env.site.root.visible = !off;
+			else if (look === 'vessels') model.setVesselsHidden(off);
 			else model.setImagesOff(off);
 		},
 		// each look's level for the view (plan 410); the ms is filled where a pass measures it

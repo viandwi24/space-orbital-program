@@ -14,7 +14,10 @@ import {
 	SITE_DETAIL_RANGE,
 	TUFT_CELLS,
 	siteDetail,
-	tuftCell
+	tuftCell,
+	tuftCellCentre,
+	tuftDensity,
+	TUFT_LOD
 } from '../src/site.ts';
 import { fitShadow } from '../src/shadow-fit.ts';
 import { bodyRotationAt, siteAxes } from '../src/sun.ts';
@@ -171,4 +174,31 @@ describe('shadow fit', () => {
 			expect(length(sub(f.position, f.target))).toBeGreaterThan(r);
 		});
 	}
+});
+
+describe('the lawn thins with distance (plan 413)', () => {
+	test('all of it near, less beyond, a little far out and none beyond the far range', () => {
+		expect(tuftDensity(0)).toBe(1);
+		expect(tuftDensity(TUFT_LOD.near)).toBe(1);
+		expect(tuftDensity(TUFT_LOD.mid)).toBeCloseTo(TUFT_LOD.midShare, 10);
+		expect(tuftDensity(TUFT_LOD.mid + 1)).toBe(TUFT_LOD.farShare);
+		expect(tuftDensity(TUFT_LOD.far + 1)).toBe(0);
+		let last = 2;
+		for (let d = 0; d < 200; d += 5) {
+			expect(tuftDensity(d)).toBeLessThanOrEqual(last);
+			last = tuftDensity(d);
+		}
+	});
+	test('the tufts a camera in the middle of the pad draws are under half the lawn', () => {
+		const cells = TUFT_CELLS * TUFT_CELLS;
+		const layout = layoutTufts(28_000);
+		const per = new Array<number>(cells).fill(0);
+		for (const t of layout) per[tuftCell(t.x, t.z)]!++;
+		let drawn = 0;
+		for (let c = 0; c < cells; c++) {
+			const at = tuftCellCentre(c);
+			drawn += per[c]! * tuftDensity(Math.hypot(at.x, at.z, 2));
+		}
+		expect(drawn / layout.length).toBeLessThan(0.5);
+	});
 });

@@ -359,10 +359,32 @@ export class Environment {
 		);
 	}
 
+	/** Measurement: the site's trees and tufts off (kept off across preset changes). */
+	private vegetationOff = false;
+	setVegetationOff(off: boolean): void {
+		this.vegetationOff = off;
+		const s = settingsFor(this.preset, this.resources);
+		this.site.setTrees(off ? 0 : s.trees, off ? 0 : s.tufts);
+	}
+
+	/** Measurement: only the trees, or only the tufts, off. */
+	setVegetationPart(part: 'trees' | 'tufts', off: boolean): void {
+		const s = settingsFor(this.preset, this.resources);
+		this.site.setTrees(
+			part === 'trees' && off ? 0 : s.trees,
+			part === 'tufts' && off ? 0 : s.tufts
+		);
+	}
+
+	/** Measurement: the sun's shadow map off. */
+	setShadowsOff(off: boolean): void {
+		this.sunLight.castShadow = !off && settingsFor(this.preset, this.resources).shadowMapSize > 0;
+	}
+
 	private applyPreset(): void {
 		const s = settingsFor(this.preset, this.resources);
 		this.planet.setQuality(s);
-		this.site.setTrees(s.trees, s.tufts);
+		this.site.setTrees(this.vegetationOff ? 0 : s.trees, this.vegetationOff ? 0 : s.tufts);
 		this.rocks.setQuality(this.rocksOff ? { density: 0, range: 0 } : s.rocks);
 		const shadows = s.shadowMapSize > 0;
 		this.sunLight.castShadow = shadows;
@@ -479,6 +501,7 @@ export class Environment {
 				bodyRotation
 			);
 		this.site.setDetail(Math.hypot(frame.camToSite.x, frame.camToSite.y, frame.camToSite.z));
+		this.site.thinTufts(cameraRender);
 		this.site.animate({
 			dt: input.dt,
 			time: this.time,

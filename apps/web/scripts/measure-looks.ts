@@ -25,7 +25,19 @@ const warm = Number(process.env.WARM ?? 4);
 const rounds = Number(process.env.ROUNDS ?? 2);
 const scenes = (process.env.SCENES ?? 'pad,12km,orbit,space-center,cinder,verdant').split(',');
 const looks = (process.env.LOOKS ?? 'bakes,farShell,rocks,images').split(',') as Array<
-	'bakes' | 'farShell' | 'rocks' | 'images'
+	| 'bakes'
+	| 'farShell'
+	| 'rocks'
+	| 'images'
+	| 'ocean'
+	| 'clouds'
+	| 'terrain'
+	| 'vegetation'
+	| 'shadows'
+	| 'site'
+	| 'vessels'
+	| 'trees'
+	| 'tufts'
 >;
 const backend = process.env.BACKEND ?? 'webgpu';
 const preset = process.env.PRESET ?? 'high';
@@ -107,6 +119,8 @@ interface Row {
 	state: 'on' | 'off';
 	round: number;
 	p95: number;
+	p50: number;
+	mean: number;
 	over16: number;
 	over8: number;
 	gpuMs: number | null;
@@ -164,8 +178,9 @@ async function open(scene: string): Promise<Page> {
 }
 
 for (const scene of scenes) {
-	const page = await open(scene);
 	for (const look of looks) {
+		// a fresh page for each look: one page measured for an hour grew until its buffers failed
+		const page = await open(scene);
 		for (let round = 1; round <= rounds; round++) {
 			for (const state of round % 2 ? (['on', 'off'] as const) : (['off', 'on'] as const)) {
 				await page.evaluate(
@@ -181,28 +196,26 @@ for (const scene of scenes) {
 					state,
 					round,
 					p95: rep.p95Ms,
+					p50: rep.p50Ms,
+					mean: rep.meanMs,
 					over16: rep.over16,
 					over8: rep.over8,
 					gpuMs: r.gpuMs
 				});
 				console.log(
-					`${scene.padEnd(12)} ${look.padEnd(9)} ${state.padEnd(3)} r${round} p95 ${rep.p95Ms.toFixed(1)} ms, >16.7 ${(rep.over16 * 100).toFixed(0)} %, gpu ${r.gpuMs?.toFixed(1) ?? '-'}`
+					`${scene.padEnd(12)} ${look.padEnd(9)} ${state.padEnd(3)} r${round} p50 ${rep.p50Ms.toFixed(1)} mean ${rep.meanMs.toFixed(1)} p95 ${rep.p95Ms.toFixed(1)} ms, >16.7 ${(rep.over16 * 100).toFixed(0)} %, gpu ${r.gpuMs?.toFixed(1) ?? '-'}`
 				);
 			}
 		}
-		await page.evaluate(
-			(l) => (window as any).__orbital.renderer().debug.setLookOff(l, false),
-			look
-		);
+		await page.close();
 	}
-	await page.close();
 }
 await browser.close();
 
 const mean = (xs: number[]): number => xs.reduce((a, b) => a + b, 0) / Math.max(1, xs.length);
 const lines = [
-	'| scene | look | p95 ms on | p95 ms off | > 16.7 on | > 16.7 off | GPU ms on | GPU ms off |',
-	'|---|---|---|---|---|---|---|---|'
+	'| scene | look | mean ms on | mean ms off | p95 ms on | p95 ms off | > 16.7 on | > 16.7 off | GPU ms on | GPU ms off |',
+	'|---|---|---|---|---|---|---|---|---|---|'
 ];
 for (const scene of scenes)
 	for (const look of looks) {
@@ -216,7 +229,7 @@ for (const scene of scenes)
 		const pct = (state: 'on' | 'off'): string =>
 			`${(mean(rows.filter((r) => r.scene === scene && r.look === look && r.state === state).map((r) => r.over16)) * 100).toFixed(0)} %`;
 		lines.push(
-			`| ${scene} | ${look} | ${pick('on', (r) => r.p95)} | ${pick('off', (r) => r.p95)} | ${pct('on')} | ${pct('off')} | ${pick('on', (r) => r.gpuMs)} | ${pick('off', (r) => r.gpuMs)} |`
+			`| ${scene} | ${look} | ${pick('on', (r) => r.mean)} | ${pick('off', (r) => r.mean)} | ${pick('on', (r) => r.p95)} | ${pick('off', (r) => r.p95)} | ${pct('on')} | ${pct('off')} | ${pick('on', (r) => r.gpuMs)} | ${pick('off', (r) => r.gpuMs)} |`
 		);
 	}
 console.log('\n' + lines.join('\n'));

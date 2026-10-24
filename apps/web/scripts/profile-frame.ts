@@ -12,6 +12,7 @@
  */
 import { chromium } from '@playwright/test';
 import { writeFileSync } from 'node:fs';
+import { setupVessel } from './lib/frame-matrix';
 
 const base = process.env.SHOT_URL ?? 'http://localhost:5211';
 const out = process.argv[2];
@@ -38,11 +39,9 @@ await context.addInitScript(
 	},
 	[backend, preset, adjust]
 );
+// the Hangar's booster (the start buttons are gone): the pad is where it starts
 const setup = await context.newPage();
-await setup.addInitScript(() => localStorage.removeItem('orbital.vab.hideStart'));
-await setup.goto('/vab');
-await setup.getByTestId('vab-start-kronos-selene').click({ timeout: 120_000 });
-await setup.waitForTimeout(2500);
+await setupVessel(setup);
 await setup.close();
 
 const page = await context.newPage();

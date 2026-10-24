@@ -279,7 +279,29 @@ export const siteDetail = (distance: number): SiteDetail => ({
 });
 
 /** Tufts are split into this many cells per side so frustum culling can drop the ones behind the camera. */
-export const TUFT_CELLS = 4;
+export const TUFT_CELLS = 8;
+
+/**
+ * How much of a tuft cell is drawn at a camera `distance` m from it (plan 413, the launch site was the
+ * pad's cost: 28 000 tufts of 0.4 m were 2.6 ms a frame): all of it near, then thinned in two steps,
+ * none beyond `TUFT_FAR`. Each cell's instances are shuffled, so a fraction is an even lawn.
+ */
+export const TUFT_LOD = { near: 15, mid: 40, far: 160, midShare: 0.25, farShare: 0.1 } as const;
+export function tuftDensity(distance: number): number {
+	if (distance <= TUFT_LOD.near) return 1;
+	if (distance <= TUFT_LOD.mid) {
+		const t = (distance - TUFT_LOD.near) / (TUFT_LOD.mid - TUFT_LOD.near);
+		return 1 + (TUFT_LOD.midShare - 1) * t;
+	}
+	if (distance <= TUFT_LOD.far) return TUFT_LOD.farShare;
+	return 0;
+}
+
+/** The centre of tuft cell `cell` in site-local metres. */
+export const tuftCellCentre = (cell: number): { x: number; z: number } => ({
+	x: ((cell % TUFT_CELLS) + 0.5) * ((2 * TUFT_RADIUS) / TUFT_CELLS) - TUFT_RADIUS,
+	z: (Math.floor(cell / TUFT_CELLS) + 0.5) * ((2 * TUFT_RADIUS) / TUFT_CELLS) - TUFT_RADIUS
+});
 
 /** Cell of a tuft at site-local (x, z) in the `TUFT_CELLS` x `TUFT_CELLS` grid over the tuft disc. */
 export const tuftCell = (x: number, z: number): number => {

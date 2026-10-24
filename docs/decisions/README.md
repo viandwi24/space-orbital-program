@@ -354,4 +354,4 @@ An ADR records one decision, its context, and its consequences. ADRs are **appen
 | 0367 | [No periodic stutter: warming on the loading screen, honest HUD, pacing, quiet saves](0367-no-periodic-stutter.md) | accepted | 2026-10-24 |
 | 0368 | [Textures packed so no pipeline passes 16 sampled textures](0368-pack-textures-under-the-stage-limit.md) | accepted | 2026-10-24 |
 | 0369 | [Relevance: each look is paid for only where the view can show it](0369-relevance-gates.md) | accepted | 2026-10-24 |
-
+| 0370 | [The launch site's grass is drawn thinner with distance](0370-thin-the-lawn-by-distance.md) | accepted | 2026-10-24 |

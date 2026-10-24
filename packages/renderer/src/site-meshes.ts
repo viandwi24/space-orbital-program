@@ -5,7 +5,7 @@
  * the pad centre) under one root that is placed in float64 on the CPU and turns with the body.
  * Layout lives in `site.ts`; surface wear and wind in `weathering.ts`.
  */
-import type { Quat, Vec3 } from '@orbital/core';
+import { createRng, type Quat, type Vec3 } from '@orbital/core';
 import {
 	BufferGeometry,
 	Color,
@@ -69,7 +69,10 @@ import {
 	layoutVegetation,
 	siteDetail,
 	SITE_PEOPLE,
+	SITE_DETAIL_RANGE,
 	tuftCell,
+	tuftCellCentre,
+	tuftDensity,
 	TUFT_CELLS,
 	VENTS
 } from './site.ts';
@@ -850,8 +853,15 @@ export class LaunchSite {
 		for (let cell = 0; cell < TUFT_CELLS * TUFT_CELLS; cell++) {
 			const list = tuftLayout.filter((t) => tuftCell(t.x, t.z) === cell);
 			if (!list.length) continue;
+			// shuffled, so drawing only the first part of the list (`thinTufts`) is an even lawn
+			const rng = createRng(1_000 + cell);
+			for (let i = list.length - 1; i > 0; i--) {
+				const j = Math.floor(rng.next() * (i + 1));
+				[list[i], list[j]] = [list[j]!, list[i]!];
+			}
 			const mesh = make(this.tuftGeo, this.materials.tuft, list.length, false);
 			set.tufts.push(mesh);
+			mesh.userData.tuft = { total: list.length, ...tuftCellCentre(cell) };
 			list.forEach((t, i) => {
 				q.setFromEuler(e.set(0, t.yaw, 0));
 				matrix.compose(
@@ -943,6 +953,25 @@ export class LaunchSite {
 		for (const m of this.structureMeshes) m.visible = d.structures;
 		this.detailStructures = d.structures;
 		this.buildings.setDishDistance(distance);
+	}
+
+	/**
+	 * Draws only a share of each tuft cell by its distance from the camera (`tuftDensity`, plan 413):
+	 * the lawn is thinned where a 0.4 m tuft is a few pixels. `cameraRender`: the camera in render space.
+	 */
+	thinTufts(cameraRender: Vec3): void {
+		const cam = this.root.worldToLocal(new Vector3(cameraRender.x, cameraRender.y, cameraRender.z));
+		for (const set of this.sets.values()) {
+			if (!this.active || set !== this.active) continue;
+			for (const m of set.tufts) {
+				const t = m.userData.tuft as { total: number; x: number; z: number } | undefined;
+				if (!t) continue;
+				const d = Math.hypot(cam.x - t.x, cam.y, cam.z - t.z);
+				const count = Math.ceil(t.total * tuftDensity(d));
+				m.count = count;
+				m.visible = count > 0 && this.lastDistance <= SITE_DETAIL_RANGE.tufts;
+			}
+		}
 	}
 
 	/** Site mode (ADR 0117): draw these buildings and road cells; ignored outside site mode. */

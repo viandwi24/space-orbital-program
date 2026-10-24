@@ -1741,6 +1741,11 @@ export class SceneModel {
 		for (const dress of this.dresses.values()) dress.setImagesOff(off);
 	}
 
+	/** Measurement: the vessels' groups hidden or shown. */
+	setVesselsHidden(hidden: boolean): void {
+		for (const v of this.vessels.values()) v.group.visible = !hidden;
+	}
+
 	holdBakes(ms: number): void {
 		this.bakeHoldUntil = Math.max(this.bakeHoldUntil, performance.now() + ms);
 	}
