@@ -206,6 +206,15 @@ Measurements (392 and the later frame-time checks) are heavy jobs under `/tmp/or
 
 When a queue is empty, take the next free plan from this list, in order: 299, 322, 304, 358, 312, 367, 369, 365, 342, 374, 275, 276, 280, 283, 284, 282, 286, 287, 379, 385, 386.
 
+## Lock use, tightened (2026-10-24)
+
+- **Targeted tests do not take `/tmp/orbital-heavy.lock`.** This covers `bun test <files>` and one or a few vitest files: run them under `nice -n 10` without the lock. The lock is only for these jobs:
+  - typecheck of a whole workspace;
+  - full suites;
+  - the build;
+  - measurements.
+- **Measurements need a quiet machine.** Before a timing run, `touch /tmp/orbital-measuring`, and remove it when the run ends (in a trap). While that file exists, nobody starts any test or build: wait with `while [ -e /tmp/orbital-measuring ]; do sleep 30; done`.
+
 ## Doing a plan
 
 **UI fixes come first (owner's rule, ADR 0222):** when the coordinator reports that a screen you built is off the design package (`refs/space-orbital-program-ui-v2/`), finish and merge your current plan, then fix that screen (plan 233 and the like) before taking any other plan. Always compare UI work with the matching `.dc.html` source and `docs/BASE_LAYOUT.md`.
