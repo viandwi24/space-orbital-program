@@ -4,7 +4,14 @@
  * `cloud-volume.ts`), the cirrus streaks, and the cloud map that the ground's shadows and the light
  * shafts read (plan 054, ADR 0070; `cloudMapFragment`). Same noise, same constants as the GLSL.
  */
-import { LinearFilter, RenderTarget, RepeatWrapping, UnsignedByteType } from 'three';
+import {
+	Data3DTexture,
+	LinearFilter,
+	RGBAFormat,
+	RenderTarget,
+	RepeatWrapping,
+	UnsignedByteType
+} from 'three';
 import * as TSL from 'three/tsl';
 import { MeshBasicNodeMaterial, QuadMesh, type WebGPURenderer } from 'three/webgpu';
 import {
@@ -19,6 +26,7 @@ import {
 	EROSION_WEIGHTS
 } from '../cloud-volume.ts';
 import { CLOUD_MAP_H, CLOUD_MAP_OCTAVES, CLOUD_MAP_W } from '../light-shaft.ts';
+import { NOISE_CELLS, NOISE_SIZE, bakeNoiseVolume } from '../noise-volume.ts';
 import { fbmF, noiseF, noiseF3 } from './noise.ts';
 
 /* TSL nodes are untyped proxies; three's TSL typings lag its runtime */
@@ -40,6 +48,7 @@ const {
 	sin,
 	smoothstep,
 	texture,
+	texture3DLevel,
 	uniform,
 	uv,
 	vec2,
@@ -48,6 +57,27 @@ const {
 } = T;
 
 const PI = Math.PI;
+
+/** The baked noise volume (plan 397): built once, on first use, shared by every cloud shader. */
+let volume: Data3DTexture | null = null;
+const noiseVolume = (): Data3DTexture => {
+	if (volume) return volume;
+	const t = new Data3DTexture(bakeNoiseVolume(), NOISE_SIZE, NOISE_SIZE, NOISE_SIZE);
+	t.format = RGBAFormat;
+	t.type = UnsignedByteType;
+	t.minFilter = LinearFilter;
+	t.magFilter = LinearFilter;
+	t.wrapS = t.wrapT = t.wrapR = RepeatWrapping;
+	t.generateMipmaps = false;
+	t.unpackAlignment = 1;
+	t.needsUpdate = true;
+	volume = t;
+	return t;
+};
+
+/** Value noise from the baked volume at lattice position p, one of its channels ('x', 'y', 'z'): one fetch for the eight hashes of `noiseF`. */
+export const noiseTex = (p: N, channel: 'x' | 'y' | 'z'): N =>
+	texture3DLevel(noiseVolume(), p.div(NOISE_CELLS).add(0.5 / NOISE_SIZE), float(0.0))[channel];
 
 /** Rotation about the body's axis (the clouds' drift). */
 export const rotY = (v: N, a: N): N => {
@@ -174,16 +204,16 @@ export const cloudErosion = (dirBF: N, fp: N, oct: number, angle: N, radius: num
 		.toVar();
 	const fade = (i: number): N =>
 		smoothstep(EROSION_FADE[i]![0], EROSION_FADE[i]![1], fp).oneMinus();
-	let e: N = mix(0.5, noiseF(q.mul(75.0).add(5.0)), fade(0)).mul(EROSION_WEIGHTS[0]);
+	let e: N = mix(0.5, noiseTex(q.mul(75.0).add(5.0), 'x'), fade(0)).mul(EROSION_WEIGHTS[0]);
 	const n1 = float(0.5).toVar();
 	const n2 = float(0.5).toVar();
 	if (oct > 1)
 		If(fade(1).greaterThan(0.001), () => {
-			n1.assign(mix(0.5, noiseF(q.mul(220.0).add(17.0)), fade(1)));
+			n1.assign(mix(0.5, noiseTex(q.mul(220.0).add(17.0), 'y'), fade(1)));
 		});
 	if (oct > 2)
 		If(fade(2).greaterThan(0.001), () => {
-			n2.assign(mix(0.5, noiseF(q.mul(610.0).add(29.0)), fade(2)));
+			n2.assign(mix(0.5, noiseTex(q.mul(610.0).add(29.0), 'z'), fade(2)));
 		});
 	e = e.add(n1.mul(EROSION_WEIGHTS[1])).add(n2.mul(EROSION_WEIGHTS[2]));
 	return clamp(e.sub(0.5).mul(2.0).add(0.5), 0.0, 1.0);

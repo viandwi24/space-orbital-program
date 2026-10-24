@@ -176,7 +176,8 @@
 			title: 'Engine plumes',
 			hint: 'Flame layers, shock diamonds and the light of a cluster'
 		},
-		{ id: 'ocean', title: 'Sea', hint: 'Sky reflection and fine ripples' }
+		{ id: 'ocean', title: 'Sea', hint: 'Sky reflection and fine ripples' },
+		{ id: 'clouds', title: 'Clouds', hint: 'March steps and billow detail' }
 	] as const;
 	const lookOptions = [
 		{ value: 'auto', label: 'Preset', hint: 'Follows the quality preset' },

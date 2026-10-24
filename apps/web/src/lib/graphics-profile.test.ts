@@ -40,7 +40,7 @@ describe('the graphics profile (plan 404)', () => {
 			})
 		);
 		expect(p.preset).toBe('auto');
-		expect(p.looks).toEqual({ plasma: 'auto', plume: 'medium', ocean: 'auto' });
+		expect(p.looks).toEqual({ plasma: 'auto', plume: 'medium', ocean: 'auto', clouds: 'auto' });
 		expect(p.resolutionScale).toBeNull();
 		// a version this build does not know is read as the legacy preset
 		expect(parseProfile(JSON.stringify({ version: 9, preset: 'high' }), 'low').preset).toBe('low');
@@ -49,7 +49,7 @@ describe('the graphics profile (plan 404)', () => {
 	it('Ultra is High with every look at its highest and the full scale; Custom follows a hand change', () => {
 		const u = withPreset('ultra');
 		expect(presetOfProfile(u)).toBe('high');
-		expect(effectiveLooks(u)).toEqual({ plasma: 'high', plume: 'high', ocean: 'high' });
+		expect(effectiveLooks(u)).toEqual({ plasma: 'high', plume: 'high', ocean: 'high', clouds: 'high' });
 		expect(effectiveScale(u)).toBe(1);
 		expect(kindOf(u)).toBe('ultra');
 		expect(effectiveLooks(withLook(u, 'ocean', 'low')).ocean).toBe('low');
@@ -70,11 +70,11 @@ describe('the graphics profile (plan 404)', () => {
 	it('the governor lowers only automatic looks and an unpinned scale', () => {
 		const free = governorLimits(DEFAULT_PROFILE);
 		expect(free.scale).toBe(true);
-		expect(free.looks).toEqual(['plasma', 'plume', 'ocean']);
+		expect(free.looks).toEqual(['plasma', 'plume', 'ocean', 'clouds']);
 		const pinned = governorLimits(withScale(withLook(withPreset('high'), 'ocean', 'high'), 0.75));
 		expect(pinned.scale).toBe(false);
 		expect(pinned.heldScale).toBe(0.75);
-		expect(pinned.looks).toEqual(['plasma', 'plume']);
+		expect(pinned.looks).toEqual(['plasma', 'plume', 'clouds']);
 		// Ultra pins every look and the scale: the governor has nothing to lower
 		const ultra = governorLimits(withPreset('ultra'));
 		expect(ultra.scale).toBe(false);

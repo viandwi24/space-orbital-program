@@ -84,3 +84,7 @@ Always re-check the docs linked above before running: flags change.
 
 - `WebGPUTextureUtils.js` adds `GPUTextureUsage.TRANSIENT_ATTACHMENT` itself when the constant exists and a multisampled colour or depth buffer is not stored (`renderTarget.storeMultisampledColorBuffer / storeMultisampledDepthBuffer === false`); `WebGPUBackend.js` then uses `storeOp: discard` and resolves in the pass. No patch is needed. `PassNode`'s render target is half-float (`HalfFloatType`); `UnsignedInt101111Type` with `RGBFormat` maps to `rg11b10ufloat`, but froze the page in orbit when set on the scene pass (ADR 0340).
 
+## 3-D noise textures in TSL (plan 397, 2026-10-24)
+
+- `Data3DTexture` (RGBA8, `LinearFilter`, `RepeatWrapping` on S, T and R) read with `texture3DLevel(tex, uvw, level)` works inside `If` and `Loop` (an explicit level: no implicit derivatives in non-uniform control flow). A texel centre is at `(i + 0.5) / size`. `Storage3DTexture` exists in r186.1 for compute writes; the bake here is on the CPU because the WebGL2 fallback of the TSL renderer has no compute.
+
