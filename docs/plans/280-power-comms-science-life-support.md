@@ -1,8 +1,8 @@
 ---
 id: 280
 title: "Deployables break in strong airflow; the Hangar offers to replace hidden legacy parts"
-status: draft
-owner: ""
+status: done
+owner: "Worker B"
 depends: [302, 303]
 phase: 0
 created: 2026-10-21
@@ -45,22 +45,23 @@ A deployed solar panel or antenna breaks when the airflow is too strong and stop
 
 ## Acceptance criteria
 
-- [ ] A deployed folding array above its break pressure breaks and stops producing (sim test); retracted, it survives.
-- [ ] Old designs with stacked panels and antennas still resolve and fly (test with frozen designs).
-- [ ] A web test shows the replace notice for a design with a hidden part, and none for a design without.
-- [ ] `bun test`, `bun run typecheck`, `bun run build` and `bun run docs:check` pass.
+- [x] A deployed folding array above its break pressure breaks and stops producing (sim test); retracted, it survives.
+- [x] Old designs with stacked panels and antennas still resolve and fly (test with frozen designs).
+- [x] A web test shows the replace notice for a design with a hidden part, and none for a design without.
+- [x] `bun test`, `bun run typecheck`, `bun run build` and `bun run docs:check` pass.
 
 ## Docs checklist
 
-- [ ] `docs/STATUS.md` updated (board row, next plan, open issues).
-- [ ] `docs/journal/280-power-comms-science-life-support.md` written.
-- [ ] Affected `docs/architecture/*.md` updated to match what shipped.
-- [ ] New ADRs written for any decision made here, linked above.
-- [ ] `docs/research/stack-versions.md` updated for anything looked up.
-- [ ] `refs/part-visuals-and-blueprints/parts-tracker.md`: status column of every tracker ID this plan delivers.
+- [x] `docs/STATUS.md` updated (board row, next plan, open issues).
+- [x] `docs/journal/280-power-comms-science-life-support.md` written.
+- [x] Affected `docs/architecture/*.md` updated to match what shipped.
+- [x] New ADRs written for any decision made here, linked above.
+- [x] `docs/research/stack-versions.md` updated for anything looked up.
+- [x] `refs/part-visuals-and-blueprints/parts-tracker.md`: status column of every tracker ID this plan delivers.
 
 ## Log
 
+- 2026-10-24 — Done by Worker B (ADR 0351, API 0.1.127): break pressures on deployed solar panels and antennas, the Hangar's `legacy-part` notice with `catalog.replacedBy`, a sim test of the break and of an old design. Open: a toast, a one-click swap.
 - 2026-10-24 — Rewritten by the coordinator after an audit against main @ 4c546c02: parts (303), fuel cell, staging and tracking (302) are done; this plan keeps breaking in airflow, the replace notice and the frozen-design test; depends on 302 and 303.
 - 2026-10-21 — Parts delivered in plan 303: power, comms, science and containers (surface-mounted, deploy animations; old stack parts hidden). Open: breaking in airflow, the replace notice.
 - 2026-10-21 — Drafted from the part-visuals research and the owner's decisions of 2026-10-21 (CTO calls delegated by the owner). Not to be started until the owner releases the parts work: on 2026-10-21 main is busy with renderer fixes and a UI/UX agent.

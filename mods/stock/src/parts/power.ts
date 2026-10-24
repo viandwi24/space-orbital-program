@@ -13,7 +13,7 @@ export const PartSolarPanel = definePart({
 	id: 'stock.solar-panel',
 	title: 'Solar Panel',
 	// a stack part from before plan 280: kept for old designs, its surface-mounted successor is in the catalogue (ADR 0259)
-	catalog: { hidden: true },
+	catalog: { hidden: true, replacedBy: 'stock.solar-fold' },
 	mass: kg(30),
 	cost: partCost(30, 'command'),
 	impactTolerance: 6,
@@ -32,7 +32,7 @@ export const PartSolarPanelFixed = definePart({
 	id: 'stock.solar-panel-fixed',
 	title: 'Fixed Solar Panel',
 	// a stack part from before plan 280: kept for old designs, its surface-mounted successor is in the catalogue (ADR 0259)
-	catalog: { hidden: true },
+	catalog: { hidden: true, replacedBy: 'stock.solar-flat' },
 	mass: kg(15),
 	cost: partCost(15, 'command'),
 	impactTolerance: 8,
@@ -54,7 +54,7 @@ export const PartSolarArrayLarge = definePart({
 	id: 'stock.solar-array-large',
 	title: 'Large Solar Array',
 	// a stack part from before plan 280: kept for old designs, its surface-mounted successor is in the catalogue (ADR 0259)
-	catalog: { hidden: true },
+	catalog: { hidden: true, replacedBy: 'stock.solar-wings' },
 	mass: kg(300),
 	cost: partCost(300, 'command'),
 	impactTolerance: 5,
@@ -65,7 +65,7 @@ export const PartSolarArrayLarge = definePart({
 		params: { stripe: 0.4, bands: 2 }
 	},
 	attach: stackNodes(0.6),
-	modules: [[ModuleSolarPanel, { rate: 8.25, mode: 'track' }]]
+	modules: [[ModuleSolarPanel, { rate: 8.25, mode: 'track', breakQ: 25_000 }]]
 });
 
 /** A radioisotope generator (plan 208): 0.75 EC/s, day and night. */
@@ -73,7 +73,7 @@ export const PartRtg = definePart({
 	id: 'stock.rtg',
 	title: 'Radioisotope Generator',
 	// a stack part from before plan 280: kept for old designs, its surface-mounted successor is in the catalogue (ADR 0259)
-	catalog: { hidden: true },
+	catalog: { hidden: true, replacedBy: 'stock.rtg-radial' },
 	mass: kg(80),
 	cost: partCost(80, 'engine'),
 	impactTolerance: 8,

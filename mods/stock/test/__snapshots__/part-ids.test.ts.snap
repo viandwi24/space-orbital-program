@@ -1347,6 +1347,7 @@ exports[`stock part ids, masses, costs and modules match the snapshot 1`] = `
       [
         "stock.solar-panel",
         {
+          "breakQ": 25000,
           "mode": "track",
           "rate": 8.25,
         },
@@ -2683,6 +2684,7 @@ exports[`stock part ids, masses, costs and modules match the snapshot 1`] = `
       [
         "stock.solar-panel",
         {
+          "breakQ": 40000,
           "normal": [
             1,
             0,
@@ -2701,6 +2703,7 @@ exports[`stock part ids, masses, costs and modules match the snapshot 1`] = `
       [
         "stock.solar-panel",
         {
+          "breakQ": 25000,
           "mode": "track",
           "rate": 8.25,
         },
@@ -2715,6 +2718,7 @@ exports[`stock part ids, masses, costs and modules match the snapshot 1`] = `
       [
         "stock.solar-panel",
         {
+          "breakQ": 30000,
           "normal": [
             0,
             0,
@@ -2776,6 +2780,7 @@ exports[`stock part ids, masses, costs and modules match the snapshot 1`] = `
         "stock.antenna",
         {
           "antenna": "stock.whip",
+          "breakQ": 60000,
         },
       ],
     ],
@@ -2789,6 +2794,7 @@ exports[`stock part ids, masses, costs and modules match the snapshot 1`] = `
         "stock.antenna",
         {
           "antenna": "stock.dish",
+          "breakQ": 20000,
         },
       ],
     ],

@@ -108,7 +108,7 @@ export const PartSolarFold = definePart({
 		deploy: { module: ModuleSolarPanel.id, flag: 'deployed', seconds: 2.5 }
 	},
 	attach: radialAt(0.06),
-	modules: [[ModuleSolarPanel, { rate: 1.6, normal: [1, 0, 0] }]]
+	modules: [[ModuleSolarPanel, { rate: 1.6, normal: [1, 0, 0], breakQ: 40_000 }]]
 });
 
 export const PartSolarArrayXl = definePart({
@@ -125,7 +125,7 @@ export const PartSolarArrayXl = definePart({
 		deploy: { module: ModuleSolarPanel.id, flag: 'deployed', seconds: 5 }
 	},
 	attach: radialAt(0.12),
-	modules: [[ModuleSolarPanel, { rate: 8.25, mode: 'track' }]]
+	modules: [[ModuleSolarPanel, { rate: 8.25, mode: 'track', breakQ: 25_000 }]]
 });
 
 export const PartSolarWings = definePart({
@@ -142,7 +142,7 @@ export const PartSolarWings = definePart({
 		deploy: { module: ModuleSolarPanel.id, flag: 'deployed', seconds: 4 }
 	},
 	attach: stackNodes(0.35),
-	modules: [[ModuleSolarPanel, { rate: 3, normal: [0, 0, 1], stageable: true }]]
+	modules: [[ModuleSolarPanel, { rate: 3, normal: [0, 0, 1], stageable: true, breakQ: 30_000 }]]
 });
 
 export const PartBatteryRadial = definePart({
@@ -201,7 +201,7 @@ export const PartWhipRadial = definePart({
 		deploy: { module: ModuleAntenna.id, flag: 'enabled', seconds: 1.5 }
 	},
 	attach: radialAt(0.04),
-	modules: [[ModuleAntenna, { antenna: AntennaWhip.id }]]
+	modules: [[ModuleAntenna, { antenna: AntennaWhip.id, breakQ: 60_000 }]]
 });
 
 export const PartDishFold = definePart({
@@ -218,7 +218,7 @@ export const PartDishFold = definePart({
 		deploy: { module: ModuleAntenna.id, flag: 'enabled', seconds: 2.5 }
 	},
 	attach: radialAt(0.07),
-	modules: [[ModuleAntenna, { antenna: AntennaDish.id }]]
+	modules: [[ModuleAntenna, { antenna: AntennaDish.id, breakQ: 20_000 }]]
 });
 
 export const PartRelayDish = definePart({

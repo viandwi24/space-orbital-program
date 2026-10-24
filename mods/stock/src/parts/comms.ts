@@ -31,7 +31,14 @@ export const PartProbeCore = definePart({
 	stagingIcon: 'command'
 });
 
-function antennaPart(id: string, title: string, massKg: number, antenna: string, accent: string) {
+function antennaPart(
+	id: string,
+	title: string,
+	massKg: number,
+	antenna: string,
+	accent: string,
+	replacedBy: string
+) {
 	return definePart({
 		id,
 		title,
@@ -45,7 +52,7 @@ function antennaPart(id: string, title: string, massKg: number, antenna: string,
 			params: { stripe: 0.5, bands: 1 }
 		},
 		// stack parts from before plan 280, kept for old designs (ADR 0259)
-		catalog: { hidden: true },
+		catalog: { hidden: true, replacedBy },
 		attach: stackNodes(0.4),
 		modules: [[ModuleAntenna, { antenna }]]
 	});
@@ -56,14 +63,16 @@ export const PartWhipAntenna = antennaPart(
 	'Whip Antenna',
 	5,
 	AntennaWhip.id,
-	'#f2c14e'
+	'#f2c14e',
+	'stock.antenna-whip-radial'
 );
 export const PartDishAntenna = antennaPart(
 	'stock.dish-antenna',
 	'Dish Antenna',
 	60,
 	AntennaDish.id,
-	'#f28c28'
+	'#f28c28',
+	'stock.antenna-dish-fold'
 );
 
 export const STOCK_COMMS_PARTS = [PartProbeCore, PartWhipAntenna, PartDishAntenna] as const;

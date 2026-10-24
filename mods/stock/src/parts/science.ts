@@ -14,6 +14,15 @@ import { cylinder, stackNodes } from './shared.ts';
 
 // Science instruments (plan 103, ADR 0178): small stack parts, each running one experiment.
 
+/** The surface-mounted successors of the stack instruments (plan 280). */
+const REPLACED_BY: Record<string, string> = {
+	'stock.thermometer': 'stock.thermometer-radial',
+	'stock.atmosphere-sampler': 'stock.atmosphere-radial',
+	'stock.surface-sampler': 'stock.surface-sampler-radial',
+	'stock.goo-canister': 'stock.goo-radial',
+	'stock.materials-bay': 'stock.materials-radial'
+};
+
 function instrument(
 	id: string,
 	title: string,
@@ -37,7 +46,7 @@ function instrument(
 			params: { stripe: 0.5, bands: 1 }
 		},
 		// stack parts from before plan 280, kept for old designs (ADR 0259)
-		catalog: { hidden: true },
+		catalog: { hidden: true, ...(REPLACED_BY[id] ? { replacedBy: REPLACED_BY[id] } : {}) },
 		attach: stackNodes(height),
 		modules: [[ModuleExperiment, { experiment, label, ...(extra.held ? { held: true } : {}) }]]
 	});

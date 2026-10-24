@@ -690,7 +690,9 @@ export const partDefinitionSchema = z.object({
 			category: categoryRefSchema.optional(),
 			order: z.number().finite().optional(),
 			/** Not offered in the catalogue: a piece that only exists as debris (plan 219, a fairing panel). */
-			hidden: z.boolean().optional()
+			hidden: z.boolean().optional(),
+			/** A hidden part's successor in the catalogue: the Hangar offers it on a design that still uses this one (plan 280). */
+			replacedBy: definitionIdSchema.optional()
 		})
 		.optional()
 });
