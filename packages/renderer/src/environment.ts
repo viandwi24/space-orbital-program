@@ -614,7 +614,7 @@ export class Environment {
 		}
 		this.time += input.dt;
 		this.site.setLamps(siteLamps);
-		// what the view can show of each look (plan 410, ADR 0368): the planet pass's gates are uniforms
+		// what the view can show of each look (plan 410, ADR 0369): the planet pass's gates are uniforms
 		this.relevance = relevanceLevels({
 			altitude: alt,
 			atmosphereTop: atm.height,

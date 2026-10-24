@@ -1,5 +1,5 @@
 /**
- * Relevance of the looks (plan 410, ADR 0368): what a look costs is decided by what the view can show of
+ * Relevance of the looks (plan 410, ADR 0369): what a look costs is decided by what the view can show of
  * it. One pure function per look returns a level, 0 (off, or only a baked stand-in), 1 (cheap) or 2
  * (full), from the camera's altitude, the atmosphere, the vessel's state and the view; the renderer
  * applies the level only through uniforms and draw or skip choices, never through a new pipeline, so a

@@ -1,4 +1,4 @@
-# 0368 — Relevance: each look is paid for only where the view can show it
+# 0369 — Relevance: each look is paid for only where the view can show it
 
 **Status:** accepted
 **Date:** 2026-10-24
@@ -15,7 +15,7 @@ The looks of the graphics wave (clouds v2, the sea v2, rocks, plumes, re-entry, 
 2. **Applied only through uniforms and branches, never pipelines.** The planet pass has three gates (`uGateOcean`, `uGateClouds`, `uGateTerrain`) that skip the sea's wave gradient and ripples, the cloud march and the terrain march at run time; `Environment` sets them each frame from the levels (sea and clouds off where the level is 0, which is the map view and, for the sea, above 30 km). The existing footprint tests (a pixel wider than 120 m has no wave gradient, 400 m no ripple) stay: they are the same rule at pixel level.
 3. **The measuring tool uses the same switches**: `debug.setLookOff('ocean' | 'clouds' | 'terrain', off)` forces a gate off whatever the level says, so the cost of a look is its frame with the switch on minus off, on one page. `debug.lookCosts()` returns each look's level (and its ms where a pass measures it) for the Debug panel.
 4. **Nothing compiles in play.** The Debug counter of pipelines built after the loading screen reads 0 in the measured runs (ADR 0367 moved the warm-up onto the loading screen; ADR 0359 kept pipelines alive); `measure-long-frames.ts` prints it.
-5. **The device asks for what it has** (`device-limits.ts`): up to 32 sampled textures per shader stage where the adapter offers more than WebGPU's default 16. A planet shadow pipeline with a mod planet's images and the looks' maps in it needs 17, failed to build at the default and left the sea's edge and the shadows missing, found when the cost table of the mod-planet scenes printed the errors.
+5. **The device asks for what it has** (a second line of defence beside plan 412's packing, ADR 0368) (`device-limits.ts`): up to 32 sampled textures per shader stage where the adapter offers more than WebGPU's default 16. A planet shadow pipeline with a mod planet's images and the looks' maps in it needs 17, failed to build at the default and left the sea's edge and the shadows missing, found when the cost table of the mod-planet scenes printed the errors.
 
 ## Consequences
 
