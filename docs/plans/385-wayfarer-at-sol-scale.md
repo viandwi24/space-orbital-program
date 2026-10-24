@@ -1,8 +1,8 @@
 ---
 id: 385
 title: "Wayfarer at Sol scale: a Shuttle for Sol rescaled and 1:1"
-status: draft
-owner: ""
+status: done
+owner: "Worker C"
 depends: [360, 361, 380]
 phase: 7
 created: 2026-10-23
@@ -42,16 +42,17 @@ When this is done, the Wayfarer has a Sol design (`BlueprintDefinition.systems`)
 
 ## Acceptance criteria
 
-- [ ] `cd apps/web && bunx vitest run src/lib/editor/blueprint-systems.test.ts` expects and gets `goal` for the Wayfarer in Sol rescaled and Sol 1:1.
-- [ ] `cd apps/web && bunx vitest run src/lib/editor/stock-blueprints.test.ts` passes (the bake is current).
-- [ ] `bun test mods/guidance`, `bun run typecheck` and `bun run docs:check` pass.
+- [x] `cd apps/web && bunx vitest run src/lib/editor/blueprint-systems.test.ts` expects and gets `goal` for the Wayfarer in Sol rescaled and Sol 1:1.
+- [x] `cd apps/web && bunx vitest run src/lib/editor/stock-blueprints.test.ts` passes (the bake is current).
+- [x] `bun test mods/guidance`, `bun run typecheck` and `bun run docs:check` pass.
 
 ## Docs checklist
 
-- [ ] `docs/STATUS.md`; journal; ADR if guidance changes.
+- [x] `docs/STATUS.md`; journal; ADR if guidance changes.
 
 ## Log
 
 - 2026-10-23: drafted from plan 380.
 - 2026-10-24 — Rewritten by the coordinator after an audit against main @ 4c546c02: still valid; the test still expects `short` in both Sol variants; adds the blueprint bake step (ADR 0316); cites plans 360 and 361; depends adds 360 and 361.
 - 2026-10-24 — Worker C, traced (plan stays `draft`): in Sol rescaled the stack loses attitude **before** the boosters separate, not after. Guidance ascent at 9–10.5 km (t≈42–50 s) is still in the `ascent` stage (not `insert`): speed 780–890 m/s, angle of attack 13° at 42 s, 53° at 48 s, 91° at 54 s, the nose pitch going from +10° to −43°; the stack never recovers (altitude falls from 10.8 to 8.3 km, apoapsis 11–14 km, so the boost fails). Δv is not the issue (8885 m/s vacuum). Tried: forbidding a nose-below-horizon command in `insert` while in air — no effect (the stage is `ascent`). Likely cause: the ascent pitch program is a function of altitude only, so on the rescaled body (turn ends at 0.75 × atmosphere height) the 3 g-capped boosted stack reaches ~900 m/s at 10 km, a dynamic pressure far past a real max-Q, where the aerodynamic torque exceeds the gimbal authority. Next step for whoever takes it: a max-Q throttle (the pilot has no air density; it needs an estimate from the body's atmosphere height, or `PilotBody` gains a density/scale height), then re-trace. The `wayfarer(content, { boosterPairs })` refactor in `missions.ts` was not baked or merged.
+- 2026-10-24 — Done (Worker C, ADR 0365): the cause was the dynamic pressure on the boosters, not the separation; the ascent holds max-Q and the Sol designs carry more propellant; the Wayfarer reaches orbit in stock, Sol rescaled and Sol 1:1 (journal 385).

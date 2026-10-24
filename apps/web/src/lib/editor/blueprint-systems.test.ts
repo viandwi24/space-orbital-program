@@ -98,9 +98,9 @@ const EXPECTED: Record<string, Record<SystemKey, Outcome>> = {
 	'stock.moon-shot': { stock: 'goal', rescaled: 'orbit', '1:1': 'short' },
 	'stock.glider': { stock: 'ground', rescaled: 'ground', '1:1': 'ground' },
 	'stock.kronos-selene': { stock: 'goal', rescaled: 'goal', '1:1': 'goal' },
-	// a Sol-scale Shuttle needs a bigger tank and boosters, and an ascent that holds the stack's
-	// attitude after the boosters go: draft plan 385
-	'stock.wayfarer-shuttle': { stock: 'goal', rescaled: 'short', '1:1': 'short' },
+	// plan 385: the Sol designs hang more propellant under the tank (two or three 5 m tanks, a second
+	// booster pair at 1:1), and the ascent holds the dynamic pressure under max-Q so the stack keeps its attitude
+	'stock.wayfarer-shuttle': { stock: 'goal', rescaled: 'goal', '1:1': 'goal' },
 	'stock.horizon-station': { stock: 'goal', rescaled: 'goal', '1:1': 'goal' },
 	'stock.moonwatch-orbiter': { stock: 'goal', rescaled: 'goal', '1:1': 'goal' },
 	'stock.horizon-telescope': { stock: 'goal', rescaled: 'goal', '1:1': 'goal' },

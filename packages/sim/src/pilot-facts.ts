@@ -4,6 +4,7 @@
  */
 import {
 	STANDARD_GRAVITY,
+	ambientAt,
 	bodyAngularVelocity,
 	type EntityId,
 	type PilotEngine,
@@ -47,6 +48,14 @@ export function pilotFacts(core: SimCore, id: EntityId): PilotFacts {
 			mu: body.mu,
 			radius: body.def.radius,
 			atmosphereHeight: body.def.atmosphere?.height ?? 0,
+			...(body.def.atmosphere
+				? {
+						air: {
+							surfaceDensity: ambientAt(body.def, 0).density,
+							scaleHeight: body.def.atmosphere.scaleHeight
+						}
+					}
+				: {}),
 			angularVelocity: bodyAngularVelocity(body.def, core.t),
 			rotation: rotationAt(body, core.t)
 		},

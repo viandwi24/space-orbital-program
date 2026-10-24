@@ -68,6 +68,8 @@ export interface PilotBody {
 	radius: number;
 	/** Top of the atmosphere above the radius, m; 0 without one. */
 	atmosphereHeight: number;
+	/** Air density at the radius and its scale height, kg/m³ and m: the dynamic pressure at an altitude is ½ρv² with ρ = surfaceDensity·e^(−h/scaleHeight); absent from older hosts or without air (plan 385). */
+	air?: { surfaceDensity: number; scaleHeight: number };
 	/** Spin of the body, rad/s, inertial axes. */
 	angularVelocity: Vec3;
 	/** The body's axes now, body-fixed to inertial (plan 372, ADR 0309 point 5); absent from older hosts. */

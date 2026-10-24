@@ -655,6 +655,107 @@ function seleneRover(content: Content): VesselDesign {
 	return b.done([[descent], [rd]]);
 }
 
+/** The Wayfarer Shuttle (plan 385): `options` size it for a system (the stock one is the default). */
+function wayfarer(
+	content: Content,
+	options: { coreTanks?: number; boosterPairs?: number } = {}
+): VesselDesign {
+	const b = new Build(content, 'Wayfarer Shuttle', 'stock.orbiter-nose');
+	// the orbiter (plan 356): nose, cargo bay, engine section; the OMS propellant is in the aft
+	const bay = b.below('stock.orbiter-bay', 0);
+	const aft = b.below('stock.orbiter-aft', bay);
+	// the payload, docked: a port on the bay's keel, the module's side port face to face on it
+	// (ADR 0300), the module lying along the bay
+	const keel = b.on('stock.docking-port', bay, 'keel', 'bottom');
+	const side = b.on('stock.docking-port-side', keel, 'top', 'side');
+	const cabin = b.on('stock.crew-cabin', side, 'bottom');
+	const core = b.on('stock.probe-core', side, 'top');
+	// a berth at the far end for whatever docks with it later
+	b.above('stock.docking-port-small', b.above('stock.airlock', core));
+	// two more berths on the bay's inner bulkheads, fore and aft (owner, 2026-10-22): a module
+	// brought back, or a second payload, docks there
+	b.on('stock.docking-port', bay, 'fore', 'bottom');
+	b.on('stock.docking-port', bay, 'aft', 'bottom');
+	b.side('stock.solar-flat', cabin, Math.PI / 2, 0, 2);
+	// the wings far aft, behind the centre of mass, on the bay's aft end, either side (±X);
+	// the tank on the belly (-Z, an angle of pi/2), the bay doors (+Z) away from it
+	b.side('stock.wing-delta', bay, 0, -0.7, 2);
+	// RCS at both ends, so it turns as well as it moves (owner, 2026-10-22): four round the nose,
+	// a pair on the aft sides (the OMS pods' thrusters); none on the bay's top corners, the doors
+	b.side('stock.rcs-block-5', 0, Math.PI / 4, -0.55, 4);
+	b.side('stock.rcs-block-5', bay, 0, -0.9, 2);
+	const rd = b.side('stock.radial-decoupler', bay, Math.PI / 2, -0.2);
+	const et = b.on('stock.external-tank', rd, 'outer');
+	// a pair of boosters per attach: the decouplers' symmetry puts one on each side
+	for (let k = 0; k < (options.boosterPairs ?? 1); k++) {
+		const pair = b.side('stock.radial-decoupler', et, Math.PI / 2, k === 0 ? -0.2 : 0.6, 2);
+		b.on('stock.nose-cone-1875', b.on('stock.srb-xl', pair, 'outer'), 'top');
+	}
+	const srbDecs = b.s.design.parts
+		.filter((p) => p.part === 'stock.radial-decoupler' && p.parent?.index === et)
+		.map((p) => p.index);
+	const srbs = b.s.design.parts.filter((p) => p.part === 'stock.srb-xl').map((p) => p.index);
+	// the main engines sit under the tank, on the stack's axis (as Energia under Buran): the
+	// orbiter's own engines, 3 m off the centre of mass, would turn the stack over (plan 309)
+	// a Sol-scale stack (plan 385) hangs more propellant under the tank on a 5 m engine plate
+	let mains: number;
+	if (options.coreTanks) {
+		let under = b.below('stock.adapter-3750-5000', et);
+		for (let i = 0; i < options.coreTanks; i++) under = b.below('stock.tank-5000-long', under);
+		mains = b.below('stock.engine-plate-j2', under);
+	} else mains = b.below('stock.engine-plate-8', et);
+	// core engines and boosters light together; the boosters drop; the tank drops and the
+	// orbiter's own engines light for the orbit burn; the module undocks from the open bay
+	// landing gear (plan 361): the nose gear under the cabin, two main gear under the bay's aft
+	// end; stowed for launch and re-entry, lowered with G
+	const noseGear = b.side('stock.orbiter-gear-nose', 0, Math.PI / 2, -0.45);
+	const mainGear = [Math.PI / 2 - 0.45, Math.PI / 2 + 0.45].map((a) =>
+		b.side('stock.orbiter-gear', bay, a, -0.72)
+	);
+	const design = b.done([[mains, ...srbs], srbDecs, [rd, aft], [side]]);
+	// the far wing (symmetry turns it half round) has its tiles on its top face, so both
+	// wings show them underneath; the last stage undocks the module ("Undock on stage")
+	const farWing = (p: VesselDesign['parts'][number]) =>
+		p.part === 'stock.wing-delta' && Math.abs((p.parent?.radial?.angle ?? 0) - Math.PI) < 0.1;
+	// radial parts sit on the 2.5 m cylinder; the belly is flat, so the gear wells move in onto
+	// it (the rounded-square section's flat is 1.05 m from the axis, plan 356)
+	const inward = (index: number, angle: number, by: number) => ({
+		x: Math.cos(angle) * -by,
+		y: 0,
+		z: Math.sin(angle) * by
+	});
+	const gearOffset = new Map<number, { x: number; y: number; z: number }>([
+		[noseGear, inward(noseGear, Math.PI / 2, 0.2)],
+		[mainGear[0]!, inward(mainGear[0]!, Math.PI / 2 - 0.45, 0.1)],
+		[mainGear[1]!, inward(mainGear[1]!, Math.PI / 2 + 0.45, 0.1)]
+	]);
+	const parts = design.parts.map((p) => {
+		const offset = gearOffset.get(p.index);
+		if (offset) return { ...p, offset };
+		if (p.index === side)
+			return { ...p, settings: { ...p.settings, 'stock.docking-port': { stageUndock: true } } };
+		if (farWing(p)) return { ...p, settings: { ...p.settings, 'stock.wing': { tilesUp: true } } };
+		return p;
+	});
+	// the brake chute (plan 361) in a pack on the aft fuselage's top beside the fin, turned
+	// over so its canopy streams aft; Parachutes (or its own Deploy) on the runway
+	const chute = {
+		index: Math.max(...parts.map((p) => p.index)) + 1,
+		part: partId('stock.drag-chute'),
+		parent: {
+			index: aft,
+			parentNode: 'surface',
+			node: 'radial',
+			surface: {
+				point: [0.45, 0.7, 1.03] as [number, number, number],
+				normal: [0, 0, 1] as [number, number, number]
+			}
+		},
+		tilt: { x: 0, y: 0, z: Math.PI }
+	};
+	return { ...design, formatVersion: 4, parts: [...parts, chute] };
+}
+
 export const MISSION_BLUEPRINTS: readonly MissionBlueprint[] = [
 	{
 		id: 'kronos-selene',
@@ -682,96 +783,20 @@ export const MISSION_BLUEPRINTS: readonly MissionBlueprint[] = [
 		summary:
 			'A winged orbiter on a foam-covered tank between two solid boosters, a station module docked in its cargo bay. The main engines are under the tank, so the thrust runs through the stack. In orbit the orbiter burns on its own engines; open the bay doors, then Undock the module (or stage) and it drifts out of the bay.',
 		// the stock system's: a Sol-scale Shuttle is draft plan 385
-		systems: [{ system: 'stock' }],
-		build(content) {
-			const b = new Build(content, 'Wayfarer Shuttle', 'stock.orbiter-nose');
-			// the orbiter (plan 356): nose, cargo bay, engine section; the OMS propellant is in the aft
-			const bay = b.below('stock.orbiter-bay', 0);
-			const aft = b.below('stock.orbiter-aft', bay);
-			// the payload, docked: a port on the bay's keel, the module's side port face to face on it
-			// (ADR 0300), the module lying along the bay
-			const keel = b.on('stock.docking-port', bay, 'keel', 'bottom');
-			const side = b.on('stock.docking-port-side', keel, 'top', 'side');
-			const cabin = b.on('stock.crew-cabin', side, 'bottom');
-			const core = b.on('stock.probe-core', side, 'top');
-			// a berth at the far end for whatever docks with it later
-			b.above('stock.docking-port-small', b.above('stock.airlock', core));
-			// two more berths on the bay's inner bulkheads, fore and aft (owner, 2026-10-22): a module
-			// brought back, or a second payload, docks there
-			b.on('stock.docking-port', bay, 'fore', 'bottom');
-			b.on('stock.docking-port', bay, 'aft', 'bottom');
-			b.side('stock.solar-flat', cabin, Math.PI / 2, 0, 2);
-			// the wings far aft, behind the centre of mass, on the bay's aft end, either side (±X);
-			// the tank on the belly (-Z, an angle of pi/2), the bay doors (+Z) away from it
-			b.side('stock.wing-delta', bay, 0, -0.7, 2);
-			// RCS at both ends, so it turns as well as it moves (owner, 2026-10-22): four round the nose,
-			// a pair on the aft sides (the OMS pods' thrusters); none on the bay's top corners, the doors
-			b.side('stock.rcs-block-5', 0, Math.PI / 4, -0.55, 4);
-			b.side('stock.rcs-block-5', bay, 0, -0.9, 2);
-			const rd = b.side('stock.radial-decoupler', bay, Math.PI / 2, -0.2);
-			const et = b.on('stock.external-tank', rd, 'outer');
-			b.side('stock.radial-decoupler', et, Math.PI / 2, -0.2, 2);
-			const srbDecs = b.s.design.parts
-				.filter((p) => p.part === 'stock.radial-decoupler' && p.parent?.index === et)
-				.map((p) => p.index);
-			// one attach: the decouplers' symmetry puts a booster on each
-			b.on('stock.nose-cone-1875', b.on('stock.srb-xl', srbDecs.at(-1)!, 'outer'), 'top');
-			const srbs = b.s.design.parts.filter((p) => p.part === 'stock.srb-xl').map((p) => p.index);
-			// the main engines sit under the tank, on the stack's axis (as Energia under Buran): the
-			// orbiter's own engines, 3 m off the centre of mass, would turn the stack over (plan 309)
-			const mains = b.below('stock.engine-plate-8', et);
-			// core engines and boosters light together; the boosters drop; the tank drops and the
-			// orbiter's own engines light for the orbit burn; the module undocks from the open bay
-			// landing gear (plan 361): the nose gear under the cabin, two main gear under the bay's aft
-			// end; stowed for launch and re-entry, lowered with G
-			const noseGear = b.side('stock.orbiter-gear-nose', 0, Math.PI / 2, -0.45);
-			const mainGear = [Math.PI / 2 - 0.45, Math.PI / 2 + 0.45].map((a) =>
-				b.side('stock.orbiter-gear', bay, a, -0.72)
-			);
-			const design = b.done([[mains, ...srbs], srbDecs, [rd, aft], [side]]);
-			// the far wing (symmetry turns it half round) has its tiles on its top face, so both
-			// wings show them underneath; the last stage undocks the module ("Undock on stage")
-			const farWing = (p: VesselDesign['parts'][number]) =>
-				p.part === 'stock.wing-delta' && Math.abs((p.parent?.radial?.angle ?? 0) - Math.PI) < 0.1;
-			// radial parts sit on the 2.5 m cylinder; the belly is flat, so the gear wells move in onto
-			// it (the rounded-square section's flat is 1.05 m from the axis, plan 356)
-			const inward = (index: number, angle: number, by: number) => ({
-				x: Math.cos(angle) * -by,
-				y: 0,
-				z: Math.sin(angle) * by
-			});
-			const gearOffset = new Map<number, { x: number; y: number; z: number }>([
-				[noseGear, inward(noseGear, Math.PI / 2, 0.2)],
-				[mainGear[0]!, inward(mainGear[0]!, Math.PI / 2 - 0.45, 0.1)],
-				[mainGear[1]!, inward(mainGear[1]!, Math.PI / 2 + 0.45, 0.1)]
-			]);
-			const parts = design.parts.map((p) => {
-				const offset = gearOffset.get(p.index);
-				if (offset) return { ...p, offset };
-				if (p.index === side)
-					return { ...p, settings: { ...p.settings, 'stock.docking-port': { stageUndock: true } } };
-				if (farWing(p))
-					return { ...p, settings: { ...p.settings, 'stock.wing': { tilesUp: true } } };
-				return p;
-			});
-			// the brake chute (plan 361) in a pack on the aft fuselage's top beside the fin, turned
-			// over so its canopy streams aft; Parachutes (or its own Deploy) on the runway
-			const chute = {
-				index: Math.max(...parts.map((p) => p.index)) + 1,
-				part: partId('stock.drag-chute'),
-				parent: {
-					index: aft,
-					parentNode: 'surface',
-					node: 'radial',
-					surface: {
-						point: [0.45, 0.7, 1.03] as [number, number, number],
-						normal: [0, 0, 1] as [number, number, number]
-					}
-				},
-				tilt: { x: 0, y: 0, z: Math.PI }
-			};
-			return { ...design, formatVersion: 4, parts: [...parts, chute] };
-		}
+		systems: [
+			{ system: 'stock' },
+			{
+				system: 'sol',
+				variant: 'rescaled',
+				build: (content) => wayfarer(content, { coreTanks: 2 })
+			},
+			{
+				system: 'sol',
+				variant: '1:1',
+				build: (content) => wayfarer(content, { coreTanks: 3, boosterPairs: 2 })
+			}
+		],
+		build: (content) => wayfarer(content)
 	},
 	{
 		id: 'horizon-station',

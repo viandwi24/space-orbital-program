@@ -298,6 +298,40 @@ function localAxes(pilot: VesselPilot, inclination = 0, correction = 0): { up: V
 	return { up, east: heading };
 }
 
+/** The ascent eases the throttle from this dynamic pressure, Pa, and holds it under the limit (plan 385: max-Q). */
+export const ASCENT_Q_EASE = 40_000;
+export const ASCENT_Q_LIMIT = 60_000;
+/** The lowest the max-Q throttle goes. */
+const ASCENT_Q_FLOOR = 0.35;
+
+/** The dynamic pressure of the air the vessel moves through, Pa (0 without air facts or above the air). */
+export function dynamicPressure(pilot: VesselPilot): number {
+	const body = pilot.body;
+	const air = body?.air;
+	if (!body || !air) return 0;
+	const r = pilot.vessel.position;
+	const altitude = length(r) - body.radius;
+	if (body.atmosphereHeight > 0 && altitude >= body.atmosphereHeight) return 0;
+	const wind = sub(pilot.vessel.velocity, cross(body.angularVelocity, r));
+	const rho = air.surfaceDensity * Math.exp(-Math.max(altitude, 0) / air.scaleHeight);
+	return 0.5 * rho * dot(wind, wind);
+}
+
+/**
+ * The share of throttle that keeps the dynamic pressure under the limit (max-Q): 1 below
+ * `ASCENT_Q_EASE`, falling to the floor at `ASCENT_Q_LIMIT`. A stack that flies at the speed of a real
+ * rocket's max-Q at ten kilometres holds its attitude; one that does not tumbles on its boosters.
+ */
+export function maxQThrottle(pilot: VesselPilot): number {
+	const q = dynamicPressure(pilot);
+	if (q <= ASCENT_Q_EASE) return 1;
+	return clamp(
+		1 - ((1 - ASCENT_Q_FLOOR) * (q - ASCENT_Q_EASE)) / (ASCENT_Q_LIMIT - ASCENT_Q_EASE),
+		ASCENT_Q_FLOOR,
+		1
+	);
+}
+
 /** The throttle that holds the acceleration to `ASCENT_MAX_G` (1 without thrust). */
 function maxGThrottle(pilot: VesselPilot, mass: number): number {
 	const thrust = pilot.maxThrust;
@@ -372,7 +406,7 @@ export const Ascent = defineAutopilot<AscentMemory>({
 				})
 			);
 			// never above 3 g, as real launchers throttle: a light stack on realistic engines lofts otherwise
-			pilot.throttle(maxGThrottle(pilot, f.mass));
+			pilot.throttle(maxGThrottle(pilot, f.mass) * maxQThrottle(pilot));
 			// the apoapsis is there: cut and coast up to it (a lofted climb). The turn done below the target
 			// (a real-scale ascent, flat in the thin air): burn on into orbit at once (plan 380)
 			if (apo >= memory.altitude) {
@@ -418,7 +452,7 @@ export const Ascent = defineAutopilot<AscentMemory>({
 			// ease off as the periapsis nears the target
 			pilot.throttle(
 				Math.min(
-					maxGThrottle(pilot, f.mass),
+					maxGThrottle(pilot, f.mass) * maxQThrottle(pilot),
 					clamp((memory.altitude - INSERT_DONE - pe) / 20_000, 0.05, 1)
 				)
 			);
