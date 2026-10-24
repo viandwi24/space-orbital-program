@@ -297,6 +297,12 @@ export function tuftDensity(distance: number): number {
 	return 0;
 }
 
+/** A tuft cell farther than this from the camera draws the lite tuft (5 triangles for 27), m (plan 414). */
+export const TUFT_LITE_FROM = 28;
+/** Trees and bushes within these distances, m, draw their full geometry; the rest a coarse one (plan 414). */
+export const TREE_LOD_RADIUS = 90;
+export const BUSH_LOD_RADIUS = 45;
+
 /** The centre of tuft cell `cell` in site-local metres. */
 export const tuftCellCentre = (cell: number): { x: number; z: number } => ({
 	x: ((cell % TUFT_CELLS) + 0.5) * ((2 * TUFT_RADIUS) / TUFT_CELLS) - TUFT_RADIUS,

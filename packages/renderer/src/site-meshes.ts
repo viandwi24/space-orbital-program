@@ -6,6 +6,7 @@
  * Layout lives in `site.ts`; surface wear and wind in `weathering.ts`.
  */
 import { createRng, type Quat, type Vec3 } from '@orbital/core';
+import { LodInstances } from './site-lod.ts';
 import {
 	BufferGeometry,
 	Color,
@@ -57,7 +58,10 @@ export const DEEP_SPACE_DISH = 'deep-space-dish';
 const DISH_FAR_DISTANCE = 3_000;
 import {
 	bushGeometry,
+	bushGeometryLow,
 	pineGeometry,
+	pineGeometryLow,
+	roundTreeGeometryLow,
 	rockGeometry,
 	roundTreeGeometry,
 	tuftGeometry
@@ -73,6 +77,9 @@ import {
 	tuftCell,
 	tuftCellCentre,
 	tuftDensity,
+	TUFT_LITE_FROM,
+	TREE_LOD_RADIUS,
+	BUSH_LOD_RADIUS,
 	TUFT_CELLS,
 	VENTS
 } from './site.ts';
@@ -253,6 +260,10 @@ interface VegetationSet {
 	tufts: InstancedMesh[];
 	rocks: InstancedMesh[];
 	trees: InstancedMesh[];
+	/** Trees and bushes with a near and a far geometry (plan 414). */
+	lods: LodInstances[];
+	/** Tuft cells with a full and a lite mesh sharing their instances (plan 414). */
+	tuftPairs: { full: InstancedMesh; lite: InstancedMesh; total: number; x: number; z: number }[];
 	/** Every mesh is built; before that the set is partial and must not be shown. */
 	ready: boolean;
 }
@@ -519,6 +530,10 @@ export class LaunchSite {
 	private readonly pineGeo = pineGeometry();
 	private readonly roundGeo = roundTreeGeometry();
 	private readonly bushGeo = bushGeometry();
+	private readonly pineLow = pineGeometryLow();
+	private readonly roundLow = roundTreeGeometryLow();
+	private readonly bushLow = bushGeometryLow();
+	private readonly tuftLite = tuftGeometry(true);
 	private readonly rockGeo = rockGeometry();
 	private readonly tuftGeo = tuftGeometry();
 	/** The sets that are built or being built, by budget (ADR 0055); `active` is the one in the scene. */
@@ -791,19 +806,22 @@ export class LaunchSite {
 				(t) => t.kind === kind && Math.hypot(t.x, t.z) < SHADOW_TREE_RADIUS === casting
 			);
 			if (!list.length) continue;
-			const mesh = make(
+			const lod = new LodInstances(
 				kind === 'pine' ? this.pineGeo : this.roundGeo,
+				kind === 'pine' ? this.pineLow : this.roundLow,
 				kind === 'pine' ? this.materials.pine : this.materials.round,
 				list.length,
-				casting
+				casting,
+				TREE_LOD_RADIUS
 			);
-			list.forEach((t, i) => {
+			set.lods.push(lod);
+			set.meshes.push(...lod.meshes);
+			list.forEach((t) => {
 				const h = hash3(Math.round(t.x), Math.round(t.z), 1, 5);
 				const sy = t.scale * (0.85 + 0.35 * h);
 				const sx = t.scale * (0.9 + 0.25 * hash3(Math.round(t.x), Math.round(t.z), 2, 6));
 				q.setFromEuler(e.set(0, t.yaw, 0));
 				matrix.compose(new Vector3(t.x, -drop(t.x, t.z), t.z), q, new Vector3(sx, sy, sx));
-				mesh.setMatrixAt(i, matrix);
 				// species variation: mostly greens of different brightness, a few turning yellow
 				const tone = 0.8 + 0.4 * hash3(Math.round(t.x), Math.round(t.z), 3, 7);
 				const autumn = kind === 'round' && hash3(Math.round(t.x), Math.round(t.z), 4, 8) > 0.93;
@@ -812,26 +830,32 @@ export class LaunchSite {
 					autumn ? tone * 1.15 : tone * (0.92 + 0.2 * h),
 					autumn ? tone * 0.5 : tone * 0.95
 				);
-				mesh.setColorAt(i, colour);
+				lod.add(matrix, colour, t.x, t.z);
 			});
-			finish(mesh);
 			yield;
 		}
 		if (layout.bushes.length) {
-			const mesh = make(this.bushGeo, this.materials.bush, layout.bushes.length, true);
-			layout.bushes.forEach((b, i) => {
+			const lod = new LodInstances(
+				this.bushGeo,
+				this.bushLow,
+				this.materials.bush,
+				layout.bushes.length,
+				true,
+				BUSH_LOD_RADIUS
+			);
+			set.lods.push(lod);
+			set.meshes.push(...lod.meshes);
+			layout.bushes.forEach((b) => {
 				q.setFromEuler(e.set(0, b.yaw, 0));
 				matrix.compose(
 					new Vector3(b.x, -drop(b.x, b.z), b.z),
 					q,
 					new Vector3(b.scale, b.scale, b.scale)
 				);
-				mesh.setMatrixAt(i, matrix);
 				const tone = 0.75 + 0.5 * hash3(Math.round(b.x), Math.round(b.z), 5, 9);
 				colour.setRGB(tone, tone, tone * 0.9);
-				mesh.setColorAt(i, colour);
+				lod.add(matrix, colour, b.x, b.z);
 			});
-			finish(mesh);
 			yield;
 		}
 		const rocks = make(this.rockGeo, this.materials.rock, layout.rocks.length, true);
@@ -861,7 +885,6 @@ export class LaunchSite {
 			}
 			const mesh = make(this.tuftGeo, this.materials.tuft, list.length, false);
 			set.tufts.push(mesh);
-			mesh.userData.tuft = { total: list.length, ...tuftCellCentre(cell) };
 			list.forEach((t, i) => {
 				q.setFromEuler(e.set(0, t.yaw, 0));
 				matrix.compose(
@@ -875,10 +898,20 @@ export class LaunchSite {
 				mesh.setColorAt(i, colour);
 			});
 			finish(mesh);
+			// the lite twin shares the instances: a cell beyond `TUFT_LITE_FROM` draws it instead (plan 414)
+			const lite = new InstancedMesh(this.tuftLite, this.materials.tuft, list.length);
+			lite.instanceMatrix = mesh.instanceMatrix;
+			lite.instanceColor = mesh.instanceColor;
+			lite.receiveShadow = true;
+			lite.boundingSphere = mesh.boundingSphere;
+			lite.visible = false;
+			set.meshes.push(lite);
+			set.tufts.push(lite);
+			set.tuftPairs.push({ full: mesh, lite, total: list.length, ...tuftCellCentre(cell) });
 			yield;
 		}
 		const notTree = new Set<InstancedMesh>([...set.tufts, ...set.rocks]);
-		set.trees = set.meshes.filter((m) => !notTree.has(m));
+		set.trees = set.lods.flatMap((l) => l.meshes);
 		set.ready = true;
 	}
 
@@ -887,7 +920,7 @@ export class LaunchSite {
 		const key = LaunchSite.key(count, tufts);
 		let set = this.sets.get(key);
 		if (!set) {
-			set = { meshes: [], tufts: [], rocks: [], trees: [], ready: false };
+			set = { meshes: [], tufts: [], rocks: [], trees: [], lods: [], tuftPairs: [], ready: false };
 			this.sets.set(key, set);
 			this.builds.set(key, this.buildSet(count, tufts, set));
 		}
@@ -923,7 +956,15 @@ export class LaunchSite {
 			const key = LaunchSite.key(b.trees, b.tufts);
 			if (this.sets.get(key)?.ready) continue;
 			if (!this.sets.has(key)) {
-				const set: VegetationSet = { meshes: [], tufts: [], rocks: [], trees: [], ready: false };
+				const set: VegetationSet = {
+					meshes: [],
+					tufts: [],
+					rocks: [],
+					trees: [],
+					lods: [],
+					tuftPairs: [],
+					ready: false
+				};
 				this.sets.set(key, set);
 				this.builds.set(key, this.buildSet(b.trees, b.tufts, set));
 			}
@@ -960,17 +1001,23 @@ export class LaunchSite {
 	 * the lawn is thinned where a 0.4 m tuft is a few pixels. `cameraRender`: the camera in render space.
 	 */
 	thinTufts(cameraRender: Vec3): void {
+		const set = this.active;
+		if (!set) return;
 		const cam = this.root.worldToLocal(new Vector3(cameraRender.x, cameraRender.y, cameraRender.z));
-		for (const set of this.sets.values()) {
-			if (!this.active || set !== this.active) continue;
-			for (const m of set.tufts) {
-				const t = m.userData.tuft as { total: number; x: number; z: number } | undefined;
-				if (!t) continue;
-				const d = Math.hypot(cam.x - t.x, cam.y, cam.z - t.z);
-				const count = Math.ceil(t.total * tuftDensity(d));
-				m.count = count;
-				m.visible = count > 0 && this.lastDistance <= SITE_DETAIL_RANGE.tufts;
-			}
+		const d = siteDetail(this.lastDistance);
+		for (const t of set.tuftPairs) {
+			const dist = Math.hypot(cam.x - t.x, cam.y, cam.z - t.z);
+			const count = Math.ceil(t.total * tuftDensity(dist));
+			const lite = dist > TUFT_LITE_FROM;
+			t.full.count = lite ? 0 : count;
+			t.lite.count = lite ? count : 0;
+			t.full.visible = d.tufts && t.full.count > 0;
+			t.lite.visible = d.tufts && t.lite.count > 0;
+		}
+		// the trees and bushes: the instances near the camera in the full geometry, the rest in the coarse one
+		for (const lod of set.lods) {
+			lod.update(cam);
+			lod.show(d.trees);
 		}
 	}
 
@@ -1026,7 +1073,17 @@ export class LaunchSite {
 
 	dispose(): void {
 		for (const g of this.geometries) g.dispose();
-		for (const g of [this.pineGeo, this.roundGeo, this.bushGeo, this.rockGeo, this.tuftGeo])
+		for (const g of [
+			this.pineLow,
+			this.roundLow,
+			this.bushLow,
+			this.tuftLite,
+			this.pineGeo,
+			this.roundGeo,
+			this.bushGeo,
+			this.rockGeo,
+			this.tuftGeo
+		])
 			g.dispose();
 		for (const set of this.sets.values()) for (const v of set.meshes) v.dispose();
 		this.steam.dispose();

@@ -102,6 +102,52 @@ export function pineGeometry(): BufferGeometry {
 	return merge(parts);
 }
 
+/** The round tree for the distance (plan 414): the trunk and three coarse blobs, about a fifth of the triangles. */
+export function roundTreeGeometryLow(): BufferGeometry {
+	const trunk = lin(0x4d3a28);
+	const leaf: Rgb = lin(0x3c6b2b);
+	const leafB: Rgb = lin(0x4a7a30);
+	return merge([
+		cylinder(0.2, 0.34, 3.4, 0, 1.7, 0, trunk, 5),
+		canopyBlob(0, 5.1, 0, 2.5, leaf, 8, 1),
+		canopyBlob(1.2, 4.6, 0.4, 1.9, leafB, 9, 0),
+		canopyBlob(-1.1, 5.0, -0.5, 1.9, leaf, 10, 0)
+	]);
+}
+
+/** The pine for the distance: three cones and a short trunk. */
+export function pineGeometryLow(): BufferGeometry {
+	const trunk = lin(0x45301f);
+	const needles: Rgb[] = [lin(0x1b3a1d), lin(0x234a25), lin(0x2b5a2d)];
+	const parts: BufferGeometry[] = [cylinder(0.2, 0.3, 2.6, 0, 1.3, 0, trunk, 4)];
+	for (let i = 0; i < 3; i++) {
+		const c = new ConeGeometry(2.2 - i * 0.6, 4.2 - i * 0.5, 6, 1, true).toNonIndexed();
+		const p = c.getAttribute('position');
+		const col = new Float32Array(p.count * 3);
+		for (let v = 0; v < p.count; v++) {
+			const shade = p.getY(v) > 0 ? 1.15 : 0.6;
+			col[v * 3] = needles[i]![0] * shade;
+			col[v * 3 + 1] = needles[i]![1] * shade;
+			col[v * 3 + 2] = needles[i]![2] * shade;
+		}
+		c.setAttribute('color', new BufferAttribute(col, 3));
+		c.translate(0, 3.2 + i * 2.4, 0);
+		c.computeVertexNormals();
+		parts.push(c);
+	}
+	return merge(parts);
+}
+
+/** The bush for the distance: three single-subdivision blobs. */
+export function bushGeometryLow(): BufferGeometry {
+	const leaf = lin(0x35602a);
+	return merge([
+		canopyBlob(0, 0.55, 0, 0.8, leaf, 31, 0, 0.8),
+		canopyBlob(0.6, 0.4, 0.2, 0.55, lin(0x44712f), 32, 0, 0.8),
+		canopyBlob(-0.5, 0.4, -0.3, 0.6, lin(0x2e5a27), 33, 0, 0.8)
+	]);
+}
+
 export function bushGeometry(): BufferGeometry {
 	const leaf = lin(0x35602a);
 	return merge([
@@ -136,7 +182,7 @@ const BLADES = 9;
  * One grass tuft: `BLADES` bent blades fanned around the origin, about 0.25 m tall, dark at the
  * base and light at the tip. Normals lean up so a blade is lit like the ground under it.
  */
-export function tuftGeometry(): BufferGeometry {
+export function tuftGeometry(lite = false): BufferGeometry {
 	const positions: number[] = [];
 	const normals: number[] = [];
 	const colours: number[] = [];
@@ -147,11 +193,13 @@ export function tuftGeometry(): BufferGeometry {
 		normals.push(nx / l, ny / l, nz / l);
 		colours.push(c, c, c);
 	};
-	for (let b = 0; b < BLADES; b++) {
-		const yaw = (b / BLADES) * Math.PI * 2 + 0.4 * hash3(b, 1, 2, 3);
+	// the far tuft (plan 414): five single-triangle blades, a little wider, 5 triangles for 27
+	const blades = lite ? 5 : BLADES;
+	for (let b = 0; b < blades; b++) {
+		const yaw = (b / blades) * Math.PI * 2 + 0.4 * hash3(b, 1, 2, 3);
 		const lean = 0.25 + 0.35 * hash3(b, 3, 2, 1);
 		const h = 0.17 + 0.16 * hash3(b, 5, 7, 1);
-		const w = 0.034;
+		const w = lite ? 0.06 : 0.034;
 		const dx = Math.cos(yaw);
 		const dz = Math.sin(yaw);
 		const px = -dz;
@@ -164,6 +212,11 @@ export function tuftGeometry(): BufferGeometry {
 		const nz = dz * 0.25;
 		push(dx * r0 - px * w, 0, dz * r0 - pz * w, nx, 1, nz, 0.6);
 		push(dx * r0 + px * w, 0, dz * r0 + pz * w, nx, 1, nz, 0.6);
+		if (lite) {
+			push(dx * (r0 + bendTip), h, dz * (r0 + bendTip), nx, 1, nz, 1.0);
+			index.push(base, base + 1, base + 2);
+			continue;
+		}
 		push(
 			dx * (r0 + bendMid) - px * w * 0.7,
 			h * 0.55,
