@@ -23,6 +23,7 @@ import {
 	type ScriptState,
 	type WorkerMessage
 } from './messages';
+import { SnapshotEncoder } from './snapshot-delta';
 import { createScriptSession, type ScriptResult, type ScriptSession } from './script-channel';
 import type { ScriptWorkerLike } from './script-protocol';
 
@@ -199,6 +200,7 @@ export function createSimHost(options: SimHostOptions): SimHost {
 		heldAttitude: Command | undefined;
 	}
 	const runs = new Map<number, ScriptRun>();
+	const encoder = new SnapshotEncoder();
 	const newRun = (vessel: number): ScriptRun => ({
 		vessel,
 		session: null,
@@ -594,7 +596,13 @@ export function createSimHost(options: SimHostOptions): SimHost {
 						run.verdicts = [...batch, ...run.verdicts];
 				}
 			}
-			options.post({ kind: 'snapshot', snapshot, warp: sim.warp, stepMs });
+			// only what changed since the last message goes over (plan 365, ADR 0358)
+			options.post({
+				kind: 'snapshot',
+				snapshot: encoder.encode(snapshot),
+				warp: sim.warp,
+				stepMs
+			});
 		} catch (error) {
 			// A throwing sim is not recoverable mid-step: stop the loop and report.
 			cancel?.();

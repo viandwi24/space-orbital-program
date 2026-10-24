@@ -9,6 +9,7 @@ import {
 	type WorkerMessage
 } from './messages';
 import { activeBundles } from './mods/runtime';
+import { SnapshotDecoder } from './snapshot-delta';
 
 /** The slice of `Worker` the client uses, so tests can pass a double. */
 export interface WorkerLike {
@@ -75,6 +76,8 @@ export interface SimClient {
 export function createSimClient(worker: WorkerLike): SimClient {
 	let nextId = 1;
 	let latest: Snapshot | null = null;
+	/** Puts back what the worker left out of a snapshot because it had not changed (plan 365). */
+	const decoder = new SnapshotDecoder();
 	let stepMs: number | null = null;
 	let isReady = false;
 	let disposed = false;
@@ -124,9 +127,9 @@ export function createSimClient(worker: WorkerLike): SimClient {
 				break;
 			}
 			case 'snapshot':
-				latest = message.snapshot;
+				latest = decoder.decode(message.snapshot);
 				stepMs = message.stepMs ?? null;
-				for (const listener of snapshotListeners) listener(message.snapshot, message.warp);
+				for (const listener of snapshotListeners) listener(latest, message.warp);
 				break;
 			case 'result': {
 				const resolve = pending.get(message.id);

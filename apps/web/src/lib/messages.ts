@@ -2,6 +2,7 @@
  * Main thread <-> sim Worker protocol (plain data, structured-clone safe). Commands travel as
  * `unknown`: the sim validates them with `commandSchema` (ADR 0016), the client does not duplicate that.
  */
+import type { SnapshotWire } from './snapshot-delta';
 import type { ReplayFile } from '@orbital/core';
 import {
 	modAssetSchema,
@@ -193,7 +194,7 @@ export type WorkerMessage =
 	| ({ kind: 'ready'; savedScripts?: Array<{ vessel: number; name: string }> } & Catalog)
 	/** `warp` is the sim's own time warp, which it changes itself (SOI change, warp-to); optional for old fixtures. */
 	/** `stepMs`: wall time of the sim step behind it (plan 203's Info tab). */
-	| { kind: 'snapshot'; snapshot: Snapshot; warp?: number; stepMs?: number }
+	| { kind: 'snapshot'; snapshot: SnapshotWire; warp?: number; stepMs?: number }
 	| { kind: 'result'; id: number; result: CommandResult }
 	| { kind: 'replay'; id: number; replay: ReplayFile | null }
 	| { kind: 'design'; id: number; record: DesignRecordMessage | null }
