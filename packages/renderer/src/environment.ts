@@ -353,7 +353,10 @@ export class Environment {
 	private rocksOff = false;
 	setRocksOff(off: boolean): void {
 		this.rocksOff = off;
-		this.applyPreset();
+		// only the rocks: a whole preset reapplied on every toggle leaked memory over a long measurement
+		this.rocks.setQuality(
+			off ? { density: 0, range: 0 } : settingsFor(this.preset, this.resources).rocks
+		);
 	}
 
 	private applyPreset(): void {
