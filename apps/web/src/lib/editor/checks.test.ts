@@ -224,3 +224,48 @@ describe('robotics limits (plan 306, ADR 0269 point 6)', () => {
 		expect(check.parts).toEqual([MAX_JOINTS_IN_SERIES + 1]);
 	});
 });
+
+describe('legacy stack parts (plan 280)', () => {
+	const stacked = (...parts: string[]) => {
+		let s = createEditor(emptyDesign(), content);
+		parts.forEach((part, i) => {
+			const targets = attachTargets(s.design, singlePart(part, i), content.parts);
+			s = attachNew(
+				s,
+				content,
+				part,
+				targets.find((t) => t.parent?.parentNode !== 'top') ?? targets[0]!
+			);
+		});
+		return s;
+	};
+	const stats = (s: ReturnType<typeof stacked>) => designStats(s.design, content, 'sea-level', g);
+
+	it('a design with an old stack panel and antenna names each and offers the new part', () => {
+		const s = stacked('stock.command-pod', 'stock.solar-panel', 'stock.whip-antenna');
+		const check = checkDesign(s, content, stats(s)).find((c) => c.id === 'legacy-part')!;
+		expect(check).toBeDefined();
+		expect(check.parts).toHaveLength(2);
+		expect(check.text).toContain('Solar Panel');
+		expect(check.text).toContain(registries.parts.get('stock.solar-fold')!.title);
+		expect(check.text).toContain(registries.parts.get('stock.antenna-whip-radial')!.title);
+		// the design still resolves and is not blocked for it
+		expect(blocksLaunch([check])).toBe(false);
+	});
+
+	it('a design with only current parts has no such notice', () => {
+		const s = stacked('stock.command-pod', 'stock.tank-small');
+		expect(checkDesign(s, content, stats(s)).some((c) => c.id === 'legacy-part')).toBe(false);
+	});
+
+	it('every hidden stock part with a successor names a part that exists and is not hidden', () => {
+		for (const p of registries.parts.list()) {
+			const to = p.catalog?.replacedBy;
+			if (!to) continue;
+			expect(p.catalog?.hidden, p.id).toBe(true);
+			const next = registries.parts.get(to);
+			expect(next, `${p.id} -> ${to}`).toBeDefined();
+			expect(next!.catalog?.hidden, to).not.toBe(true);
+		}
+	});
+});

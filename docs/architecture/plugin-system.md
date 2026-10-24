@@ -355,3 +355,7 @@ JSON data files (`part.json`, `resource.json`) that reference module ids by stri
 - `icon`: the square badge.
 
 Each is a `data:` URL of an SVG, PNG, WebP or JPEG image of at most 128 KiB (`illustrationSchema`). Create World and Worlds show them as images. Without them, the host draws generated art from the system's bodies, or from the preset's id, so a mod's system always has a picture.
+
+## Breaking in airflow and replaced parts (API 0.1.127, plan 280, ADR 0351)
+
+`stock.solar-panel` and `stock.antenna` take `breakQ` (Pa): deployed above that dynamic pressure the part breaks and stays broken (`broken` in its state and snapshot). `PartDefinition.catalog.replacedBy` names the successor of a hidden part; the Hangar's pre-flight report lists such parts (`legacy-part`).

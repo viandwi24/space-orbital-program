@@ -4,13 +4,14 @@ import {
 	ElectricCharge,
 	LiquidFuel,
 	ModuleAnimate,
+	ModuleAntenna,
 	ModuleBay,
 	ModuleFuelCell,
 	ModuleSolarPanel,
 	Oxidizer,
 	landingLegColliders
 } from '../src/index.ts';
-import { contextFor, fakeVessel } from './helpers.ts';
+import { contextFor, fakeVessel, loaded } from './helpers.ts';
 
 describe('stock.animate (plan 302)', () => {
 	test('opens and closes by action; staging opens it only when stageable', () => {
@@ -82,5 +83,87 @@ describe('a stageable solar panel (plan 302)', () => {
 		const b = contextFor(ModuleSolarPanel, {});
 		ModuleSolarPanel.onStage!(b);
 		expect(b.state.deployed).toBe(false);
+	});
+});
+
+describe('deployables break in strong airflow (plan 280)', () => {
+	/** A vessel in air of `density` kg/m³ moving at `speed` m/s: q = 0.5 ρ v². */
+	const inAir = (density: number, speed: number) => {
+		const vessel = fakeVessel();
+		vessel.ambient.density = density;
+		vessel.air = { x: 0, y: speed, z: 0 };
+		return vessel;
+	};
+
+	test('a deployed folding array above its break pressure breaks and gives nothing; folded, it survives', () => {
+		// 0.5 * 0.5 * 400² = 40 kPa: the array breaks above 30 kPa
+		const deployed = contextFor(
+			ModuleSolarPanel,
+			{ breakQ: 30_000, deployed: true },
+			inAir(0.5, 400)
+		);
+		ModuleSolarPanel.update!(deployed, 0.02);
+		expect(deployed.state.broken).toBe(true);
+		expect(deployed.state.deployed).toBe(false);
+		expect(deployed.vessel.resources.amount('stock.electric-charge')).toBe(0);
+		// it cannot be deployed again, by action or by staging
+		ModuleSolarPanel.actions!.setDeployed!(deployed, true);
+		ModuleSolarPanel.actions!.deploy!(deployed);
+		ModuleSolarPanel.onStage!(deployed);
+		expect(deployed.state.deployed).toBe(false);
+		const info = ModuleSolarPanel.describe!(deployed.config, deployed.state as never);
+		expect(JSON.stringify(info)).toContain('Broken by the airflow');
+		expect(ModuleSolarPanel.snapshot!(deployed.state)).toMatchObject({ broken: true });
+
+		const folded = contextFor(ModuleSolarPanel, { breakQ: 30_000 }, inAir(0.5, 400));
+		ModuleSolarPanel.update!(folded, 0.02);
+		expect(folded.state.broken).toBeUndefined();
+	});
+
+	test('a deployed panel in gentle air, or one with no break pressure, keeps working', () => {
+		const gentle = contextFor(
+			ModuleSolarPanel,
+			{ breakQ: 30_000, deployed: true },
+			inAir(0.5, 100)
+		);
+		ModuleSolarPanel.update!(gentle, 0.02);
+		expect(gentle.state.broken).toBeUndefined();
+		expect(gentle.state.deployed).toBe(true);
+		const sturdy = contextFor(ModuleSolarPanel, { deployed: true }, inAir(0.5, 400));
+		ModuleSolarPanel.update!(sturdy, 0.02);
+		expect(sturdy.state.broken).toBeUndefined();
+	});
+
+	test('a deployed dish breaks and switches off for good; stowed (disabled), it survives', () => {
+		const on = contextFor(
+			ModuleAntenna,
+			{ antenna: 'stock.dish', breakQ: 20_000 },
+			inAir(0.5, 400)
+		);
+		ModuleAntenna.update!(on, 0.02);
+		expect(on.state.broken).toBe(true);
+		expect(on.state.enabled).toBe(false);
+		ModuleAntenna.actions!.setEnabled!(on, true);
+		expect(on.state.enabled).toBe(false);
+		expect(ModuleAntenna.antenna!(on.config, on.state)).toMatchObject({ enabled: false });
+		const stowed = contextFor(
+			ModuleAntenna,
+			{ antenna: 'stock.dish', breakQ: 20_000 },
+			inAir(0.5, 400)
+		);
+		stowed.state.enabled = false;
+		ModuleAntenna.update!(stowed, 0.02);
+		expect(stowed.state.broken).toBeUndefined();
+	});
+
+	test('the stock deployables carry break pressures; the retracted fixed panels do not', () => {
+		const get = (id: string) => loaded.registries.parts.get(id)!;
+		const breakQ = (id: string, mod: string) =>
+			(get(id).modules!.find(([m]) => m === mod)![1] as { breakQ?: number }).breakQ;
+		expect(breakQ('stock.solar-fold', 'stock.solar-panel')).toBe(40_000);
+		expect(breakQ('stock.solar-wings', 'stock.solar-panel')).toBe(30_000);
+		expect(breakQ('stock.solar-array-xl', 'stock.solar-panel')).toBe(25_000);
+		expect(breakQ('stock.antenna-dish-fold', 'stock.antenna')).toBe(20_000);
+		expect(breakQ('stock.solar-flat', 'stock.solar-panel')).toBeUndefined();
 	});
 });

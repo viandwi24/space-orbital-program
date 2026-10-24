@@ -37,7 +37,8 @@ export type CheckId =
 	| 'no-crew'
 	| 'no-antenna'
 	| 'no-parachute'
-	| 'robotics';
+	| 'robotics'
+	| 'legacy-part';
 
 /** The stock group parachutes put their deploy switch in: how the report knows a part is one. */
 export const PARACHUTE_GROUP = 'stock.parachutes';
@@ -117,6 +118,28 @@ export function checkDesign(
 				? `Upgrade in the Space Center: ${partsLimit.upgrade}.`
 				: 'No building level takes this many parts: remove some.',
 			parts: []
+		});
+	}
+	// a hidden stack part from before plan 280 that has a surface-mounted successor (ADR 0259)
+	const legacy = design.parts.flatMap((p) => {
+		const catalog = content.parts.get(p.part)?.catalog;
+		return catalog?.hidden && catalog.replacedBy
+			? [{ index: p.index, id: p.part, to: catalog.replacedBy }]
+			: [];
+	});
+	if (legacy.length > 0) {
+		const named = [...new Map(legacy.map((l) => [l.id, l])).values()].map((l) => {
+			const from = content.parts.get(l.id)?.title ?? l.id;
+			const to = content.parts.get(l.to)?.title ?? l.to;
+			return `${from} (use ${to})`;
+		});
+		out.push({
+			id: 'legacy-part',
+			severity: 'warning',
+			level: 'caution',
+			text: `${plural(legacy.length, 'part is', 'parts are')} an older version no longer in the catalogue: ${named.join(', ')}.`,
+			hint: 'It still flies. Replace it with the surface-mounted part from the catalogue.',
+			parts: legacy.map((l) => l.index)
 		});
 	}
 	const model = stagingModelFromDesign(design, content);

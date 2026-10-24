@@ -24,13 +24,31 @@ export const solarPanelConfigSchema = z.object({
 	mode: z.enum(['flat', 'track']).default('flat'),
 	normal: vec3.default([0, 0, 1]),
 	/** Staging unfolds the panel (plan 302: a panel may sit in the staging stack, as in KSP). */
-	stageable: z.boolean().default(false)
+	stageable: z.boolean().default(false),
+	/**
+	 * Dynamic pressure above which the deployed panel breaks, Pa (plan 280): it folds, gives nothing
+	 * and cannot be deployed again. Folded, it never breaks. Absent: it does not break.
+	 */
+	breakQ: z.number().positive().optional()
 });
 export type SolarPanelConfig = z.output<typeof solarPanelConfigSchema>;
 export interface SolarPanelState {
 	deployed: boolean;
 	/** The share of `rate` it gives now, 0..1 (plan 240); 0 in shadow or folded. */
 	exposure?: number;
+	/** Torn off by the airflow (plan 280). */
+	broken?: boolean;
+}
+
+/** Dynamic pressure on a part, Pa: half the air density times the airspeed squared. */
+export function dynamicPressure(vessel: {
+	ambient: { density: number };
+	airVelocity(): Vec3;
+}): number {
+	const rho = vessel.ambient.density;
+	if (!(rho > 0)) return 0;
+	const v = vessel.airVelocity();
+	return 0.5 * rho * (v.x * v.x + v.y * v.y + v.z * v.z);
 }
 
 /** The share of `rate` the panel gives for the star in `direction` (part frame); 1 without a star. */
@@ -54,7 +72,7 @@ type SolarContext = {
 /** Charge for `dt` seconds; the batteries keep what fits. */
 function charge(ctx: SolarContext, dt: number): void {
 	if (dt <= 0) return;
-	if (ctx.config.deployable && !ctx.state.deployed) {
+	if ((ctx.config.deployable && !ctx.state.deployed) || ctx.state.broken) {
 		ctx.state.exposure = 0;
 		return;
 	}
@@ -75,8 +93,9 @@ export const ModuleSolarPanel = defineModule({
 			{
 				id: 'output',
 				label: 'Output',
-				value:
-					config.deployable && !state.deployed
+				value: state.broken
+					? 'Broken by the airflow: 0 EC/s'
+					: config.deployable && !state.deployed
 						? 'Folded: 0 EC/s'
 						: state.exposure === undefined
 							? `up to ${config.rate} EC/s`
@@ -95,7 +114,8 @@ export const ModuleSolarPanel = defineModule({
 						label: 'Solar panel',
 						kind: 'toggle',
 						value: state.deployed,
-						enabled: true,
+						enabled: !state.broken,
+						...(state.broken ? { reason: 'Broken by the airflow' } : {}),
 						group: 'stock.solar',
 						icon: 'solar',
 						// the Hangar sets whether it starts open (plan 316)
@@ -105,14 +125,25 @@ export const ModuleSolarPanel = defineModule({
 	}),
 	// by day at its rating (facing the star at the home planet's distance)
 	power: (config) => ({ rate: config.rate, sun: true }),
-	update: charge,
+	update(ctx, dt) {
+		// a deployed panel in air too strong for it breaks (plan 280); folded, it is safe
+		const { breakQ } = ctx.config;
+		if (breakQ !== undefined && ctx.state.deployed && !ctx.state.broken) {
+			if (dynamicPressure(ctx.vessel) > breakQ) {
+				ctx.state.broken = true;
+				ctx.state.deployed = false;
+			}
+		}
+		charge(ctx, dt);
+	},
 	background: charge,
 	onStage(ctx) {
-		if (ctx.config.stageable && ctx.config.deployable) ctx.state.deployed = true;
+		if (ctx.config.stageable && ctx.config.deployable && !ctx.state.broken)
+			ctx.state.deployed = true;
 	},
 	actions: {
 		deploy: (ctx) => {
-			ctx.state.deployed = true;
+			if (!ctx.state.broken) ctx.state.deployed = true;
 		},
 		retract: (ctx) => {
 			if (ctx.config.deployable) ctx.state.deployed = false;
@@ -120,11 +151,12 @@ export const ModuleSolarPanel = defineModule({
 		/** `(deployed)` (the part action toggle, plan 110). */
 		setDeployed: (ctx, ...args) => {
 			const [deployed] = z.tuple([z.boolean()]).parse(args);
-			if (ctx.config.deployable) ctx.state.deployed = deployed;
+			if (ctx.config.deployable && !ctx.state.broken) ctx.state.deployed = deployed;
 		}
 	},
 	snapshot: (state) => ({
 		deployed: state.deployed,
+		...(state.broken ? { broken: true } : {}),
 		...(state.exposure === undefined ? {} : { exposure: state.exposure })
 	})
 });

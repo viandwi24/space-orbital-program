@@ -3,6 +3,7 @@
  * bands (plan 116, ADR 0185). Stations are the world's sites; the network itself is computed by
  * the sim from these definitions and the rules.
  */
+import { dynamicPressure } from './solar.ts';
 import { defineAntenna, defineBand, defineModule, defineRoutePolicy, z } from '@orbital/sdk';
 
 // Values and sources: docs/research/comms.md.
@@ -106,11 +107,18 @@ export const STOCK_ANTENNAS = [AntennaWhip, AntennaDish, AntennaSuitRadio] as co
 
 export const antennaConfigSchema = z.object({
 	/** Antenna definition id. */
-	antenna: z.string().min(1)
+	antenna: z.string().min(1),
+	/**
+	 * Dynamic pressure above which a deployed (enabled) antenna breaks, Pa (plan 280): it switches off
+	 * for good. Absent: it does not break.
+	 */
+	breakQ: z.number().positive().optional()
 });
 export type AntennaConfig = z.output<typeof antennaConfigSchema>;
 export interface AntennaState {
 	enabled: boolean;
+	/** Torn off by the airflow (plan 280). */
+	broken?: boolean;
 	/** Where a dish points (plan 117, ADR 0188 point 2); null or absent: Auto. */
 	target?: string | null;
 	/** Channel on the antenna's band and encryption (plan 120, ADR 0191 point 1). */
@@ -125,20 +133,32 @@ export const ModuleAntenna = defineModule({
 	state: (): AntennaState => ({ enabled: true }),
 	antenna: (config, state) => ({
 		antenna: config.antenna,
-		enabled: state.enabled,
+		enabled: state.enabled && !state.broken,
 		target: state.target ?? null,
 		channel: state.channel ?? 0,
 		encrypted: state.encrypted === true
 	}),
+	update(ctx) {
+		const { breakQ } = ctx.config;
+		if (breakQ === undefined || !ctx.state.enabled || ctx.state.broken) return;
+		if (dynamicPressure(ctx.vessel) > breakQ) {
+			ctx.state.broken = true;
+			ctx.state.enabled = false;
+		}
+	},
 	describe: (_config, state) => ({
 		category: 'command',
+		readouts: state.broken
+			? [{ id: 'broken', label: 'Status', value: 'Broken by the airflow' }]
+			: [],
 		actions: [
 			{
 				id: 'setEnabled',
 				label: 'Antenna',
 				kind: 'toggle',
 				value: state.enabled,
-				enabled: true,
+				enabled: !state.broken,
+				...(state.broken ? { reason: 'Broken by the airflow' } : {}),
 				icon: 'antenna'
 			},
 			{
@@ -164,7 +184,7 @@ export const ModuleAntenna = defineModule({
 		/** `(enabled)`. */
 		setEnabled: (ctx, ...args) => {
 			const [enabled] = z.tuple([z.boolean()]).parse(args);
-			ctx.state.enabled = enabled;
+			if (!ctx.state.broken) ctx.state.enabled = enabled;
 		},
 		/** `(channel)`: 0..3 on the stock bands (ADR 0191 point 1). */
 		setChannel: (ctx, ...args) => {
@@ -179,6 +199,7 @@ export const ModuleAntenna = defineModule({
 	},
 	snapshot: (state) => ({
 		enabled: state.enabled,
+		...(state.broken ? { broken: true } : {}),
 		channel: state.channel ?? 0,
 		encrypted: state.encrypted === true
 	})
