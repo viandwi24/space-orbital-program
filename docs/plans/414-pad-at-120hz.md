@@ -30,7 +30,8 @@ Pad mean frame at most 8.3 ms and frames over 8.4 ms at most 5 % on the M5 at Hi
 
 - [x] `bun test packages/renderer`, `typecheck`, `lint`, `docs:check`.
 - [x] The vegetation's levels of detail and `thinTufts`; `setLookOff` for floods, structures, people and steam.
-- [ ] Pad mean at most 8.3 ms, frames over 8.4 ms at most 5 %: not met (18 ms).
+- [ ] Pad mean at most 8.3 ms, frames over 8.4 ms at most 5 %: not met (16.8 ms after the lights, from 19.7).
+- [x] The scene's lights 11 to 4, the floodlights as glow, no pipeline at dusk (ADR 0373).
 - [ ] `perf:gate`.
 - [ ] [manual] a locked 60 on the M2 and Windows.
 
@@ -41,3 +42,4 @@ Pad mean frame at most 8.3 ms and frames over 8.4 ms at most 5 % on the M5 at Hi
 ## Log
 
 - 2026-10-24 — Step 1 by Worker B (ADR 0372). The measurement showed the vegetation is under 1 ms of the pad's frame; the rest is in steps 2 and 3.
+- 2026-10-25 — Lights by Worker B (ADR 0373): the pad's mean frame 19.7 to 16.8 ms, dusk builds 0 pipelines. Stays in progress for the owner's look at night and plan 415.

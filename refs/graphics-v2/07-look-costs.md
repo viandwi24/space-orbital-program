@@ -98,3 +98,7 @@ Looks: `bakes farShell rocks images ocean clouds terrain vegetation shadows site
 | floodlights (4 point lights, idle by day) | 1.5 ms (an earlier run) |
 
 No part of the site, drawn alone, is worth more than 0.3 ms; the whole site is 6 ms. The cost is in the site as a whole, not in a mesh of it: the lit materials' light loop over the site's seven point lights (the four floods and three others) is the one candidate, and removing the floods at dusk-safe cost is not done (their variants were not built by the warm-up: see the journal). Plan 415 breaks the pad down further.
+
+### The lights (plan 414, ADR 0373)
+
+The scene held 11 point and spot lights by day; each is in every lit material's loop. After: the site holds none (its floodlights are drawn glow) and the pools are 2 lamps and 2 plume cluster lights. Interleaved A/B on the M5, headed, the pad: mean 19.7 to 16.8 ms, frames over 16.7 ms 62 % to 44 %; dusk builds 0 pipelines.

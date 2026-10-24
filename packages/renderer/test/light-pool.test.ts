@@ -27,7 +27,7 @@ describe('the site floodlights', () => {
 		}
 		site.dispose();
 	});
-	test('are a glow per mast bank, drawn all day at an opacity that follows the hour', () => {
+	test('are a cone and a pool of glow per mast bank, drawn all day at an opacity that follows the hour', () => {
 		const site = new LaunchSite(600_000, { latitude: 0, longitude: 0 }, 0, 0);
 		const glow = () => {
 			const out: Mesh[] = [];
@@ -36,13 +36,13 @@ describe('the site floodlights', () => {
 			});
 			return out;
 		};
-		expect(glow()).toHaveLength(floodLightPositions().length);
+		expect(glow()).toHaveLength(floodLightPositions().length * 2); // a cone and a pool of light each
 		const opacity = () => (glow()[0]!.material as MeshBasicMaterial).opacity;
 		site.setLamps(0);
 		expect(opacity()).toBe(0);
 		expect(glow().every((m) => m.visible)).toBe(true); // drawn at 0: its pipeline exists from the load
 		site.setLamps(1);
-		expect(opacity()).toBe(1);
+		expect(opacity()).toBeGreaterThan(0.5);
 		site.dispose();
 	});
 });

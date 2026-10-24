@@ -13,6 +13,7 @@ import {
 	DataTexture,
 	AdditiveBlending,
 	BufferAttribute,
+	CircleGeometry,
 	ConeGeometry,
 	DoubleSide,
 	Euler,
@@ -707,17 +708,33 @@ export class LaunchSite {
 	 */
 	private buildFloodLights(): void {
 		const cone = (height: number): BufferGeometry => {
-			const g = new ConeGeometry(11, height, 18, 1, true);
+			const g = new ConeGeometry(7, height, 18, 1, true);
 			const p = g.getAttribute('position');
 			const col = new Float32Array(p.count * 3);
 			for (let v = 0; v < p.count; v++) {
 				// bright at the lamp (apex), nothing at the ground: additive blending makes black invisible
-				const k = p.getY(v) > 0 ? 0.55 : 0;
+				const k = p.getY(v) > 0 ? 0.09 : 0;
 				col[v * 3] = k;
 				col[v * 3 + 1] = k * 0.82;
 				col[v * 3 + 2] = k * 0.6;
 			}
 			g.setAttribute('color', new BufferAttribute(col, 3));
+			return g;
+		};
+		// the pool of light each bank throws on the pad and the grass: bright under it, none at the rim
+		const pool = (): BufferGeometry => {
+			const g = new CircleGeometry(34, 32);
+			const p = g.getAttribute('position');
+			const col = new Float32Array(p.count * 3);
+			for (let v = 0; v < p.count; v++) {
+				const r = Math.hypot(p.getX(v), p.getY(v)) / 34;
+				const k = 0.16 * Math.max(0, 1 - r) ** 1.2;
+				col[v * 3] = k;
+				col[v * 3 + 1] = k * 0.8;
+				col[v * 3 + 2] = k * 0.5;
+			}
+			g.setAttribute('color', new BufferAttribute(col, 3));
+			g.rotateX(-Math.PI / 2);
 			return g;
 		};
 		const geos: BufferGeometry[] = [];
@@ -731,6 +748,15 @@ export class LaunchSite {
 			m.frustumCulled = false;
 			this.floodGlow.push(m);
 			this.root.add(m);
+			const d = pool();
+			geos.push(d);
+			const decal = new Mesh(d, this.floodMaterial);
+			decal.position.set(p.x, 1.4, p.z);
+			decal.name = 'site-flood-glow';
+			decal.renderOrder = 4;
+			decal.frustumCulled = false;
+			this.floodGlow.push(decal);
+			this.root.add(decal);
 		}
 		this.geometries.push(...geos);
 	}
@@ -760,7 +786,7 @@ export class LaunchSite {
 	/** 0 by day to 1 at night. */
 	setLamps(level: number): void {
 		const k = Math.min(Math.max(level, 0), 1);
-		this.floodMaterial.opacity = k;
+		this.floodMaterial.opacity = 0.85 * k;
 		this.lastLamps = k;
 	}
 

@@ -30,3 +30,11 @@
 - The floodlights: hiding the four idle point lights by day saves 1.5 ms, but their lit-material variants were not built by the load warm-up (the probe saw 48 pipelines built at dusk), so the change was dropped; why the warm-up's draws with the lights in asked for nothing new is not known (parts' warm scene and the view frames both tried). The seven visible point lights in the scene by day (four floods and three others) are the open candidate.
 - `perf:gate --quick` was run while a build ran; its numbers are discarded.
 - Plan 415 (Worker A) takes the pad's breakdown from here.
+
+## Update (lights)
+
+- Cause of the site's remaining cost: the scene held 11 lights by day (the site's four floods, three plume cluster lights, four vessel lamps); each is in every lit material's light loop at any intensity. None casts a shadow. Hiding lights by day compiled 48 pipelines at dusk (journal above), so the answer was fewer lights, always present, and glow for the floods (ADR 0373).
+- Interleaved A/B on the M5 (headed, the pad, 15 s each after a 20 s settle, main and the change alternating, four pairs; the flag held throughout): mean frame 23.9, 17.6, 17.9, 19.4 ms (main) against 18.5, 16.2, 16.5, 16.0 (the change): 19.7 against 16.8 ms, frames over 16.7 ms 62 % against 44 %. A first build with a brighter glow read 24.3 against 16.6 ms in the same kind of run.
+- The dusk probe (`probe-dusk.ts`, the sun from 35 degrees to -14): 0 pipelines built on the change and on main.
+- Screens: `414-pad-day.jpg`, `414-pad-night.jpg` (the change) against `414base-pad-day.jpg`, `414base-pad-night.jpg` (main). At night the tower and the buildings are no longer warm-lit; the pad and the grass have the glow's pool. The look at night is for the owner to judge.
+- The pad is still 16 to 18 ms headed, over the goal of 8.3 ms; the rest is plan 415's.

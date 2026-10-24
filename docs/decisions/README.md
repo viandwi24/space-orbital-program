@@ -357,3 +357,4 @@ An ADR records one decision, its context, and its consequences. ADRs are **appen
 | 0370 | [The launch site's grass is drawn thinner with distance](0370-thin-the-lawn-by-distance.md) | accepted | 2026-10-24 |
 | 0371 | [The ground below 20 km is a mesh: a CDLOD quadtree drawn into a distance image](0371-mesh-terrain.md) | accepted | 2026-10-24 |
 | 0372 | [Vegetation with two levels of detail](0372-vegetation-levels-of-detail.md) | accepted | 2026-10-24 |
+| 0373 | [The site's floodlights are drawn glow, not lights; a small fixed pool of lamps](0373-site-lights-are-glow.md) | accepted | 2026-10-25 |
