@@ -352,4 +352,4 @@ An ADR records one decision, its context, and its consequences. ADRs are **appen
 | 0365 | [The ascent holds max-Q, and the pilot knows the air](0365-ascent-holds-max-q.md) | accepted | 2026-10-24 |
 | 0366 | [The orbiter has elevons; it lands on a level-2 runway](0366-orbiter-elevons-and-runway-landing.md) | accepted | 2026-10-24 |
 | 0367 | [No periodic stutter: warming on the loading screen, honest HUD, pacing, quiet saves](0367-no-periodic-stutter.md) | accepted | 2026-10-24 |
-
+| 0368 | [Textures packed so no pipeline passes 16 sampled textures](0368-pack-textures-under-the-stage-limit.md) | accepted | 2026-10-24 |
