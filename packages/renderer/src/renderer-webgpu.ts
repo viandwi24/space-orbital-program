@@ -222,6 +222,16 @@ export function createWebGPURenderer(
 				scenePass.getTextureNode('velocity'),
 				model.camera
 			) as unknown as typeof colour;
+			// the mesh terrain's distance image is drawn from the camera as jittered for this frame (plan 398):
+			// the TAAU node sets the jitter in its pipeline hook, and this runs right after it
+			const taauNode = colour as unknown as {
+				setViewOffset(inputWidth: number, inputHeight: number): void;
+			};
+			const setViewOffset = taauNode.setViewOffset.bind(taauNode);
+			taauNode.setViewOffset = (inputWidth, inputHeight) => {
+				setViewOffset(inputWidth, inputHeight);
+				if (gpu) planet.drawMesh(gpu, model.camera, inputWidth, inputHeight);
+			};
 			taauNodes.set(key, colour);
 			taauPasses.set(key, scenePass);
 		}

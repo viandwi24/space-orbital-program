@@ -150,7 +150,8 @@ export function debugFacade(model: SceneModel): DebugFacade {
 			if (look === 'ocean' || look === 'clouds' || look === 'terrain') {
 				if (off) env.lookOff.add(look);
 				else env.lookOff.delete(look);
-			} else if (look === 'bakes') model.setBakesOff(off);
+			} else if (look === 'mesh') env.meshOff = off;
+			else if (look === 'bakes') model.setBakesOff(off);
 			else if (look === 'farShell') env.planet.debugFarShell(!off);
 			else if (look === 'rocks') env.setRocksOff(off);
 			else if (look === 'vegetation') env.setVegetationOff(off);

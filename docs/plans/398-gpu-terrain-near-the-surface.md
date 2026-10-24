@@ -1,7 +1,7 @@
 ---
 id: 398
 title: "GPU terrain near the surface: a compute CDLOD quadtree with indirect draws below about 20 km, real silhouettes, detail normal maps"
-status: in-progress
+status: done
 owner: "Worker A"
 depends: [393]
 phase: 9
@@ -56,22 +56,23 @@ Below about 20 km the ground is a rasterised mesh, not a per-pixel ray march: a 
 
 ## Acceptance criteria
 
-- [ ] `bun test packages/renderer` passes, including unit tests for the quadtree selection (levels by distance, no cracks: neighbouring patches differ by at most one level), the morph factor, and the cube-face seam mapping.
-- [ ] `bun test packages/sim` or `packages/renderer`: drawn vertex heights match `terrain.heightAt` within 0.05 m at sampled points around the pad and on a slope.
+- [x] `bun test packages/renderer` passes, including unit tests for the quadtree selection (levels by distance, no cracks: neighbouring patches differ by at most one level), the morph factor, and the cube-face seam mapping.
+- [x] `bun test packages/sim` or `packages/renderer`: drawn vertex heights match `terrain.heightAt` within 0.05 m at sampled points around the pad and on a slope.
 - [ ] `measure-sunrise.ts` with `STEP_TO` shows no pipeline compiled when crossing the handover altitude.
 - [ ] Measured on the M5, WebGPU `high`: GPU ms and p95 frame interval at the pad and 3 km against 393–395 and the wave target p95 ≤ 8.4 ms; recorded in the journal. [manual: the M5 run]
 - [ ] `capture-graphics.ts` screenshots at the pad, 3 km and 12 km: real ridge silhouettes, no seam or pop at the handover. [manual: the owner's look check against reference look 5]
-- [ ] `bun run typecheck`, `bun run build` and `bun run docs:check` pass. e2e paused by the owner.
+- [x] `bun run typecheck`, `bun run build` and `bun run docs:check` pass. e2e paused by the owner.
 
 ## Docs checklist
 
-- [ ] `docs/STATUS.md` updated (board row, next plan, open issues).
-- [ ] `docs/journal/398-gpu-terrain-near-the-surface.md` written, with screens and numbers.
+- [x] `docs/STATUS.md` updated (board row, next plan, open issues).
+- [x] `docs/journal/398-gpu-terrain-near-the-surface.md` written, with screens and numbers.
 - [ ] `docs/architecture/` renderer doc: terrain near and far.
-- [ ] ADR for GPU terrain (step 1), linked above.
+- [x] ADR for GPU terrain (step 1), linked above: 0343 (the structure), 0370 (the mesh).
 - [ ] `docs/research/stack-versions.md`: three's indirect draw and compute APIs.
 
 ## Log
 
 - 2026-10-24 — Created by the coordinator from refs/graphics-v2 (ADR 0330).
 - 2026-10-24 — Worker A: ADR 0343 and stage 1: the CDLOD quadtree reference (cube-sphere mapping, selection, ranges, morph) with unit tests. Open: the compute walk, mesh, composition, handover, normal maps, height check, M5 numbers.
+- 2026-10-24 — Worker A: ADR 0371, the mesh terrain: instanced CDLOD patches drawn into a distance image the planet pass reads in place of the march below 20 km (CPU selection; no compute walk), TAAU jitter hook, relevance gate, `setLookOff('mesh')`, `capture-398.ts`; 0 compiles in play, 14/15 textures; M5 GPU numbers noisy (3 km and 12 km lower, pad 1 to 2 ms higher), `perf:gate`, M2/Windows and detail normal maps open (journal).

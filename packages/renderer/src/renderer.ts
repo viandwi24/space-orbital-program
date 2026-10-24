@@ -123,7 +123,8 @@ export interface RendererDebug {
 			| 'site'
 			| 'vessels'
 			| 'trees'
-			| 'tufts',
+			| 'tufts'
+			| 'mesh',
 		off: boolean
 	): void;
 	/** Rocks on the ground now: placed, drawn near and far, and whether the group is shown (plan 402). */

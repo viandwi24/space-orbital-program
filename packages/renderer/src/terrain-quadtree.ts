@@ -17,7 +17,7 @@ export interface QuadNode {
 }
 
 /** Face axes: the face's normal, then its u and v tangents (right-handed, each pair of faces shares edges exactly). */
-const FACES: readonly { n: Vec3; u: Vec3; v: Vec3 }[] = [
+export const FACES: readonly { n: Vec3; u: Vec3; v: Vec3 }[] = [
 	{ n: [1, 0, 0], u: [0, 0, -1], v: [0, 1, 0] },
 	{ n: [-1, 0, 0], u: [0, 0, 1], v: [0, 1, 0] },
 	{ n: [0, 1, 0], u: [1, 0, 0], v: [0, 0, -1] },
@@ -99,6 +99,13 @@ export interface QuadtreeOptions {
 	/** Terrain height bounds above the radius, m. */
 	minHeight?: number;
 	maxHeight?: number;
+	/**
+	 * The height of the terrain at a unit direction, and the steepest slope: a node's bounding sphere is then
+	 * centred on its own height with a vertical slack of `maxSlope` times its size (up to the bounds), not
+	 * the whole range of the body, which would split every node within kilometres of the camera.
+	 */
+	heightAt?: (dir: Vec3, node: QuadNode) => number;
+	maxSlope?: number;
 }
 
 /** The range of a level, m: the camera inside it wants this level or finer. */
@@ -107,11 +114,25 @@ export const rangeOf = (level: number, o: Pick<QuadtreeOptions, 'maxLevel' | 'ra
 
 const dist = (a: Vec3, b: Vec3): number => Math.hypot(a[0] - b[0], a[1] - b[1], a[2] - b[2]);
 
+/** The bounding sphere of a node under the options: its own height and slack where the options give a height function. */
+export function nodeBound(node: QuadNode, o: QuadtreeOptions): { center: Vec3; radius: number } {
+	const lo = o.minHeight ?? 0;
+	const hi = o.maxHeight ?? 0;
+	if (!o.heightAt) return nodeSphere(node, o.radius, lo, hi);
+	const flat = nodeSphere(node, o.radius, 0, 0);
+	const n = 2 ** node.level;
+	const c = dirOf(node.face, ((node.x + 0.5) / n) * 2 - 1, ((node.y + 0.5) / n) * 2 - 1);
+	const h = Math.min(hi, Math.max(lo, o.heightAt(c, node)));
+	const slack = Math.min(Math.max(hi - h, h - lo), (o.maxSlope ?? 1) * flat.radius);
+	const s = nodeSphere(node, o.radius, h - slack, h + slack);
+	return s;
+}
+
 /** The patches to draw for a camera at `camera` (body-centred metres): split while inside the node's range. */
 export function selectNodes(camera: Vec3, o: QuadtreeOptions): QuadNode[] {
 	const out: QuadNode[] = [];
 	const visit = (node: QuadNode): void => {
-		const s = nodeSphere(node, o.radius, o.minHeight ?? 0, o.maxHeight ?? 0);
+		const s = nodeBound(node, o);
 		const d = Math.max(0, dist(camera, s.center) - s.radius);
 		if (node.level < o.maxLevel && d < rangeOf(node.level, o)) {
 			for (let j = 0; j < 2; j++)

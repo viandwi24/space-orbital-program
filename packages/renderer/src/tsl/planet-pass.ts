@@ -24,11 +24,13 @@ import {
 	DepthTexture,
 	LessEqualCompare,
 	FloatType,
+	RedFormat,
 	Mesh,
 	NearestFilter,
 	RenderTarget,
 	Matrix3,
 	Matrix4,
+	Quaternion,
 	Vector2,
 	Vector3,
 	type DataTexture,
@@ -51,7 +53,8 @@ import {
 	SEA_LEVEL,
 	TERRAIN_MAX_HEIGHT,
 	TERRAIN_MAX_SLOPE,
-	LAKE_SHAPE
+	LAKE_SHAPE,
+	createTerrainField
 } from '@orbital/core';
 import { TERRAIN_VEIL, type Atmosphere } from '../atmosphere-model.ts';
 import {
@@ -71,6 +74,7 @@ import {
 	TERRAIN_MARCH_SLOPE_MIN
 } from '../terrain-model.ts';
 import { TerrainTSL, type TerrainSampler } from './terrain.ts';
+import { TerrainMesh } from './terrain-mesh.ts';
 import { CLOUD_FAR, CLOUD_FAR_GATE } from '../cloud-far.ts';
 import {
 	CloudMapTSL,
@@ -256,6 +260,10 @@ export const cloudStepsFor = (steps: number, taau: boolean, cut: boolean): numbe
 /** The offset of the per-pixel start of the march at a frame (the golden ratio, so any run of frames covers [0, 1) evenly). */
 export const cloudFrameOffset = (frame: number): number => (frame * 0.618034) % 1;
 
+/** The lowest terrain height the mesh terrain's patch bounds allow for, m (the sea floor of the home body). */
+const MESH_MIN_HEIGHT = -500;
+const MAT4_SCRATCH = new Matrix4();
+
 export class PlanetPassTSL {
 	readonly mesh: Mesh;
 	private readonly sky: LutSky;
@@ -312,6 +320,7 @@ export class PlanetPassTSL {
 	});
 	private readonly marchTarget = new RenderTarget(1, 1, {
 		type: FloatType,
+		format: RedFormat,
 		minFilter: NearestFilter,
 		magFilter: NearestFilter,
 		depthBuffer: false,
@@ -363,6 +372,19 @@ export class PlanetPassTSL {
 	}
 	private baked = false;
 	private terrain: TerrainTSL | null = null;
+	/**
+	 * The mesh terrain (plan 398, ADR 0370): built once the terrain bakes exist, its pipeline compiled
+	 * then (the loading screen's warm-up), never in play. `meshNode` is the texture the planet shader
+	 * reads for the ground: the mesh's distance image when the mesh is on, else the march prepass's.
+	 */
+	private terrainMesh: TerrainMesh | null = null;
+	private meshEpoch = -1;
+	private meshSyncs: (() => void)[] = [];
+	private readonly uMeshOn = uniform(0);
+	private meshNode: N = null;
+	private meshActive = false;
+	private readonly bodyView = new Matrix4();
+	private readonly viewQ = new Quaternion();
 	private cloudMap: CloudMapTSL | null = null;
 	/**
 	 * The cloud march's step count and frame offset (plan 397, ADR 0342): under TAAU half the steps with a
@@ -482,6 +504,7 @@ export class PlanetPassTSL {
 		const R = u.uR!.value as number;
 		this.terrain ??= new TerrainTSL(this.planet, R, float32Filterable(renderer));
 		this.terrain.bake(renderer);
+		this.ensureMesh(renderer, R);
 		this.cloudMap ??= new CloudMapTSL(R);
 		this.cloudMap.update(renderer, u.uCloudCover!.value as number);
 		if (!this.standInCleared) {
@@ -568,11 +591,23 @@ export class PlanetPassTSL {
 		const prev = renderer.getRenderTarget();
 		// the march prepass: where each block of the pass's pixels may first meet the ground (plan 039)
 		const terrainOn = this.settings.terrainSteps > 0 && (u.uTerrainOn!.value as number) > 0.5;
-		this.uMarchOn.value = terrainOn ? 1 : 0;
+		const meshOn = terrainOn && this.terrainMesh !== null && this.planet.meshWanted;
+		this.meshActive = meshOn;
+		this.uMeshOn.value = meshOn ? 1 : 0;
+		if (this.meshNode)
+			this.meshNode.value = meshOn ? this.terrainMesh!.target.texture : this.marchTarget.texture;
+		if (meshOn) {
+			for (const sync of this.meshSyncs) sync();
+			const cb = this.planet.camBody;
+			this.terrainMesh!.update([cb.x, cb.y, cb.z]);
+			// under TAAU the image is drawn from the jittered camera, in the TAAU node's hook (`drawMesh`)
+			if (!this.taauOn) this.drawMesh(renderer, camera, width, height);
+		}
+		this.uMarchOn.value = terrainOn && !meshOn ? 1 : 0;
 		this.uMarchSteps.value = terrainOn
 			? this.settings.terrainRefineSteps
 			: Math.max(1, this.settings.terrainSteps);
-		if (terrainOn) {
+		if (terrainOn && !meshOn) {
 			const mw = Math.ceil(passW / MARCH_BLOCK);
 			const mh = Math.ceil(passH / MARCH_BLOCK);
 			if (this.marchTarget.width !== mw || this.marchTarget.height !== mh)
@@ -592,7 +627,88 @@ export class PlanetPassTSL {
 		renderer.setRenderTarget(prev);
 	}
 
+	/** The mesh terrain, built over the terrain's samplers once the bakes exist; its pipeline compiled then (plan 398). */
+	private ensureMesh(renderer: WebGPURenderer, R: number): void {
+		if (!this.terrain) return;
+		const epoch = this.planet.terrainEpoch;
+		const spec = this.planet.terrainSpec;
+		const heightAt = (() => {
+			const field = createTerrainField({ radius: R, seed: spec.seed, zones: spec.zones });
+			return (d: readonly [number, number, number]): number =>
+				field.heightAt({ x: d[0], y: d[1], z: d[2] });
+		})();
+		if (this.terrainMesh) {
+			if (epoch !== this.meshEpoch) {
+				this.terrainMesh.setRadius(R);
+				this.terrainMesh.setHeightFn(heightAt);
+				this.meshEpoch = epoch;
+			}
+			return;
+		}
+		const link = (name: string): N => {
+			const src = this.planet.material.uniforms[name] as IUniform;
+			const node = uniform(src.value);
+			this.meshSyncs.push(() => {
+				node.value = src.value;
+			});
+			return node;
+		};
+		const sampler = this.terrain.sampler(link, uniform(new Matrix3()), true);
+		if (!sampler) return;
+		this.terrainMesh = new TerrainMesh(sampler, R, TERRAIN_MAX_HEIGHT, MESH_MIN_HEIGHT, heightAt);
+		this.meshEpoch = epoch;
+		for (const sync of this.meshSyncs) sync();
+		this.terrainMesh.warm(renderer);
+	}
+
+	/**
+	 * Draws the mesh terrain's distance image for `camera` as it is now (jittered under TAAU: the TAAU
+	 * node calls this right after it sets the jitter, plan 398). No-op when the mesh is not on.
+	 */
+	drawMesh(
+		renderer: WebGPURenderer,
+		camera: PerspectiveCamera,
+		width: number,
+		height: number
+	): void {
+		if (!this.meshActive || !this.terrainMesh) return;
+		const b = (this.planet.material.uniforms.uBodyInv!.value as Matrix3).elements;
+		const m = this.bodyView;
+		m.extractRotation(camera.matrixWorld);
+		m.premultiply(
+			MAT4_SCRATCH.set(
+				b[0]!,
+				b[3]!,
+				b[6]!,
+				0,
+				b[1]!,
+				b[4]!,
+				b[7]!,
+				0,
+				b[2]!,
+				b[5]!,
+				b[8]!,
+				0,
+				0,
+				0,
+				0,
+				1
+			)
+		);
+		this.viewQ.setFromRotationMatrix(m);
+		this.terrainMesh.render(
+			renderer,
+			width,
+			height,
+			this.viewQ,
+			camera.projectionMatrix,
+			camera.near,
+			camera.far
+		);
+	}
+
 	dispose(): void {
+		this.terrainMesh?.dispose();
 		for (const v of this.variants.values()) disposeVariant(v);
 		this.variants.clear();
 		this.halfTarget.dispose();
@@ -2047,7 +2163,7 @@ export class PlanetPassTSL {
 			};
 
 			const ndc = varying(positionGeometry.xy);
-			const marchTex = this.marchTarget.texture;
+			const marchTex = (this.meshNode ??= texture(this.marchTarget.texture));
 			const halfTex = this.halfTarget.texture;
 			/** `isEdgePixel` (half-res.ts): the half texels around this pixel disagree in depth or, on the sky, in colour. */
 			const halfEdge = (): N => {
@@ -2241,25 +2357,44 @@ export class PlanetPassTSL {
 				const hitT = bool(false).toVar();
 				const tT = float(0.0).toVar();
 				if (terrain) {
-					// the march prepass already crossed the empty air of this pixel's block
-					const tFrom = select(
-						this.uMarchOn.greaterThan(0.5),
-						textureLoad(
-							marchTex,
-							ivec2(screenCoordinate.xy.mul(mode === 'edge' ? this.uMarchScale : float(1.0))).div(
-								MARCH_BLOCK
-							)
-						).x,
-						float(0.0)
-					).toVar();
-					If(uTerrainOn.greaterThan(0.5).and(tFrom.lessThan(MARCH_NO_HIT * 0.5)), () => {
-						const m = marchTerrain(ro, rd, r0, d, select(hitP, tHit, float(1e9)), tFrom);
-						hitT.assign(m.hit);
-						tT.assign(m.tOut);
-						// a crest stepped over between two samples: the ground is there, not the sea behind it
-						If(m.hit.not().and(m.sMin.lessThan(0.0)).and(uSilhouetteAA.greaterThan(0.5)), () => {
-							hitT.assign(true);
-							tT.assign(m.tMin);
+					const meshPixel =
+						mode === 'half'
+							? ivec2(screenCoordinate.xy.add(0.5).div(this.uMarchScale))
+							: ivec2(screenCoordinate.xy);
+					// the mesh terrain's image holds the distance to the ground of this very pixel (plan 398)
+					If(this.uMeshOn.greaterThan(0.5), () => {
+						const tm = textureLoad(marchTex, meshPixel).x;
+						If(
+							uTerrainOn
+								.greaterThan(0.5)
+								.and(tm.greaterThan(0.0))
+								.and(hitP.not().or(tm.lessThan(tHit))),
+							() => {
+								hitT.assign(true);
+								tT.assign(tm);
+							}
+						);
+					}).Else(() => {
+						// the march prepass already crossed the empty air of this pixel's block
+						const tFrom = select(
+							this.uMarchOn.greaterThan(0.5),
+							textureLoad(
+								marchTex,
+								ivec2(screenCoordinate.xy.mul(mode === 'edge' ? this.uMarchScale : float(1.0))).div(
+									MARCH_BLOCK
+								)
+							).x,
+							float(0.0)
+						).toVar();
+						If(uTerrainOn.greaterThan(0.5).and(tFrom.lessThan(MARCH_NO_HIT * 0.5)), () => {
+							const m = marchTerrain(ro, rd, r0, d, select(hitP, tHit, float(1e9)), tFrom);
+							hitT.assign(m.hit);
+							tT.assign(m.tOut);
+							// a crest stepped over between two samples: the ground is there, not the sea behind it
+							If(m.hit.not().and(m.sMin.lessThan(0.0)).and(uSilhouetteAA.greaterThan(0.5)), () => {
+								hitT.assign(true);
+								tT.assign(m.tMin);
+							});
 						});
 					});
 				}

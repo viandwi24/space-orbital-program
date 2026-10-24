@@ -173,6 +173,8 @@ export class Environment {
 	});
 	/** Looks switched off by the measuring tool (`debug.setLookOff`). */
 	readonly lookOff = new Set<RelevanceLook>();
+	/** The mesh terrain off (plan 398): the measuring tool's A/B against the sphere-traced ground. */
+	meshOff = false;
 	private time = 0;
 	private cloudCover = 0.42;
 	/** A mod's weather for this body (plan 405): the cover it wanders about and how far. */
@@ -656,6 +658,8 @@ export class Environment {
 		this.planet.debugGate('ocean', this.relevance.ocean > 0 && !this.lookOff.has('ocean'));
 		this.planet.debugGate('clouds', this.relevance.clouds > 0 && !this.lookOff.has('clouds'));
 		this.planet.debugGate('terrain', !this.lookOff.has('terrain'));
+		this.planet.meshWanted =
+			this.relevance.terrain > 0 && !this.lookOff.has('terrain') && !this.meshOff;
 		const shadowMatrix = this.shadowCopy.copy(this.sunLight.shadow.matrix);
 		this.planet.update({
 			camera,

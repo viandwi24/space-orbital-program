@@ -1065,6 +1065,15 @@ export class PlanetPass {
 		(this.material.uniforms[key] as { value: number }).value = on ? 1 : 0;
 	}
 
+	/** The mesh terrain (plan 398): wanted when the relevance model says the ground is near enough. */
+	meshWanted = false;
+	/** The camera, body-fixed, m, float64, as of the last uniform update (the mesh terrain's patches). */
+	camBody = { x: 0, y: 0, z: 0 };
+	/** The world's terrain, for the CPU heights the mesh terrain's patch bounds read. */
+	get terrainSpec(): WorldTerrainSpec {
+		return this.terrain;
+	}
+
 	debugFarShell(on: boolean): void {
 		(this.material.uniforms['uFarShellOn'] as { value: number }).value = on ? 1 : 0;
 	}
@@ -1544,6 +1553,7 @@ export class PlanetPass {
 		set<Vector3>('uCamLocal', (v) =>
 			v.set(p.frame.camLocal.x, p.frame.camLocal.y, p.frame.camLocal.z)
 		);
+		this.camBody = p.frame.camBody;
 		set<Vector3>('uAnchorCell', (v) =>
 			v.set(p.frame.anchorCell.x, p.frame.anchorCell.y, p.frame.anchorCell.z)
 		);

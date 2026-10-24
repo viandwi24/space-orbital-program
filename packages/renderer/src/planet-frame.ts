@@ -26,6 +26,8 @@ export interface PlanetFrame {
 	up: Vec3;
 	/** Camera minus anchor, body-fixed, m. */
 	camLocal: Vec3;
+	/** The camera, body-fixed, m, in float64 (the mesh terrain's patches are placed relative to it, plan 398). */
+	camBody: Vec3;
 	/** Anchor / 1024 (whole numbers), body-fixed. */
 	anchorCell: Vec3;
 	/** Camera minus launch site, body-fixed, m. */
@@ -46,6 +48,7 @@ export function planetFrame(i: PlanetFrameInput): PlanetFrame {
 		altitude: Math.max(dist - i.radius, MIN_ALTITUDE),
 		up: normalize(rel),
 		camLocal: sub(camB, scale(cell, ORIGIN_GRID)),
+		camBody: camB,
 		anchorCell: cell,
 		camToSite: sub(camB, site)
 	};
