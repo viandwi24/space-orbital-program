@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
+	autoLimitFor,
 	batteryFrameCap,
 	frameCapFps,
 	governorCeiling,
@@ -75,6 +76,19 @@ describe('Automatic by measured headroom (plan 362, ADR 0304)', () => {
 		expect(warmPresetsFor('low', true, 'high')).toEqual(['medium', 'high']);
 		expect(warmPresetsFor('low', true, 'low')).toEqual([]);
 		expect(warmPresetsFor('medium', false, 'high')).toEqual([]);
+	});
+});
+
+describe('where Automatic may climb (plan 408)', () => {
+	it('stops at medium on a 60 Hz device that starts on low, else at high', () => {
+		expect(autoLimitFor('low', 60)).toBe('medium');
+		expect(autoLimitFor('low', 30)).toBe('medium');
+		expect(autoLimitFor('medium', 60)).toBe('high');
+		expect(autoLimitFor('low', 120)).toBe('high');
+		expect(governorCeiling(null, true, 'low', 'medium')).toBe('medium');
+		expect(governorCeiling('high', true, 'low', 'medium')).toBe('high');
+		expect(governorCeiling(null, false, 'low', 'medium')).toBe('low');
+		expect(governorCeiling(null, true, 'low')).toBe('high');
 	});
 });
 

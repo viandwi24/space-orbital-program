@@ -341,7 +341,11 @@ class WorldRenderer {
 				this.progress = p;
 				if (warmed) return;
 				if (p.stage === 'programs') this.stepNow = p.total > 0 ? 'programs' : 'device';
-				else if (p.stage === 'warm') this.stepNow = 'views';
+				// the other presets are warmed on the loading screen too, unless this load boots on a cheap
+				// preset to show the world early: a round of warming in play is a freeze of 0.5 s or more on a
+				// slow machine (plan 408, amending ADR 0308 point 4)
+				else if (p.stage === 'warm' || (p.stage === 'presets' && !bootPreset))
+					this.stepNow = 'views';
 				else {
 					warmed = true;
 					this.stepNow = 'frame';
@@ -381,7 +385,13 @@ class WorldRenderer {
 		const r = await this.prepare(client);
 		if (this.host === host) {
 			r.resetView();
+			// a page starts from the player's quality, not from where the last page's governor left it: a
+			// drop to `low` in flight left TAAU off and the planet at half size in the Space Center, a
+			// blurry ground under a label that still said medium (plan 408)
 			r.setRenderScale(1);
+			r.setPlanetScale(1);
+			r.setTaau?.(null);
+			r.setPreset(r.preset);
 			this.resize();
 		}
 		return r;

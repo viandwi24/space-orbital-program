@@ -97,7 +97,7 @@ export function startSpaceCenter(options: SpaceCenterOptions): SpaceCenter {
 			dirty = false;
 		}
 		renderer.render();
-		perf.frames.frame(now);
+		perf.frame(now, renderer);
 		options.onFrame(project);
 	}
 

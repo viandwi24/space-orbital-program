@@ -376,6 +376,8 @@ export interface Renderer {
 	/** TAAU at this share of the canvas's side (0.4 to 1), 0 for off, or null for the preset's own; WebGPU only (plan 393). */
 	setTaau?(scale: number | null): void;
 	readonly taau?: number;
+	/** The preset being drawn, which differs from `preset` (the requested one) while a boot preset or a governor step is in place (plan 408). */
+	readonly presetDrawn?: GraphicsPreset;
 	/** Whether this context can draw with TAAU: the governor's fast axis at 120 Hz (plan 395). */
 	readonly taauAvailable?: boolean;
 	readonly planetScale: number;

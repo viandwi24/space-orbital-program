@@ -6,6 +6,7 @@
  */
 import { BUDGET_60_MS, GAP_MS, JITTER_MS, percentile } from '../debug/frame-histogram';
 import type { Renderer, RendererBackend } from '@orbital/renderer';
+import { LongFrameLog, type FrameCause } from './long-frames';
 
 /** A fixed-capacity ring of numbers; the oldest falls out when it is full. */
 export class Ring {
@@ -102,9 +103,14 @@ export interface PerfSample extends FrameDrain {
 	/** The sim's last step, ms; null before the first snapshot. */
 	simMs: number | null;
 	backend: RendererBackend | null;
+	/** The preset drawn now (a governor step or the boot preset make it differ from the requested one, plan 408). */
 	preset: string | null;
+	/** The preset asked for, when it differs from the one drawn. */
+	requested: string | null;
 	/** Resolution scale, 0..1. */
 	scale: number;
+	/** The share of the canvas's side the 3D image is drawn at under TAAU; 0 or null when it is off. */
+	taau: number | null;
 	/** Whether the automatic quality governor runs; null where the view has none. */
 	auto: boolean | null;
 	drawCalls: number;
@@ -127,6 +133,36 @@ export function heapBytes(): number | null {
  */
 export class PerfSource {
 	readonly frames = new FrameWindow();
+	/** The frames over twice the usual interval, with their causes (plan 408). */
+	readonly longFrames = new LongFrameLog();
+
+	constructor() {
+		// the measuring scripts read the log of the page that is open (a development build)
+		if (import.meta.env?.DEV)
+			(globalThis as { __orbitalLongFrames?: () => LongFrameLog }).__orbitalLongFrames = () =>
+				this.longFrames;
+	}
+
+	/** A frame was drawn at `now`: feeds the window and the long-frame log. */
+	frame(now: number, renderer: Renderer | null = null): void {
+		this.frames.frame(now);
+		const report = renderer?.compiles;
+		if (report) {
+			// shader work counts as a cause for the frames around it
+			if (report.pipelines.length !== this.pipelines) {
+				this.pipelines = report.pipelines.length;
+				this.mark('compile');
+			}
+			if (report.phase !== 'play') this.mark('warm');
+		}
+		this.longFrames.frame(now, heapBytes());
+	}
+	private pipelines = -1;
+
+	/** Something that can stall a frame happened now. */
+	mark(cause: FrameCause): void {
+		this.longFrames.mark(cause, performance.now());
+	}
 
 	sample(
 		renderer: Renderer | null,
@@ -138,7 +174,12 @@ export class PerfSource {
 			gpuMs: renderer?.gpuFrameMs ?? null,
 			simMs: view.simMs,
 			backend: counters?.renderer ?? null,
-			preset: renderer?.preset ?? null,
+			preset: renderer?.presetDrawn ?? renderer?.preset ?? null,
+			requested:
+				renderer && renderer.presetDrawn && renderer.presetDrawn !== renderer.preset
+					? renderer.preset
+					: null,
+			taau: renderer?.taau ?? null,
 			scale: view.scale,
 			auto: view.auto,
 			drawCalls: counters?.drawCalls ?? 0,
@@ -175,10 +216,13 @@ export const formatMb = (v: number | null): string =>
 
 /** The renderer line: `WebGPU · high 85% auto`. */
 export function formatRenderer(
-	s: Pick<PerfSample, 'backend' | 'preset' | 'scale' | 'auto'>
+	s: Pick<PerfSample, 'backend' | 'preset' | 'scale' | 'auto'> &
+		Partial<Pick<PerfSample, 'requested' | 'taau'>>
 ): string {
 	const backend = s.backend === 'webgpu' ? 'WebGPU' : s.backend === 'webgl' ? 'WebGL' : DASH;
 	const preset = s.preset ?? DASH;
 	const auto = s.auto === null ? '' : s.auto ? ' auto' : ' fixed';
-	return `${backend} · ${preset} ${Math.round(s.scale * 100)}%${auto}`;
+	const asked = s.requested ? ` (of ${s.requested})` : '';
+	const taau = s.taau && s.taau > 0 ? ` TAAU ${Math.round(s.taau * 100)}%` : '';
+	return `${backend} · ${preset}${asked} ${Math.round(s.scale * 100)}%${taau}${auto}`;
 }

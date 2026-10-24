@@ -296,10 +296,20 @@ export function startPreset(
 export function governorCeiling(
 	saved: GraphicsPreset | null,
 	adjust: boolean,
-	start: GraphicsPreset
+	start: GraphicsPreset,
+	/**
+	 * The highest preset Automatic may try on this device (plan 408): a base M2 or an integrated GPU starts on
+	 * `low`, and a governor that climbs to `high` on trials stutters at every failed one (the owner's M2: stable
+	 * at Low, periodic stutter on Automatic); the player can still choose `high` by hand.
+	 */
+	limit: GraphicsPreset = 'high'
 ): GraphicsPreset {
-	return saved ?? (adjust ? 'high' : start);
+	return saved ?? (adjust ? limit : start);
 }
+
+/** The preset Automatic may climb to on a device that starts on `start` and locks at `maxHz`: `medium` for a 60 Hz tier that starts on `low`. */
+export const autoLimitFor = (start: GraphicsPreset, maxHz: number): GraphicsPreset =>
+	start === 'low' && maxHz <= 60 ? 'medium' : 'high';
 
 /**
  * The presets the governor can reach from the start, drawn after load so a move builds no shader in
@@ -337,7 +347,16 @@ export function graphicsStart(backend: string): {
 	const caps = probeCapabilities();
 	return {
 		preset,
-		warmPresets: warmPresetsFor(preset, adjust, governorCeiling(saved, adjust, preset)),
+		warmPresets: warmPresetsFor(
+			preset,
+			adjust,
+			governorCeiling(
+				saved,
+				adjust,
+				preset,
+				autoLimitFor(preset, lockCeiling(caps, globalThis.navigator?.userAgent ?? ''))
+			)
+		),
 		warmTaau: adjust && lockCeiling(caps, globalThis.navigator?.userAgent ?? '') >= 120 ? 0.75 : 0
 	};
 }

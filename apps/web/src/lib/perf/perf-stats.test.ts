@@ -118,6 +118,44 @@ describe('formats', () => {
 	});
 });
 
+describe('the renderer line (plan 408)', () => {
+	it('says the preset drawn, the one asked for when they differ, and TAAU', () => {
+		expect(
+			formatRenderer({
+				backend: 'webgpu',
+				preset: 'low',
+				requested: 'medium',
+				scale: 1,
+				taau: 0,
+				auto: true
+			})
+		).toBe('WebGPU · low (of medium) 100% auto');
+		expect(
+			formatRenderer({
+				backend: 'webgpu',
+				preset: 'medium',
+				requested: null,
+				scale: 1,
+				taau: 0.5,
+				auto: false
+			})
+		).toBe('WebGPU · medium 100% TAAU 50% fixed');
+	});
+	it('samples the drawn preset and TAAU from the renderer', () => {
+		const renderer = {
+			preset: 'medium',
+			presetDrawn: 'low',
+			taau: 0,
+			debug: { counters: () => ({ renderer: 'webgpu', drawCalls: 1, triangles: 1 }) }
+		} as unknown as Renderer;
+		expect(new PerfSource().sample(renderer, { simMs: 0, scale: 1, auto: true })).toMatchObject({
+			preset: 'low',
+			requested: 'medium',
+			taau: 0
+		});
+	});
+});
+
 describe('PerfSource', () => {
 	it('samples the frames, the GPU time and the renderer counters, never the debug info', () => {
 		let infos = 0;

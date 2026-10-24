@@ -69,6 +69,7 @@ import {
 	clearGraphicsPreset,
 	batteryFrameCap,
 	frameCapFps,
+	autoLimitFor,
 	governorCeiling,
 	hasSavedFrameCap,
 	initialGraphicsPreset,
@@ -135,7 +136,7 @@ import {
 } from './space-center/site-views';
 import { resumeInfo, type GameSave } from './save/game-save';
 import type { SaveRequest } from './save/saves';
-import { captureThumbnail } from './save/thumbnail';
+import { captureThumbnail, captureThumbnailAsync } from './save/thumbnail';
 import { warpStepsFor } from './warp';
 
 /** The level a granted warp-to runs at. */
@@ -1613,7 +1614,8 @@ export function startFlight(options: FlightOptions): Flight {
 		const learned =
 			saved || !renderer ? null : loadLearnedLevel(learnKey(renderer.debug.counters().renderer));
 		const start = startPreset(saved, learned, probeCapabilities());
-		return { saved, learned, start, ceiling: governorCeiling(saved, autoQuality, start) };
+		const limit = autoLimitFor(start, lockCeiling(probeCapabilities(), navigator.userAgent));
+		return { saved, learned, start, ceiling: governorCeiling(saved, autoQuality, start, limit) };
 	}
 
 	/**
@@ -1648,6 +1650,7 @@ export function startFlight(options: FlightOptions): Flight {
 	/** Draws at the governor's level and, when it moved by itself, tells the player once (plan 039). */
 	function applyLevel(level: GovernorLevel, announce: boolean, reason?: string): void {
 		if (!renderer) return;
+		perf.mark('governor');
 		// a governor level keeps the world's map and terrain sizes (plan 373, ADR 0310)
 		if (level.preset !== renderer.preset) renderer.setPreset(level.preset, { governed: true });
 		syncGlass();
@@ -1703,6 +1706,20 @@ export function startFlight(options: FlightOptions): Flight {
 	}
 	let batteryOff: (() => void) | null = null;
 
+	let thumbWanted: ((url: string | null) => void) | null = null;
+	/** The save list's picture of the next drawn frame; null when none is drawn within two seconds. */
+	function nextFrameThumbnail(): Promise<string | null> {
+		return new Promise((resolve) => {
+			thumbWanted = resolve;
+			setTimeout(() => {
+				if (thumbWanted === resolve) {
+					thumbWanted = null;
+					resolve(null);
+				}
+			}, 2000);
+		});
+	}
+
 	function frame(now: number): void {
 		if (disposed) return;
 		raf = requestAnimationFrame(frame);
@@ -1724,7 +1741,7 @@ export function startFlight(options: FlightOptions): Flight {
 		const dt = Math.min(interval / 1000, 0.1);
 		lastFrame = now;
 		frameStats.add(now, interval);
-		perf.frames.frame(now);
+		perf.frame(now, renderer);
 		// the planet pass's pixel budget on this screen (plan 252) shapes the governor's rungs (plan 253)
 		if (governor && renderer && ++budgetLook === 30)
 			governor.setBudgetedPlanetScale(renderer.planetScale);
@@ -1739,6 +1756,12 @@ export function startFlight(options: FlightOptions): Flight {
 		updateOverlays(now);
 		targetView?.update(now);
 		renderer?.render();
+		// a save asked for the picture of this frame (the canvas is read in the task that drew it)
+		if (thumbWanted) {
+			const done = thumbWanted;
+			thumbWanted = null;
+			void captureThumbnailAsync(canvas).then(done);
+		}
 		// the pacer is asked every drawn frame; it says yes about 60 times a second
 		const hudDue = hudPacer.due(now);
 		if (hudCtl && hudDue) {
@@ -2400,6 +2423,7 @@ export function startFlight(options: FlightOptions): Flight {
 			return { ok: true, credit };
 		},
 		async collectSave() {
+			perf.mark('autosave');
 			if (recovered && catalog) {
 				// after a recovery the world is saved without a focus vessel (plan 132)
 				const body = homeOfCatalog(catalog);
@@ -2411,9 +2435,14 @@ export function startFlight(options: FlightOptions): Flight {
 			}
 			const body = homeOfCatalog(catalog);
 			if (!body) throw new Error('The simulation has no body to save.');
-			// Draw a frame and read it in the same task: a WebGL canvas is cleared after it is shown.
-			renderer.render();
-			const thumbnail = captureThumbnail(canvas);
+			// The picture of the loop's next frame, with no extra frame drawn for it: the canvas is snapshotted
+			// and scaled by the browser in the task that drew it and the JPEG is encoded off the main thread
+			// (plan 408); a drawn frame and a main-thread encode are the fallback (a paused loop).
+			let thumbnail = await nextFrameThumbnail();
+			if (!thumbnail) {
+				renderer.render();
+				thumbnail = captureThumbnail(canvas);
+			}
 			const sim = await client.save();
 			return { sim, focus: Number(vessel), design, thumbnail, bodyRadius: body.radius };
 		},

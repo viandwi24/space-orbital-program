@@ -684,3 +684,29 @@ describe('the governor copies no window per steady frame (plan 409)', () => {
 		expect(copies).toBeLessThan(frames * 0.1);
 	});
 });
+
+describe('QualityGovernor: screens above 144 Hz (plan 408)', () => {
+	for (const hz of [144, 165, 170, 175, 180, 240]) {
+		test(`${hz} Hz with no cap draws every refresh and reads the rate`, () => {
+			const g = new QualityGovernor('high', undefined, true, true, { maxHz: 120 });
+			g.setFrameCap(null);
+			const period = 1000 / hz;
+			let drawn = 0;
+			let frames = 0;
+			for (let i = 0; i < hz * 4; i++) {
+				const t = g.tick(period);
+				frames++;
+				if (t.render) drawn++;
+			}
+			expect(g.displayRate).toBe(hz);
+			// the pacing never skips a refresh once the rate is known (the first half second may)
+			const late = new QualityGovernor('high', undefined, true, true, { maxHz: 120 });
+			late.setFrameCap(null);
+			for (let i = 0; i < hz; i++) late.tick(period);
+			let skipped = 0;
+			for (let i = 0; i < hz * 2; i++) if (!late.tick(period).render) skipped++;
+			expect(skipped).toBe(0);
+			expect(drawn).toBeGreaterThan(frames * 0.9);
+		});
+	}
+});

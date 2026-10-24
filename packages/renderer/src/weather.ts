@@ -60,7 +60,7 @@ export function stepCover(
 	target: number,
 	wait: number,
 	dt: number,
-	holdSeconds = 2
+	holdSeconds = 8
 ): { cover: number; wait: number } {
 	const left = wait - dt;
 	if (left > 0 || Math.abs(target - baked) < COVER_STEP / 2)

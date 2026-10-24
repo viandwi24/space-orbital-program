@@ -119,7 +119,7 @@ export function governorLadder(
 export const BUDGETED_NEAR_HALF = HALF_PLANET_SCALE * 1.25;
 
 /** The display rates the cadence estimate snaps to, Hz. */
-const DISPLAY_RATES = [30, 60, 90, 120, 144] as const;
+const DISPLAY_RATES = [30, 60, 75, 90, 100, 120, 144, 165, 170, 175, 180, 200, 240] as const;
 
 /** A coarse relative cost of drawing a level, by pixels (resolution squared, the planet pass half the work). */
 const PRESET_COST: Record<GraphicsPreset, number> = { high: 1, medium: 0.7, low: 0.5 };

@@ -949,6 +949,9 @@ export function createWebGPURenderer(
 			get preset() {
 				return requested;
 			},
+			get presetDrawn() {
+				return preset;
+			},
 			precompile,
 			setRenderScale(scale: number) {
 				const next = Math.min(Math.max(Number.isFinite(scale) ? scale : 1, MIN_RENDER_SCALE), 1);

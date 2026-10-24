@@ -36,7 +36,7 @@ describe('stepCover', () => {
 	test('moves one step at a time, no more often than the hold, and stops at the target', () => {
 		let state = { cover: 0.42, wait: 0 };
 		const moves: number[] = [];
-		for (let i = 0; i < 100; i++) {
+		for (let i = 0; i < 240; i++) {
 			const next = stepCover(state.cover, 0.6, state.wait, 0.5);
 			if (next.cover !== state.cover) moves.push(next.cover);
 			state = next;
@@ -45,8 +45,8 @@ describe('stepCover', () => {
 		for (let i = 1; i < moves.length; i++)
 			expect(Math.abs(moves[i]! - moves[i - 1]!)).toBeLessThanOrEqual(COVER_STEP + 1e-9);
 		expect(state.cover).toBeCloseTo(0.6, 5);
-		// 100 frames of 0.5 s = 50 s: at most one rebake per 2 s
-		expect(moves.length).toBeLessThanOrEqual(26);
+		// 240 frames of 0.5 s = 120 s: at most one rebake per 8 s (each is a full-sphere noise bake)
+		expect(moves.length).toBeLessThanOrEqual(16);
 	});
 	test('does not move for a target within half a step', () => {
 		expect(stepCover(0.42, 0.425, 0, 1).cover).toBe(0.42);

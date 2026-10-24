@@ -101,7 +101,7 @@ export function startMissionCenter(options: MissionCenterOptions): MissionCenter
 			dirty = false;
 		}
 		renderer.render();
-		perf.frames.frame(now);
+		perf.frame(now, renderer);
 		options.onFrame(project);
 	}
 

@@ -28,6 +28,21 @@ export const ROCKS_NEAR = 26;
 export const ROCKS_REFRESH = 6;
 /** Capacity of the near and far meshes. */
 export const ROCKS_CAPACITY = { near: 1_200, far: 5_000 } as const;
+/** The cells kept before the oldest are dropped. */
+export const ROCKS_CACHE_MAX = 60_000;
+
+/** Drops the oldest entries of an insertion-ordered map until `keep` are left. */
+export function evictOldest<K, V>(cache: Map<K, V>, keep: number): number {
+	let drop = cache.size - Math.floor(keep);
+	let dropped = 0;
+	for (const key of cache.keys()) {
+		if (drop-- <= 0) break;
+		cache.delete(key);
+		dropped++;
+	}
+	return dropped;
+}
+
 /** Time the cache may spend on new cells in one update, ms. */
 export const ROCKS_BUDGET_MS = 4;
 
@@ -129,7 +144,9 @@ export class GroundRocks {
 				if (rock && cell.d <= within) found.push({ rock, d: cell.d });
 			}
 		});
-		if (this.cache.size > 60_000) this.cache.clear();
+		// the oldest cells go, a quarter at a time: the whole cache cleared meant every cell around the camera was
+		// generated again at once (a burst of 4 ms slices for seconds, plan 408)
+		if (this.cache.size > ROCKS_CACHE_MAX) evictOldest(this.cache, ROCKS_CACHE_MAX * 0.75);
 		found.sort((a, b) => a.d - b.d);
 		this.anchor = camera;
 		const m = new Matrix4();
