@@ -339,6 +339,10 @@ JSON data files (`part.json`, `resource.json`) that reference module ids by stri
 
 `vessel.detach(node, impulse, { consume: true })` queues a cut whose part is used up by it: after the sim has split the vessel, the part is cut from its other neighbours and removed (`vessel:destroyed` with reason `spent`, which hosts do not report as a loss). Stock's `ModuleDecoupler` takes `consume: true` for its `stock.separator-*` parts, which leave no ring on either stage. The part-visual kinds `tank-toroid`, `tank-sphere` and `tank-taper` (`generators/tank-shapes.ts`) draw the shaped tanks: collars at the node radius, params `core` (collar radius) or `top` and `bottom` (radii).
 
+## Lessons (API 0.1.128, plan 379, ADR 0355)
+
+`ctx.lessons.register(defineLesson({...}))` adds a guided scene to the Lessons page. A lesson is data (`id` as `<plugin>.<name>`, `level`, `title`, `summary`, `start`, a `design`, `setup` as debug-API calls, `blocked` actions and places, `steps`, `goal`, `debrief`, `hint`); a step's `done` and the `goal` are pure functions of a `LessonObservation`. Stock's lessons are `stock.<name>`; the app saves their progress under the name without `stock.`. `LESSON_FOCUS` in a setup call's arguments stands for the lesson vessel.
+
 ## Loading-screen shots (API 0.1.126, plan 379, ADR 0349)
 
 `ctx.loadingShots.register({ id, caption, image, order? })` (`defineLoadingShot`) adds a picture and a caption to the world loading screen. `image` is a `.webp` or `.png` path: for the game's own plugins a file of the app's `static/loading/`, for a mod a picture in its package (format 3). Stock registers its ten.

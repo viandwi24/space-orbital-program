@@ -260,6 +260,7 @@ describe('registration and report', () => {
 			'crew-trait': [],
 			'crew-names': [],
 			'loading-shot': [],
+			lesson: [],
 			'crew-outfit': [],
 			'crew-look': [],
 			'crew-expression': [],

@@ -106,6 +106,7 @@ import { ModuleAnimate, ModuleBay, ModuleCoverShell, ModuleFuelCell } from './an
 import { ModuleRobotic } from './robotics.ts';
 import { ModuleSequencer } from './sequencer.ts';
 import { STOCK_LOADING_SHOTS } from './loading-shots.ts';
+import { STOCK_LESSONS } from './lessons/index.ts';
 import { ModuleStrut, ModuleTetherSocket, ModuleWinch } from './tether.ts';
 import { STOCK_TETHER_PARTS } from './parts/tethers.ts';
 import { PartOrbiterGear, PartOrbiterNoseGear } from './parts/ground.ts';
@@ -282,6 +283,7 @@ export const Stock = definePlugin({
 		for (const part of STOCK_MISSION_PARTS) ctx.parts.register(part);
 		for (const part of STOCK_ROBOTIC_PARTS) ctx.parts.register(part);
 		for (const shot of STOCK_LOADING_SHOTS) ctx.loadingShots.register(shot);
+		for (const lesson of STOCK_LESSONS) ctx.lessons.register(lesson);
 		for (const part of STOCK_TETHER_PARTS) ctx.parts.register(part);
 		// plan 361: the orbiter's landing gear and brake chute
 		for (const part of [PartOrbiterGear, PartOrbiterNoseGear, PartDragChute])
@@ -316,6 +318,7 @@ export * from './launch-clamp.ts';
 export * from './fairing.ts';
 export * from './sequencer.ts';
 export { STOCK_LOADING_SHOTS } from './loading-shots.ts';
+export { STOCK_LESSONS } from './lessons/index.ts';
 export { ROBOTIC_KINDS, axisOf, type RoboticConfig, type RoboticKind } from './robotics.ts';
 export * from './docking.ts';
 export * from './parachute.ts';
@@ -342,3 +345,10 @@ export * from './bases.ts';
 export * from './strategies.ts';
 export * from './agencies.ts';
 export * from './discovery.ts';
+export {
+	HOME_RADIUS as LESSON_HOME_RADIUS,
+	PARKING as LESSON_PARKING,
+	RENDEZVOUS_LEAD as LESSON_RENDEZVOUS_LEAD,
+	TARGET_LEAD as LESSON_TARGET_LEAD,
+	RAISED_ORBIT as LESSON_RAISED_ORBIT
+} from './lessons/kit.ts';

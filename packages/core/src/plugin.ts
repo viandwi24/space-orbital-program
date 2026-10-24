@@ -8,6 +8,7 @@ import type { CommodityDefinition, RecipeDefinition } from './market.ts';
 import type { ScenarioDefinition } from './scenarios.ts';
 import type { BlueprintDefinition } from './blueprints.ts';
 import type { LoadingShotDefinition } from './loading-shots.ts';
+import type { LessonDefinition } from './lessons.ts';
 import type { PanelDefinition } from './panels.ts';
 import type { AutopilotDefinition } from './autopilots.ts';
 import type { KeybindingDefinition, StoreDefinition } from './mod-api.ts';
@@ -196,6 +197,8 @@ export interface BasePluginContext {
 	readonly crewNames: Registrar<CrewNamesDefinition>;
 	/** Loading-screen shots (plan 379, ADR 0349). */
 	readonly loadingShots: Registrar<LoadingShotDefinition>;
+	/** Lessons (plan 379, ADR 0353). */
+	readonly lessons: Registrar<LessonDefinition>;
 	/**
 	 * Typed data patches over other plugins' parts, resources and bodies (ADR 0170), applied once
 	 * after every plugin booted.
@@ -262,6 +265,7 @@ export const REGISTRY_KINDS = [
 	'crew-trait',
 	'crew-names',
 	'loading-shot',
+	'lesson',
 	'crew-outfit',
 	'crew-look',
 	'crew-expression',
@@ -353,6 +357,7 @@ const RESERVED_KEYS: ReadonlySet<string> = new Set([
 	'crewTraits',
 	'crewNames',
 	'loadingShots',
+	'lessons',
 	'crewOutfits',
 	'crewLooks',
 	'crewExpressions',
@@ -573,6 +578,7 @@ export function loadPlugins(plugins: readonly Plugin[], options: LoadOptions = {
 			crewPortraits: registrar(registries.crewPortraits),
 			crewNames: registrar(registries.crewNames),
 			loadingShots: registrar(registries.loadingShots),
+			lessons: registrar(registries.lessons),
 			patches: {
 				register(def) {
 					if (!(PATCH_TARGETS as readonly string[]).includes(def.target)) {
@@ -771,6 +777,7 @@ export function loadPlugins(plugins: readonly Plugin[], options: LoadOptions = {
 				'crew-portrait': section(registries.crewPortraits),
 				'crew-names': section(registries.crewNames),
 				'loading-shot': section(registries.loadingShots),
+				lesson: section(registries.lessons),
 				store: section(registries.stores),
 				keybinding: section(registries.keybindings),
 				overlay: section(registries.overlays)

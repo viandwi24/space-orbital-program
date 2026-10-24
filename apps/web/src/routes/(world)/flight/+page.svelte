@@ -129,6 +129,7 @@
 	import GuidePointer from '../../../lib/hud/GuidePointer.svelte';
 	import {
 		advanceLesson,
+		lessonDesign,
 		lessonOf,
 		lessonStart,
 		lessonStep,
@@ -507,7 +508,7 @@
 	const lessonFound = lessonRun ? (lessonOf(lessonRun.lesson) ?? null) : null;
 	const lesson = lessonFound && lessonStart(lessonFound) === 'flight' ? lessonFound : null;
 	/** The content the lesson's vessel and scene are built from. */
-	let lessonContent: ReturnType<typeof loadContent>['content'] | null = null;
+	let lessonHasDesign = false;
 	let lessonReady = $state(lessonRun?.ready === true);
 	let lessonProblem = $state<string | null>(null);
 	let lessonSetting = false;
@@ -969,8 +970,8 @@
 				design = start.design;
 			} else if (!launch && lesson?.design) {
 				// a lesson flies its own vessel; the setup puts it where the lesson starts (plan 229)
-				design = lesson.design(content);
-				lessonContent = content;
+				design = lessonDesign(lesson)!;
+				lessonHasDesign = true;
 			} else {
 				quick = true;
 				const text = loadDraft();
@@ -1632,11 +1633,11 @@
 	// ---- lessons (plan 229) ----------------------------------------------------------------------
 	/** Sets the lesson's scene through the debug API, once per lesson world. */
 	async function setLessonScene(): Promise<void> {
-		if (!lesson || !debugHost || !lessonContent) return;
+		if (!lesson || !debugHost || !lessonHasDesign) return;
 		lessonSetting = true;
 		// the clock is held while the scene is set and until Begin, so nothing moves before the player reads
 		worldSession.hold('lesson', true);
-		const result = await runLessonSetup(lesson, createDebugApi(debugHost), lessonContent);
+		const result = await runLessonSetup(lesson, createDebugApi(debugHost));
 		lessonSetting = false;
 		if (!result.ok) {
 			lessonProblem = `The lesson could not set its scene (${result.reason}).`;

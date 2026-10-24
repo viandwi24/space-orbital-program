@@ -6,111 +6,42 @@
  * condition, at most one per observation, and reaching the goal (or the last step) ends the lesson.
  * Nothing here touches the DOM or the sim.
  */
-import type {
-	BodyDefinition,
-	Command,
-	EntityId,
-	Snapshot,
-	VesselDesign,
-	VesselSnapshot
+import {
+	LESSON_FOCUS,
+	loadPlugins,
+	type BodyDefinition,
+	type EntityId,
+	type LessonDefinition,
+	type LessonLevel,
+	type LessonObservation,
+	type LessonPlace,
+	type LessonSetupCall,
+	type LessonStep,
+	type LessonTargets,
+	type Snapshot,
+	type VabLessonState,
+	type VesselDesign,
+	type VesselSnapshot
 } from '@orbital/core';
+import { BUILTIN_PLUGINS } from '../builtins';
+import { modRuntime } from '../mods/runtime';
 import type { DebugApi } from '../debug/api';
-import type { Content } from '../editor/state';
 import { spinVector, surfaceVelocity } from '../speed';
 import type { ActionId } from '../keybindings';
 import type { LessonProgress } from '../settings/settings';
-import { BASIC_LESSONS } from './lessons-basics';
-import { FLIGHT_LESSONS } from './lessons-flight';
-import { ADVANCED_LESSONS } from './lessons-advanced';
-import { FOCUS } from './lesson-kit';
 
-export { FOCUS };
+export type {
+	LessonLevel,
+	LessonObservation,
+	LessonPlace,
+	LessonSetupCall,
+	LessonStep,
+	LessonTargets,
+	VabLessonState
+};
 
-/** What the Hangar shows a lesson about its design (ADR 0293 point 3). */
-export interface VabLessonState {
-	parts: number;
-	command: boolean;
-	engine: boolean;
-	tank: boolean;
-	/** Fins and control surfaces. */
-	fins: number;
-	parachute: boolean;
-	/** A part was placed with symmetry (2 or more copies). */
-	symmetry: boolean;
-	/** The pre-flight checks show nothing that blocks a launch or is no-go. */
-	checksClear: boolean;
-	/** The Blueprint Library is open. */
-	library: boolean;
-}
-
-/** What a lesson reads, once per HUD model in Flight and per snapshot elsewhere. */
-export interface LessonObservation {
-	/** The in-world page: `flight`, `vab`, `space-center`, `mission-center`, … */
-	place: string;
-	/** Body of the sphere the vessel is in. */
-	body: string;
-	throttle: number;
-	/** Height above the ground, m. */
-	altitude: number;
-	/** Speed relative to the ground, m/s. */
-	surfaceSpeed: number;
-	/** On the ground and at rest. */
-	landed: boolean;
-	/** In the water. */
-	splashed: boolean;
-	sasMode: string;
-	rcs: boolean;
-	map: boolean;
-	/** Time warp factor now. */
-	warp: number;
-	apoapsis: number | null;
-	periapsis: number | null;
-	/** Planned maneuver nodes. */
-	nodes: number;
-	/** The first node's planned prograde Δv, m/s (0 without a node). */
-	nodePrograde: number;
-	/** Δv left on the first node, m/s; null without a node. */
-	nodeLeft: number | null;
-	/** `body:<id>` or `vessel:<id>` of the target, with its distance and relative speed. */
-	target: { key: string; distance: number; relativeSpeed: number } | null;
-	/** A docking port of the vessel is joined. */
-	docked: boolean;
-	/** The target is a docking port (not just a vessel). */
-	targetPort: boolean;
-	/** The vessel is controlled from one of its docking ports. */
-	controlPort: boolean;
-	/** Stages fired since the flight began. */
-	stagesFired: number;
-	/** A parachute is open (semi or full). */
-	parachute: boolean;
-	/** Dock panels on the rail, and the open one. */
-	panels: readonly string[];
-	openPanel: string | null;
-	/** The running autopilot's id, and the last one's id and outcome. */
-	autopilot: string | null;
-	autopilotLast: { id: string; outcome: string } | null;
-	/** A crew member is outside in a suit, and walking. */
-	eva: boolean;
-	walking: boolean;
-	/** Flags standing in the world. */
-	flags: number;
-	/** Science results stored aboard, and science credited to the world so far. */
-	scienceStored: number;
-	scienceCredited: number;
-	/** Hops on the vessel's comms route (0: no link). */
-	linkHops: number;
-	/** The largest robotic joint travel aboard, degrees (or metres for a piston). */
-	joint: number;
-	/** Robotic joints moved more than 20 from zero. */
-	jointsMoved: number;
-	/** Drive mode (rovers). */
-	drive: boolean;
-	/** Vessels in the world, and how many are debris. */
-	vessels: number;
-	debris: number;
-	/** The Hangar's design, on the Hangar page. */
-	vab: VabLessonState | null;
-}
+/** Stands for the lesson vessel's id in a setup call's arguments (`runLessonSetup`). */
+export const FOCUS = LESSON_FOCUS as unknown as EntityId;
 
 /** An observation with nothing going on: the defaults a page fills in from what it knows. */
 export const QUIET: LessonObservation = {
@@ -279,48 +210,6 @@ export function observePlace(
 	return { ...QUIET, ...observeWorld(snapshot), place, vab };
 }
 
-/** Things a step tells the player to use; a test checks each exists (ADR 0293 point 5). */
-export interface LessonTargets {
-	/** `data-testid`s in the app's source; a trailing `*` matches a prefix (`crew-eva-*`). */
-	testids?: readonly string[];
-	/** Dock panel ids: the host's or a built-in mod's. */
-	panels?: readonly string[];
-	/** Sim commands the step leads to. */
-	commands?: readonly Command['type'][];
-}
-
-export interface LessonStep {
-	id: string;
-	title: string;
-	/** `{key:action}` stands for the key bound to that action (`stepText`). */
-	text: string;
-	touchText?: string;
-	actions?: readonly ActionId[];
-	targets?: LessonTargets;
-	/** The test id of the control the step talks about: the guide highlights it (plan 344). */
-	point?: string;
-	done(o: LessonObservation): boolean;
-}
-
-/** One call of the debug API that sets the scene: the function's name and its arguments. */
-export type LessonSetupCall = {
-	[K in keyof DebugApi]: { fn: K; args: Parameters<DebugApi[K]> };
-}[keyof DebugApi];
-
-/** The in-world pages a lesson can close (the (world) route names). */
-export type LessonPlace =
-	| 'vab'
-	| 'launch'
-	| 'rnd'
-	| 'administration'
-	| 'astronauts'
-	| 'mods'
-	| 'test-stand'
-	| 'space-center'
-	| 'mission-center';
-
-export type LessonLevel = 'basics' | 'flight' | 'advanced';
-
 export const LEVELS: readonly { id: LessonLevel; title: string; summary: string }[] = [
 	{
 		id: 'basics',
@@ -341,43 +230,45 @@ export const LEVELS: readonly { id: LessonLevel; title: string; summary: string 
 	}
 ];
 
-export interface Lesson {
-	id: string;
-	level: LessonLevel;
-	title: string;
-	summary: string;
-	/** Where the lesson opens (ADR 0293 point 2); Flight when absent. */
-	start?: 'flight' | 'vab' | 'space-center';
-	/** The vessel a Flight lesson starts with; it is placed by `setup`. */
-	design?(content: Content): VesselDesign;
-	/**
-	 * Debug API calls in order, after the flight starts; a function when a call carries a design
-	 * built from the content. `FOCUS` stands for the lesson vessel.
-	 */
-	setup: readonly LessonSetupCall[] | ((content: Content) => readonly LessonSetupCall[]);
-	/** Actions and pages the lesson does not offer, each with the reason shown when tried. */
+/**
+ * A lesson as the app uses it: the registered definition with its progress id (`first-launch` for
+ * the game's own `stock.first-launch`), and a design that is a copy.
+ */
+export type Lesson = Omit<LessonDefinition, 'blocked'> & {
 	blocked: {
 		actions: Partial<Record<ActionId, string>>;
 		places: Partial<Record<LessonPlace, string>>;
 	};
-	steps: readonly LessonStep[];
-	/** Reaching it ends the lesson, whatever step is showing; without one, the last step does. */
-	goal?(o: LessonObservation): boolean;
-	debrief: string;
-	/** "Try it in your world": what to do next outside the lesson. */
-	hint: string;
+};
+
+/** The game's lessons are saved and linked under their id without the plugin prefix. */
+export const lessonKey = (registryId: string): string => registryId.replace(/^stock\./, '');
+
+let builtin: ReturnType<typeof loadPlugins>['registries'] | undefined;
+const listed = new WeakMap<object, readonly Lesson[]>();
+
+/** The lessons of the booted plugins, in plugin and registration order (the same objects each call). */
+export function lessons(): readonly Lesson[] {
+	const registries =
+		modRuntime().registries ?? (builtin ??= loadPlugins([...BUILTIN_PLUGINS]).registries);
+	let list = listed.get(registries);
+	if (!list) {
+		list = registries.lessons
+			.entries()
+			.map((e) => ({ ...e.def, id: lessonKey(e.def.id) }) as unknown as Lesson);
+		listed.set(registries, list);
+	}
+	return list;
 }
 
-export const LESSONS: readonly Lesson[] = [
-	...BASIC_LESSONS,
-	...FLIGHT_LESSONS,
-	...ADVANCED_LESSONS
-];
+/** The design a Flight lesson starts with: a copy, so a flight never edits the registered one. */
+export const lessonDesign = (lesson: Lesson): VesselDesign | undefined =>
+	lesson.design === undefined ? undefined : structuredClone(lesson.design);
 
-export const lessonOf = (id: string): Lesson | undefined => LESSONS.find((l) => l.id === id);
+export const lessonOf = (id: string): Lesson | undefined => lessons().find((l) => l.id === id);
 
 export const lessonsOfLevel = (level: LessonLevel): readonly Lesson[] =>
-	LESSONS.filter((l) => l.level === level);
+	lessons().filter((l) => l.level === level);
 
 export const NEW_LESSON: LessonProgress = { status: 'new', step: 0 };
 
@@ -434,18 +325,14 @@ function withFocus(value: unknown, focus: EntityId | null): unknown {
 	return value;
 }
 
-/** The lesson's setup calls for `content`. */
-export const setupOf = (lesson: Lesson, content: Content): readonly LessonSetupCall[] =>
-	typeof lesson.setup === 'function' ? lesson.setup(content) : lesson.setup;
-
 /** Runs the lesson's setup calls in order; the first refusal stops it with its reason. */
 export async function runLessonSetup(
 	lesson: Lesson,
-	api: DebugApi,
-	content: Content
+	api: DebugApi
 ): Promise<{ ok: true } | { ok: false; reason: string }> {
-	for (const call of setupOf(lesson, content)) {
-		const fn = api[call.fn] as (...args: unknown[]) => unknown;
+	for (const call of lesson.setup) {
+		const fn = (api as unknown as Record<string, (...args: unknown[]) => unknown>)[call.fn];
+		if (typeof fn !== 'function') return { ok: false, reason: `${call.fn}: not a debug API call` };
 		const args = JSON.stringify(call.args).includes(String(FOCUS))
 			? (withFocus(call.args, api.vessel()?.id ?? null) as unknown[])
 			: (call.args as unknown[]);

@@ -14,9 +14,9 @@
 	import { browserWorldsEnv, type Worlds } from '../../lib/worlds/worlds';
 	import Icon from '../../lib/ui/Icon.svelte';
 	import {
-		LESSONS,
 		LEVELS,
 		NEW_LESSON,
+		lessons,
 		lessonsOfLevel,
 		type Lesson
 	} from '../../lib/onboarding/lessons';
@@ -34,6 +34,7 @@
 		startLoad: (id) => goto(resolve(`/(world)/flight?load=${encodeURIComponent(id)}`))
 	});
 	const env = browserWorldsEnv();
+	const LESSONS = lessons();
 
 	let worlds = $state.raw<Worlds | null>(null);
 	let catalog = $state.raw<WorldCatalog | null>(null);

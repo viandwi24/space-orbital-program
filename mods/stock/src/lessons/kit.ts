@@ -3,22 +3,28 @@
  * places and steps several lessons use. Runtime values the level files need live here, not in
  * `lessons.ts`, which imports the level files.
  */
-import type { EntityId } from '@orbital/core';
-import { HomeBody, MoonBody, SunBody } from '@orbital/mod-stock';
-import { systemFacts } from '../worlds/system-facts';
-
-const STOCK_BODIES = [SunBody, HomeBody, MoonBody];
-import type { Lesson, LessonPlace, LessonSetupCall, LessonStep } from './lessons';
+import {
+	LESSON_FOCUS,
+	type LessonDefinition as Lesson,
+	type LessonPlace,
+	type LessonSetupCall,
+	type LessonStep
+} from '@orbital/sdk';
+import { HomeBody } from '../bodies.ts';
+import { LESSON_FACTS } from './designs.generated.ts';
 
 /** Stands for the lesson vessel's id in a setup call's arguments (`runLessonSetup`). */
-export const FOCUS = '$focus' as unknown as EntityId;
+export const FOCUS = LESSON_FOCUS;
 
 /** Radius of the stock home planet, m (lessons fly in a stock world, plan 229). */
 export const HOME_RADIUS = HomeBody.radius;
 /** Top of Home's air, m: the orbit lessons' line. */
 export const HOME_AIR = HomeBody.atmosphere!.height;
-/** What the stock system asks of a rocket (plan 380): computed from its bodies, like any world's. */
-export const STOCK_FACTS = systemFacts(STOCK_BODIES)!;
+/**
+ * What the stock system asks of a rocket (plan 380), baked from the trip planner's model by
+ * `apps/web/scripts/bake-lesson-designs.ts` (a web test checks it is current).
+ */
+export const STOCK_FACTS = LESSON_FACTS;
 /** `80 km`. */
 export const kmText = (m: number): string => `${Math.round(m / 1000)} km`;
 /** The lesson texts' numbers, from the stock bodies: the low orbit, the air's top, Δv to orbit. */

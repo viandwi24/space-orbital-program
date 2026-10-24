@@ -88,19 +88,19 @@ An ADR records one decision, its context, and its consequences. ADRs are **appen
 | 0068 | [Terrain-cast shadows and stones as instanced geometry on an airless body](0068-terrain-shadows-and-stones-on-the-moon.md) | accepted | 2026-10-17 |
 | 0069 | [An ozone absorption layer in the atmosphere model, the sun-depth table and the shaders](0069-ozone-layer-in-the-atmosphere-model.md) | accepted | 2026-10-17 |
 | 0070 | [Light shafts: a second march that reads a baked cloud-coverage map](0070-light-shafts-from-baked-cloud-coverage.md) | accepted | 2026-10-17 |
+| 0071 | [Design format 3: connector parts (struts, fuel lines), tilted parts, radial attachment to boxes](0071-format-3-connector-parts-tilt-and-box-radial.md) | accepted | 2026-10-17 |
 | 0072 | [Lakes in the height function, rivers that flow, shore waves that shoal](0072-lakes-in-the-height-function-flowing-rivers-and-shore-waves.md) | accepted | 2026-10-17 |
 | 0073 | [A launch site that moves: arms by the vessel's height, steam as a function of time](0073-launch-site-animation-from-the-snapshot.md) | accepted | 2026-10-17 |
 | 0074 | [A precompile with progress, ordered by need, and a loading badge](0074-precompile-with-progress-and-a-loading-badge.md) | accepted | 2026-10-17 |
-| 0071 | [Design format 3: connector parts (struts, fuel lines), tilted parts, radial attachment to boxes](0071-format-3-connector-parts-tilt-and-box-radial.md) | accepted | 2026-10-17 |
-| 0076 | [Mod packages carry glTF models; asset parts get plume and gimbal; fit checks warn](0076-mod-packages-carry-glb-models.md) | accepted | 2026-10-17 |
 | 0075 | [Wing lift: finite-wing slope, stall and induced drag in `stock.wing`](0075-wing-lift-and-drag-polar.md) | accepted | 2026-10-17 |
-| 0082 | [A part states its own catalogue placement: `catalog.category` and `catalog.order`](0082-part-catalogue-placement.md) | accepted | 2026-10-17 |
-| 0083 | [The trip planner: a delta-v map from body data, laid over the stages](0083-the-trip-planner-delta-v-map.md) | accepted | 2026-10-17 |
+| 0076 | [Mod packages carry glTF models; asset parts get plume and gimbal; fit checks warn](0076-mod-packages-carry-glb-models.md) | accepted | 2026-10-17 |
 | 0077 | [Wreckage and stages that came to rest are kept by the renderer, not the sim](0077-wreckage-and-stages-are-kept-by-the-renderer.md) | accepted | 2026-10-17 |
 | 0078 | [The re-entry plasma shell follows the vessel's silhouette; the thresholds follow the home body's speeds](0078-plasma-shell-from-the-vessel-silhouette.md) | accepted | 2026-10-17 |
 | 0079 | [Plasma blackout is a display of the heating flux; there is still no communications system](0079-plasma-blackout-is-a-display-of-the-heating-flux.md) | accepted | 2026-10-17 |
 | 0080 | [The persistent exhaust trail is a ribbon of sampled points](0080-exhaust-trail-as-a-ribbon.md) | accepted | 2026-10-17 |
 | 0081 | [Engines with several nozzles: `plume.nozzles`, a cluster generator, a stock cluster engine](0081-multi-nozzle-engines-in-the-part-descriptor.md) | accepted | 2026-10-17 |
+| 0082 | [A part states its own catalogue placement: `catalog.category` and `catalog.order`](0082-part-catalogue-placement.md) | accepted | 2026-10-17 |
+| 0083 | [The trip planner: a delta-v map from body data, laid over the stages](0083-the-trip-planner-delta-v-map.md) | accepted | 2026-10-17 |
 | 0084 | [Target markers and rendezvous aids: page-side, genre conventions, no new command](0084-target-markers-and-rendezvous-aids.md) | accepted | 2026-10-17 |
 | 0085 | [The syntax check before Run compiles in a second sandbox of the same kind](0085-syntax-check-in-a-second-sandbox.md) | accepted | 2026-10-17 |
 | 0086 | [The baked cloud map serves the ground's cloud shadows as well as the light shafts](0086-baked-cloud-map-shared-by-shafts-and-ground-shadows.md) | accepted | 2026-10-17 |
@@ -148,6 +148,9 @@ An ADR records one decision, its context, and its consequences. ADRs are **appen
 | 0141 | [The calendar lives on the root body, the epoch counts SI days from J2000, a fictional year needs an orbit](0141-calendar-on-the-root-body-epoch-from-j2000-and-a-year-only-with-an-orbit.md) | accepted | 2026-10-17 |
 | 0142 | [Sites: the terrain seed, flat zones from sites, and placement at a pad](0142-sites-terrain-seed-zones-and-placement.md) | accepted | 2026-10-17 |
 | 0143 | [Worlds in the web client: the record carries a new world's info, one active world, slots per world, catch-up only on a real calendar](0143-worlds-screen-active-world-record-world-info-and-catch-up.md) | accepted | 2026-10-17 |
+| 0144 | [The flight HUD in the refs layout: where our extra controls go and what shows before its data exists](0144-flight-hud-refs-layout-what-has-no-data-yet.md) | accepted | 2026-10-17 |
+| 0145 | [Body rotation: one function, the pole in the system frame, the prime meridian by the shortest turn](0145-body-rotation-pole-convention-and-one-function.md) | accepted | 2026-10-17 |
+| 0146 | [Catalogue categories are a registry: `defineCategory`, stock re-registers its nine, short names stay aliases](0146-catalogue-categories-are-a-registry.md) | accepted | 2026-10-18 |
 | 0147 | [Milestones in the sim, history from them, achievements as data in a page profile](0147-milestones-in-the-sim-achievements-in-the-page.md) | accepted | 2026-10-18 |
 | 0148 | [Hangar: pre-flight verdict levels, a tool pill without fake tools, and a centre-of-thrust marker](0148-hangar-verdict-levels-tool-pill-and-centre-of-thrust.md) | accepted | 2026-10-18 |
 | 0149 | [`definePanel`: view nodes over a panel input, a small canvas, and the dock](0149-define-panel-view-nodes-panel-input-canvas-and-the-dock.md) | accepted | 2026-10-18 |
@@ -162,16 +165,16 @@ An ADR records one decision, its context, and its consequences. ADRs are **appen
 | 0158 | [Comms in the interface: the link badge with its reason, the Comms tab, the Network layer as a page overlay](0158-comms-interface-link-badge-comms-tab-network-overlay.md) | accepted | 2026-10-18 |
 | 0159 | [Replays and challenges as files: a start save, timed commands and checkpoints; challenges scored locally](0159-replays-and-challenges-as-files.md) | accepted | 2026-10-18 |
 | 0160 | [Richer mod models: a deploy clip, a typed LOD list, palette slots on named materials, KTX2 textures](0160-richer-mod-models-deploy-clips-lods-material-palette-ktx2.md) | accepted | 2026-10-18 |
-| 0144 | [The flight HUD in the refs layout: where our extra controls go and what shows before its data exists](0144-flight-hud-refs-layout-what-has-no-data-yet.md) | accepted | 2026-10-17 |
-| 0145 | [Body rotation: one function, the pole in the system frame, the prime meridian by the shortest turn](0145-body-rotation-pole-convention-and-one-function.md) | accepted | 2026-10-17 |
-| 0146 | [Catalogue categories are a registry: `defineCategory`, stock re-registers its nine, short names stay aliases](0146-catalogue-categories-are-a-registry.md) | accepted | 2026-10-18 |
+| 0161 | [Aeroplanes: wheels as frictionless colliders with sim-side tyre forces, a level runway start, trim, flaps, level-wings, flight read-outs](0161-aeroplanes-wheels-level-runway-trim-flaps-readouts.md) | accepted | 2026-10-18 |
+| 0162 | [Script editor: Ctrl/Cmd+I as the second "suggest" key; the human pass stays with the owner](0162-script-editor-second-suggest-key-and-human-pass.md) | accepted | 2026-10-18 |
+| 0163 | [Comms planning: a planning Worker on snapshots, the sim's link rule on conics, a coverage grid, resonant deployment](0163-comms-planning-worker-timeline-coverage-constellation.md) | accepted | 2026-10-18 |
 | 0170 | [`definePatch`: targets, paths, operations, order and failure](0170-patch-paths-ops-and-order.md) | accepted | 2026-10-17 |
 | 0171 | [World tick: day length, timing in flight and on rails, order, streams, background and save fields](0171-world-tick-day-length-timing-and-save-fields.md) | accepted | 2026-10-17 |
 | 0172 | [Data items: shape, ids, value curve, and where storage lives](0172-data-items-shape-ids-value-curve-and-storage.md) | accepted | 2026-10-17 |
 | 0173 | [The trajectory provider: its interface and how consumers reach it](0173-trajectory-provider-interface-and-how-consumers-reach-it.md) | accepted | 2026-10-17 |
 | 0174 | [Part action descriptors: how they call actions, the compact snapshot, and custom groups](0174-part-action-descriptors-calls-compact-snapshot-and-custom-groups.md) | accepted | 2026-10-17 |,
-| 0175 | [Objectives: trees, primitives, scheduling, vessel binding and the save](0175-objective-trees-scheduling-vessel-binding-and-save.md) | accepted | 2026-10-17 |
 | 0174 | [Part action descriptors: how they call actions, the compact snapshot, and custom groups](0174-part-action-descriptors-calls-compact-snapshot-and-custom-groups.md) | accepted | 2026-10-17 |
+| 0175 | [Objectives: trees, primitives, scheduling, vessel binding and the save](0175-objective-trees-scheduling-vessel-binding-and-save.md) | accepted | 2026-10-17 |
 | 0176 | [Crew core: roster, places and XP, seats, death and salaries](0176-crew-roster-places-xp-seats-death-salaries.md) | accepted | 2026-10-17 |
 | 0177 | [Site templates: criteria, the resolver, consequences and founding a site](0177-site-templates-resolver-consequences-and-founding.md) | accepted | 2026-10-17 |
 | 0178 | [Science core: situations, subjects, the value curve, experiment states and credit](0178-science-situations-subjects-value-curve-states-credit.md) | accepted | 2026-10-17 |
@@ -184,11 +187,8 @@ An ADR records one decision, its context, and its consequences. ADRs are **appen
 | 0185 | [Comms tier 2: bands, the link budget, the rate ladder, the comms scale and the inspector](0185-comms-link-budget-bands-rate-ladder-inspector.md) | accepted | 2026-10-18 |
 | 0186 | [Procedural contracts: templates, the offer generator, slots, expected value and the save](0186-procedural-contracts-templates-offers-slots-value.md) | accepted | 2026-10-18 |
 | 0187 | [Strategies: declared multiplier keys with bounds, upkeep as a charge, slots, cooldown and the projection](0187-strategies-bounded-multipliers-upkeep-slots-projection.md) | accepted | 2026-10-18 |
-| 0161 | [Aeroplanes: wheels as frictionless colliders with sim-side tyre forces, a level runway start, trim, flaps, level-wings, flight read-outs](0161-aeroplanes-wheels-level-runway-trim-flaps-readouts.md) | accepted | 2026-10-18 |
 | 0188 | [Comms tier 3: relays and the routing graph, dish pointing, route modes, shared capacity, latency and the signal-delay rule](0188-comms-routing-pointing-capacity-latency-signal-delay.md) | accepted | 2026-10-18 |
-| 0162 | [Script editor: Ctrl/Cmd+I as the second "suggest" key; the human pass stays with the owner](0162-script-editor-second-suggest-key-and-human-pass.md) | accepted | 2026-10-18 |
 | 0189 | [Comms tier 4: transmission queues, store-and-forward custody, delivery and contact windows](0189-comms-transmission-queues-store-and-forward-contact-windows.md) | accepted | 2026-10-18 |
-| 0163 | [Comms planning: a planning Worker on snapshots, the sim's link rule on conics, a coverage grid, resonant deployment](0163-comms-planning-worker-timeline-coverage-constellation.md) | accepted | 2026-10-18 |
 | 0190 | [AI agencies: state machines on the world tick, owned objects, relay rental, reactive contracts and news](0190-ai-agencies-state-machines-owned-objects-rental-news.md) | accepted | 2026-10-18 |
 | 0191 | [Comms tier 5: channels, frequency licences, interference and encryption](0191-comms-channels-licences-interference-encryption.md) | accepted | 2026-10-18 |
 | 0192 | [Discovery science: seeded facts, noisy measurements, data levels in the lab, claims judged by a proper scoring rule](0192-discovery-science-facts-measurements-levels-claims-review.md) | accepted | 2026-10-18 |
@@ -229,8 +229,8 @@ An ADR records one decision, its context, and its consequences. ADRs are **appen
 | 0231 | [Career content: a tiered tech tree with every part placed, contracts that see milestones and spawn a rescue, a richer objective view, per-item panel actions](0231-career-content-tech-tiers-rescue-spawn-objective-view.md) | accepted | 2026-10-19 |
 | 0232 | [The script sandbox lives with the world, not with Flight](0232-script-sandbox-lives-with-the-world.md) | accepted | 2026-10-20 |
 | 0233 | [The Abort group is the design's custom slot 0; trim on three axes; keys that were pending](0233-abort-group-trim-axes-held-brakes.md) | accepted | 2026-10-20 |
-| 0234 | [A pixel budget for the planet pass, and the other Retina quick wins](0234-planet-pixel-budget-retina-quick-wins.md) | accepted | 2026-10-20 |
 | 0233 | [The quality governor: a locked 60 or 30, fast down, up only on evidence](0233-governor-paced-fast-down-measured-up.md) | accepted | 2026-10-20 |
+| 0234 | [A pixel budget for the planet pass, and the other Retina quick wins](0234-planet-pixel-budget-retina-quick-wins.md) | accepted | 2026-10-20 |
 | 0235 | [Surface links: a part attached at a point and normal of its parent's surface](0235-surface-links.md) | accepted | 2026-10-20 |
 | 0236 | [The snapshot says splashed; heat bars, touchdown dust and reduced motion in the flight view](0236-splashed-flag-heat-bars-dust-reduced-motion.md) | accepted | 2026-10-20 |
 | 0237 | [The EVA helmet and the personal parachute](0237-eva-helmet-and-personal-parachute.md) | accepted | 2026-10-20 |
@@ -336,7 +336,7 @@ An ADR records one decision, its context, and its consequences. ADRs are **appen
 | 0348 | [The sequencer: keyframe tracks over robotic joints, and a module's calls on other parts](0348-sequencer-and-drive-calls.md) | accepted | 2026-10-24 |
 | 0349 | [Loading-screen shots are a registry](0349-loading-shots-registry.md) | accepted | 2026-10-24 |
 | 0350 | [Engine looks, verniers, small motors and the Abort group of Kronos V](0350-engine-looks-verniers-and-the-abort-group.md) | accepted | 2026-10-24 |
-| 0352 | [A member vessel refuels from its site's storage](0352-refuel-from-site-storage.md) | accepted | 2026-10-24 |
-||||||| d743a107
 | 0351 | [Deployables break in strong airflow; the Hangar names the part that replaces a hidden one](0351-deployables-break-in-airflow-and-replaced-parts.md) | accepted | 2026-10-24 |
+| 0352 | [A member vessel refuels from its site's storage](0352-refuel-from-site-storage.md) | accepted | 2026-10-24 |
 | 0353 | [A vessel's static parts are merged per material](0353-vessel-parts-merged-per-material.md) | accepted | 2026-10-24 |
+| 0355 | [Lessons are a registry; stock owns the game's](0355-lessons-registry.md) | accepted | 2026-10-24 |

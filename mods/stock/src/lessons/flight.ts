@@ -2,8 +2,8 @@
  * Flight (plan 344): the Guidance Computer's ascent, a transfer to the moon, landing on it, walking
  * on it, science and comms.
  */
-import { blueprintDesign } from '../blueprint-registry';
-import type { Lesson } from './lessons';
+import { blueprintDesign } from './designs.ts';
+import type { LessonDefinition as Lesson } from '@orbital/sdk';
 import {
 	HOME_AIR,
 	LOW,
@@ -12,14 +12,8 @@ import {
 	PARKING,
 	addPanelStep,
 	closedPlaces
-} from './lesson-kit';
-import {
-	lander,
-	pathfinder,
-	pathfinderCapsule,
-	relayProbe,
-	relaySatellite
-} from './lesson-vessels';
+} from './kit.ts';
+import { DESIGNS } from './designs.generated.ts';
 
 /** The comms lesson's relay altitude, m: high enough to see both the probe and the ground station. */
 export const RELAY_ALTITUDE = 3_000_000;
@@ -30,7 +24,7 @@ export const FLIGHT_LESSONS: readonly Lesson[] = [
 		level: 'flight',
 		title: 'Ascent with the Guidance Computer',
 		summary: `Pathfinder on the pad again: add the Guidance Computer to the dock, set an ${LOW} orbit on its Ascent tab and let it fly the gravity turn, the staging and the circularisation.`,
-		design: pathfinder,
+		design: DESIGNS.pathfinder,
 		setup: [],
 		blocked: { actions: {}, places: closedPlaces() },
 		steps: [
@@ -77,7 +71,7 @@ export const FLIGHT_LESSONS: readonly Lesson[] = [
 		title: 'Transfer to Cinder',
 		summary:
 			'From a parking orbit: target the moon, place a node where the dashed line meets it, warp, burn, and change sphere of influence.',
-		design: pathfinderCapsule,
+		design: DESIGNS.pathfinderCapsule,
 		setup: [IN_PARKING_ORBIT, LIGHT],
 		blocked: {
 			actions: {
@@ -146,7 +140,7 @@ export const FLIGHT_LESSONS: readonly Lesson[] = [
 		title: 'Landing on Cinder',
 		summary:
 			'From a 30 km arc over Cinder in the Lark lander: point retrograde, burn, lower the legs and touch down under 3 m/s.',
-		design: lander,
+		design: DESIGNS.lander,
 		setup: [
 			{
 				fn: 'setLocation',
@@ -221,7 +215,7 @@ export const FLIGHT_LESSONS: readonly Lesson[] = [
 		title: 'EVA and a flag',
 		summary:
 			'The Lark lander stands on Cinder: step out from the Crew panel, walk, plant a flag and climb back in.',
-		design: lander,
+		design: DESIGNS.lander,
 		setup: [
 			{
 				fn: 'setLocation',
@@ -283,7 +277,7 @@ export const FLIGHT_LESSONS: readonly Lesson[] = [
 		title: 'Science',
 		summary:
 			'The Aurora research satellite on the pad: add the Science panel, run an experiment, transmit the result home.',
-		design: () => blueprintDesign('stock.aurora-satellite'),
+		design: blueprintDesign('stock.aurora-satellite'),
 		setup: [],
 		blocked: { actions: {}, places: closedPlaces() },
 		steps: [
@@ -321,8 +315,8 @@ export const FLIGHT_LESSONS: readonly Lesson[] = [
 		title: 'Comms and relays',
 		summary:
 			'The Wren probe in a low orbit: see its link to the ground station, then warp until the planet blocks it and the link goes via the relay satellite overhead.',
-		design: relayProbe,
-		setup: (content) => [
+		design: DESIGNS.relayProbe,
+		setup: [
 			IN_PARKING_ORBIT,
 			{
 				fn: 'setOrbit',
@@ -333,7 +327,7 @@ export const FLIGHT_LESSONS: readonly Lesson[] = [
 						periapsis: RELAY_ALTITUDE,
 						m0: Math.PI / 2
 					},
-					{ design: relaySatellite(content) as never }
+					{ design: DESIGNS.relaySatellite }
 				]
 			}
 		],

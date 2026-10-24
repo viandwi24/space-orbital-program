@@ -1,8 +1,8 @@
 ---
 id: 379
 title: "The web app's own content moves into plugins: lessons and loading shots (blueprints done)"
-status: draft
-owner: ""
+status: done
+owner: "Worker C"
 depends: [375, 377]
 phase: 8
 created: 2026-10-23
@@ -50,16 +50,17 @@ When this is done, stock registers both through plugin registries and the develo
 
 ## Acceptance criteria
 
-- [ ] `bun test packages/core` passes a test registering a lesson and a loading shot from a plugin.
-- [ ] `cd apps/web && bunx vitest run src/lib/onboarding` passes (lessons, tour, tutorial tests) with lessons read from the registry.
-- [ ] `bun test`, `bun run typecheck`, `bun run build` and `bun run docs:check` pass.
+- [x] `bun test packages/core` passes a test registering a lesson and a loading shot from a plugin.
+- [x] `cd apps/web && bunx vitest run src/lib/onboarding` passes (lessons, tour, tutorial tests) with lessons read from the registry.
+- [x] `bun test`, `bun run typecheck`, `bun run build` and `bun run docs:check` pass.
 
 ## Docs checklist
 
-- [ ] `docs/STATUS.md`; journal; ADR; `docs/guides/writing-a-mod.md` (lessons, loading shots).
+- [x] `docs/STATUS.md`; journal; ADR; `docs/guides/writing-a-mod.md` (lessons, loading shots).
 
 ## Log
 
 - 2026-10-24 — Loading shots done (Worker C, ADR 0349, API 0.1.126): the `loadingShots` registry, stock's ten shots, the loading screen reads the registries, the guide. Lessons are not moved: their observation, `DebugApi` and Hangar-state types must go to the SDK first (journal 379).
 - 2026-10-23 — Drafted from plan 375 (ADR 0311's later rows).
 - 2026-10-24 — Rewritten by the coordinator after an audit against main @ 4c546c02: partly done; blueprints shipped (ADR 0316); remaining lessons and loading shots registries; the lessons registry must cover the tour (377), the lesson gate and the onboarding hand-off (ADR 0328); shots are now 10; depends adds 377.
+- 2026-10-24 — Lessons done (Worker C, ADR 0355, API 0.1.128): the `lessons` registry and the lesson types in core/SDK, stock's 20 lessons in `mods/stock/src/lessons/` with baked vessels, the app reads the registry (progress ids keep the short names). Tests: `core/test/lessons.test.ts`, `onboarding/*` (132 pass), `lesson-bake.test.ts`, `bun test mods/stock packages/sdk packages/core`. Plan done.

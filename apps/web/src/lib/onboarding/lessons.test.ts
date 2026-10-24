@@ -18,15 +18,20 @@ import LessonCard from '../hud/LessonCard.svelte';
 import { ACTIONS, createKeymap, type ActionId } from '../keybindings';
 import type { LessonProgress } from '../settings/settings';
 import { lessonKeymap } from './lesson-gate.svelte';
-import { FOCUS, RAISED_ORBIT, TARGET_LEAD } from './lesson-kit';
 import {
-	LESSONS,
+	LESSON_RAISED_ORBIT as RAISED_ORBIT,
+	LESSON_TARGET_LEAD as TARGET_LEAD
+} from '@orbital/mod-stock';
+import {
+	FOCUS,
 	LEVELS,
 	NEW_LESSON,
 	QUIET,
 	advanceLesson,
 	blockedPlace,
+	lessonDesign,
 	lessonOf,
+	lessons,
 	lessonStart,
 	lessonStep,
 	lessonsOfLevel,
@@ -35,7 +40,6 @@ import {
 	restartLesson,
 	runLessonSetup,
 	skipStep,
-	setupOf,
 	type Lesson,
 	type LessonObservation,
 	type VabLessonState
@@ -44,6 +48,7 @@ import { TUTORIAL_STEPS, stepText } from './tutorial';
 import { guideUi } from './guide-ui.svelte';
 
 const { registries } = loadPlugins([...BUILTIN_PLUGINS]);
+const LESSONS = lessons();
 const content: ContentLookups = {
 	parts: registries.parts,
 	modules: registries.modules,
@@ -456,7 +461,7 @@ describe('lessons (plans 229, 344)', () => {
 
 /** The lessons that fly from the pad (no placement in their setup). */
 const fromPad = (l: Lesson): boolean =>
-	!setupOf(l, content).some((c) => c.fn === 'setOrbit' || c.fn === 'setLocation');
+	!l.setup.some((c) => c.fn === 'setOrbit' || c.fn === 'setLocation');
 
 /** Δv each lesson's vessel needs with a margin, m/s: the ascent counts the first stage at sea level. */
 const NEEDS: Record<string, number> = {
@@ -488,7 +493,7 @@ describe('lesson vessels (plan 344, ADR 0293 point 6)', () => {
 	it.each(flying.map((l) => [l.id, l] as const))(
 		'%s: resolves, passes the pre-flight checks and carries enough delta-v',
 		(id, lesson) => {
-			const design = lesson.design!(content);
+			const design = lessonDesign(lesson)!;
 			const resolved = resolveVesselDesign(design, content.parts);
 			expect(resolved.ok, JSON.stringify(resolved.ok ? '' : resolved.errors)).toBe(true);
 			const sl = designStats(design, content, 'sea-level', g);
@@ -531,13 +536,13 @@ describe('lesson vessels (plan 344, ADR 0293 point 6)', () => {
 			'rendezvous',
 			'autodock'
 		]) {
-			const d = lessonOf(id)!.design!(content);
+			const d = lessonDesign(lessonOf(id)!)!;
 			expect(has(d, 'parachute'), id).toBe(true);
 			expect(has(d, 'heat-shield'), id).toBe(true);
 			expect(has(d, 'decoupler'), id).toBe(true);
 		}
 		for (const id of ['docking', 'rendezvous', 'autodock']) {
-			const d = lessonOf(id)!.design!(content);
+			const d = lessonDesign(lessonOf(id)!)!;
 			expect(has(d, 'rcs'), id).toBe(true);
 			expect(has(d, 'monoprop'), id).toBe(true);
 			expect(has(d, 'docking-port'), id).toBe(true);
@@ -546,9 +551,9 @@ describe('lesson vessels (plan 344, ADR 0293 point 6)', () => {
 
 	it('setups place designs that resolve and pass their checks (targets need no engine)', () => {
 		for (const l of LESSONS) {
-			for (const call of setupOf(l, content)) {
+			for (const call of l.setup) {
 				if (call.fn !== 'setOrbit') continue;
-				const design = call.args[1]?.design;
+				const design = (call.args[1] as { design?: never } | undefined)?.design;
 				if (!design) continue;
 				const resolved = resolveVesselDesign(design, content.parts);
 				expect(resolved.ok, l.id).toBe(true);
@@ -585,7 +590,7 @@ describe('lesson setups use only the debug API (plan 203)', () => {
 	it.each(LESSONS.map((l) => [l.id, l] as const))(
 		'%s calls only debug API functions; only Flight lessons have a setup',
 		(_, lesson) => {
-			const setup = setupOf(lesson, content);
+			const setup = lesson.setup;
 			expect(Array.isArray(setup)).toBe(true);
 			if (lessonStart(lesson) !== 'flight') expect(setup).toHaveLength(0);
 			for (const call of setup) expect(DEBUG_FUNCTIONS).toContain(call.fn);
@@ -606,7 +611,7 @@ describe('lesson setups use only the debug API (plan 203)', () => {
 						}
 		});
 		const docking = lessonOf('docking')!;
-		const r = await runLessonSetup(docking, fake, content);
+		const r = await runLessonSetup(docking, fake);
 		expect(r).toEqual({ ok: false, reason: 'setOrbit: no vessel in focus' });
 		expect(calls).toHaveLength(3);
 		// the engine is lit on the vessel in focus, then the target spawns ahead by the lead
@@ -615,7 +620,7 @@ describe('lesson setups use only the debug API (plan 203)', () => {
 		expect(calls[2]).toContain('"design"');
 		expect(calls[2]).toContain(String(TARGET_LEAD / 700_000));
 		calls.length = 0;
-		expect(await runLessonSetup(lessonOf('nodes')!, fake, content)).toEqual({ ok: true });
+		expect(await runLessonSetup(lessonOf('nodes')!, fake)).toEqual({ ok: true });
 	});
 });
 

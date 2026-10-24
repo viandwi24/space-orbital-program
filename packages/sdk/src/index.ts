@@ -42,6 +42,7 @@ export { resolveSiteTemplate, siteConsequences, siteDistance } from '@orbital/co
 export { achievementMatches, MILESTONE_KINDS, milestoneId } from '@orbital/core';
 export { GRADES, GRADE_FACTORS, modelReliability, trialChance } from '@orbital/core';
 export { PANEL_CONTEXTS, sortPanels } from '@orbital/core';
+export { LESSON_FOCUS } from '@orbital/core';
 export { AUTOPILOT_RATE, createVesselPilot, rotateByQuat } from '@orbital/core';
 export { scenarioPlacement } from '@orbital/core';
 export { isResearched, lockedParts, nodeOfParts, researchProblem } from '@orbital/core';
@@ -319,6 +320,13 @@ export type {
 	ScenarioDefinition,
 	BlueprintDefinition,
 	LoadingShotDefinition,
+	LessonDefinition,
+	LessonObservation,
+	LessonStep,
+	LessonSetupCall,
+	LessonPlace,
+	LessonLevel,
+	VabLessonState,
 	BlueprintGoal,
 	BlueprintSystem,
 	ScenarioVessel,

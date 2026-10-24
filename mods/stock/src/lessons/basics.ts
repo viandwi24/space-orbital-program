@@ -2,7 +2,7 @@
  * Basics (plan 344): the first launch, the Hangar, reaching orbit by hand, changing it with nodes,
  * coming home, and the Space Center.
  */
-import type { Lesson } from './lessons';
+import type { LessonDefinition as Lesson } from '@orbital/sdk';
 import {
 	AIR,
 	DV,
@@ -12,8 +12,8 @@ import {
 	LOW,
 	RAISED_ORBIT,
 	closedPlaces
-} from './lesson-kit';
-import { pathfinder, pathfinderCapsule, skylark } from './lesson-vessels';
+} from './kit.ts';
+import { DESIGNS } from './designs.generated.ts';
 
 export const BASIC_LESSONS: readonly Lesson[] = [
 	{
@@ -22,7 +22,7 @@ export const BASIC_LESSONS: readonly Lesson[] = [
 		title: 'First launch',
 		summary:
 			'A one-seat hop from the pad: throttle, stage, hold the nose up with SAS, cut the engine at 20 km, drop the stage and come down under the parachute.',
-		design: skylark,
+		design: DESIGNS.skylark,
 		setup: [],
 		blocked: {
 			actions: { map: 'Stay with the rocket in this lesson: the map is for orbits.' },
@@ -163,7 +163,7 @@ export const BASIC_LESSONS: readonly Lesson[] = [
 		level: 'basics',
 		title: 'Orbit by hand',
 		summary: `Pathfinder on the pad: lift off, turn east early, drop the booster, push the apoapsis to ${LOW}, then circularise at the top.`,
-		design: pathfinder,
+		design: DESIGNS.pathfinder,
 		setup: [],
 		blocked: { actions: {}, places: closedPlaces() },
 		steps: [
@@ -227,7 +227,7 @@ export const BASIC_LESSONS: readonly Lesson[] = [
 		title: 'Maneuver nodes',
 		summary:
 			'From a 100 km orbit: plan a burn with a node, set its Δv, raise the apoapsis and circularise at 250 km.',
-		design: pathfinderCapsule,
+		design: DESIGNS.pathfinderCapsule,
 		setup: [IN_PARKING_ORBIT, LIGHT],
 		blocked: {
 			actions: {
@@ -289,7 +289,7 @@ export const BASIC_LESSONS: readonly Lesson[] = [
 		title: 'Coming home',
 		summary:
 			'From a 100 km orbit: burn retrograde to bring the periapsis into the air, drop the service module, keep the heat shield first and land under the parachute.',
-		design: pathfinderCapsule,
+		design: DESIGNS.pathfinderCapsule,
 		setup: [IN_PARKING_ORBIT, LIGHT],
 		blocked: { actions: {}, places: closedPlaces() },
 		steps: [

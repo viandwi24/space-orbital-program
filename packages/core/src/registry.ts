@@ -24,6 +24,7 @@ import {
 import { scenarioDefinitionSchema, type ScenarioDefinition } from './scenarios.ts';
 import { blueprintDefinitionSchema, type BlueprintDefinition } from './blueprints.ts';
 import { loadingShotDefinitionSchema, type LoadingShotDefinition } from './loading-shots.ts';
+import { lessonDefinitionSchema, type LessonDefinition } from './lessons.ts';
 import { panelDefinitionSchema, type PanelDefinition } from './panels.ts';
 import { autopilotDefinitionSchema, type AutopilotDefinition } from './autopilots.ts';
 import {
@@ -334,6 +335,7 @@ export interface Registries {
 	crewTraits: Registry<CrewTraitDefinition>;
 	crewNames: Registry<CrewNamesDefinition>;
 	loadingShots: Registry<LoadingShotDefinition>;
+	lessons: Registry<LessonDefinition>;
 	/** Crew content (plan 375, ADR 0313). */
 	crewOutfits: Registry<CrewOutfitDefinition>;
 	crewLooks: Registry<CrewLookDefinition>;
@@ -435,6 +437,7 @@ export function createRegistries(): Registries {
 		loadingShots: createRegistry<LoadingShotDefinition>('loading-shot', {
 			schema: loadingShotDefinitionSchema
 		}),
+		lessons: createRegistry<LessonDefinition>('lesson', { schema: lessonDefinitionSchema }),
 		crewNames: createRegistry<CrewNamesDefinition>('crew-names', {
 			schema: crewNamesDefinitionSchema
 		}),

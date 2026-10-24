@@ -2,9 +2,8 @@
  * Advanced (plan 344): meeting and docking in orbit by hand and with the autopilots, a rover,
  * robotic parts, and keeping orbit tidy from the Mission Center.
  */
-import { blueprintDesign } from '../blueprint-registry';
-import type { Content } from '../editor/state';
-import type { Lesson, LessonSetupCall } from './lessons';
+import { blueprintDesign } from './designs.ts';
+import type { LessonDefinition as Lesson, LessonSetupCall } from '@orbital/sdk';
 import {
 	HOME_RADIUS,
 	IN_PARKING_ORBIT,
@@ -14,28 +13,26 @@ import {
 	TARGET_LEAD,
 	addPanelStep,
 	closedPlaces
-} from './lesson-kit';
-import { arm, beacon, chaser, pathfinderCapsule, spentStage } from './lesson-vessels';
+} from './kit.ts';
+import { DESIGNS } from './designs.generated.ts';
 
 /** The chaser in the parking orbit, lit, and `design` `lead` metres ahead on the same orbit. */
-const meet =
-	(lead: number, design: (content: Content) => unknown) =>
-	(content: Content): readonly LessonSetupCall[] => [
-		IN_PARKING_ORBIT,
-		LIGHT,
-		{
-			fn: 'setOrbit',
-			args: [
-				{
-					body: 'stock.home',
-					apoapsis: PARKING,
-					periapsis: PARKING,
-					m0: lead / (HOME_RADIUS + PARKING)
-				},
-				{ design: design(content) as never }
-			]
-		}
-	];
+const meet = (lead: number, design: unknown): readonly LessonSetupCall[] => [
+	IN_PARKING_ORBIT,
+	LIGHT,
+	{
+		fn: 'setOrbit',
+		args: [
+			{
+				body: 'stock.home',
+				apoapsis: PARKING,
+				periapsis: PARKING,
+				m0: lead / (HOME_RADIUS + PARKING)
+			},
+			{ design }
+		]
+	}
+];
 
 const NO_WARP_NEAR = 'No time warp near another vessel in this lesson: approach in real time.';
 
@@ -46,8 +43,8 @@ export const ADVANCED_LESSONS: readonly Lesson[] = [
 		title: 'Rendezvous',
 		summary:
 			'Kestrel 20 km behind Beacon Station on the same orbit: target it, read the closest approach, then let the Guidance Computer’s Rendezvous bring you within 200 m.',
-		design: chaser,
-		setup: meet(RENDEZVOUS_LEAD, beacon),
+		design: DESIGNS.chaser,
+		setup: meet(RENDEZVOUS_LEAD, DESIGNS.beacon),
 		blocked: {
 			actions: {
 				stage: 'Staging now would drop Kestrel’s service module: nothing to drop in this lesson.'
@@ -106,8 +103,8 @@ export const ADVANCED_LESSONS: readonly Lesson[] = [
 		title: 'Docking by hand',
 		summary:
 			'Kestrel 200 m behind Beacon Station: target its port, switch on RCS, point at it and translate in at under half a metre per second until the ports capture.',
-		design: chaser,
-		setup: meet(TARGET_LEAD, beacon),
+		design: DESIGNS.chaser,
+		setup: meet(TARGET_LEAD, DESIGNS.beacon),
 		blocked: {
 			actions: {
 				warpUp: NO_WARP_NEAR,
@@ -164,8 +161,8 @@ export const ADVANCED_LESSONS: readonly Lesson[] = [
 		title: 'Auto Dock',
 		summary:
 			'The same scene, flown by the Auto Dock panel: target the station’s port, engage, and watch it line up, fly round if it must, and dock.',
-		design: chaser,
-		setup: meet(TARGET_LEAD, beacon),
+		design: DESIGNS.chaser,
+		setup: meet(TARGET_LEAD, DESIGNS.beacon),
 		blocked: {
 			actions: {
 				warpUp: NO_WARP_NEAR,
@@ -225,7 +222,7 @@ export const ADVANCED_LESSONS: readonly Lesson[] = [
 		title: 'Driving a rover',
 		summary:
 			'The Trailblazer rover on the pad: drive mode, throttle the wheels, steer, and brake to a stop.',
-		design: () => blueprintDesign('stock.trailblazer-rover'),
+		design: blueprintDesign('stock.trailblazer-rover'),
 		setup: [],
 		blocked: { actions: { stage: 'A rover has no stages.' }, places: closedPlaces() },
 		steps: [
@@ -261,7 +258,7 @@ export const ADVANCED_LESSONS: readonly Lesson[] = [
 		title: 'Robotic parts',
 		summary:
 			'The Heron arm on the pad: two hinges. Swing each from the Parts panel and watch the arm move.',
-		design: arm,
+		design: DESIGNS.arm,
 		setup: [],
 		blocked: { actions: { stage: 'The arm has no stages.' }, places: closedPlaces() },
 		steps: [
@@ -296,8 +293,8 @@ export const ADVANCED_LESSONS: readonly Lesson[] = [
 		title: 'The Mission Center and debris',
 		summary:
 			'In orbit beside a spent stage: open the Mission Center, terminate the debris, and come back to your ship.',
-		design: pathfinderCapsule,
-		setup: (content) => [
+		design: DESIGNS.pathfinderCapsule,
+		setup: [
 			IN_PARKING_ORBIT,
 			{
 				fn: 'setOrbit',
@@ -308,7 +305,7 @@ export const ADVANCED_LESSONS: readonly Lesson[] = [
 						periapsis: PARKING,
 						m0: 2_000 / (HOME_RADIUS + PARKING)
 					},
-					{ design: spentStage(content) as never }
+					{ design: DESIGNS.spentStage }
 				]
 			}
 		],

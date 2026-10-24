@@ -18,7 +18,12 @@ import { createSim, type Sim } from '@orbital/sim';
 import { describe, expect, it } from 'vitest';
 import type { ContentLookups } from '../delta-v';
 import { spinVector, surfaceVelocity } from '../speed';
-import { HOME_RADIUS, PARKING, RENDEZVOUS_LEAD, TARGET_LEAD } from './lesson-kit';
+import {
+	LESSON_HOME_RADIUS as HOME_RADIUS,
+	LESSON_PARKING as PARKING,
+	LESSON_RENDEZVOUS_LEAD as RENDEZVOUS_LEAD,
+	LESSON_TARGET_LEAD as TARGET_LEAD
+} from '@orbital/mod-stock';
 import { beacon, chaser, lander, pathfinder, pathfinderCapsule, skylark } from './lesson-vessels';
 
 const { registries } = loadPlugins([Stock, Guidance, AutoDock]);

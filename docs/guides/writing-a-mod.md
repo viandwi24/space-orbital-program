@@ -629,6 +629,34 @@ A mod changes how the game looks with data, never with shaders. Every field is c
 
 Not yet data: cloud and weather maps, sky and ocean coefficients (they wait for what reads them), and Meshopt-compressed models.
 
+## Lessons (API 0.1.128, plan 379, ADR 0355)
+
+A lesson is a short guided scene: a vessel, a few steps that each wait for something the player does, a goal. Register it with `ctx.lessons`; it shows on the Lessons page under its level.
+
+```ts
+import { defineLesson, LESSON_FOCUS } from '@orbital/sdk';
+
+ctx.lessons.register(
+	defineLesson({
+		id: 'mymod.first-hop',
+		level: 'basics',
+		title: 'A first hop',
+		summary: 'Light the engine and climb to 1 km.',
+		design: myRocketDesign, // a VesselDesign (a baked blueprint works)
+		setup: [{ fn: 'send', args: [{ type: 'stage', vessel: LESSON_FOCUS }] }],
+		blocked: { actions: {}, places: {} },
+		steps: [
+			{ id: 'throttle', title: 'Throttle up', text: 'Press {key:throttleFull}.', done: (o) => o.throttle > 0.5 }
+		],
+		goal: (o) => o.altitude > 1000,
+		debrief: 'You flew it.',
+		hint: 'In your world, try the same with your own rocket.'
+	})
+);
+```
+
+A step's `done` and the `goal` read a `LessonObservation` (throttle, altitude, orbit, target, docking, panels, the Hangar's design, …). `setup` is a list of calls to the app's debug API (`fn` and `args`); an unknown `fn` stops the setup with a reason.
+
 ## Loading-screen shots (API 0.1.126, plan 379, ADR 0349)
 
 The world loading screen cycles through pictures with a caption each. Register yours:

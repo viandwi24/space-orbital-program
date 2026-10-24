@@ -14,6 +14,7 @@ import type {
 	ScenarioDefinition,
 	BlueprintDefinition,
 	LoadingShotDefinition,
+	LessonDefinition,
 	PanelDefinition,
 	AutopilotDefinition,
 	ExperimentDefinition,
@@ -489,6 +490,12 @@ export const defineScenario = (def: ScenarioDefinition): ScenarioDefinition => d
  * screen. Register with `ctx.loadingShots`.
  */
 export const defineLoadingShot = (def: LoadingShotDefinition): LoadingShotDefinition => def;
+
+/**
+ * A lesson (plan 379, ADR 0353): a short guided scene with steps that read the player's flight.
+ * Register with `ctx.lessons`; the Lessons page lists it under its level.
+ */
+export const defineLesson = (def: LessonDefinition): LessonDefinition => def;
 
 /**
  * A blueprint (plan 285, ADR 0263): a ready-made design for the Hangar's Library, with its goal,

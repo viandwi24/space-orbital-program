@@ -71,6 +71,7 @@ export * from './tech-tree.ts';
 export * from './scenarios.ts';
 export * from './blueprints.ts';
 export * from './loading-shots.ts';
+export * from './lessons.ts';
 export * from './panels.ts';
 export * from './autopilots.ts';
 export * from './atmosphere.ts';
