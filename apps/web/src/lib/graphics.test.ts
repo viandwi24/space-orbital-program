@@ -10,10 +10,20 @@ import {
 	parseAutoQuality,
 	parseFrameCap,
 	parseLearnedLevel,
+	presetFromStored,
 	resolvePreset,
 	startPreset,
 	warmPresetsFor
 } from './graphics';
+
+describe('the stored preset (owner, 2026-10-25: a new player starts on Low)', () => {
+	it('nothing stored is Low, `auto` is Automatic, a preset name is that preset', () => {
+		expect(presetFromStored(null)).toBe('low');
+		expect(presetFromStored('auto')).toBeNull();
+		expect(presetFromStored('high')).toBe('high');
+		expect(presetFromStored('nonsense')).toBeNull();
+	});
+});
 
 describe('resolvePreset', () => {
 	it('prefers a saved preset over the device default', () => {

@@ -5,6 +5,7 @@ import {
 	effectiveScale,
 	governorLimits,
 	kindOf,
+	NEW_PLAYER_PROFILE,
 	parseProfile,
 	presetOfProfile,
 	serializeProfile,
@@ -26,8 +27,13 @@ describe('the graphics profile (plan 404)', () => {
 		for (const preset of ['low', 'medium', 'high'] as const) {
 			expect(parseProfile(null, preset)).toEqual({ ...DEFAULT_PROFILE, preset });
 		}
-		expect(parseProfile(null, null)).toEqual(DEFAULT_PROFILE);
 		expect(parseProfile('not json', 'high')).toEqual({ ...DEFAULT_PROFILE, preset: 'high' });
+	});
+
+	it('a new player (nothing stored) starts on Low; a stored Automatic stays Automatic (owner, 2026-10-25)', () => {
+		expect(parseProfile(null, null)).toEqual(NEW_PLAYER_PROFILE);
+		expect(NEW_PLAYER_PROFILE.preset).toBe('low');
+		expect(parseProfile(null, 'auto')).toEqual(DEFAULT_PROFILE);
 	});
 
 	it('invalid values fall back to the default for that field', () => {

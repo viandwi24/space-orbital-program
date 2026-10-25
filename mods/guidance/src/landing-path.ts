@@ -46,21 +46,22 @@ export const PATH = defineOverlay({
 });
 
 /**
- * The Landing tab's "Predicted path" (plan 372 follow-up): `auto` (the rules below, the default),
- * `always` (whenever there is a predicted impact, also in manual flight), `off`. Saved with the
- * world. A save from before keeps `{ show }`: on reads as auto, off as off.
+ * The Landing tab's "Predicted path" (plan 372 follow-up): `auto` (the rules below), `always`
+ * (whenever there is a predicted impact, also in manual flight), `off` (the default since
+ * 2026-10-25, the owner's choice: the player turns the path on). Saved with the world. A save from
+ * before keeps `{ show }`: on reads as auto, off as off.
  */
 export const PATH_MODES = ['auto', 'always', 'off'] as const;
 export type PathMode = (typeof PATH_MODES)[number];
 export const PathSettings = defineStore({
 	id: 'guidance.path-settings',
 	schema: z.object({ mode: z.enum(PATH_MODES).optional(), show: z.boolean().optional() }),
-	initial: { mode: 'auto' as PathMode }
+	initial: { mode: 'off' as PathMode }
 });
 export type PathSettingsValue = z.infer<typeof PathSettings.schema>;
 /** The mode a stored value means. */
 export const pathModeOf = (s: PathSettingsValue | null | undefined): PathMode =>
-	s?.mode ?? (s?.show === false ? 'off' : 'auto');
+	s?.mode ?? (s?.show === true ? 'auto' : 'off');
 
 /** The landing target: a point on a body's surface, latitude and longitude in rad. */
 export const LandingTarget = defineStore({

@@ -36,6 +36,12 @@ export const DEFAULT_PROFILE: GraphicsProfile = {
 	resolutionScale: null
 };
 
+/**
+ * A player who never chose a preset starts on Low, as if chosen by hand (owner, 2026-10-25), so the
+ * governor does not climb. Automatic stays one pick away in Settings.
+ */
+export const NEW_PLAYER_PROFILE: GraphicsProfile = { ...DEFAULT_PROFILE, preset: 'low' };
+
 const PRESETS_ALL: readonly ProfilePreset[] = ['auto', 'low', 'medium', 'high', 'ultra'];
 
 const parseLook = (v: unknown): LookChoice =>
@@ -56,9 +62,10 @@ export function parseProfile(value: unknown, legacyPreset?: unknown): GraphicsPr
 		}
 	}
 	if (!raw || raw.version !== PROFILE_VERSION) {
-		// before plan 404: only the preset key
+		// before plan 404: only the preset key; nothing stored at all is a new player (Low)
 		const preset = parsePreset(legacyPreset);
-		return { ...DEFAULT_PROFILE, preset: preset ?? 'auto' };
+		if (preset) return { ...DEFAULT_PROFILE, preset };
+		return legacyPreset === 'auto' ? DEFAULT_PROFILE : NEW_PLAYER_PROFILE;
 	}
 	const looksRaw = (raw.looks ?? {}) as Record<string, unknown>;
 	const looks = Object.fromEntries(LOOKS.map((id) => [id, parseLook(looksRaw[id])])) as LookChoices;
@@ -147,7 +154,7 @@ export function loadProfile(): GraphicsProfile {
 	try {
 		return parseProfile(localStorage.getItem(KEY), localStorage.getItem(LEGACY_KEY));
 	} catch {
-		return DEFAULT_PROFILE;
+		return NEW_PLAYER_PROFILE;
 	}
 }
 
@@ -156,8 +163,8 @@ export function saveProfile(p: GraphicsProfile): void {
 	try {
 		localStorage.setItem(KEY, serializeProfile(p));
 		const preset = presetOfProfile(p);
-		if (preset) localStorage.setItem(LEGACY_KEY, preset);
-		else localStorage.removeItem(LEGACY_KEY);
+		// Automatic is stored as `auto`: an absent key means a new player, who starts on Low
+		localStorage.setItem(LEGACY_KEY, preset ?? 'auto');
 	} catch {
 		// private mode or quota: the choice applies for this session only
 	}

@@ -26,11 +26,26 @@ import {
 
 const KEY = 'orbital.graphics';
 
+/**
+ * The preset a player who never chose one gets (owner, 2026-10-25): Low, set as if chosen by hand, so
+ * the governor does not climb. Choosing Automatic in Settings stores `auto` and brings back the device
+ * default and the governor.
+ */
+export const DEFAULT_PRESET: GraphicsPreset = 'low';
+const AUTO = 'auto';
+
+/** The stored choice: a preset, `auto` for Automatic, or the default when nothing is stored. Pure (tested). */
+export function presetFromStored(raw: string | null): GraphicsPreset | null {
+	if (raw === null) return DEFAULT_PRESET;
+	if (raw === AUTO) return null;
+	return parsePreset(raw);
+}
+
 export function loadGraphicsPreset(): GraphicsPreset | null {
 	try {
-		return parsePreset(localStorage.getItem(KEY));
+		return presetFromStored(localStorage.getItem(KEY));
 	} catch {
-		return null;
+		return DEFAULT_PRESET;
 	}
 }
 
@@ -42,10 +57,10 @@ export function saveGraphicsPreset(preset: GraphicsPreset): void {
 	}
 }
 
-/** Forget the saved choice: the device default applies again (the settings dialog's "Automatic"). */
+/** The settings dialog's "Automatic": the device default and the governor apply (stored as `auto`). */
 export function clearGraphicsPreset(): void {
 	try {
-		localStorage.removeItem(KEY);
+		localStorage.setItem(KEY, AUTO);
 	} catch {
 		// private mode: the choice applies for this session only
 	}

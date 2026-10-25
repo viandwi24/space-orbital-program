@@ -23,6 +23,7 @@ import GuidanceMod, {
 	surfaceDistance,
 	visibility
 } from '../src/index.ts';
+import { pathModeOf } from '../src/landing-path.ts';
 
 const R = 600_000;
 const MU = 3.5316e12;
@@ -87,8 +88,16 @@ describe('predict (pure)', () => {
 	});
 });
 
-const make = () =>
-	createSim({ plugins: [Stock, GuidanceMod], backendFactory: rapier(16), seed: 4 });
+/** A sim with the path on `auto`: the default is off since 2026-10-25, and these tests are about auto's rules. */
+const make = async () => {
+	const sim = await createSim({
+		plugins: [Stock, GuidanceMod],
+		backendFactory: rapier(16),
+		seed: 4
+	});
+	sim.dispatch({ type: 'mod-key', key: SET_PATH.id, data: { mode: 'auto' } });
+	return sim;
+};
 function drop(sim: Sim, alt: number, speedFactor: number): number {
 	const r = sim.dispatch({
 		type: 'load-vessel',
@@ -104,7 +113,7 @@ function drop(sim: Sim, alt: number, speedFactor: number): number {
 }
 
 describe('when the path shows (ADR 0309 point 3: pad, ascent, orbit, re-entry, landed, programs)', () => {
-	const on = PathSettings.initial;
+	const on = { mode: 'auto' as const };
 	const off = { mode: 'off' as const };
 	const always = { mode: 'always' as const };
 	const impact = { impact: { position: { x: R, y: 0, z: 0 }, time: 60, speed: 200 } };
@@ -114,8 +123,11 @@ describe('when the path shows (ADR 0309 point 3: pad, ascent, orbit, re-entry, l
 		altitude: height,
 		autopilot
 	});
-	test('auto by default; never on the pad, landed or splashed, Always included', () => {
-		expect(on.mode).toBe('auto');
+	test('off by default (owner, 2026-10-25); auto never shows on the pad, landed or splashed, Always included', () => {
+		expect(PathSettings.initial.mode).toBe('off');
+		expect(pathModeOf(undefined)).toBe('off');
+		expect(pathModeOf({ show: true })).toBe('auto');
+		expect(pathModeOf({ show: false })).toBe('off');
 		for (const s of ['prelaunch', 'landed', 'splashed'])
 			expect(visibility(always, at(s, 0), impact)).toEqual({ flight: 0, map: false });
 		for (const s of ['prelaunch', 'landed', 'splashed'])
