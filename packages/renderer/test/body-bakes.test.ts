@@ -171,3 +171,20 @@ describe('the inline baker', () => {
 		expect(await p).toBeNull();
 	});
 });
+
+describe('a preset change', () => {
+	test('the same size and budget keep what is resident; a new size bakes again', async () => {
+		const r = rig(10 * bakeBytes(SIZE));
+		r.bakes.frame([target('a', 300)]);
+		await settle();
+		expect(r.bakes.ready()).toEqual(['a']);
+		// a governor step or a looks change passes the same size: nothing goes, nothing is baked again
+		r.bakes.setPreset({ ...SIZE }, 10 * bakeBytes(SIZE));
+		r.bakes.frame([target('a', 300)]);
+		await settle();
+		expect(r.evicted).toEqual([]);
+		expect(r.baked).toEqual(['a']);
+		r.bakes.setPreset({ width: 32, height: 16 }, 10 * bakeBytes(SIZE));
+		expect(r.evicted).toEqual(['a']);
+	});
+});

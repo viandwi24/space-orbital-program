@@ -716,9 +716,14 @@ export class SceneModel {
 	 */
 	setPreset(preset: GraphicsPreset, resources?: GraphicsPreset, keepParts = false): void {
 		this.environment.setPreset(preset, resources);
-		this.bodyBakes?.setPreset(BODY_BAKE[preset].size, BODY_BAKE[preset].budgetBytes);
-		this.bakePreset = preset;
-		this.effects.setPreset(PRESETS[preset]);
+		// a governor step keeps the bakes and the effect pools of the resource preset, as it keeps the
+		// parts (ADR 0310): rebaking every body and rebuilding the smoke at each step (and each warm-up
+		// round, two a round) piled up worker bakes, buffers and new pipelines in flight
+		const bake = keepParts ? (resources ?? preset) : preset;
+		if (!this.bakesOff)
+			this.bodyBakes?.setPreset(BODY_BAKE[bake].size, BODY_BAKE[bake].budgetBytes);
+		this.bakePreset = bake;
+		this.effects.setPreset(PRESETS[preset], PRESETS[bake]);
 		plumeQuality.level = lookLevel(PRESETS[preset], 'plume');
 		for (const moon of this.moons.values()) moon.setShadowSteps(SHADOW_STEPS[preset]);
 		// a governor step keeps the part detail of the resource preset (plan 373, ADR 0310): rebuilding

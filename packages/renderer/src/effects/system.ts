@@ -248,6 +248,8 @@ export class Effects {
 	private readonly accumulators = new Map<string, { blast: number; trail: number }>();
 	private seed = 1;
 	private settings: PresetSettings;
+	/** The preset whose pool sizes the smoke and the shards were made at. */
+	private sizes: PresetSettings;
 	/** Reduced motion (plan 246): no bright flashes; the fireball keeps its shape but not its glare. */
 	private reducedMotion = false;
 
@@ -260,6 +262,7 @@ export class Effects {
 	) {
 		this.root.name = 'effects';
 		this.settings = settings;
+		this.sizes = settings;
 		this.pool = new ParticlePool(settings.smokeParticles, 11);
 		this.smoke = new BillboardField(Math.max(1, settings.smokeParticles), SMOKE_FRAG, false, true);
 		this.fire = new BillboardField(96, FIRE_FRAG, true);
@@ -308,15 +311,26 @@ export class Effects {
 		this.reducedMotion = on;
 	}
 
-	setPreset(settings: PresetSettings): void {
+	/**
+	 * `sizes`: the preset whose pool sizes to keep (a governor step keeps the resource preset's, ADR
+	 * 0310). The same sizes keep the smoke and the shards: each rebuild was a new material, so a new
+	 * WebGPU twin and its pipelines, on every governor step, warm-up round and looks change.
+	 */
+	setPreset(settings: PresetSettings, sizes: PresetSettings = settings): void {
 		this.settings = settings;
+		if (
+			sizes.smokeParticles === this.sizes.smokeParticles &&
+			sizes.debrisShards === this.sizes.debrisShards
+		)
+			return;
+		this.sizes = sizes;
 		this.root.remove(this.smoke.mesh, this.shardMesh);
 		this.smoke.dispose();
 		this.shardMesh.geometry.dispose();
-		this.pool = new ParticlePool(settings.smokeParticles, 11);
-		this.smoke = new BillboardField(Math.max(1, settings.smokeParticles), SMOKE_FRAG, false, true);
+		this.pool = new ParticlePool(sizes.smokeParticles, 11);
+		this.smoke = new BillboardField(Math.max(1, sizes.smokeParticles), SMOKE_FRAG, false, true);
 		this.smoke.mesh.renderOrder = 8;
-		const shards = this.makeShards(settings);
+		const shards = this.makeShards(sizes);
 		this.shardMesh = shards.mesh;
 		this.shardPositions = shards.positions;
 		this.shardColours = shards.colours;

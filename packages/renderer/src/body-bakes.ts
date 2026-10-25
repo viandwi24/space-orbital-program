@@ -33,6 +33,7 @@ export interface BodyBakesOptions {
 export class BodyBakes {
 	private manager: BodyBakeManager;
 	private size: BakeSize | null;
+	private budgetBytes: number;
 	private running: string | null = null;
 	private targets = new Map<string, BakeTarget>();
 	private generation = 0;
@@ -48,6 +49,7 @@ export class BodyBakes {
 
 	constructor(private readonly options: BodyBakesOptions) {
 		this.size = options.size;
+		this.budgetBytes = options.budgetBytes;
 		this.manager = this.make(options.size, options.budgetBytes);
 	}
 
@@ -55,14 +57,26 @@ export class BodyBakes {
 		return new BodyBakeManager(budget, () => (size ? bakeBytes(size) : 0));
 	}
 
-	/** A change of preset: everything resident goes, what is wanted is baked again at the new size. */
+	/**
+	 * A change of preset: everything resident goes, what is wanted is baked again at the new size. The
+	 * same size and budget keep what is resident: a governor step or a looks change used to drop every
+	 * bake and start them all again, a worker bake and its big buffers each time.
+	 */
 	setPreset(size: BakeSize | null, budgetBytes: number): void {
+		const same =
+			size === this.size ||
+			(size !== null &&
+				this.size !== null &&
+				size.width === this.size.width &&
+				size.height === this.size.height);
+		if (same && budgetBytes === this.budgetBytes) return;
 		for (const id of this.manager.ready()) this.options.onEvict(id);
 		if (this.running) this.options.baker.cancel(this.running);
 		this.generation++;
 		this.waiting = null;
 		this.running = null;
 		this.size = size;
+		this.budgetBytes = budgetBytes;
 		this.manager = this.make(size, budgetBytes);
 	}
 

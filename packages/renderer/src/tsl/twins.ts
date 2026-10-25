@@ -741,6 +741,16 @@ export class Twins {
 		if (t === undefined) {
 			t = this.make(m, o);
 			cache.set(key, t);
+			// the twin goes with its material: the WebGPU renderer keeps a material's pipelines and
+			// bindings until it is disposed, and a twin nobody disposed kept them for the page's life (a
+			// moon layer's twin belongs to its moon renderer, which disposes it)
+			const twin = (m.userData as { moon?: unknown }).moon ? null : t;
+			const gone = (): void => {
+				m.removeEventListener('dispose', gone);
+				if (cache.get(key) === twin) cache.delete(key);
+				twin?.material.dispose();
+			};
+			m.addEventListener('dispose', gone);
 		}
 		return t;
 	}

@@ -90,3 +90,19 @@ describe('TSL twins (plan 388)', () => {
 		expect(() => new Twins().twinOf(mesh.m, mesh.o)).toThrow(/no uniform uGain/);
 	});
 });
+
+describe('a twin and its material', () => {
+	test('disposing the material disposes its twin, and a later draw makes a new one', () => {
+		const twins = new Twins();
+		const smoke = new BillboardField(8, SMOKE_FRAG, false, true);
+		const m = smoke.mesh.material as ShaderMaterial;
+		const twin = twins.twinOf(m, smoke.mesh)!;
+		expect(twin).not.toBeNull();
+		let disposed = 0;
+		twin.material.addEventListener('dispose', () => disposed++);
+		expect(twins.twinOf(m, smoke.mesh)).toBe(twin);
+		m.dispose();
+		expect(disposed).toBe(1);
+		expect(twins.twinOf(m, smoke.mesh)).not.toBe(twin);
+	});
+});

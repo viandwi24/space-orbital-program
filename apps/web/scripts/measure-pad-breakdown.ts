@@ -8,7 +8,7 @@
  *   SHOT_URL=http://localhost:5241 bun scripts/measure-pad-breakdown.ts out.json
  *
  * Options: SECONDS (8), WARM (3), ROUNDS (3), VIEW (pad), PRESET (high), DSF (2), EXTRA (extra looks off in
- * every state, comma separated).
+ * every state, comma separated), SITE=piece (the launch site stays on and is one of the pieces, as the gate draws it).
  */
 import { chromium } from '@playwright/test';
 import { writeFileSync } from 'node:fs';
@@ -23,7 +23,17 @@ const view = (process.env.VIEW ?? 'pad') as View;
 const preset = process.env.PRESET ?? 'high';
 const extra = (process.env.EXTRA ?? '').split(',').filter(Boolean);
 
-const PIECES = ['mesh', 'terrain', 'vessels', 'shadows', 'clouds', 'ocean', 'rocks'];
+const sitePiece = process.env.SITE === 'piece';
+const PIECES = [
+	'mesh',
+	'terrain',
+	'vessels',
+	'shadows',
+	'clouds',
+	'ocean',
+	'rocks',
+	...(sitePiece ? ['site'] : [])
+];
 const tune = process.env.MODE === 'tune';
 /** MODE=tune: the mesh's levels and finest range (`__meshTuning`) against mesh off, instead of the pieces. */
 const TUNES: Array<[string, { maxLevel: number; range0: number; scale: number } | null]> = [
@@ -96,7 +106,7 @@ const set = (offs: string[]) =>
 			const d = (window as any).__orbital.renderer().debug;
 			for (const n of names as string[]) d.setLookOff(n, (on as string[]).includes(n));
 		},
-		[all, ['site', ...extra, ...offs]] as [string[], string[]]
+		[all, [...(sitePiece ? [] : ['site']), ...extra, ...offs]] as [string[], string[]]
 	);
 const rows: Array<{
 	state: string;
@@ -135,7 +145,7 @@ for (let round = 1; round <= rounds; round++) {
 await browser.close();
 const mean = (xs: number[]): number => xs.reduce((a, b) => a + b, 0) / Math.max(1, xs.length);
 const lines = [
-	'| state (site off, then) | mean ms | p95 ms | > 8.4 | GPU ms |',
+	`| state (${sitePiece ? 'site a piece' : 'site off'}, then) | mean ms | p95 ms | > 8.4 | GPU ms |`,
 	'|---|---|---|---|---|'
 ];
 for (const s of states) {
