@@ -413,7 +413,9 @@ export function createWebGPURenderer(
 				fov: model.camera.fov,
 				rotation: [q.x, q.y, q.z, q.w],
 				size: [width, height],
-				pipeline: pipelineKey
+				// the share is not in the pipeline key (the pass is resized in place), but a rung change
+				// leaves a history of another size: start it again
+				pipeline: `${pipelineKey}@${taauScale}`
 			});
 			if (cut) {
 				// the image is not the last frame's continuation: the planet's velocity has no previous
@@ -718,6 +720,10 @@ export function createWebGPURenderer(
 				taauOverride = heldTaau;
 				if (name !== own) applyPreset(own, true);
 			}
+			// the warm frames went into the TAAU history (every part model stacked at the origin, near the
+			// camera, or another preset's image): the real frame starts the history again, or the next
+			// frames reproject them and objects flash in the view for a frame
+			cuts.reset();
 			drawFrame(0);
 			const pending = [...pendingCompiles];
 			if (pending.length === 0 && compiles.pipelines.length === before && deferredBuilds === 0)

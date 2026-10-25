@@ -44,11 +44,12 @@ describe('VesselBatch', () => {
 			0
 		);
 		expect(tris).toBe(5 * 12);
-		// the merged geometry is in the vessel's frame: it spans the parts' positions
-		const geometry = (group.children[0] as Mesh).geometry;
-		geometry.computeBoundingSphere();
-		const box = geometry.boundingSphere!;
-		expect(box.center.x).toBeCloseTo(3, 1);
+		// the merged geometry is in the anchor part's frame (the lowest id, at x = 1), and the mesh sits
+		// on the anchor: in the vessel's frame it spans the parts' positions
+		const mesh = group.children[0] as Mesh;
+		mesh.geometry.computeBoundingSphere();
+		const box = mesh.geometry.boundingSphere!;
+		expect(box.center.x + mesh.position.x).toBeCloseTo(3, 1);
 		batch.dispose();
 		expect(group.children.length).toBe(0);
 		for (const p of parts.values()) expect(p.model.staticMesh.visible).toBe(true);
@@ -79,6 +80,30 @@ describe('VesselBatch', () => {
 		expect(parts.get(2)!.model.staticMesh.visible).toBe(false);
 		const tris = group.children.reduce((n, m) => n + (m as Mesh).geometry.getIndex()!.count / 3, 0);
 		expect(tris).toBe(2 * 12);
+	});
+
+	test('the whole vessel turning (inertial part transforms) moves the merged meshes and does not rebuild', () => {
+		const group = new Group();
+		const parts = new Map([1, 2, 3].map((i) => [i, part(i)] as const));
+		const batch = new VesselBatch(group);
+		batch.sync(parts);
+		const first = group.children[0] as Mesh;
+		const geometry = first.geometry;
+		// the snapshot gives every part's offset and orientation already turned by the attitude
+		const turn = new Quaternion().setFromAxisAngle(new Vector3(0, 1, 0).normalize(), 0.7);
+		for (const p of parts.values()) {
+			p.model.root.position.applyQuaternion(turn);
+			p.model.root.quaternion.premultiply(turn);
+		}
+		batch.sync(parts);
+		expect(group.children[0]).toBe(first);
+		expect(first.geometry).toBe(geometry);
+		// the mesh follows the anchor part (id 1): a vertex of part 3 lands where part 3 now is
+		first.updateMatrix();
+		geometry.computeBoundingSphere();
+		const centre = geometry.boundingSphere!.center.clone().applyMatrix4(first.matrix);
+		const expected = new Vector3(2, 0, 0).applyQuaternion(turn);
+		expect(centre.distanceTo(expected)).toBeLessThan(1e-6);
 	});
 
 	test('a replaced model with the same id and place is merged again, not drawn twice', () => {

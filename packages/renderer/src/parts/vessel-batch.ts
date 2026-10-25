@@ -2,10 +2,12 @@
  * A vessel's static part meshes drawn once per material (plan 367, ADR 0344): every part model has
  * its own mesh per material slot, so a vessel of a hundred parts drew hundreds of calls, and the
  * shadow pass drew them again. The batch merges the static meshes of a vessel's parts, in the
- * vessel's frame, into one mesh per material (and per set of vertex attributes) and hides the parts'
- * own meshes. Moving pieces, shrouds, plumes, lamps and heat-glow parts (whose materials are their
- * own clones) stay out of it. The merge is redone only when the part set, a part's transform or
- * which parts glow changes: a vessel's parts are rigid, so that is staging, docking or a break.
+ * frame of one anchor part, into one mesh per material (and per set of vertex attributes) and hides
+ * the parts' own meshes; the merged meshes then follow the anchor each frame. Moving pieces, shrouds,
+ * plumes, lamps and heat-glow parts (whose materials are their own clones) stay out of it. The merge
+ * is redone only when the part set, a part's transform relative to the anchor or which parts glow
+ * changes: a vessel's parts are rigid, so that is staging, docking or a break, never the vessel
+ * turning (part transforms arrive in inertial axes, so a turn moves every one of them).
  */
 import {
 	BufferAttribute,
@@ -13,9 +15,11 @@ import {
 	Matrix3,
 	Matrix4,
 	Mesh,
+	Quaternion,
 	Sphere,
 	Vector3,
 	type Group,
+	type Object3D,
 	type InterleavedBufferAttribute,
 	type Material
 } from 'three';
@@ -198,22 +202,50 @@ function boundingSphereOf(g: BufferGeometry): void {
 	g.boundingSphere = new Sphere(new Vector3(cx, cy, cz), Math.sqrt(r2));
 }
 
-/** A cheap signature of the batch's inputs: part ids, transforms and which parts are out of it. */
+/**
+ * The part the batch is anchored to: the lowest id. Part transforms arrive in inertial axes, already
+ * turned by the vessel's attitude (protocol.ts PartSnapshot), so the merge is made in this part's
+ * frame, where a rigid vessel's parts stay still, and the merged meshes follow it every frame.
+ */
+function anchorOf(parts: ReadonlyMap<number, BatchPart>): BatchPart | undefined {
+	let best: number | undefined;
+	for (const id of parts.keys()) if (best === undefined || id < best) best = id;
+	return best === undefined ? undefined : parts.get(best);
+}
+
+const inverseAnchor = new Quaternion();
+const relPosition = new Vector3();
+const relQuaternion = new Quaternion();
+
+/**
+ * A cheap signature of the batch's inputs: part ids, transforms relative to the anchor part and which
+ * parts are out of it. Relative, so the vessel turning or the planet's spin does not change it.
+ */
 export function batchSignature(parts: ReadonlyMap<number, BatchPart>): number {
 	let h = 2166136261;
 	const mix = (x: number): void => {
 		h = Math.imul(h ^ (Math.round(x * 1000) | 0), 16777619);
 	};
+	const anchor = anchorOf(parts)?.model.root;
+	if (anchor) inverseAnchor.copy(anchor.quaternion).invert();
 	for (const [id, p] of parts) {
 		const r = p.model.root;
+		relPosition.copy(r.position);
+		relQuaternion.copy(r.quaternion);
+		if (anchor) {
+			relPosition.sub(anchor.position).applyQuaternion(inverseAnchor);
+			relQuaternion.premultiply(inverseAnchor);
+			// q and -q are the same turn: keep w non-negative so the sign flip does not rebuild
+			if (relQuaternion.w < 0) relQuaternion.set(-relQuaternion.x, -relQuaternion.y, -relQuaternion.z, -relQuaternion.w);
+		}
 		mix(id);
-		mix(r.position.x);
-		mix(r.position.y);
-		mix(r.position.z);
-		mix(r.quaternion.x);
-		mix(r.quaternion.y);
-		mix(r.quaternion.z);
-		mix(r.quaternion.w);
+		mix(relPosition.x);
+		mix(relPosition.y);
+		mix(relPosition.z);
+		mix(relQuaternion.x);
+		mix(relQuaternion.y);
+		mix(relQuaternion.z);
+		mix(relQuaternion.w);
 		mix(p.model.cloned ? 1 : 0);
 		mix(p.model.staticMesh ? serialOf(p.model.staticMesh) : 0);
 	}
@@ -236,12 +268,30 @@ export class VesselBatch {
 			if (this.meshes.length > 0) this.dispose();
 			return;
 		}
+		const anchor = anchorOf(parts)?.model.root;
 		const signature = batchSignature(parts);
-		if (signature === this.signature) return;
-		this.signature = signature;
+		if (signature !== this.signature) {
+			this.signature = signature;
+			this.rebuild(parts, anchor);
+		}
+		// the merged meshes sit where the anchor part is now, turned as it is
+		for (const m of this.meshes) {
+			if (anchor) {
+				m.position.copy(anchor.position);
+				m.quaternion.copy(anchor.quaternion);
+			}
+		}
+	}
+
+	private rebuild(parts: ReadonlyMap<number, BatchPart>, anchor: Object3D | undefined): void {
 		this.clear();
 		const buckets = new Map<string, { material: Material; list: BufferGeometry[] }>();
 		const matrix = new Matrix4();
+		const toAnchor = new Matrix4();
+		if (anchor) {
+			anchor.updateMatrix();
+			toAnchor.copy(anchor.matrix).invert();
+		}
 		let own = 0;
 		for (const p of parts.values()) {
 			const mesh = p.model.staticMesh;
@@ -250,7 +300,7 @@ export class VesselBatch {
 			if (!mesh.visible) continue;
 			p.model.root.updateMatrix();
 			mesh.updateMatrix();
-			matrix.multiplyMatrices(p.model.root.matrix, mesh.matrix);
+			matrix.multiplyMatrices(p.model.root.matrix, mesh.matrix).premultiply(toAnchor);
 			const materials = Array.isArray(mesh.material) ? mesh.material : [mesh.material];
 			const groups = geometry.groups.length
 				? geometry.groups
