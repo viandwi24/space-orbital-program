@@ -2,6 +2,8 @@
 
 This is the brief that each worker session reads first. The coordinating session starts workers with `Baca docs/roadmap/worker-brief.md. Kamu adalah Worker <X>.` Workers report to the owner in Bahasa Indonesia.
 
+> **2026-10-25:** the worker sessions stopped mid-task. Read [`handover-2026-10-25.md`](handover-2026-10-25.md) first.
+
 ## Machine guard (always on)
 
 The machine is a 10-core MacBook Pro M5 with 16 GB RAM. It is also the owner's desktop. **It must never lag or freeze.**
