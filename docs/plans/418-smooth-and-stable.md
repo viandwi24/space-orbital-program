@@ -1,0 +1,87 @@
+---
+id: 418
+title: "Smooth and stable: no allocation churn or GC pauses in play, no background stalls, a pad that holds 120 Hz on the M5 and 60 on Low elsewhere"
+status: ready
+owner: "Worker C"
+depends: []
+phase: 9
+created: 2026-11-08
+updated: 2026-11-08
+---
+
+# 418 — Smooth and stable
+
+**Size:** L
+
+## Goal
+
+On 2026-11-08 the owner said the game is still not smooth, often lags and is unstable on the M5. ADR 0375 places the cause in our own code: memory churn, background work and the pad's launch site, not the engine. Remove the stutter sources and finish plan 414's target. This plan absorbs 414's open items.
+
+## Context
+
+- ADR 0375. ADR 0330 targets.
+- `refs/graphics-v2/06-periodic-spikes.md` ranks nine suspects. Check which ones plans 408 (stalls) and 409 (GC) already fixed, and fix the rest.
+- `refs/graphics-v2/07-look-costs.md`: the site is about 6 ms at the pad, and about 3.5 ms of that is unexplained.
+- The handover `docs/roadmap/handover-2026-10-25.md`: the vessel batch re-merge (fixed in `03921954`). Still open there: the mesh terrain's distance image is sized from the old input size on the frame of a TAAU rung change.
+- `perf:gate` (plan 411): its budgets are targets, not frozen from a measurement.
+
+## Scope
+
+**In:**
+1. **Stability gate.**
+   - `perf:gate` gains a soak mode, about 3 minutes per scene: pad, orbit, Space Center and a flight ascent.
+   - The soak reports heap growth, the allocation rate in MB/s, major-GC count and long frames per minute (frames over 2× the interval).
+   - Add budgets for these, with a unit test of the comparison.
+2. **Allocation audit.** Find and remove per-frame allocations in the renderer, the flight loop, sim-client decoding and the pages:
+   - `new` objects in hot paths;
+   - `JSON.stringify` diffs;
+   - `slice`/`map`/`filter` on per-frame paths.
+
+   Use DevTools allocation sampling in headed Chromium, or `performance.measureUserAgentSpecificMemory`. Each fix is small and tested where it can be.
+3. **Background stalls.** Confirm or fix each of the following so that no single task runs over 8 ms in play:
+   - warming rounds;
+   - autosave (frame readback and JPEG);
+   - terrain patch rebakes;
+   - cloud map rebakes;
+   - rock rebuilds.
+
+   Where work is long, spread it over frames or move it to a worker.
+4. **The TAAU rung-change distance-image size bug** (handover).
+5. **The pad's launch site.**
+   - Explain the unexplained ~3.5 ms: take a Chrome trace and, where possible, an Xcode Metal capture.
+   - Then fix it. Options: one `BundleGroup` for the static site; baked or unlit lighting for distant site parts; less overdraw from glow cones and pools.
+   - Target from plan 414: a pad mean of 8.3 ms or less on the M5 at High, with at most 5 % of frames over 8.4 ms.
+6. **Low on a Retina display.**
+   - Low caps the pixel ratio at 1 today, which looks blurry on the M5.
+   - Evaluate TAAU at Low from the display ratio with input 0.5. Turn it on only if the cost at the pad and in orbit is ≤ the current Low, measured interleaved.
+7. **Freeze the perf:gate budgets** from a headed M5 run, using `--freeze`. Do this at the end of the plan, on a quiet machine with no other worker building.
+
+**Out:** the looks of plans 416 and 417; an engine change (ADR 0375); WebGPU raw passes (only if this plan's trace shows a pass that TSL cannot fix: then write the plan, do not start it).
+
+## Steps
+
+1. Read 06 and 07 and plans 408, 409, 414 and 415. Write the current state of each suspect into the journal.
+2. Soak gate and budgets.
+3. Allocation audit and fixes.
+4. Background stalls, and the rung-change bug.
+5. Pad site: trace, then fix.
+6. Low TAAU evaluation.
+7. Freeze the budgets. Mark plan 414 done or folded.
+
+## Acceptance criteria
+
+- [ ] `perf:gate --soak` exists and reports heap growth, allocation rate, major GCs and long frames per minute. A unit test covers the budget comparison.
+- [ ] On the M5 at Low and High, in a 3-minute pad and orbit soak: no long frame from background work, and the allocation rate is lower than before (numbers in the journal).
+- [ ] Pad on the M5 at High has a mean of 8.3 ms or less with at most 5 % of frames over 8.4 ms. If that is not met, the trace says why and the next step is written.
+- [ ] Budgets frozen from a headed M5 run.
+- [ ] Dusk probe: 0 pipelines. Texture gate passes.
+- [ ] `bun test` for the affected packages, `bun run typecheck`, `bun run lint`, `bun run docs:check`.
+- [ ] [manual] A locked 60 on the M2 and Windows at Low (`bun run perf:gate --quick`).
+
+## Docs checklist
+
+- [ ] STATUS row, journal `docs/journal/418-smooth-and-stable.md`, plan 414 closed, worker brief soak rule, `refs/graphics-v2/06` suspect table updated.
+
+## Log
+
+- 2026-11-08 — Created by the coordinator from the owner's M5 test ("not smooth, often lags, unstable"). Absorbs plan 414's open items.
