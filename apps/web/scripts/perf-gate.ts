@@ -16,7 +16,7 @@
  *   --url http://localhost:5173 (an already running server: no build)
  * Environment: MEASURE_ANGLE (metal on a Mac, d3d11 on Windows, vulkan or gl on Linux).
  */
-import { chromium, type Page } from '@playwright/test';
+import { chromium, type Page } from './lib/chromium';
 import { createTerrainField, latLonDirection, LEGACY_TERRAIN_SEED } from '@orbital/core';
 import { spawn, spawnSync, type ChildProcess } from 'node:child_process';
 import { existsSync, readFileSync, writeFileSync } from 'node:fs';

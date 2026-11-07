@@ -3,7 +3,7 @@
  * in the sandbox, the sandbox reports itself isolated, time warp works while a script runs, and
  * nothing logs an error. One test per concern; each starts a fresh page.
  */
-import { expect, test } from '@playwright/test';
+import { expect, test } from './fixtures';
 import { execFileSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 

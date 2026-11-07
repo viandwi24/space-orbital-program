@@ -1,5 +1,5 @@
 /** Plan 350 (ADR 0299): the empty Hangar opens with "Start a vessel"; Build my own points at the parts. */
-import { expect, test } from '@playwright/test';
+import { expect, test } from './fixtures';
 import { watchErrors } from './support';
 
 // the suite turns the modal off (playwright.config.ts); this spec starts from a clean profile

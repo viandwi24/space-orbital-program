@@ -11,7 +11,7 @@
  * anomaly directly; STEP_TO a comma list of presets the run steps to as the governor does
  * (`setPreset(p, { governed: true })`), one each `seconds / (n + 1)`.
  */
-import { chromium } from '@playwright/test';
+import { chromium } from './lib/chromium';
 
 const base = process.env.SHOT_URL ?? 'http://localhost:5211';
 const backend = process.env.R ?? 'webgpu';

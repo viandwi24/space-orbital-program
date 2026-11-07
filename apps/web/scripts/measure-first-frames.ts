@@ -8,7 +8,7 @@
  * Options (environment): BACKENDS (webgpu,webgl), AFTER seconds recorded after the loading screen (8),
  * PRESET (medium), NO_TAAU (1: the direct path), LONG the frame length counted as a stall, ms (100).
  */
-import { chromium } from '@playwright/test';
+import { chromium } from './lib/chromium';
 
 const base = process.env.SHOT_URL ?? 'http://localhost:5241';
 const backends = (process.env.BACKENDS ?? 'webgpu,webgl').split(',');

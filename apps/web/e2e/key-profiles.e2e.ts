@@ -2,7 +2,7 @@
  * Key profiles (plan 216, ADR 0206): the KSP profile by default (B brakes, Alt+2 prograde, node keys
  * only in the map with a node selected), and Orbital classic from Settings (C brakes).
  */
-import { expect, test, type Page } from '@playwright/test';
+import { expect, test, type Page } from './fixtures';
 import { watchErrors, openDock, loadHangarExample } from './support';
 
 /** A pod on a tank with a wheel on its side (a Brakes group), imported into the library and launched. */

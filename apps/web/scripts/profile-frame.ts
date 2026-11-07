@@ -10,7 +10,7 @@
  * Options (environment): CFG `<backend>:<preset>:<adjust>` (default webgpu:medium:off), SECONDS (10),
  * SCENE `orbit` (Kronos V + Selene at 100 km, default) or `pad` (the same vessel on the pad), TOP (30).
  */
-import { chromium } from '@playwright/test';
+import { chromium } from './lib/chromium';
 import { writeFileSync } from 'node:fs';
 import { setupVessel } from './lib/frame-matrix';
 

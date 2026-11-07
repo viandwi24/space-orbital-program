@@ -28,7 +28,7 @@
  * (`renderer.debug.benchmark(1)`, draw plus a readPixels stall). The browser window must stay in view
  * and the machine plugged in, idle for 10 minutes, with nothing else running.
  */
-import { chromium, type Page } from '@playwright/test';
+import { chromium, type Page } from './lib/chromium';
 import { writeFileSync } from 'node:fs';
 
 const base = process.env.SHOT_URL ?? 'http://localhost:5211';

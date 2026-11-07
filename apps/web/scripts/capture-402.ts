@@ -6,7 +6,7 @@
  *
  * Output: `docs/journal/assets/<prefix>-*.jpg` (prefix `402` by default).
  */
-import { chromium } from '@playwright/test';
+import { chromium } from './lib/chromium';
 import { join } from 'node:path';
 
 const base = process.env.SHOT_URL ?? 'http://localhost:5173';

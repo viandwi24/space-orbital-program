@@ -10,7 +10,7 @@
  * Options: SECONDS (8), WARM (3), ROUNDS (3), VIEW (pad), PRESET (high), DSF (2), EXTRA (extra looks off in
  * every state, comma separated), SITE=piece (the launch site stays on and is one of the pieces, as the gate draws it).
  */
-import { chromium } from '@playwright/test';
+import { chromium } from './lib/chromium';
 import { writeFileSync } from 'node:fs';
 import { frameReport, intervalsOf } from '@orbital/renderer';
 import { placeView, record, setupVessel, waitForFlight, type View } from './lib/frame-matrix';

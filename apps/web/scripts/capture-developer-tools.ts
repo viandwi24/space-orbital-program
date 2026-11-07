@@ -9,7 +9,7 @@
  * trusted, so the shots show a mod's content and the loader log lists it. OUT defaults to
  * `screens-375/` in the working directory.
  */
-import { chromium, type Page } from '@playwright/test';
+import { chromium, type Page } from './lib/chromium';
 import { mkdirSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 

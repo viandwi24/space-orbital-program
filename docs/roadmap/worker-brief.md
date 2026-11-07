@@ -265,3 +265,11 @@ The owner reports that today's graphics work made the game less playable: stalls
 - Defaults follow `refs/rancangan-terpadu.md` §15 and the ADRs 0200–0210 ("default per owner review").
 - Do not ask the owner about a default. Note it in the Log instead.
 - Only ask when a plan cannot proceed without a human, such as a `[manual]` check. In that case, set the plan to `blocked` with the checklist and move on.
+
+## Automated browsers are muted (owner, 2026-11-08)
+
+Every browser a script or test opens makes no sound. The game itself keeps its audio when played locally or in production.
+
+- Scripts in `apps/web/scripts` import `chromium` from `apps/web/scripts/lib/chromium.ts` (it adds `--mute-audio`), never from `@playwright/test` directly.
+- E2E specs import from `apps/web/e2e/fixtures.ts`. Chromium is muted by flag and Firefox by its volume pref (`playwright.config.ts`); WebKit by an init script that routes Web Audio through a silent gain.
+- A one-off browser outside these (a quick `bun -e`, the desktop app's browser pane) is launched with `--mute-audio`, or the page's audio is muted before it plays.

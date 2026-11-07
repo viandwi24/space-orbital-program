@@ -4,7 +4,7 @@
  * once the debug tools have put a vessel in orbit (the `orbit:stock.home` first) and the days have
  * passed, the contracts board offers one of the new templates.
  */
-import { expect, test, type Page } from '@playwright/test';
+import { expect, test, type Page } from './fixtures';
 import { launchTwoStage, watchErrors } from './support';
 
 test.describe.configure({ timeout: 1_200_000 });

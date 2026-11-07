@@ -3,7 +3,7 @@
  * two clamps stands on the pad until the first stage; staged, the clamps stay behind, and the
  * boosters burn on with the throttle cut, until they are empty.
  */
-import { expect, test, type Page } from '@playwright/test';
+import { expect, test, type Page } from './fixtures';
 import { debugAmount, watchErrors, loadHangarExample } from './support';
 
 const SOLID = 'stock.solid-fuel';

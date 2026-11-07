@@ -9,7 +9,7 @@
  *
  * Options (environment): PAGES (flight,space-center), PRESET (high), BACKEND (webgpu), AUTO (on).
  */
-import { chromium, type Page } from '@playwright/test';
+import { chromium, type Page } from './lib/chromium';
 
 const base = process.env.SHOT_URL ?? 'http://localhost:5241';
 const seconds = Number(process.env.SECONDS ?? 120);

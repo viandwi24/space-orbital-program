@@ -6,7 +6,7 @@
  *
  *   SHOT_URL=http://localhost:5202 bun scripts/capture-seasons.ts <folder>
  */
-import { chromium } from '@playwright/test';
+import { chromium } from './lib/chromium';
 import {
 	bodyOrientation,
 	positionFromStar,

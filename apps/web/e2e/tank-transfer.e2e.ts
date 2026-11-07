@@ -3,7 +3,7 @@
  * sent through the debug API moves liquid fuel from the lower tank to the upper one, and the
  * snapshot read back through the page shows the new amounts and the rate.
  */
-import { expect, test, type Page } from '@playwright/test';
+import { expect, test, type Page } from './fixtures';
 import { debugSetOrbit, debugSetResource, launchTwoStage, watchErrors } from './support';
 
 const LF = 'stock.liquid-fuel';

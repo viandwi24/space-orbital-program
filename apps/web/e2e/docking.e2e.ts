@@ -4,7 +4,7 @@
  * holds target, and translates in on RCS; the ports capture into one vessel, and Undock gives
  * both names back.
  */
-import { expect, test, type Page } from '@playwright/test';
+import { expect, test, type Page } from './fixtures';
 import { watchErrors, openDock, loadHangarExample } from './support';
 
 const radial = (index: number, parent: number) =>

@@ -5,7 +5,7 @@
  *
  *   SHOT_URL=http://localhost:5241 bun scripts/measure-site-shadow.ts
  */
-import { chromium } from '@playwright/test';
+import { chromium } from './lib/chromium';
 
 const base = process.env.SHOT_URL ?? 'http://localhost:5241';
 const rounds = Number(process.env.ROUNDS ?? 4);

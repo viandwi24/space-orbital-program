@@ -11,7 +11,7 @@
  * the minimum of six `benchmark(8)` runs per scene. A build without the coverage (no
  * `debug.silhouetteAA`) gives the baseline: `off` and `on` are then the same frame.
  */
-import { chromium } from '@playwright/test';
+import { chromium } from './lib/chromium';
 import { mkdirSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 const [base, label, out] = [process.argv[2]!, process.argv[3]!, process.argv[4]!];

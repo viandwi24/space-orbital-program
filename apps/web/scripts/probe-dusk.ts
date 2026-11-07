@@ -6,7 +6,7 @@
  *
  *   SHOT_URL=http://localhost:5211 [SHOT_PREFIX=414] bun scripts/probe-dusk.ts
  */
-import { chromium } from '@playwright/test';
+import { chromium } from './lib/chromium';
 import { join } from 'node:path';
 import { setupVessel, waitForFlight } from './lib/frame-matrix';
 

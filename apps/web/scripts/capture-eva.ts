@@ -5,7 +5,7 @@
  *
  *   SHOT_URL=http://localhost:5202 bun scripts/capture-eva.ts <folder>
  */
-import { chromium } from '@playwright/test';
+import { chromium } from './lib/chromium';
 const out = process.argv[2] ?? '.';
 const base = process.env.SHOT_URL ?? 'http://localhost:5202';
 const browser = await chromium.launch({ args: ['--use-angle=metal', '--enable-gpu'] });

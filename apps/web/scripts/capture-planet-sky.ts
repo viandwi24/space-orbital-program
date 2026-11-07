@@ -9,7 +9,7 @@
  * SHOT_VIEWS (comma list, default all), SHOT_OUT (default docs/journal/assets).
  * Output: `364-<tag>-<renderer>-<view>.jpg` and a line per view with its GPU ms.
  */
-import { chromium, type Page } from '@playwright/test';
+import { chromium, type Page } from './lib/chromium';
 import { join } from 'node:path';
 
 const base = process.env.SHOT_URL ?? 'http://localhost:5173';

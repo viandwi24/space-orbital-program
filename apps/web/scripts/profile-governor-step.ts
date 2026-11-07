@@ -6,7 +6,7 @@
  *   NODE_ENV=development ORBITAL_PROFILE=1 bun run build && bun scripts/serve.ts 5241 &
  *   SHOT_URL=http://localhost:5241 bun scripts/profile-governor-step.ts
  */
-import { chromium } from '@playwright/test';
+import { chromium } from './lib/chromium';
 
 const base = process.env.SHOT_URL ?? 'http://localhost:5241';
 const to = process.env.TO ?? 'medium';

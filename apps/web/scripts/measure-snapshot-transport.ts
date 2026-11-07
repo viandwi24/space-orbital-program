@@ -5,7 +5,7 @@
  *
  *   SHOT_URL=http://localhost:5241 bun scripts/measure-snapshot-transport.ts
  */
-import { chromium } from '@playwright/test';
+import { chromium } from './lib/chromium';
 
 const base = process.env.SHOT_URL ?? 'http://localhost:5241';
 const counts = (process.env.VESSELS ?? '1,5,20').split(',').map(Number);

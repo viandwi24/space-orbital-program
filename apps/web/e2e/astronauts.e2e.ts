@@ -2,7 +2,7 @@
  * The Astronaut Complex and seats at launch (plan 108, ADR 0152): hire two, seat them in a vessel
  * with two pods on the Launch screen, and see both in the flight's crew panel.
  */
-import { expect, test } from '@playwright/test';
+import { expect, test } from './fixtures';
 import { watchErrors, openDock } from './support';
 
 const twoPods = {

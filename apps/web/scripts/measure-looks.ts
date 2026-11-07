@@ -11,7 +11,7 @@
  * Options: SECONDS (12), WARM (4), ROUNDS (2), SCENES (pad,12km,orbit,space-center,cinder,verdant), LOOKS
  * (bakes,farShell,rocks,images), VW, VH, DSF (1512 x 945 at 2), BACKEND (webgpu), PRESET (high).
  */
-import { chromium, type Page } from '@playwright/test';
+import { chromium, type Page } from './lib/chromium';
 import { writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { frameReport, intervalsOf } from '@orbital/renderer';

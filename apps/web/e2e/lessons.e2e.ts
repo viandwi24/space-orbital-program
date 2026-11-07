@@ -5,7 +5,7 @@
  * Worlds list is as it was. The landing lesson completes when `debug.setLocation` puts the lander
  * at rest on Cinder.
  */
-import { expect, test, type Page } from '@playwright/test';
+import { expect, test, type Page } from './fixtures';
 import { debugSetLocation, watchErrors } from './support';
 
 const RADIUS = { 'stock.home': 600_000, 'stock.cinder': 190_000 } as const;

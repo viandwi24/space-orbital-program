@@ -6,7 +6,7 @@
  *
  *   SHOT_URL=http://localhost:5211 bun scripts/probe-textures.ts [preset]
  */
-import { chromium } from '@playwright/test';
+import { chromium } from './lib/chromium';
 import { join } from 'node:path';
 import { modPackageFingerprint } from '@orbital/core';
 import { buildMod } from '../../../tools/mod-build/build-mod.ts';

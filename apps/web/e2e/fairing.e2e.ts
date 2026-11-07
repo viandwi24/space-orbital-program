@@ -3,7 +3,7 @@
  * sections and is closed; launched and placed 40 km up at 1000 m/s, staging throws the shell off
  * as two panels, and the base's Jettison is spent.
  */
-import { expect, test, type Page } from '@playwright/test';
+import { expect, test, type Page } from './fixtures';
 import { debugSetLocation, watchErrors, openDock } from './support';
 
 const design = {

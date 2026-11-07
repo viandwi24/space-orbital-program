@@ -5,7 +5,7 @@
  *
  *   SHOT_URL=http://localhost:5173 bun scripts/capture-388-night.ts [prefix]
  */
-import { chromium, type Page } from '@playwright/test';
+import { chromium, type Page } from './lib/chromium';
 import { join } from 'node:path';
 
 const base = process.env.SHOT_URL ?? 'http://localhost:5173';

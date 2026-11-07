@@ -1,4 +1,4 @@
-import { expect, test } from '@playwright/test';
+import { expect, test } from './fixtures';
 import { debugSetLocation, launchTwoStage, watchErrors } from './support';
 
 /** Plan 205 (ADR 0201 point 9): leaving an active flight asks; the vessel keeps flying in the world. */

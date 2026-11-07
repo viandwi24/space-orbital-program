@@ -3,7 +3,7 @@
  * edge arrow) in the flight view and its marker on the map, and the card lists the aids, each
  * saying why it is not available on the pad.
  */
-import { expect, test } from '@playwright/test';
+import { expect, test } from './fixtures';
 import { launchTwoStage, watchErrors } from './support';
 
 test('a target gets a flight-view indicator, a map marker and the aids list', async ({ page }) => {

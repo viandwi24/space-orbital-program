@@ -1,4 +1,4 @@
-import { expect, test } from '@playwright/test';
+import { expect, test } from './fixtures';
 import { debugAmount, debugCheat, debugSetOrbit, launchTwoStage, watchErrors } from './support';
 
 /** Plan 203 (ADR 0200): the debug API in a Sandbox world, and the "used cheats" mark of Debug mode. */

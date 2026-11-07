@@ -5,7 +5,7 @@
  * keys left alone, the second suggest key (plan 072), and the on-screen keys on a touch screen. Run in
  * Chromium, Firefox and WebKit. Also the Hangar's mark on a joint whose sizes differ (plan 207).
  */
-import { expect, test, type Page } from '@playwright/test';
+import { expect, test, type Page } from './fixtures';
 import { launchTwoStage, watchErrors, loadHangarExample } from './support';
 
 test('the script editor works from the keyboard and does not trap it', async ({ page }) => {

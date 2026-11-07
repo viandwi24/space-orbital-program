@@ -1,4 +1,4 @@
-import { expect, test } from '@playwright/test';
+import { expect, test } from './fixtures';
 import { launchTwoStage, watchErrors } from './support';
 
 /** Plan 132 (ADR 0113 point 6): in a Career world, recover a vessel on the pad; the funds rise by its credit. */

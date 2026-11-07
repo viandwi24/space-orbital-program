@@ -8,7 +8,7 @@
  * The page's own marks are read: `orbital:flight-booted` (the sim Worker has the vessel) and
  * `orbital:flight-playable` (the first HUD model, which needs a drawn frame).
  */
-import { chromium, type Page } from '@playwright/test';
+import { chromium, type Page } from './lib/chromium';
 
 const base = process.env.SHOT_URL ?? 'http://localhost:5214';
 const browser = await chromium.launch({

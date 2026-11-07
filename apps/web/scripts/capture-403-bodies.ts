@@ -8,7 +8,7 @@
  * Options: SHOT_RENDERER (webgpu or webgl), SHOT_BODIES (comma list of ids, default all new bodies),
  * SHOT_OUT (default docs/journal/assets). Output: `<SHOT_PREFIX>-<renderer>-<body>.jpg`.
  */
-import { chromium, type Page } from '@playwright/test';
+import { chromium, type Page } from './lib/chromium';
 import { join } from 'node:path';
 
 const base = process.env.SHOT_URL ?? 'http://localhost:5173';

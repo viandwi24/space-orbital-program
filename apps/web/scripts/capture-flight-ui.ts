@@ -6,7 +6,7 @@
  *
  * Output: `docs/journal/assets/256-<tag>-{vessel,dock,map}.jpg`.
  */
-import { chromium } from '@playwright/test';
+import { chromium } from './lib/chromium';
 import { join } from 'node:path';
 
 const base = process.env.SHOT_URL ?? 'http://localhost:5231';

@@ -2,7 +2,7 @@
  * The Hangar's action group editor (plan 218, ADR 0174 and 0225): on the moon shot the landing legs
  * go into Custom 1; launched, the 1 key (KSP profile) fires the group and the legs deploy.
  */
-import { expect, test, type Page } from '@playwright/test';
+import { expect, test, type Page } from './fixtures';
 import { watchErrors, loadHangarExample } from './support';
 
 const legsDeployed = (page: Page) =>

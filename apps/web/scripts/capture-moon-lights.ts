@@ -4,7 +4,7 @@
  *
  *   SHOT_URL=http://localhost:5241 SHOT_PREFIX=414ml bun scripts/capture-moon-lights.ts
  */
-import { chromium } from '@playwright/test';
+import { chromium } from './lib/chromium';
 import { join } from 'node:path';
 import { setupVessel, waitForFlight } from './lib/frame-matrix';
 

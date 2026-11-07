@@ -2,6 +2,9 @@ import { defineConfig, devices } from '@playwright/test';
 
 // Cross-browser end-to-end suite (plan 032, ADR 0040): Playwright's bundled Chromium, Firefox and
 // WebKit against the production build. Never the player's installed browsers.
+// Every automated browser is muted (owner, 2026-11-08): Chromium by flag, Firefox by its volume
+// pref, WebKit by the init script in `e2e/fixtures.ts` (WebKit has no mute switch). The game itself
+// keeps its sound when played locally or in production.
 const port = Number(process.env.E2E_PORT ?? 5192);
 
 export default defineConfig({
@@ -32,11 +35,19 @@ export default defineConfig({
 	projects: [
 		{
 			name: 'chromium',
-			use: { ...devices['Desktop Chrome'], viewport: { width: 1440, height: 900 } }
+			use: {
+				...devices['Desktop Chrome'],
+				viewport: { width: 1440, height: 900 },
+				launchOptions: { args: ['--mute-audio'] }
+			}
 		},
 		{
 			name: 'firefox',
-			use: { ...devices['Desktop Firefox'], viewport: { width: 1440, height: 900 } }
+			use: {
+				...devices['Desktop Firefox'],
+				viewport: { width: 1440, height: 900 },
+				launchOptions: { firefoxUserPrefs: { 'media.volume_scale': '0.0' } }
+			}
 		},
 		{
 			name: 'webkit',

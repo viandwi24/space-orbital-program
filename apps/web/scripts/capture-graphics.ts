@@ -9,7 +9,7 @@
  * Output: `docs/journal/assets/252-<tag>-<view>.jpg` for the views pad (noon), sunset (low sun on the
  * pad), 12 km, orbit (100 km) and the Space Center. The vessel is put in place through the debug API.
  */
-import { chromium, type Page } from '@playwright/test';
+import { chromium, type Page } from './lib/chromium';
 import { join } from 'node:path';
 
 const base = process.env.SHOT_URL ?? 'http://localhost:5211';

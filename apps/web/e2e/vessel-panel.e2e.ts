@@ -1,5 +1,5 @@
 /** The vessel panel (plan 111, ADR 0153): toggle the landing legs from the Parts tab in flight. */
-import { expect, test } from '@playwright/test';
+import { expect, test } from './fixtures';
 import { launchTwoStage, watchErrors, openDock, loadHangarExample } from './support';
 
 test('toggle the landing legs from the Parts tab', async ({ page }) => {

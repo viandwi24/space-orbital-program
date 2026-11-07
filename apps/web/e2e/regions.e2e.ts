@@ -1,4 +1,4 @@
-import { expect, test } from '@playwright/test';
+import { expect, test } from './fixtures';
 import { launchTwoStage, watchErrors } from './support';
 
 /** Plan 192 (ADR 0180): the Regions layer of map view tints the planet and names the region under the cursor. */

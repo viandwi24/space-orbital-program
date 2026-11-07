@@ -8,7 +8,7 @@
  *
  * Options: VIEW (orbit), PRESET (medium), SECONDS (90), EVERY (5), TURN=1 (the vessel yaws now and then).
  */
-import { chromium } from '@playwright/test';
+import { chromium } from './lib/chromium';
 import { placeView, setupVessel, waitForFlight, type View } from './lib/frame-matrix';
 
 const base = process.env.SHOT_URL ?? 'http://localhost:5173';

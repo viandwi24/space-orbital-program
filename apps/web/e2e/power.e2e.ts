@@ -3,7 +3,7 @@
  * and at zero charge it is uncontrolled: the "Uncontrolled" chip and an "Out of power" notice.
  * The state comes from the debug API of plan 203.
  */
-import { expect, test, type Page } from '@playwright/test';
+import { expect, test, type Page } from './fixtures';
 import {
 	debugAmount,
 	debugSetLocation,

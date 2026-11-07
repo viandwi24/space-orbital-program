@@ -7,7 +7,7 @@
  *
  * Output: `docs/journal/assets/397-<tag>-<view>-<mode>.jpg` (canvas only).
  */
-import { chromium, type Page } from '@playwright/test';
+import { chromium, type Page } from './lib/chromium';
 import { join } from 'node:path';
 
 const base = process.env.SHOT_URL ?? 'http://localhost:5231';

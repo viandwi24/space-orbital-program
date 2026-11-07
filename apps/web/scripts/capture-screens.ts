@@ -9,7 +9,7 @@
  * as `.json` game saves); they are imported through the real Load dialog. Output:
  * `docs/journal/assets/023-<screen>-<height>.jpg`.
  */
-import { chromium, type Page } from '@playwright/test';
+import { chromium, type Page } from './lib/chromium';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 

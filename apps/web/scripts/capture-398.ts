@@ -7,7 +7,7 @@
  * Output: `docs/journal/assets/398-<tag>-<view>-<mesh|march>.jpg` (canvas only). Console errors and
  * warnings are printed: a mesh pipeline that failed to build shows here.
  */
-import { chromium } from '@playwright/test';
+import { chromium } from './lib/chromium';
 import { join } from 'node:path';
 import { placeView, setupVessel, waitForFlight, type View } from './lib/frame-matrix';
 

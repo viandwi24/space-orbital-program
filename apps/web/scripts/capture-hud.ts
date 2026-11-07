@@ -8,7 +8,7 @@
  * `SHOT_SAVES` holds `orbit.json` from `bun packages/sim/test/release-saves.tool.ts <folder>`.
  * Output: `docs/journal/assets/088-<scene>-<height>.png`.
  */
-import { chromium, type Page } from '@playwright/test';
+import { chromium, type Page } from './lib/chromium';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 

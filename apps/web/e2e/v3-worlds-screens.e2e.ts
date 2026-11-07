@@ -1,4 +1,4 @@
-import { test, type Page } from '@playwright/test';
+import { test, type Page } from './fixtures';
 
 /**
  * Plan 317 (the v3-2 design package): screenshots of Worlds, Achievements and the three Create World

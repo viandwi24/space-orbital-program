@@ -2,7 +2,7 @@
  * RCS (plan 211, ADR 0217): an RCS probe in low orbit; R turns RCS on, holding H translates on
  * monopropellant, and with the monoprop gone the pill says so. The state comes from the debug API.
  */
-import { expect, test, type Page } from '@playwright/test';
+import { expect, test, type Page } from './fixtures';
 import {
 	debugAmount,
 	debugSetOrbit,

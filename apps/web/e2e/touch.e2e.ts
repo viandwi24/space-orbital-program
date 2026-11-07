@@ -3,7 +3,7 @@
  * example with the on-screen controls, and the audio state follows the first gesture. Emulation
  * (touch events and viewport on the desktop engine), not a device.
  */
-import { devices, expect, test } from '@playwright/test';
+import { devices, expect, test } from './fixtures';
 
 import { launchTwoStage, watchErrors } from './support';
 

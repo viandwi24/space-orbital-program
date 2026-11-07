@@ -1,4 +1,4 @@
-import { expect, test } from '@playwright/test';
+import { expect, test } from './fixtures';
 import { watchErrors } from './support';
 
 /** Plan 204 (ADR 0201 point 12): a second tab on the same world is told so; Take over moves the lock. */

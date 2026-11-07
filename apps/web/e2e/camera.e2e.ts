@@ -1,5 +1,5 @@
 import { statSync } from 'node:fs';
-import { expect, test } from '@playwright/test';
+import { expect, test } from './fixtures';
 import { debugSetOrbit, launchTwoStage, watchErrors } from './support';
 
 /** Plan 226 (ADR 0226): V cycles the camera modes with a toast, F2 hides the HUD, F10 saves a PNG. */

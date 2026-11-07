@@ -2,7 +2,7 @@
  * The Resources tab (plan 214 on plan 213): two half tanks; a transfer from the tab's picker moves
  * fuel, the draining tank shows its rate and time to empty, and a locked tank says "Locked".
  */
-import { expect, test, type Page } from '@playwright/test';
+import { expect, test, type Page } from './fixtures';
 import { debugSetOrbit, debugSetResource, launchTwoStage, watchErrors, openDock } from './support';
 
 const LF = 'stock.liquid-fuel';

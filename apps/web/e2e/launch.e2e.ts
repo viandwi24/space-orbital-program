@@ -4,7 +4,7 @@
  * the loss used to show up one HUD period (100 ms) after the first frame. Console errors are the
  * smoke suite's business, not this test's.
  */
-import { expect, test } from '@playwright/test';
+import { expect, test } from './fixtures';
 import { launchTwoStage, loadHangarExample } from './support';
 
 test('a fresh launch stays on the pad: no "Vessel lost" card', async ({ page }) => {

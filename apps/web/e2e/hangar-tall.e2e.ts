@@ -4,7 +4,7 @@
  * scrolled up takes the camera's target to the top of the stack. The Hangar draws no bar of its own:
  * New, Open, Save and Launch are in the shell's menu bar, the vessel's name in the left column.
  */
-import { expect, test, type Page } from '@playwright/test';
+import { expect, test, type Page } from './fixtures';
 import { watchErrors } from './support';
 
 const TANKS = 12;

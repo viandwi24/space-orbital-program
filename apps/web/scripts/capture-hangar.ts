@@ -6,7 +6,7 @@
  *
  * Output: `docs/journal/assets/255-<tag>-hangar.jpg` and `255-<tag>-hangar-trip.jpg`.
  */
-import { chromium } from '@playwright/test';
+import { chromium } from './lib/chromium';
 import { join } from 'node:path';
 
 const base = process.env.SHOT_URL ?? 'http://localhost:5230';

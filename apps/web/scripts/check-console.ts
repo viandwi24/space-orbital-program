@@ -7,7 +7,7 @@
  *
  * Options (environment): SECONDS after the loading screen (15), PAGE (flight), PRESET (high).
  */
-import { chromium } from '@playwright/test';
+import { chromium } from './lib/chromium';
 
 const base = process.env.SHOT_URL ?? 'http://localhost:5241';
 const seconds = Number(process.env.SECONDS ?? 15);

@@ -5,7 +5,7 @@
  * numbers that matter are the p95 frame interval and the share of frames over a budget (ADR 0330:
  * not averages). Shared by `measure-120hz.ts` (the M5 baseline) and `measure-tier.ts` (any machine).
  */
-import { chromium, type Page } from '@playwright/test';
+import { chromium, type Page } from './chromium';
 import {
 	deviceTier,
 	frameReport,

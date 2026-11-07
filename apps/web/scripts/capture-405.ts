@@ -7,7 +7,7 @@
  *
  * Output: `docs/journal/assets/<prefix>-*.jpg` (prefix `405` by default).
  */
-import { chromium } from '@playwright/test';
+import { chromium } from './lib/chromium';
 import { join } from 'node:path';
 import { modPackageFingerprint } from '@orbital/core';
 import { buildMod } from '../../../tools/mod-build/build-mod.ts';

@@ -1,4 +1,4 @@
-import { expect, test, type Page } from '@playwright/test';
+import { expect, test, type Page } from './fixtures';
 import { debugSetLocation, debugSetOrbit, launchTwoStage, watchErrors } from './support';
 
 /** Plan 206 (ADR 0202): warp-to an apsis stops just before it; a clamped request says why. */

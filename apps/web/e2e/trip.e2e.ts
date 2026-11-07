@@ -2,7 +2,7 @@
  * The trip planner of the VAB (plan 034): the moon shot covers a landing on the stock moon, the
  * two-stage example does not, and the legs name the stages. One short run, one engine.
  */
-import { expect, test } from '@playwright/test';
+import { expect, test } from './fixtures';
 import { watchErrors, loadHangarExample } from './support';
 
 test('the trip planner lays the legs over the stages', async ({ page }) => {

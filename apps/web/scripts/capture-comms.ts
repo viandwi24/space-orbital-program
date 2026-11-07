@@ -6,7 +6,7 @@
  *
  *   bun scripts/serve.ts 5211 &  SHOT_URL=http://localhost:5211 bun scripts/capture-comms.ts <folder>
  */
-import { chromium } from '@playwright/test';
+import { chromium } from './lib/chromium';
 
 const out = process.argv[2] ?? '.';
 const DRAFT_KEY = 'orbital.design';

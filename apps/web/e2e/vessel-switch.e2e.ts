@@ -1,4 +1,4 @@
-import { expect, test, type Page } from '@playwright/test';
+import { expect, test, type Page } from './fixtures';
 import { debugSetOrbit, launchTwoStage, watchErrors } from './support';
 
 /** Plan 221 (ADR 0208): every vessel keeps a design; `[`/`]` and Fly switch without a reload. */

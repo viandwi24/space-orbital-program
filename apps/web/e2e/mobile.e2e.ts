@@ -4,7 +4,7 @@
  * is the desktop engine with a touch screen and a viewport, not a device (`product/browser-support.md`).
  * Chromium only; `E2E_SHOTS=1` also writes the JPG screenshots of `docs/journal/assets/055-*.jpg`.
  */
-import { devices, expect, test, type Page } from '@playwright/test';
+import { devices, expect, test, type Page } from './fixtures';
 import { resolve } from 'node:path';
 
 import { launchTwoStage, watchErrors } from './support';

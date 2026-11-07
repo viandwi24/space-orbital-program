@@ -9,7 +9,7 @@
  *
  * Options (environment): QUALITY (WebP, default 0.8), OUT (default static/loading).
  */
-import { chromium, type Page } from '@playwright/test';
+import { chromium, type Page } from './lib/chromium';
 import { mkdirSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 

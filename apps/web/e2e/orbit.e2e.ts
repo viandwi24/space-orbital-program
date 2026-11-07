@@ -2,7 +2,7 @@
  * The sample ascent to orbit in real time (about four minutes of sim time, plus load). Not in the
  * default run: set E2E_ORBIT=1 (ADR 0040).
  */
-import { expect, test } from '@playwright/test';
+import { expect, test } from './fixtures';
 import { launchTwoStage, runScript, scriptLog, scriptStatus, watchErrors } from './support';
 
 test.skip(!process.env.E2E_ORBIT, 'set E2E_ORBIT=1 to run the real-time ascent');

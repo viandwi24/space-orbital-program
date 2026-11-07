@@ -3,7 +3,7 @@
  * shows its build settings; the thrust limiter typed as 60 goes to all four boosters, and in
  * flight the vessel panel shows 60 % for each of them. The moon shot's LB-1 boosters start at 50 %.
  */
-import { expect, test } from '@playwright/test';
+import { expect, test } from './fixtures';
 import { watchErrors, openDock, loadHangarExample } from './support';
 
 interface Hook {

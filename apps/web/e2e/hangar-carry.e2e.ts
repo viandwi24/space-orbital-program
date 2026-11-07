@@ -4,7 +4,7 @@
  * a placed part dragged to the catalogue is deleted, and one undo brings it back. Positions come
  * from the page's read-only Hangar hook (`window.__orbitalVab`).
  */
-import { expect, test, type Page } from '@playwright/test';
+import { expect, test, type Page } from './fixtures';
 import { watchErrors } from './support';
 
 interface Hook {

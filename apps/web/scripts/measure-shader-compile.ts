@@ -17,7 +17,7 @@
  *   AFTER     ms to wait after the loading screen before reading (default 8000)
  *   BOOT      low or off: `orbital.graphics.boot` (low draws the cheap preset first anywhere, plan 370)
  */
-import { chromium } from '@playwright/test';
+import { chromium } from './lib/chromium';
 import { mkdirSync, mkdtempSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';

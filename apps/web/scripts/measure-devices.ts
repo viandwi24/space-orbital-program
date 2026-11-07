@@ -16,7 +16,7 @@
  * frames about three times high (journal 066), and a hidden page stops `requestAnimationFrame`, so
  * the glass blur's frame intervals never arrive. `MEASURE_HEADLESS=1` only for a quick smoke run.
  */
-import { chromium, type Page } from '@playwright/test';
+import { chromium, type Page } from './lib/chromium';
 import { writeFileSync } from 'node:fs';
 
 const base = process.env.SHOT_URL ?? 'http://localhost:5211';

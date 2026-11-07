@@ -15,7 +15,7 @@
  *   SECONDS       seconds traced per configuration (default 40), after WARM seconds (default 10)
  *   MEASURE_NOTES free text kept in the JSON: power state, commit
  */
-import { chromium, type Page } from '@playwright/test';
+import { chromium, type Page } from './lib/chromium';
 import { writeFileSync } from 'node:fs';
 
 const base = process.env.SHOT_URL ?? 'http://localhost:5211';

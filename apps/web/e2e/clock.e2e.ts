@@ -1,4 +1,4 @@
-import { expect, test, type Page } from '@playwright/test';
+import { expect, test, type Page } from './fixtures';
 import { watchErrors } from './support';
 
 /** Plan 205 (ADR 0201 points 4, 6 and 7): place pauses, the player's pause and the time bar chip. */

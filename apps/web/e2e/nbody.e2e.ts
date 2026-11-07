@@ -1,4 +1,4 @@
-import { expect, test } from '@playwright/test';
+import { expect, test } from './fixtures';
 import { watchErrors, loadHangarExample } from './support';
 
 /** Plan 125 (ADR 0122): a world made with n-body gravity flies, with its rails integrated. */

@@ -3,7 +3,7 @@
  * the same place (plan 304). Plan 304 adds the plane handles, covered by the renderer's unit tests.
  * Not run while the owner keeps e2e paused.
  */
-import { expect, test } from '@playwright/test';
+import { expect, test } from './fixtures';
 import { loadHangarExample } from './support';
 
 interface Gizmo {

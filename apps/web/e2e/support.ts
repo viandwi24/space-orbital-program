@@ -1,4 +1,4 @@
-import { expect, type Page } from '@playwright/test';
+import { expect, type Page } from './fixtures';
 
 /**
  * The sandbox self-test (ADR 0038) deliberately tries a same-origin fetch of `/robots.txt` from

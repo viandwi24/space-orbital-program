@@ -1,4 +1,4 @@
-import { expect, test } from '@playwright/test';
+import { expect, test } from './fixtures';
 import { launchTwoStage, watchErrors } from './support';
 
 /** Plan 250: the dock panel resizes between 260 and 400 px, and an open vessel panel keeps the inspectors clear. */

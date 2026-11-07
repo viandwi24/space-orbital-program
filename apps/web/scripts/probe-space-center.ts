@@ -5,7 +5,7 @@
  *   PROBE_URL=http://localhost:5173 PROBE_GPU=metal|swiftshader PROBE_RENDERER=webgpu|webgl|webgpu-fallback \
  *     bun scripts/probe-space-center.ts [shot.jpg]
  */
-import { chromium } from '@playwright/test';
+import { chromium } from './lib/chromium';
 
 const base = process.env.PROBE_URL ?? 'http://localhost:5173';
 const gpu = process.env.PROBE_GPU ?? 'metal';
