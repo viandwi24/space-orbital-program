@@ -345,7 +345,7 @@
 | 414 | [The pad at 120 Hz on the M5: vegetation and site drawn the AAA way](plans/414-pad-at-120hz.md) | in-progress | Worker B | ADR 0372: trees, bushes and tufts with coarse levels of detail; the measurements, headed (the earlier ones were headless, paced at 60 Hz), show the vegetation is under 1 ms of the pad's 18 to 20 ms: the site is 6 to 7 (floodlights 1.5, people 0.4, structures 0.2, about 3.5 unexplained) and the pad over the orbit without it 3.6. Lights: 11 to 4, the site's floodlights drawn as glow (ADR 0373), the pad's mean frame 19.7 to 16.8 ms, dusk builds no pipeline. Not yet: the goal of 8.3 ms, the owner's look at night. Journal 414. |
 | 415 | [The pad without the launch site at 120 Hz](plans/415-the-pad-without-the-site.md) | done | Worker A | The mesh terrain's own 2.3 ms at the pad removed (CPU walk, flat-zone shading); pad site-off mean 8.4 to 8.8 ms. Open: `perf:gate`, M2/Windows. |
 | 416 | [Earth at night and from orbit](plans/416-earth-at-night-and-from-orbit.md) | done | Worker A | city lights on every preset (gain, exposure compensation, near-ground formula); bake face by device; baked fine detail and tints; far cloud shell shown from orbit again, with mips, detail and relief; orbit stays 8.33 ms at Low and High (ADR 0375) |
-| 417 | [Ground relief, cliffs and rock](plans/417-ground-relief-cliffs-and-rock.md) | ready | Worker B | finer heights, cliffs, rock normals, Low self-shadow (ADR 0375) |
+| 417 | [Ground relief, cliffs and rock](plans/417-ground-relief-cliffs-and-rock.md) | done | Worker B | ridge octaves to 125 m, 5-step cliff terraces (slope up to 4.2), bakes band-limited by texel, rock strata/tint/detail normals from the one detail texture, Low terrain shadow 3 steps; height cost 1.08 to 1.31 times, pad frame +0.00 / +0.12 ms (ADR 0375 addendum, journal 417) |
 | 418 | [Smooth and stable](plans/418-smooth-and-stable.md) | ready | Worker C | soak gate, allocation audit, background stalls, pad site; absorbs 414's open items (ADR 0375) |
 
 Statuses: `draft` (needs refinement before an agent takes it) · `ready` · `in-progress` · `done` · `blocked`.
@@ -440,6 +440,7 @@ The owner takes the remaining performance work on the M5; the M2 handles the fix
 ## Recent journal entries
 
 - [416 — Earth at night and from orbit](journal/416-earth-at-night-and-from-orbit.md)
+- [417 — Ground relief, cliffs and rock](journal/417-ground-relief-cliffs-and-rock.md)
 - [388 — Space Center visual QA leftovers](journal/388-space-center-qa-leftovers.md)
 - [387 — Space Center camera and a visual QA pass](journal/387-space-center-camera-and-visual-qa.md)
 - [380 — Realistic part stats in every system](journal/380-realistic-parts-in-every-system.md)

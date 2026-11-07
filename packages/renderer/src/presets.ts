@@ -150,7 +150,7 @@ export const PRESETS: Readonly<Record<GraphicsPreset, PresetSettings>> = {
 		terrainSize: 512,
 		terrainSteps: 48,
 		terrainRefineSteps: 24,
-		terrainShadowSteps: 0,
+		terrainShadowSteps: 3,
 		terrainPatch: 512,
 		envSize: 128,
 		partSegments: 16,

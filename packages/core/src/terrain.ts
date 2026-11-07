@@ -20,8 +20,12 @@ import {
 
 /** Upper bound of every height, m; the ray march only looks inside the shell below this. */
 export const TERRAIN_MAX_HEIGHT = 4_500;
-/** Steepest slope (rise over run) of the height function. Measured by the tests. */
-export const TERRAIN_MAX_SLOPE = 1;
+/**
+ * Steepest slope (rise over run) of the height function over 5 m or more. Measured by the tests: the
+ * cliffs of plan 417 reach about 4.2 (the ground was at most 1 before; over 2 m a crease may reach 6).
+ * The march slows down only where the baked gradient says the ground is steep.
+ */
+export const TERRAIN_MAX_SLOPE = 5;
 
 /** Terrain is exactly zero this far from the launch site, then rises over `SITE_BLEND_WIDTH`. */
 export const SITE_FLAT_RADIUS = 5_000;
@@ -82,12 +86,39 @@ export const TERRAIN_SHAPE = {
 	backdropLow: 0.36,
 	backdropHigh: 0.56,
 	ridgeWavelengthKm: 16,
-	ridgeOctaves: 4,
+	/**
+	 * Plan 417: 16 km down to 125 m (it was 4 octaves, 2 km). The octaves from `ridgeFineFrom` on
+	 * fade in with the mountain mask (`ridgeFineLow` to `ridgeFineHigh` of `range`) and are not
+	 * evaluated where it is below `ridgeFineLow`: the lowlands stay as smooth and as cheap as before.
+	 */
+	ridgeOctaves: 8,
+	ridgeFineFrom: 4,
+	ridgeFineLow: 0.12,
+	ridgeFineHigh: 0.3,
+	/**
+	 * Cliffs (plan 417): where a low-frequency mask (one noise of `cliffWavelengthKm`, from `cliffLow`
+	 * to `cliffHigh`) meets real mountains (`range` from `cliffRangeLow` to `cliffRangeHigh`), the
+	 * mountain profile `p` is pulled toward a staircase of `cliffSteps` steps, `cliffStrength` of the
+	 * way: risers `1.5 / (cliffTreadHigh - cliffTreadLow)` times steeper than the plain ridge, treads
+	 * (still sloping, a fraction `1 - cliffStrength` of it) between. Smooth steps keep it C1.
+	 */
+	cliffWavelengthKm: 7,
+	cliffSalt: 47,
+	cliffLow: 0.3,
+	cliffHigh: 0.48,
+	cliffRangeLow: 0.3,
+	cliffRangeHigh: 0.6,
+	cliffSteps: 5,
+	cliffTreadLow: 0.32,
+	cliffTreadHigh: 0.68,
+	cliffStrength: 0.85,
 	/**
 	 * The ridge's `abs` is a soft abs `sqrt(x^2 + e^2) - e`: no crease of unbounded curvature, so a
 	 * regular grid of 4 m texels reproduces the field within centimetres (ADR 0043, ADR 0044).
 	 */
 	ridgeSoftness: 0.18,
+	/** Mean of one ridged octave (measured over 400 000 samples: 0.7839 to 0.7851 for four salts). */
+	ridgeMean: 0.784,
 	/** Width of the smooth maximum of the range mask and the scenic massif. */
 	rangeBlend: 0.2,
 	uplandLow: 0.55,
@@ -257,26 +288,50 @@ const softRidge = (n: number): number => {
 	return 1 - (Math.sqrt(x * x + e * e) - e);
 };
 
+/**
+ * The ridged sum, written as its mean plus the departures of the octaves: the octaves from `fineFrom`
+ * on are scaled by `fineFade` (0 to 1) and not evaluated when it is 0, and an octave left out
+ * contributes its mean (`ridgeMean`), so the field's level does not move with the fade or with the
+ * band limit of a bake (the GPU bakes drop octaves finer than their texels the same way).
+ */
 function ridged(
 	q0: Vec3,
 	wavelengthKm: number,
 	octaves: number,
 	salt: number,
-	shift: number
+	shift: number,
+	fineFrom = octaves,
+	fineFade = 1
 ): number {
 	let q = q0;
-	let sum = 0;
 	let amp = 1;
 	let norm = 0;
+	for (let i = 0; i < octaves; i++) {
+		norm += amp;
+		amp *= 0.5;
+	}
+	const mean = TERRAIN_SHAPE.ridgeMean;
+	let sum = mean * norm;
+	amp = 1;
 	let freq = 1 / wavelengthKm;
 	for (let i = 0; i < octaves; i++) {
-		sum += amp * softRidge(terrainNoise(q, freq, salt + i, shift));
-		norm += amp;
+		const w = i >= fineFrom ? fineFade : 1;
+		if (w <= 0) break;
+		sum += amp * w * (softRidge(terrainNoise(q, freq, salt + i, shift)) - mean);
 		amp *= 0.5;
 		freq *= 2;
 		q = turn(q);
 	}
 	return sum / norm;
+}
+
+/** The ridge profile `p` (0 to 1) pulled toward the cliff staircase by `mask` (0 to 1), see `TERRAIN_SHAPE.cliffSteps`. */
+export function terrace(p: number, mask: number): number {
+	const s = TERRAIN_SHAPE;
+	const f = p * s.cliffSteps;
+	const i = Math.floor(f);
+	const stair = (i + smoothstep(s.cliffTreadLow, s.cliffTreadHigh, f - i)) / s.cliffSteps;
+	return p + mask * s.cliffStrength * (stair - p);
 }
 
 // --- height ----------------------------------------------------------------------------------
@@ -444,10 +499,27 @@ export function terrainHeight(n: Vec3, ctx: TerrainContext): number {
 			terrainNoise(q, 1 / s.backdropWavelengthKm, s.backdropSalt, shift)
 		);
 	const range = smoothMax(smoothstep(s.rangeLow, s.rangeHigh, rangeN), backdrop);
-	const ridge = ridged(q, s.ridgeWavelengthKm, s.ridgeOctaves, 31, shift);
+	const ridge = ridged(
+		q,
+		s.ridgeWavelengthKm,
+		s.ridgeOctaves,
+		31,
+		shift,
+		s.ridgeFineFrom,
+		smoothstep(s.ridgeFineLow, s.ridgeFineHigh, range)
+	);
 	const upland = smoothstep(s.uplandLow, s.uplandHigh, e);
-	const mountains =
-		s.mountainAmplitude * range * smoothstep(0.25, 0.8, ridge) * (0.7 + 0.3 * upland);
+	let profile = smoothstep(0.25, 0.8, ridge);
+	if (range > s.cliffRangeLow) {
+		const mask =
+			smoothstep(
+				s.cliffLow,
+				s.cliffHigh,
+				terrainNoise(q, 1 / s.cliffWavelengthKm, s.cliffSalt, shift)
+			) * smoothstep(s.cliffRangeLow, s.cliffRangeHigh, range);
+		profile = terrace(profile, mask);
+	}
+	const mountains = s.mountainAmplitude * range * profile * (0.7 + 0.3 * upland);
 	const relief = land * site * (hills + mountains);
 	return Math.min(relief, lakeCap(lakeLevel(lakePotential(q, shift), gate)));
 }

@@ -14,6 +14,7 @@ import {
 	latLonDirection,
 	sampleMap,
 	siteWeight,
+	terrace,
 	terrainHeight,
 	warpedLatLon,
 	type TerrainContext,
@@ -303,11 +304,72 @@ describe('the ridge is smooth enough for a fixed grid', () => {
 		return worst;
 	};
 
-	test('a 4 m grid reproduces the height within 0.05 m over the massif (maximum, 3 x 3000 points)', () => {
-		for (const km of [25_000, 30_000, 40_000]) expect(gridError(4, km, 3000)).toBeLessThan(0.05);
+	// Plan 417 added octaves down to 125 m (they were 2 km), so a texel carries less of the height:
+	// 4 m (the fine patch on High) was 0.05 m, 32 m (the mid patch on High) was 1 m. The bakes cut the
+	// octaves a texel cannot carry (four texels a wavelength); the 32 m figure is the CPU function's,
+	// with the cliff risers (slope 4) a grid of that size cuts.
+	test('a 4 m grid reproduces the height within 0.15 m over the massif (maximum, 3 x 3000 points)', () => {
+		for (const km of [25_000, 30_000, 40_000]) expect(gridError(4, km, 3000)).toBeLessThan(0.15);
 	});
 
-	test('a 32 m grid reproduces the height within 1 m over the massif', () => {
-		for (const km of [25_000, 30_000, 40_000]) expect(gridError(32, km, 3000)).toBeLessThan(1);
+	test('a 32 m grid reproduces the height within 10 m over the massif (a cliff riser is 4 rise over run)', () => {
+		for (const km of [25_000, 30_000, 40_000]) expect(gridError(32, km, 3000)).toBeLessThan(10);
+	});
+});
+
+describe('relief from 100 m to 4 km and cliffs (plan 417)', () => {
+	const sample = (count: number, seed: number, from: number, to: number) => {
+		const c = ctx();
+		const r = rng(seed);
+		const out: { h: number; slope: (metres: number) => number; second: number }[] = [];
+		for (let i = 0; i < count; i++) {
+			const n = fromSite(from + r() * (to - from), r() * 6.28);
+			const t = normalize(vec(r() - 0.5, r() - 0.5, r() - 0.5));
+			const at = (metres: number) =>
+				normalize(
+					vec(n.x + (t.x * metres) / R, n.y + (t.y * metres) / R, n.z + (t.z * metres) / R)
+				);
+			const h = terrainHeight(n, c);
+			out.push({
+				h,
+				slope: (metres) => Math.abs(terrainHeight(at(metres), c) - h) / metres,
+				second: Math.abs(terrainHeight(at(20), c) - 2 * h + terrainHeight(at(-20), c))
+			});
+		}
+		return out;
+	};
+
+	test('the highlands have relief at 20 m: the mean second difference was 0.03 m, it is above 0.2 m', () => {
+		const high = sample(30_000, 61, 12_000, 44_000).filter((p) => p.h > 1500);
+		expect(high.length).toBeGreaterThan(5000);
+		const mean = high.reduce((a, p) => a + p.second, 0) / high.length;
+		expect(mean).toBeGreaterThan(0.2);
+	});
+
+	test('cliffs exist and stay inside the slope bound; the lowlands stay as gentle as before', () => {
+		const all = sample(60_000, 62, 12_000, 44_000);
+		const steep = all.filter((p) => p.h > 800 && p.slope(20) > 1.5).length;
+		expect(steep).toBeGreaterThan(30);
+		let worst = 0;
+		for (const p of all) worst = Math.max(worst, p.slope(5));
+		expect(worst).toBeGreaterThan(2);
+		expect(worst).toBeLessThanOrEqual(TERRAIN_MAX_SLOPE);
+		// ground a vessel can land on: under 150 m high, no 20 m slope above 0.1
+		const low = all.filter((p) => p.h > 0 && p.h < 150);
+		expect(low.length).toBeGreaterThan(5);
+		for (const p of low) expect(p.slope(20)).toBeLessThan(0.1);
+	});
+
+	test('the terrace is the identity where its mask is 0 and keeps 0 and 1 where it is 1', () => {
+		for (const p of [0, 0.13, 0.5, 0.77, 1]) expect(terrace(p, 0)).toBe(p);
+		expect(terrace(0, 1)).toBeCloseTo(0, 12);
+		expect(terrace(1, 1)).toBeCloseTo(1, 12);
+		// monotone, so a terrace never makes a pit
+		let last = -1;
+		for (let p = 0; p <= 1; p += 0.002) {
+			const v = terrace(p, 1);
+			expect(v).toBeGreaterThanOrEqual(last - 1e-12);
+			last = v;
+		}
 	});
 });

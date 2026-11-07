@@ -25,6 +25,7 @@ import {
 	FloatType,
 	type Matrix4
 } from 'three';
+import { TERRAIN_MAX_SLOPE } from '@orbital/core';
 import * as TSL from 'three/tsl';
 import { MeshBasicNodeMaterial, type WebGPURenderer } from 'three/webgpu';
 import {
@@ -73,7 +74,7 @@ export const meshTuning = {
 /** The camera may move this far (m) before the patches are selected again: the morph covers the difference. */
 const RESELECT_DISTANCE = 1;
 /** The slope the height bounds of a patch allow for (the steepest ground), rise over run. */
-const MAX_SLOPE = 1.2;
+const MAX_SLOPE = TERRAIN_MAX_SLOPE + 0.2;
 
 export class TerrainMesh {
 	/** The distance prepass: R32F, 0 where no ground; read with `textureLoad` at the pass's pixel. */

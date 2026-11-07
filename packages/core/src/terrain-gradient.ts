@@ -131,16 +131,27 @@ function octavesN(
 	octaves: number,
 	salt: number,
 	shift: number,
-	ridge: boolean
+	ridge: boolean,
+	fineFrom = octaves,
+	fineFade: D = c(1)
 ): D {
 	let q = q0;
 	// back[i] maps a gradient at octave i's position to the unturned position: (M^i)ᵀ
 	let sum: D = c(0);
 	let amp = 1;
 	let norm = 0;
+	for (let i = 0; i < octaves; i++) {
+		norm += amp;
+		amp *= 0.5;
+	}
+	// an octave left out contributes its mean (see `ridged` in terrain.ts)
+	const mean = ridge ? TERRAIN_SHAPE.ridgeMean : 0.5;
+	sum = c(mean * norm);
+	amp = 1;
 	let freq = 1 / wavelengthKm;
 	const e = TERRAIN_SHAPE.ridgeSoftness;
 	for (let i = 0; i < octaves; i++) {
+		if (i >= fineFrom && fineFade.v <= 0) break;
 		const r = noiseQ(q, freq, salt + i, shift);
 		let g = r.g;
 		for (let k = 0; k < i; k++) g = turnBack(g);
@@ -150,13 +161,27 @@ function octavesN(
 			const s = Math.sqrt(x * x + e * e);
 			term = chain(1 - (s - e), (-x / s) * 2, term);
 		}
-		sum = add(sum, scl(term, amp));
-		norm += amp;
+		const dev = sub(term, c(mean));
+		sum = add(sum, scl(i >= fineFrom ? mul(dev, fineFade) : dev, amp));
 		amp *= 0.5;
 		freq *= 2;
 		q = turn(q);
 	}
 	return scl(sum, 1 / norm);
+}
+
+/** `terrace` of terrain.ts with its gradient: the staircase's own slope is the smoothstep's. */
+function terraceD(p: D, mask: D): D {
+	const s = TERRAIN_SHAPE;
+	const f = p.v * s.cliffSteps;
+	const i = Math.floor(f);
+	const raw = (f - i - s.cliffTreadLow) / (s.cliffTreadHigh - s.cliffTreadLow);
+	const t = Math.min(1, Math.max(0, raw));
+	const step = t * t * (3 - 2 * t);
+	// d(stair)/dp = smoothstep'(raw) / (treadHigh - treadLow), zero on the treads
+	const dStep = raw > 0 && raw < 1 ? (6 * t * (1 - t)) / (s.cliffTreadHigh - s.cliffTreadLow) : 0;
+	const stair: D = chain((i + step) / s.cliffSteps, dStep, p);
+	return add(p, mul(scl(mask, s.cliffStrength), sub(stair, p)));
 }
 
 /** The biome map's elevation, bilinear as `sampleMap`, and its partials in (latitude, longitude). */
@@ -298,10 +323,32 @@ export function terrainHeightAndGradient(n: Vec3, ctx: TerrainContext): HeightAn
 			g: { x: (h.g.x * hv) / (2 * kb), y: (h.g.y * hv) / (2 * kb), z: (h.g.z * hv) / (2 * kb) }
 		});
 	}
-	const ridge = octavesN(q, kq, s.ridgeWavelengthKm, s.ridgeOctaves, 31, shift, true);
+	const ridge = octavesN(
+		q,
+		kq,
+		s.ridgeWavelengthKm,
+		s.ridgeOctaves,
+		31,
+		shift,
+		true,
+		s.ridgeFineFrom,
+		smoothstepD(s.ridgeFineLow, s.ridgeFineHigh, range)
+	);
 	const upland = smoothstepD(s.uplandLow, s.uplandHigh, e);
+	let profile = smoothstepD(0.25, 0.8, ridge);
+	if (range.v > s.cliffRangeLow) {
+		const mask = mul(
+			smoothstepD(
+				s.cliffLow,
+				s.cliffHigh,
+				noiseN(q, kq, 1 / s.cliffWavelengthKm, s.cliffSalt, shift)
+			),
+			smoothstepD(s.cliffRangeLow, s.cliffRangeHigh, range)
+		);
+		profile = terraceD(profile, mask);
+	}
 	const mountains = scl(
-		mul(mul(range, smoothstepD(0.25, 0.8, ridge)), add(c(0.7), scl(upland, 0.3))),
+		mul(mul(range, profile), add(c(0.7), scl(upland, 0.3))),
 		s.mountainAmplitude
 	);
 	const relief = mul(mul(land, site), add(hills, mountains));

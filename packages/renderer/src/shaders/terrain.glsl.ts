@@ -103,15 +103,25 @@ void main() {
  * (ADR 0090) run this one text.
  */
 export const terrainHeightGLSL = /* glsl */ `const float PI_ = 3.14159265359;
+// Metres of one texel of the bake that includes this (the bakes define it as uTexel * uRadius); 0 is
+// the exact function. Octaves finer than about four texels fade out into their mean (plan 417): a
+// texel cannot carry them, and aliased they were noise that moved with the patch.
+#ifndef TERRAIN_TEXEL_M
+#define TERRAIN_TEXEL_M 0.0
+#endif
+float bandT(float wavelengthM) {
+	return TERRAIN_TEXEL_M > 0.0 ? smoothstep(2.0 * TERRAIN_TEXEL_M, 4.0 * TERRAIN_TEXEL_M, wavelengthM) : 1.0;
+}
 float fbmT(vec3 q, float wavelengthKm, int octaves, int salt) {
-	float sum = 0.0;
+	float sum = 0.5 * 2.0 * (1.0 - exp2(-float(octaves)));
 	float amp = 1.0;
-	float norm = 0.0;
+	float norm = 2.0 * (1.0 - exp2(-float(octaves)));
 	float freq = 1.0 / wavelengthKm;
-	for (int i = 0; i < 6; i++) {
+	for (int i = 0; i < 10; i++) {
 		if (i >= octaves) break;
-		sum += amp * noiseT(q, freq, salt + i);
-		norm += amp;
+		float w = bandT(1000.0 / freq);
+		if (w <= 0.0) break;
+		sum += amp * w * (noiseT(q, freq, salt + i) - 0.5);
 		amp *= 0.5;
 		freq *= 2.0;
 		q = OCT_ROT * q;
@@ -119,22 +129,33 @@ float fbmT(vec3 q, float wavelengthKm, int octaves, int salt) {
 	return sum / norm;
 }
 
-float ridgedT(vec3 q, float wavelengthKm, int octaves, int salt) {
-	float sum = 0.0;
+// The octaves from fineFrom on are scaled by fineFade and not evaluated when it is 0 (the
+// normaliser is that of all octaves), the twin of \`ridged\` in core.
+float ridgedT(vec3 q, float wavelengthKm, int octaves, int salt, int fineFrom, float fineFade) {
+	float norm = 2.0 * (1.0 - exp2(-float(octaves)));
+	float sum = ${f(S.ridgeMean)} * norm;
 	float amp = 1.0;
-	float norm = 0.0;
 	float freq = 1.0 / wavelengthKm;
-	for (int i = 0; i < 6; i++) {
+	for (int i = 0; i < 10; i++) {
 		if (i >= octaves) break;
+		float w = (i >= fineFrom ? fineFade : 1.0) * bandT(1000.0 / freq);
+		if (w <= 0.0) break;
 		float rx = 2.0 * noiseT(q, freq, salt + i) - 1.0;
 		float r = 1.0 - (sqrt(rx * rx + ${f(S.ridgeSoftness ** 2)}) - ${f(S.ridgeSoftness)});
-		sum += amp * r;
-		norm += amp;
+		sum += amp * w * (r - ${f(S.ridgeMean)});
 		amp *= 0.5;
 		freq *= 2.0;
 		q = OCT_ROT * q;
 	}
 	return sum / norm;
+}
+
+// The ridge profile pulled toward the cliff staircase by mask (twin of \`terrace\` in core).
+float terraceT(float p, float mask) {
+	float fs = p * ${f(S.cliffSteps)};
+	float i = floor(fs);
+	float stair = (i + smoothstep(${f(S.cliffTreadLow)}, ${f(S.cliffTreadHigh)}, fs - i)) / ${f(S.cliffSteps)};
+	return p + mask * ${f(S.cliffStrength)} * (stair - p);
 }
 
 float heightAt(vec3 n) {
@@ -156,9 +177,15 @@ float heightAt(vec3 n) {
 	float rangeA = smoothstep(${f(S.rangeLow)}, ${f(S.rangeHigh)}, rangeN);
 	float rangeH = max(${f(S.rangeBlend)} - abs(rangeA - backdrop), 0.0);
 	float range = max(rangeA, backdrop) + rangeH * rangeH / ${f(4 * S.rangeBlend)};
-	float ridge = ridgedT(q, ${f(S.ridgeWavelengthKm)}, ${S.ridgeOctaves}, 31);
+	float ridge = ridgedT(q, ${f(S.ridgeWavelengthKm)}, ${S.ridgeOctaves}, 31, ${S.ridgeFineFrom}, smoothstep(${f(S.ridgeFineLow)}, ${f(S.ridgeFineHigh)}, range));
 	float upland = smoothstep(${f(S.uplandLow)}, ${f(S.uplandHigh)}, e);
-	float mountains = ${f(S.mountainAmplitude)} * range * smoothstep(0.25, 0.8, ridge) * (0.7 + 0.3 * upland);
+	float profile = smoothstep(0.25, 0.8, ridge);
+	if (range > ${f(S.cliffRangeLow)}) {
+		float cliffMask = smoothstep(${f(S.cliffLow)}, ${f(S.cliffHigh)}, noiseT(q, 1.0 / ${f(S.cliffWavelengthKm)}, ${S.cliffSalt}))
+			* smoothstep(${f(S.cliffRangeLow)}, ${f(S.cliffRangeHigh)}, range);
+		profile = terraceT(profile, cliffMask);
+	}
+	float mountains = ${f(S.mountainAmplitude)} * range * profile * (0.7 + 0.3 * upland);
 	// lakes (plan 038): the relief is capped by a cone around the basins, zero on their floor (twin of terrainHeight)
 	float lakeLevel = noiseT(q, 1.0 / ${f(LAKE.wavelengthKm)}, ${LAKE.salt}) * zones.z;
 	float lakeCap = max(0.0, ${f(LAKE.slope)} * (${f(LAKE.to)} - lakeLevel) / ${LAKE.gradientBound.toExponential()});
@@ -213,15 +240,18 @@ vec4 noiseTD(vec3 q, float freq, int salt) {
 	vec4 r = valueNoiseCellD(c, p - fl);
 	return vec4(r.x, r.yzw * freq);
 }
-vec4 octavesD(vec3 q, float kq, float wavelengthKm, int octaves, int salt, bool ridge) {
-	vec4 sum = cD(0.0);
+vec4 octavesD(vec3 q, float kq, float wavelengthKm, int octaves, int salt, bool ridge, int fineFrom, vec4 fineFade) {
+	float norm = 2.0 * (1.0 - exp2(-float(octaves)));
+	float mean = ridge ? ${f(S.ridgeMean)} : 0.5;
+	vec4 sum = cD(mean * norm);
 	float amp = 1.0;
-	float norm = 0.0;
 	float freq = 1.0 / wavelengthKm;
 	mat3 back = mat3(1.0);
 	mat3 rotT = transpose(OCT_ROT);
-	for (int i = 0; i < 6; i++) {
+	for (int i = 0; i < 10; i++) {
 		if (i >= octaves) break;
+		float band = bandT(1000.0 / freq);
+		if (band <= 0.0 || (i >= fineFrom && fineFade.x <= 0.0)) break;
 		vec4 r = noiseTD(q, freq, salt + i);
 		vec4 term = vec4(r.x, back * r.yzw * kq);
 		if (ridge) {
@@ -229,14 +259,24 @@ vec4 octavesD(vec3 q, float kq, float wavelengthKm, int octaves, int salt, bool 
 			float s = sqrt(x * x + ${f(S.ridgeSoftness ** 2)});
 			term = chainD(1.0 - (s - ${f(S.ridgeSoftness)}), -2.0 * x / s, term);
 		}
-		sum += term * amp;
-		norm += amp;
+		vec4 dev = term - cD(mean);
+		sum += (i >= fineFrom ? mulD(dev, fineFade) : dev) * (amp * band);
 		amp *= 0.5;
 		freq *= 2.0;
 		q = OCT_ROT * q;
 		back = back * rotT;
 	}
 	return sum / norm;
+}
+// terraceT with its gradient: the staircase's own slope is the smoothstep's (twin of terraceD in core)
+vec4 terraceD(vec4 p, vec4 mask) {
+	float fs = p.x * ${f(S.cliffSteps)};
+	float i = floor(fs);
+	float raw = (fs - i - ${f(S.cliffTreadLow)}) / ${f(S.cliffTreadHigh - S.cliffTreadLow)};
+	float t = clamp(raw, 0.0, 1.0);
+	float dStep = (raw > 0.0 && raw < 1.0) ? 6.0 * t * (1.0 - t) / ${f(S.cliffTreadHigh - S.cliffTreadLow)} : 0.0;
+	vec4 stair = chainD((i + t * t * (3.0 - 2.0 * t)) / ${f(S.cliffSteps)}, dStep, p);
+	return p + mulD(mask * ${f(S.cliffStrength)}, stair - p);
 }
 vec4 arcD(vec3 n, vec3 dir, float radius) {
 	float c = clamp(dot(n, dir), -1.0, 1.0);
@@ -296,7 +336,7 @@ vec4 heightGrad(vec3 n) {
 		gate = minD(gate, smoothstepD(${f(LAKE.siteFrom)}, ${f(LAKE.siteTo)}, az));
 	}
 	if (site.x <= 0.0) return cD(0.0);
-	vec4 hillN = octavesD(q, kq, ${f(S.hillWavelengthKm)}, ${S.hillOctaves}, 11, false);
+	vec4 hillN = octavesD(q, kq, ${f(S.hillWavelengthKm)}, ${S.hillOctaves}, 11, false, ${S.hillOctaves}, cD(1.0));
 	vec4 hills = ${f(S.hillAmplitude)} * smoothstepD(${f(S.hillLow)}, ${f(S.hillHigh)}, hillN);
 	vec4 n0 = noiseTD(q, 1.0 / ${f(S.rangeWavelengthsKm[0])}, ${S.rangeSalts[0]});
 	vec4 n1 = noiseTD(q, 1.0 / ${f(S.rangeWavelengthsKm[1])}, ${S.rangeSalts[1]});
@@ -314,9 +354,16 @@ vec4 heightGrad(vec3 n) {
 		vec3 dh = diff.yzw * (diff.x >= 0.0 ? -1.0 : 1.0);
 		range += vec4(rangeH * rangeH / ${f(4 * S.rangeBlend)}, dh * rangeH / ${f(2 * S.rangeBlend)});
 	}
-	vec4 ridge = octavesD(q, kq, ${f(S.ridgeWavelengthKm)}, ${S.ridgeOctaves}, 31, true);
+	vec4 ridge = octavesD(q, kq, ${f(S.ridgeWavelengthKm)}, ${S.ridgeOctaves}, 31, true, ${S.ridgeFineFrom}, smoothstepD(${f(S.ridgeFineLow)}, ${f(S.ridgeFineHigh)}, range));
 	vec4 upland = smoothstepD(${f(S.uplandLow)}, ${f(S.uplandHigh)}, eD);
-	vec4 mountains = ${f(S.mountainAmplitude)} * mulD(mulD(range, smoothstepD(0.25, 0.8, ridge)), cD(0.7) + 0.3 * upland);
+	vec4 profile = smoothstepD(0.25, 0.8, ridge);
+	if (range.x > ${f(S.cliffRangeLow)}) {
+		vec4 cn = noiseTD(q, 1.0 / ${f(S.cliffWavelengthKm)}, ${S.cliffSalt});
+		cn.yzw *= kq;
+		vec4 cliffMask = mulD(smoothstepD(${f(S.cliffLow)}, ${f(S.cliffHigh)}, cn), smoothstepD(${f(S.cliffRangeLow)}, ${f(S.cliffRangeHigh)}, range));
+		profile = terraceD(profile, cliffMask);
+	}
+	vec4 mountains = ${f(S.mountainAmplitude)} * mulD(mulD(range, profile), cD(0.7) + 0.3 * upland);
 	vec4 relief = mulD(mulD(land, site), hills + mountains);
 	vec4 ln = noiseTD(q, 1.0 / ${f(LAKE.wavelengthKm)}, ${LAKE.salt});
 	ln.yzw *= kq;
@@ -335,6 +382,7 @@ varying vec2 vUv;
 uniform sampler2D uMap;
 uniform float uTexel;   // angular size of one texel at the centre, rad
 uniform float uRadius;
+#define TERRAIN_TEXEL_M (uTexel * uRadius)
 ${terrainZonesGLSL}
 
 ${terrainHeightGLSL}
