@@ -8,7 +8,8 @@ import {
 	terrainShift,
 	LEGACY_TERRAIN_SEED
 } from '@orbital/core';
-import { nightFactor, nightLights } from '../src/night-lights.ts';
+import { LIGHTS_GAIN, lightsExposureScale, nightFactor, nightLights } from '../src/night-lights.ts';
+import { DAY_EXPOSURE, NIGHT_EXPOSURE } from '../src/exposure.ts';
 
 const RADIUS = 600_000;
 const terrain = createTerrainField({ radius: RADIUS, zones: [LEGACY_ZONE] });
@@ -67,3 +68,44 @@ describe('night lights (plan 403)', () => {
 	});
 });
 const LIGHTS_SHORE_TEST = 4;
+
+describe('night lights (plan 416)', () => {
+	const q = (n: { x: number; y: number; z: number }) => ({
+		x: (n.x * RADIUS) / 1000,
+		y: (n.y * RADIUS) / 1000,
+		z: (n.z * RADIUS) / 1000
+	});
+
+	test('none on water, more on a lowland coast than on the highland', () => {
+		let water = 0;
+		const probe = (height: number) => {
+			let sum = 0;
+			let count = 0;
+			for (let j = 0; j < 120; j++)
+				for (let i = 0; i < 240; i++) {
+					const n = latLonDirection(-1.0 + (j / 120) * 2.0, -Math.PI + (i / 240) * 2 * Math.PI);
+					const h = terrain.heightAt(n);
+					if (terrain.waterAt?.(n)) {
+						water = Math.max(water, nightLights(q(n), shift, h, directionLatLon(n)[0], true));
+						continue;
+					}
+					if (h < height - 20 || h > height + 20) continue;
+					sum += nightLights(q(n), shift, h, directionLatLon(n)[0], false);
+					count++;
+				}
+			return [sum, count] as const;
+		};
+		const [coast, coastN] = probe(40);
+		const [high, highN] = probe(900);
+		expect(water).toBe(0);
+		expect(coastN).toBeGreaterThan(50);
+		expect(coast / coastN).toBeGreaterThan(0.02);
+		expect(coast / coastN).toBeGreaterThan(5 * (high / Math.max(highN, 1)));
+	});
+
+	test('the exposure scale cancels the exposure: the lights read the same on screen at the day and the night exposure', () => {
+		expect(lightsExposureScale(DAY_EXPOSURE)).toBe(1);
+		expect(lightsExposureScale(NIGHT_EXPOSURE) * NIGHT_EXPOSURE).toBeCloseTo(DAY_EXPOSURE, 5);
+		expect(LIGHTS_GAIN * DAY_EXPOSURE).toBeGreaterThan(0.5);
+	});
+});

@@ -157,11 +157,11 @@ describe('progressive terrain bake', () => {
 		expect(cloudMapRenders()).toBe(2);
 		planet.bakeTerrain(gl);
 		expect(cloudMapRenders()).toBe(2);
-		// a preset without shafts keeps the map it has and does not follow a cover change
+		// the orbit shell reads the map on every preset (plan 416): low follows a cover change too
 		planet.setQuality(PRESETS.low);
 		planet.material.uniforms.uCloudCover!.value = 0.3;
 		planet.bakeTerrain(gl);
-		expect(cloudMapRenders()).toBe(2);
+		expect(cloudMapRenders()).toBe(3);
 		planet.dispose();
 	});
 

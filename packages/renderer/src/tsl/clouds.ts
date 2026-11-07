@@ -7,6 +7,7 @@
 import {
 	Data3DTexture,
 	LinearFilter,
+	LinearMipmapLinearFilter,
 	RGBAFormat,
 	RenderTarget,
 	RepeatWrapping,
@@ -236,11 +237,13 @@ export const cloudSlabDensity = (cover: N, h: N, e: N): N =>
 export class CloudMapTSL {
 	readonly target = new RenderTarget(CLOUD_MAP_W, CLOUD_MAP_H, {
 		type: UnsignedByteType,
-		minFilter: LinearFilter,
+		// mips (plan 416): the orbit shell reads a pixel's whole footprint, not a texel of it; three
+		// makes them after each bake, which is when the cover changes
+		minFilter: LinearMipmapLinearFilter,
 		magFilter: LinearFilter,
 		wrapS: RepeatWrapping,
 		depthBuffer: false,
-		generateMipmaps: false
+		generateMipmaps: true
 	});
 	private readonly cover = uniform(0.42);
 	private baked = -1;
@@ -295,6 +298,21 @@ export class CloudMapTSL {
 					.add(0.5)
 			)
 		).level(0).xy;
+	}
+
+	/** (coverage, density) at a drifted body-fixed direction, from mip level `lod` (an explicit level: the shell is read where derivatives are undefined). */
+	atLod(rq: N, lod: N): N {
+		return texture(
+			this.target.texture,
+			vec2(
+				atan(rq.z, rq.x)
+					.mul(1 / (2 * PI))
+					.add(0.5),
+				asin(clamp(rq.y, -1.0, 1.0))
+					.mul(1 / PI)
+					.add(0.5)
+			)
+		).level(lod).xy;
 	}
 
 	dispose(): void {

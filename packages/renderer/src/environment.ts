@@ -675,6 +675,7 @@ export class Environment {
 			skyColour: ambient,
 			ambientRefMu: dot(sun, frame.up),
 			siteLamps,
+			exposure: this.exposure,
 			cloudCover: this.cloudCover,
 			cloudAngle: this.cloudAngle,
 			time: this.time,

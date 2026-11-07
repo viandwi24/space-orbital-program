@@ -75,7 +75,7 @@ import {
 } from '../terrain-model.ts';
 import { TerrainTSL, type TerrainSampler } from './terrain.ts';
 import { TerrainMesh, meshTuning } from './terrain-mesh.ts';
-import { CLOUD_FAR, CLOUD_FAR_GATE } from '../cloud-far.ts';
+import { CLOUD_FAR, CLOUD_FAR_GATE, CLOUD_FAR_RELIEF, CLOUD_MAP_LOD_BIAS } from '../cloud-far.ts';
 import {
 	CloudMapTSL,
 	cirrusDensity,
@@ -99,7 +99,7 @@ import {
 	CLOUD_SIGMA,
 	CLOUD_THICKNESS
 } from '../cloud-volume.ts';
-import { SHAFT, SHAFT_TERRAIN } from '../light-shaft.ts';
+import { CLOUD_MAP_W, SHAFT, SHAFT_TERRAIN } from '../light-shaft.ts';
 import { AURORA } from '../aurora-model.ts';
 import { LAKE_WAVE_SHARE, SHORE_WAVE_HEIGHT } from '../shore-wave.ts';
 import { WAVES } from '../water-model.ts';
@@ -123,6 +123,7 @@ import {
 import { skyMapSize } from '../sky-model.ts';
 import { hash33i, noiseA, noiseF, warpedLatLon } from './noise.ts';
 import { LIGHTS_GAIN, LIGHTS_RADIANCE, nightLightsTSL } from '../night-lights.ts';
+import { bakeDetailTSL } from '../bake-detail.ts';
 
 /* TSL nodes are untyped proxies; three's TSL typings lag its runtime */
 type N = any;
@@ -571,7 +572,7 @@ export class PlanetPassTSL {
 		// the scaled-space bake follows the heights and the map: once the cube is baked, a face a frame
 		const terrainReady = this.settings.terrainSize <= 0 || (u.uTerrainOn!.value as number) > 0.5;
 		if (terrainReady && this.bakeQuad) {
-			const size = scaledSpaceSize(this.settings);
+			const size = scaledSpaceSize();
 			this.scaled.request(
 				size,
 				`${this.planet.terrainEpoch}:${(u.uMap!.value as DataTexture).uuid}:${this.settings.terrainSize > 0}`,
@@ -2314,11 +2315,23 @@ export class PlanetPassTSL {
 					}
 					const pl = nBF.mul(uR.add(hT)).toVar();
 					const sf = surfaceAt(nBF, pl, scaled.uTexelM, nBF.sub(uSiteUp).mul(uR), hT, gT);
+					// the fine detail and the tints (plan 416), baked once on top of the surface function
+					const waterT = select(sf.spec.greaterThan(0.01), 1.0, 0.0);
+					const fineBake = bakeDetailTSL(
+						TSL,
+						nBF,
+						uR,
+						hT,
+						waterT,
+						clamp(sf.albedo, 0.0, 1.0),
+						normalize(sf.normal),
+						(q, f, salt) => noiseT(q, f, salt, this.link('uTerrainShift', 'int'))
+					);
 					return select(
 						scaled.uWhat.lessThan(0.5),
-						vec4(sqrt(clamp(sf.albedo, 0.0, 1.0)), clamp(sf.spec, 0.0, 1.0)),
+						vec4(sqrt(clamp(fineBake.albedo, 0.0, 1.0)), clamp(sf.spec, 0.0, 1.0)),
 						vec4(
-							normalize(sf.normal).mul(0.5).add(0.5),
+							normalize(fineBake.normal).mul(0.5).add(0.5),
 							nightLightsTSL(
 								TSL,
 								nBF,
@@ -2515,6 +2528,27 @@ export class PlanetPassTSL {
 						.div(PI)
 						.mul(uSunIrr.mul(sunT).mul(ndl).mul(sh).add(amb).add(sf.lampE))
 						.toVar();
+					// where the bake is not read (plan 416): the same lights from the procedural formula, on the
+					// night side only and from a distance (a pixel over 8 m: nothing is resolved nearer)
+					If(
+						wBake
+							.lessThan(1.0)
+							.and(geo.lessThan(0.05))
+							.and(footprint.greaterThan(8.0))
+							.and(this.link('uCityLights').greaterThan(0.0)),
+						() => {
+							cityE.addAssign(
+								nightLightsTSL(
+									TSL,
+									nBF,
+									uR,
+									hT,
+									select(sf.spec.greaterThan(0.01), 1.0, 0.0),
+									(q, f, salt) => noiseT(q, f, salt, this.link('uTerrainShift', 'int'))
+								).mul(float(1.0).sub(wBake))
+							);
+						}
+					);
 					// city lights of the bake, on the night side only (plan 403)
 					lit.addAssign(
 						vec3(...LIGHTS_RADIANCE.map((v) => v * LIGHTS_GAIN)).mul(
@@ -2653,14 +2687,6 @@ export class PlanetPassTSL {
 							.mul(pixelAngle)
 							.div(max(abs(dot(nm, rd)), 0.05))
 							.toVar();
-						const coverD = cloudDensityQ(
-							rotY(uBodyInv.mul(nm), uCloudAngle).mul(R0 / 16000),
-							false,
-							fp,
-							cfg.cloudOctaves,
-							uCloudCover
-						);
-						const cover = smoothstep(0.08, 0.55, coverD).toVar();
 						const maskAll = clamp(uCloudCover.mul(2.0), 0.0, 1.0);
 						// beyond the march's reach the slab is one thin shell read from the baked weather map
 						// (plan 403, twin: cloudFarShell in cloud-far.ts)
@@ -2669,11 +2695,61 @@ export class PlanetPassTSL {
 							.mul(this.link('uFarShellOn'))
 							.toVar();
 						const mask = maskAll.mul(farK.oneMinus()).toVar();
+						// the march's own coverage is only read where the march can draw: from orbit the
+						// shell is the whole cloud and the noise is never evaluated (plan 416)
+						const cover = float(0.0).toVar();
+						If(mask.greaterThan(0.001), () => {
+							const coverD = cloudDensityQ(
+								rotY(uBodyInv.mul(nm), uCloudAngle).mul(R0 / 16000),
+								false,
+								fp,
+								cfg.cloudOctaves,
+								uCloudCover
+							);
+							cover.assign(smoothstep(0.08, 0.55, coverD));
+						});
 						const shellA = float(0.0).toVar();
 						const shellL = vec3(0.0).toVar();
 						if (cloudMap) {
+							// the shell's coverage with its relief (plan 416; twin: CLOUD_FAR_RELIEF in cloud-far.ts):
+							// the map at the mip level of the pixel, plus a tiling detail of 53 and 21 km, faded
+							// where a pixel is too wide for it
+							const lodS = clamp(
+								log2(max(fp, 1.0).div((2 * PI * R0) / CLOUD_MAP_W)).add(CLOUD_MAP_LOD_BIAS),
+								0.0,
+								6.0
+							);
+							const detailFade = smoothstep(
+								CLOUD_FAR_RELIEF.fadeFrom,
+								CLOUD_FAR_RELIEF.fadeTo,
+								fp
+							).oneMinus();
+							const shellH = (p: N): N => {
+								const rq = rotY(uBodyInv.mul(p), uCloudAngle);
+								const h0 = cloudMap.atLod(rq, lodS).y;
+								// the detail shapes a cloud's edge near cloud only: the wide blur of the map gates it
+								const near = smoothstep(
+									0.02,
+									0.3,
+									cloudMap.atLod(rq, lodS.add(CLOUD_FAR_RELIEF.gateLods)).y
+								);
+								const dq = rq.mul(R0 / 16000);
+								let d: N = float(0.0);
+								CLOUD_FAR_RELIEF.frequencies.forEach((fq, i) => {
+									d = d.add(
+										noiseF(dq.mul(fq).add(11.3 + 5.7 * i))
+											.sub(0.5)
+											.mul(CLOUD_FAR_RELIEF.weights[i]!)
+									);
+								});
+								return h0
+									.mul(CLOUD_FAR_RELIEF.mapShare)
+									.add(d.mul(CLOUD_FAR_RELIEF.amplitude).mul(detailFade).mul(near));
+							};
+							const shellFlat = (p: N): N =>
+								cloudMap.atLod(rotY(uBodyInv.mul(p), uCloudAngle), lodS).y;
 							If(farK.greaterThan(0.002), () => {
-								const cov = cloudMap.at(rotY(uBodyInv.mul(nm), uCloudAngle)).x;
+								const cov = shellH(nm).toVar();
 								shellA.assign(
 									smoothstep(CLOUD_FAR.coverFrom, CLOUD_FAR.coverTo, cov)
 										.mul(maskAll)
@@ -2682,13 +2758,44 @@ export class PlanetPassTSL {
 								);
 								If(shellA.greaterThan(0.002), () => {
 									const sunTs = sky.sunlight(nm.mul(uCloudAlt.add(0.5 * CLOUD_THICKNESS)), uSunDir);
-									const sunK = float(CLOUD_FAR.sunBase).add(
-										clamp(
-											dot(nm, uSunDir).mul(CLOUD_FAR.sunSlope).add(CLOUD_FAR.sunLift),
-											0.0,
-											1.0
-										).mul(1 - CLOUD_FAR.sunBase)
+									// relief: the coverage's gradient tilts the normal; the sun side brightens and a bank
+									// shades what lies behind it from the sun
+									const stepRad = CLOUD_FAR_RELIEF.stepM / R0;
+									const t1 = normalize(cross(nm, vec3(0.31, 1.0, 0.17)));
+									const t2 = cross(nm, t1);
+									const hx = shellH(normalize(nm.add(t1.mul(stepRad))));
+									const hy = shellH(normalize(nm.add(t2.mul(stepRad))));
+									const nr = normalize(
+										nm.sub(
+											t1
+												.mul(hx.sub(cov))
+												.add(t2.mul(hy.sub(cov)))
+												.mul(CLOUD_FAR_RELIEF.tilt)
+										)
 									);
+									const reliefK = clamp(
+										dot(nr, uSunDir).sub(dot(nm, uSunDir)).mul(CLOUD_FAR_RELIEF.sunGain).add(1.0),
+										CLOUD_FAR_RELIEF.sunMin,
+										CLOUD_FAR_RELIEF.sunMax
+									);
+									const sunTan = uSunDir.sub(nm.mul(dot(uSunDir, nm)));
+									const towardSun = sunTan.div(max(length(sunTan), 1e-3));
+									const hs = shellFlat(
+										normalize(nm.add(towardSun.mul(CLOUD_FAR_RELIEF.shadowStepM / R0)))
+									);
+									const shade = smoothstep(0.04, 0.4, hs.sub(cov))
+										.mul(CLOUD_FAR_RELIEF.shadow)
+										.mul(smoothstep(0.0, 0.25, cov));
+									const sunK = float(CLOUD_FAR.sunBase)
+										.add(
+											clamp(
+												dot(nm, uSunDir).mul(CLOUD_FAR.sunSlope).add(CLOUD_FAR.sunLift),
+												0.0,
+												1.0
+											).mul(1 - CLOUD_FAR.sunBase)
+										)
+										.mul(reliefK)
+										.mul(float(1.0).sub(shade));
 									const lf = vec3(0.93 / PI)
 										.mul(uSunIrr.mul(sunTs).mul(sunK).add(uAmbient.mul(CLOUD_FAR.ambient)))
 										.add(vec3(...NIGHT_AMBIENT).mul(0.6));

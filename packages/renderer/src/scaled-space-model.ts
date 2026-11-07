@@ -2,34 +2,37 @@
  * The scaled-space bake of the home planet (plan 364, ADR 0306): KSP's colour and normal maps, made
  * on the GPU from the planet pass's own `surfaceAt`. Numbers shared by both renderers.
  */
-import type { PresetSettings } from './presets.ts';
+
+/** The face sizes a machine can be given (plan 416): never under 1024. */
+export type ScaledFace = 1024 | 1536 | 2048;
 
 /**
- * The largest face the machine is given (plan 403, owner's rule that a look is paid for only where
- * the machine can): 2048 on the M5-class tiers (`scaledCapFor`), 1536 everywhere else and until the
- * host has said what the machine is. The host sets it before the first bake; a bake of another size
- * is taken at once, as for a preset change.
+ * The face the machine is given (plan 416, ADR 0375 point 2: a look that costs no frame time is on at
+ * every preset, so the resolution follows the device, not the preset): 2048 on the M5-class tiers
+ * (`scaledCapFor`), 1536 on the M1/M2 Macs, 1024 on the mid-range and below and until the host has said
+ * what the machine is. The host sets it before the first bake; a bake of another size is taken at
+ * once. Because the size does not depend on the preset, a preset switch never rebakes it.
  */
-let faceCap: 1536 | 2048 = 1536;
-export const setScaledSpaceCap = (cap: 1536 | 2048): void => void (faceCap = cap);
-export const scaledSpaceCap = (): 1536 | 2048 => faceCap;
+let faceSize: ScaledFace = 1024;
+export const setScaledSpaceCap = (cap: ScaledFace): void => void (faceSize = cap);
+export const scaledSpaceCap = (): ScaledFace => faceSize;
 
-/** 2048 faces for a tier that holds 120 Hz with room (M5, a recent discrete GPU, a ProMotion Mac); else 1536. */
-export const scaledCapFor = (tier: { id: string }, hz: number): 1536 | 2048 =>
+/**
+ * 2048 faces for a tier that holds 120 Hz with room (M5, a recent discrete GPU, a ProMotion Mac); 1536
+ * on the other Apple silicon (M1, M2); 1024 everywhere else.
+ */
+export const scaledCapFor = (tier: { id: string }, hz: number): ScaledFace =>
 	tier.id === 'm5' || tier.id === 'discrete-high' || (tier.id === 'apple' && hz >= 120)
 		? 2048
-		: 1536;
+		: tier.id === 'm2' || tier.id === 'apple'
+			? 1536
+			: 1024;
 
 /**
- * Face size of the bake: low 512, medium 1024, high 1536 or 2048 (from the terrain cube's size and
- * `scaledSpaceCap`; plan 403). With the WebGPU atlas's gutters and mips that is about 20, 76, 164 and
- * 268 MB for both maps (`scaledSpaceBytes`).
+ * Face size of the bake: the device's (`scaledSpaceCap`), whatever the preset. With the WebGPU atlas's
+ * gutters and mips that is about 76, 164 and 268 MB for both maps (`scaledSpaceBytes`).
  */
-export function scaledSpaceSize(s: Pick<PresetSettings, 'terrainSize' | 'mapWidth'>): number {
-	if (s.terrainSize >= 1024) return faceCap;
-	if (s.terrainSize >= 768) return 1024;
-	return 512;
-}
+export const scaledSpaceSize = (): number => faceSize;
 
 /** GPU bytes of the bake: two RGBA8 cube maps with their mip chains (4/3). */
 export const scaledSpaceBytes = (size: number): number =>

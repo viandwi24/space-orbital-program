@@ -40,9 +40,9 @@ describe('relevanceOf: the scenes', () => {
 		const l = relevanceLevels(view({ altitude: 40_000, vessel: 'flying' }));
 		expect(l).toMatchObject({ ocean: 0, clouds: 1, rocks: 0, terrain: 0 });
 	});
-	test('orbit: only the baked stand-ins draw, the rest costs nothing', () => {
+	test('orbit: only the baked stand-ins draw (the clouds are the far shell, plan 416), the rest costs nothing', () => {
 		const l = relevanceLevels(view({ altitude: 100_000, vessel: 'orbiting' }));
-		expect(l).toEqual({ ocean: 0, clouds: 0, rocks: 0, terrain: 0, plume: 2, plasma: 0 });
+		expect(l).toEqual({ ocean: 0, clouds: 1, rocks: 0, terrain: 0, plume: 2, plasma: 0 });
 	});
 	test('the map view shows none of the flight looks', () => {
 		for (const look of RELEVANCE_LOOKS)

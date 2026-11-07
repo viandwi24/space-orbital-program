@@ -87,6 +87,7 @@ import {
 	scaledSpaceSize,
 	scaledTexelMetres
 } from './scaled-space-model.ts';
+import { lightsExposureScale } from './night-lights.ts';
 import { WAVES, WAVE_PERIOD, waveNumber } from './water-model.ts';
 
 type U<T> = Uniform<T>;
@@ -184,6 +185,8 @@ export interface PlanetUpdate {
 	ambientRefMu: number;
 	/** 0 by day to 1 at night: the launch-site floodlights are on. */
 	siteLamps: number;
+	/** The adapted exposure (before the player's brightness): the city lights are scaled to read the same under any (plan 416). */
+	exposure: number;
 	cloudCover: number;
 	cloudAngle: number;
 	/** Seconds since the environment started (the sea is periodic in `WAVE_PERIOD`). */
@@ -291,7 +294,6 @@ export class PlanetPass {
 		next: number;
 	};
 	/** The cloud map is kept up to date (shafts or map shadows on); otherwise it is baked once. */
-	private shaftsWanted: boolean;
 	/**
 	 * Counts the height cube's bakes (a new site, seed or size): the scaled-space bake (plan 364)
 	 * follows the heights, so it bakes again when this moves.
@@ -369,7 +371,6 @@ export class PlanetPass {
 		this.mapWidth = settings.mapWidth;
 		this.map = this.buildMap(settings.mapWidth);
 		this.terrainSize = settings.terrainSize;
-		this.shaftsWanted = settings.shaftSteps > 0 || settings.cloudShadowMap;
 		this.patchSize = settings.terrainPatch;
 		this.refineSteps = settings.terrainRefineSteps;
 		this.fullSteps = Math.max(1, settings.terrainSteps);
@@ -424,7 +425,7 @@ export class PlanetPass {
 				uSkyMap: u<unknown>(null),
 				uScaledA: u<unknown>(null),
 				uScaledN: u<unknown>(null),
-				uScaledTexelM: u(scaledTexelMetres(atm.radius, scaledSpaceSize(settings))),
+				uScaledTexelM: u(scaledTexelMetres(atm.radius, scaledSpaceSize())),
 				uScaledOn: u(0),
 				uScaledMode: u(1),
 				uCityLights: u(settings.nightLights ? 1 : 0),
@@ -597,8 +598,9 @@ export class PlanetPass {
 			format: RGFormat,
 			type: UnsignedByteType,
 			depthBuffer: false,
-			generateMipmaps: false,
-			minFilter: LinearFilter,
+			// mips (plan 416): the orbit shell reads a pixel's whole footprint, not one texel of it
+			generateMipmaps: true,
+			minFilter: LinearMipmapLinearFilter,
 			magFilter: LinearFilter,
 			wrapS: RepeatWrapping,
 			wrapT: ClampToEdgeWrapping
@@ -746,11 +748,11 @@ export class PlanetPass {
 		this.resetPatches();
 	}
 
-	/** Bakes the cloud coverage map on the first frame (so its program compiles with the rest) and when the cover changes while shafts are on. */
+	/** Bakes the cloud coverage map on the first frame (so its program compiles with the rest) and when the cover changes: the orbit shell reads it on every preset (plan 416). */
 	private bakeCloudMap(gl: WebGLRenderer): void {
 		const cover = this.material.uniforms.uCloudCover!.value as number;
 		const map = this.cloudMap;
-		if (map.cover >= 0 && (!this.shaftsWanted || Math.abs(cover - map.cover) < 1e-4)) return;
+		if (map.cover >= 0 && Math.abs(cover - map.cover) < 1e-4) return;
 		const previous = gl.getRenderTarget();
 		const autoClear = gl.autoClear;
 		gl.autoClear = false;
@@ -770,7 +772,7 @@ export class PlanetPass {
 		const b = this.scaledBake;
 		const un = this.material.uniforms;
 		if (this.terrainSize > 0 && (un.uTerrainOn!.value as number) < 0.5) return;
-		const size = scaledSpaceSize(this.current);
+		const size = scaledSpaceSize();
 		const key = `${this.terrainEpoch}:${this.map.uuid}:${this.terrainSize > 0}`;
 		if (size !== b.size || key !== b.key) {
 			if (size !== b.size) {
@@ -1453,7 +1455,6 @@ export class PlanetPass {
 
 	/** Applies a preset: recompiles for new sample counts, rebuilds the biome map at a new size. */
 	setQuality(settings: PresetSettings): void {
-		this.shaftsWanted = settings.shaftSteps > 0 || settings.cloudShadowMap;
 		this.auroraSteps = settings.auroraSteps;
 		this.current = settings;
 		this.material.uniforms.uCityLights!.value = settings.nightLights ? 1 : 0;
@@ -1570,6 +1571,7 @@ export class PlanetPass {
 		);
 		this.updateAurora(un, p);
 		un.uSiteLamps!.value = p.siteLamps;
+		un.uCityLights!.value = this.current.nightLights ? lightsExposureScale(p.exposure) : 0;
 		un.uCloudAngle!.value = p.cloudAngle;
 		un.uTime!.value = p.time % WAVE_PERIOD;
 		this.updateWaveAnchors(p.frame.anchorCell);

@@ -25,8 +25,8 @@ import { SLOPE_EXAGGERATION, SLOPE_EXAGGERATION_RANGE } from '../terrain-model.t
 import { TERRAIN_VEIL } from '../atmosphere-model.ts';
 import { terrainNoiseGLSL, terrainTangentGLSL, terrainZonesGLSL } from './terrain.glsl.ts';
 import { PATCH_BLEND } from '../terrain-patch.ts';
-import { SHAFT, SHAFT_TERRAIN } from '../light-shaft.ts';
-import { CLOUD_FAR, CLOUD_FAR_GATE } from '../cloud-far.ts';
+import { CLOUD_MAP_W, SHAFT, SHAFT_TERRAIN } from '../light-shaft.ts';
+import { CLOUD_FAR, CLOUD_FAR_GATE, CLOUD_FAR_RELIEF, CLOUD_MAP_LOD_BIAS } from '../cloud-far.ts';
 import { EDGE_CHROMA, EDGE_DEPTH_OCTAVES, SKY_DEPTH } from '../half-res.ts';
 import { cloudFieldGLSL } from './cloud-field.glsl.ts';
 import { auroraGLSL } from './aurora.glsl.ts';
@@ -38,6 +38,7 @@ import {
 	SCALED_BLEND
 } from '../scaled-space-model.ts';
 import { LIGHTS_GAIN, LIGHTS_RADIANCE, nightFactorGLSL, nightLightsGLSL } from '../night-lights.ts';
+import { bakeDetailGLSL } from '../bake-detail.ts';
 import { DETAIL_CONTRAST, DETAIL_LOD_FADE, DETAIL_SIZE, DETAIL_TILE } from '../detail-textures.ts';
 import {
 	CLOUD_FILL,
@@ -538,6 +539,7 @@ float noiseA(vec3 pl, float lam, int salt) {
 ${terrainNoiseGLSL}
 ${terrainZonesGLSL}
 ${nightLightsGLSL}
+${bakeDetailGLSL}
 
 ${cloudFieldGLSL}
 ${skyMapGLSL}
@@ -560,12 +562,14 @@ float cloudDensity(vec3 dirBF, bool full, float fp) {
 }
 
 // --- light shafts (plan 054, ADR 0070; the twin of shaftDeficit in light-shaft.ts) --------------------
-#if SHAFT_STEPS > 0 || CLOUD_SHADOW_MAP
 uniform sampler2D uCloudMap; // baked cloud map, equirectangular: r coverage (shafts), g density (ground shadows) (planet.ts bakeCloudMap, light-shaft.ts cloudMapUV)
 vec2 cloudMapAt(vec3 rq) {
-	return texture(uCloudMap, vec2(atan(rq.z, rq.x) * 0.15915494 + 0.5, asin(clamp(rq.y, -1.0, 1.0)) * 0.31830989 + 0.5)).rg;
+	return textureLod(uCloudMap, vec2(atan(rq.z, rq.x) * 0.15915494 + 0.5, asin(clamp(rq.y, -1.0, 1.0)) * 0.31830989 + 0.5), 0.0).rg;
 }
-#endif
+// the same at a mip level (plan 416: the shell reads a pixel's whole footprint; an explicit level, no derivatives at the atan seam)
+vec2 cloudMapAtLod(vec3 rq, float lod) {
+	return textureLod(uCloudMap, vec2(atan(rq.z, rq.x) * 0.15915494 + 0.5, asin(clamp(rq.y, -1.0, 1.0)) * 0.31830989 + 0.5), lod).rg;
+}
 #if SHAFT_STEPS > 0
 uniform float uShaft; // 0..1, light-shaft.ts shaftStrength: 0 by a high sun, at night and from orbit
 struct ShaftLoss {
@@ -659,6 +663,18 @@ float cloudFarAlpha(float cover, float mask, float farK) {
 }
 float cloudFarSun(float mu) {
 	return ${f(CLOUD_FAR.sunBase)} + ${f(1 - CLOUD_FAR.sunBase)} * clamp(mu * ${f(CLOUD_FAR.sunSlope)} + ${f(CLOUD_FAR.sunLift)}, 0.0, 1.0);
+}
+
+// The shell's coverage at a world direction p: the map at mip lod plus the tiling detail of 53 and 21 km (plan 416, twin: CLOUD_FAR_RELIEF).
+float shellHeight(vec3 p, float lod, float detailFade) {
+	vec3 rq = rotY(uBodyInv * p, uCloudAngle);
+	float h0 = cloudMapAtLod(rq, lod).g;
+	// the detail shapes a cloud's edge near cloud only: the wide blur of the map gates it
+	float near = smoothstep(0.02, 0.3, cloudMapAtLod(rq, lod + ${f(CLOUD_FAR_RELIEF.gateLods)}).g);
+	vec3 dq = rq * (uR / 16000.0);
+	float d = 0.0;
+${CLOUD_FAR_RELIEF.frequencies.map((fq, i) => `	d += (noiseF(dq * ${f(fq)} + ${f(11.3 + 5.7 * i)}) - 0.5) * ${f(CLOUD_FAR_RELIEF.weights[i]!)};`).join('\n')}
+	return h0 * ${f(CLOUD_FAR_RELIEF.mapShare)} + d * ${f(CLOUD_FAR_RELIEF.amplitude)} * detailFade * near;
 }
 
 // --- cumulus slab (plan 037, ADR 0059; the twin of cloud-volume.ts) --------------------------------
@@ -1370,6 +1386,10 @@ vec3 shadeRay(vec3 ro, vec3 rd, float r0, float d, float h, bool hitG, bool hitT
 		float skyVis = 0.5 + 0.5 * dot(sf.normal, nBF);
 		vec3 amb = uAmbient * k * skyVis + NIGHT_AMBIENT * kPI;
 		vec3 lit = sf.albedo / kPI * (uSunIrr * sunT * ndl * sh + amb + sf.lampE);
+		// where the bake is not read (plan 416): the same lights from the procedural formula, on the night
+		// side only and from a distance (a pixel over 8 m: nothing is resolved nearer)
+		if (wBake < 1.0 && geo < 0.05 && footprint > 8.0 && uCityLights > 0.0)
+			cityE += nightLightsAt(nBF, hT, sf.spec > 0.01) * (1.0 - wBake);
 		// city lights of the bake, on the night side only (plan 403)
 		lit += vec3(${LIGHTS_RADIANCE.map((v) => (v * LIGHTS_GAIN).toFixed(4)).join(', ')}) * (cityE * uCityLights * ${nightFactorGLSL('geo')});
 		if (sf.spec > 0.0) {
@@ -1458,24 +1478,39 @@ vec3 shadeRay(vec3 ro, vec3 rd, float r0, float d, float h, bool hitG, bool hitT
 			float tm = a0 + marchLen * 0.5;
 			vec3 nm = normalize(ro + rd * tm);
 			float fp = tm * uPixelAngle / max(abs(dot(nm, rd)), 0.05);
-			float cover = smoothstep(0.08, 0.55, cloudDensity(uBodyInv * nm, false, fp));
 			float maskAll = clamp(uCloudCover * 2.0, 0.0, 1.0);
 			float farK = smoothstep(${f(CLOUD_FAR.from)}, ${f(CLOUD_FAR.to)}, tm) * smoothstep(${f(CLOUD_FAR_GATE.from)}, ${f(CLOUD_FAR_GATE.to)}, uAlt) * uFarShellOn;
 			float mask = maskAll * (1.0 - farK);
+			// the march's own coverage is only read where the march can draw: from orbit the shell is the whole cloud (plan 416)
+			float cover = 0.0;
+			if (mask > 0.001) cover = smoothstep(0.08, 0.55, cloudDensity(uBodyInv * nm, false, fp));
 			// beyond the march's reach the slab is one thin shell read from the baked weather map (plan 403, twin: cloudFarShell in cloud-far.ts)
 			float shellA = 0.0;
 			vec3 shellL = vec3(0.0);
-#if SHAFT_STEPS > 0 || CLOUD_SHADOW_MAP
 			if (farK > 0.002) {
-				float cov = cloudMapAt(rotY(uBodyInv * nm, uCloudAngle)).r;
+				// the shell's coverage with its relief (plan 416; twin: CLOUD_FAR_RELIEF in cloud-far.ts)
+				float lodS = clamp(log2(max(fp, 1.0) / (6.28318530718 * uR / ${f(CLOUD_MAP_W)})) + ${f(CLOUD_MAP_LOD_BIAS)}, 0.0, 6.0);
+				float detailFade = 1.0 - smoothstep(${f(CLOUD_FAR_RELIEF.fadeFrom)}, ${f(CLOUD_FAR_RELIEF.fadeTo)}, fp);
+				float cov = shellHeight(nm, lodS, detailFade);
 				shellA = cloudFarAlpha(cov, maskAll, farK);
 				if (shellA > 0.002) {
 					vec3 sunTs = sunTransmittance(nm * (uCloudAlt + 0.5 * CLOUD_THICK), uSunDir);
-					vec3 Lf = vec3(0.93) / kPI * (uSunIrr * sunTs * cloudFarSun(dot(nm, uSunDir)) + uAmbient * ${f(CLOUD_FAR.ambient)}) + NIGHT_AMBIENT * 0.6;
+					float stepRad = ${f(CLOUD_FAR_RELIEF.stepM)} / uR;
+					vec3 t1 = normalize(cross(nm, vec3(0.31, 1.0, 0.17)));
+					vec3 t2 = cross(nm, t1);
+					float hx = shellHeight(normalize(nm + t1 * stepRad), lodS, detailFade);
+					float hy = shellHeight(normalize(nm + t2 * stepRad), lodS, detailFade);
+					vec3 nr = normalize(nm - (t1 * (hx - cov) + t2 * (hy - cov)) * ${f(CLOUD_FAR_RELIEF.tilt)});
+					float reliefK = clamp(1.0 + (dot(nr, uSunDir) - dot(nm, uSunDir)) * ${f(CLOUD_FAR_RELIEF.sunGain)}, ${f(CLOUD_FAR_RELIEF.sunMin)}, ${f(CLOUD_FAR_RELIEF.sunMax)});
+					vec3 sunTan = uSunDir - nm * dot(uSunDir, nm);
+					vec3 towardSun = sunTan / max(length(sunTan), 1e-3);
+					float hs = cloudMapAtLod(rotY(uBodyInv * normalize(nm + towardSun * (${f(CLOUD_FAR_RELIEF.shadowStepM)} / uR)), uCloudAngle), lodS).g;
+					float shade = smoothstep(0.04, 0.4, hs - cov) * ${f(CLOUD_FAR_RELIEF.shadow)} * smoothstep(0.0, 0.25, cov);
+					float sunK = cloudFarSun(dot(nm, uSunDir)) * reliefK * (1.0 - shade);
+					vec3 Lf = vec3(0.93) / kPI * (uSunIrr * sunTs * sunK + uAmbient * ${f(CLOUD_FAR.ambient)}) + NIGHT_AMBIENT * 0.6;
 					shellL = Lf / (1.0 + Lf / ${f(CLOUD_RADIANCE_KNEE)});
 				}
 			}
-#endif
 			if (cover * mask < 0.004) {
 				if (shellA < 0.004) {
 					hitA = false;
@@ -1656,9 +1691,13 @@ void main() {
 	gT = ter.yzw;
 #endif
 	Surface sf = surfaceAt(nBF, nBF * (uR + hT), uScaledTexelM, (nBF - uSiteUp) * uR, hT, gT);
+	// the fine detail and the tints (plan 416), baked once on top of the surface function
+	vec3 bakeAlbedo = clamp(sf.albedo, 0.0, 1.0);
+	vec3 bakeNormal = normalize(sf.normal);
+	bakeDetail(nBF, hT, sf.spec > 0.01, bakeAlbedo, bakeNormal);
 	gl_FragColor = uBakeWhat < 0.5
-		? vec4(sqrt(clamp(sf.albedo, 0.0, 1.0)), clamp(sf.spec, 0.0, 1.0))
-		: vec4(normalize(sf.normal) * 0.5 + 0.5, nightLightsAt(nBF, hT, sf.spec > 0.01));
+		? vec4(sqrt(clamp(bakeAlbedo, 0.0, 1.0)), clamp(sf.spec, 0.0, 1.0))
+		: vec4(normalize(bakeNormal) * 0.5 + 0.5, nightLightsAt(nBF, hT, sf.spec > 0.01));
 }
 #else
 void main() {

@@ -58,7 +58,9 @@ export function relevanceOf(look: RelevanceLook, i: RelevanceInput): RelevanceLe
 		case 'clouds':
 			if (i.atmosphereTop <= 0) return 0;
 			if (a < GATES.cloudsFull) return 2;
-			return a < i.atmosphereTop ? 1 : 0;
+			// above the air the slab is the far shell, read from the baked weather map (plan 416): the
+			// one cheap level, as in the air above the march's reach, never off, or the orbit has no weather
+			return 1;
 		case 'rocks':
 			return a < GATES.rocksFull ? 2 : a < GATES.rocks ? 1 : 0;
 		case 'terrain':

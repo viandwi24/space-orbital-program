@@ -9,9 +9,9 @@ export const CLOUD_FAR = {
 	/** The shell takes over between these distances to the slab, m (where the march's mask fades out). */
 	from: 45_000,
 	to: 120_000,
-	/** The baked coverage at which a cloud starts and is full. */
-	coverFrom: 0.12,
-	coverTo: 0.62,
+	/** The baked density (the map's green: the density's own gradient, not the coverage's hard step) at which a cloud starts and is full (plan 416). */
+	coverFrom: 0.05,
+	coverTo: 0.75,
 	/** The shell's greatest opacity. */
 	opacity: 0.92,
 	/** Share of the sun a cloud takes on its night side, the slope and the lift of the sun's height. */
@@ -21,6 +21,47 @@ export const CLOUD_FAR = {
 	/** The sky's ambient light on it. */
 	ambient: 0.9
 } as const;
+
+/**
+ * Relief of the shell (plan 416, owner's M5 test: the clouds lack detail from orbit). The coverage is read
+ * from the baked map at a mip level that fits the pixel (no shimmer), a tiling detail noise of 53, 16 and
+ * 5 km is added to it, and its gradient tilts the shell's normal so the sun side of a bank is brighter
+ * and a bank shades the cloud behind it. Twin of the shaders' `shellHeight` and the lighting after it.
+ * Lengths of the noise are in units of 16 km (`cloudDensityQ`'s lattice), so a frequency of 0.3 is 53 km.
+ */
+export const CLOUD_FAR_RELIEF = {
+	/** Frequencies (per 16 km) and weights of the detail octaves, and how much of the coverage they move. */
+	frequencies: [0.3, 1.0, 3.0] as readonly number[],
+	weights: [0.5, 0.3, 0.2] as readonly number[],
+	amplitude: 1.0,
+	/** The detail only shapes a cloud near cloud: the map's density at this many more mip levels (a wide blur) gates it. */
+	gateLods: 2,
+	/** The share of the map's density in the height: the rest is the detail, so the noise shapes the edge and not only the map's steps. */
+	mapShare: 0.7,
+	/** The detail fades out where a pixel is wider than this (m), from `fadeFrom`: it would alias. */
+	fadeFrom: 5_000,
+	fadeTo: 14_000,
+	/** The step (m) of the gradient taps, and the tilt a unit of coverage difference gives the normal. */
+	stepM: 6_000,
+	tilt: 2.5,
+	/** How much the tilt's change of the sun's cosine moves the sun term, and its limits. */
+	sunGain: 3.0,
+	sunMin: 0.3,
+	sunMax: 1.6,
+	/** The shadow tap toward the sun (m) and its greatest share of the sun. */
+	shadowStepM: 24_000,
+	shadow: 0.7
+} as const;
+
+/** Mips softer than the pixel needs: the map's texels are 1.8 km and its edges are steps, so a finer level shows bilinear facets. */
+export const CLOUD_MAP_LOD_BIAS = 2;
+
+/** Mip level of the cloud map for a pixel of `footprintM` metres on a map whose texel is `texelM`: 0 to 6. */
+export const cloudMapLod = (footprintM: number, texelM: number): number =>
+	Math.min(
+		6,
+		Math.max(0, Math.log2(Math.max(footprintM, 1) / Math.max(texelM, 1)) + CLOUD_MAP_LOD_BIAS)
+	);
 
 /**
  * The shell's relevance gate (plan 403, owner's rule: a look draws only when the view needs it): below

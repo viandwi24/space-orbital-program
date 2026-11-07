@@ -146,7 +146,7 @@ export const PRESETS: Readonly<Record<GraphicsPreset, PresetSettings>> = {
 		trees: 250,
 		tufts: 0,
 		rocks: { density: 0, range: 0 },
-		nightLights: false,
+		nightLights: true,
 		terrainSize: 512,
 		terrainSteps: 48,
 		terrainRefineSteps: 24,
