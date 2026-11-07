@@ -34,9 +34,9 @@ describe('the gates: a metre either side', () => {
 		expect(relevanceOf(look, view({ altitude: gate })), `${look} at`).toBe(above as 0 | 1 | 2);
 	});
 
-	test('the clouds go off at the top of the air', () => {
+	test('the clouds stay cheap above the top of the air: the far shell is the stand-in (plan 416)', () => {
 		expect(relevanceOf('clouds', view({ altitude: 69_999 }))).toBe(1);
-		expect(relevanceOf('clouds', view({ altitude: 70_000 }))).toBe(0);
+		expect(relevanceOf('clouds', view({ altitude: 70_000 }))).toBe(1);
 	});
 
 	test('below the surface counts as the ground', () => {

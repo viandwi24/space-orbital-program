@@ -7,7 +7,7 @@
  *
  * Output: `docs/journal/assets/416-<prefix>-<backend>-<preset>-<view>.jpg` (prefix from argv[2]).
  */
-import { chromium } from '@playwright/test';
+import { chromium } from './lib/chromium';
 import { join } from 'node:path';
 import { setupVessel, waitForFlight } from './lib/frame-matrix';
 
@@ -17,7 +17,7 @@ const preset = process.env.SHOT_PRESET ?? 'low';
 const backend = process.env.SHOT_BACKEND ?? 'webgpu';
 const browser = await chromium.launch({
 	headless: false,
-	args: ['--use-angle=metal', '--enable-gpu', '--ignore-gpu-blocklist', '--enable-unsafe-webgpu', '--mute-audio']
+	args: ['--use-angle=metal', '--enable-gpu', '--ignore-gpu-blocklist', '--enable-unsafe-webgpu']
 });
 const context = await browser.newContext({
 	viewport: { width: 1600, height: 900 },

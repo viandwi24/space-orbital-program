@@ -1,7 +1,7 @@
 ---
 id: 416
 title: "Earth at night and from orbit: city lights on every preset, a sharper orbit bake with baked fine detail, and a cloud shell with relief"
-status: ready
+status: done
 owner: "Worker A"
 depends: []
 phase: 9
@@ -64,17 +64,18 @@ This plan fixes all three without adding per-frame cost (ADR 0375).
 
 ## Acceptance criteria
 
-- [ ] City lights are visible from 400 km on the night side at Low, Medium and High, on WebGPU and WebGL2 (screenshots).
-- [ ] The orbit view at Low on the M5 shows finer surface texture than before (side-by-side screenshots).
-- [ ] The cloud shell shows relief and no aliasing shimmer from orbit (screenshots).
-- [ ] Orbit stays at 8.3 ms mean on the M5 at Low and High, measured headed (interleaved A/B, the `/tmp/orbital-measuring` flag). If the machine is busy, run the cells at the end and record the load.
-- [ ] Dusk probe: 0 pipelines. Texture gate passes.
-- [ ] `bun test packages/renderer`, `bun run typecheck`, `bun run lint`, `bun run docs:check`.
+- [x] City lights are visible from 400 km on the night side at Low, Medium and High, on WebGPU and WebGL2 (screenshots).
+- [x] The orbit view at Low on the M5 shows finer surface texture than before (side-by-side screenshots).
+- [x] The cloud shell shows relief and no aliasing shimmer from orbit (screenshots).
+- [x] Orbit stays at 8.3 ms mean on the M5 at Low and High, measured headed (interleaved A/B, the `/tmp/orbital-measuring` flag). If the machine is busy, run the cells at the end and record the load.
+- [x] Dusk probe: 0 pipelines. Texture gate passes.
+- [x] `bun test packages/renderer`, `bun run typecheck`, `bun run lint`, `bun run docs:check`.
 
 ## Docs checklist
 
-- [ ] STATUS row, journal `docs/journal/416-earth-at-night-and-from-orbit.md` with screenshots, ADR 0375 linked.
+- [x] STATUS row, journal `docs/journal/416-earth-at-night-and-from-orbit.md` with screenshots, ADR 0375 linked.
 
 ## Log
 
 - 2026-11-08 — Created by the coordinator from the owner's M5 test (no city lights, poor Earth from orbit, flat clouds).
+- 2026-11-08 — Done by Worker A, journal 416. City lights on every preset with exposure compensation; bake face by device (2048 / 1536 / 1024, same for every preset); baked fine detail and tints; the far cloud shell shows from orbit again (plan 410's relevance had switched it off above the air; the "before" orbit clouds were the old cirrus) with mips, detail and relief; WebGL twins. Orbit A/B on the M5 (headed, WebGPU, governor off, 100 km orbit, interleaved, load 3.7 to 4.9): Low 8.33 ms both, p95 9.30 both; High 8.33 ms new against 8.37 base (4 pairs; one base run had a 151 ms frame), GPU 1.5 ms both. Dusk probe 0 pipelines; texture gate ok at Low and High. The M2 and Windows are `[manual]`.

@@ -4,12 +4,12 @@
  *
  *   SHOT_URL=http://localhost:5230 SHOT_PRESET=low bun scripts/probe-416.ts
  */
-import { chromium } from '@playwright/test';
+import { chromium } from './lib/chromium';
 import { setupVessel, waitForFlight } from './lib/frame-matrix';
 
 const browser = await chromium.launch({
 	headless: false,
-	args: ['--use-angle=metal', '--enable-gpu', '--ignore-gpu-blocklist', '--enable-unsafe-webgpu', '--mute-audio']
+	args: ['--use-angle=metal', '--enable-gpu', '--ignore-gpu-blocklist', '--enable-unsafe-webgpu']
 });
 const context = await browser.newContext({
 	viewport: { width: 1600, height: 900 },
@@ -32,7 +32,17 @@ const page = await context.newPage();
 await page.goto('/flight');
 await waitForFlight(page, 300_000);
 await page.waitForTimeout(5000);
-console.log('backend', await page.evaluate(() => { const r = (window as any).__orbital.renderer(); return { compiles: r.compiles ? r.compiles.pipelines.length : null, gpu: !!(navigator as any).gpu, keys: Object.keys(r).slice(0, 40) }; }));
+console.log(
+	'backend',
+	await page.evaluate(() => {
+		const r = (window as any).__orbital.renderer();
+		return {
+			compiles: r.compiles ? r.compiles.pipelines.length : null,
+			gpu: !!(navigator as any).gpu,
+			keys: Object.keys(r).slice(0, 40)
+		};
+	})
+);
 for (const alt of [400_000, 100_000, 30_000]) {
 	await page.evaluate(
 		(a) =>
