@@ -478,7 +478,9 @@ if (flag('freeze')) {
 	writeFileSync(join(root, 'perf-budgets.json'), JSON.stringify(merged, null, '\t') + '\n');
 	console.log('\nfroze the measured numbers as the budgets of this tier');
 }
-const failed = runs.filter((r) => check(r).length > 0).length + soakRuns.filter((r) => checkSoak(r).length > 0).length;
+const failed =
+	runs.filter((r) => check(r).length > 0).length +
+	soakRuns.filter((r) => checkSoak(r).length > 0).length;
 if (failed > 0) {
 	console.log(`\n${failed} of ${runs.length + soakRuns.length} runs are over their budgets.`);
 	if (!flag('no-fail') && !flag('freeze')) process.exitCode = 1;
