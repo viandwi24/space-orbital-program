@@ -22,10 +22,10 @@ import {
 export const TERRAIN_MAX_HEIGHT = 4_500;
 /**
  * Steepest slope (rise over run) of the height function over 5 m or more. Measured by the tests: the
- * cliffs of plan 417 reach about 4.0 (the ground was at most 1 before; over 2 m a crease may reach 6).
+ * cliffs of plan 417 reach about 4.2 (the ground was at most 1 before; over 2 m a crease may reach 6).
  * The march slows down only where the baked gradient says the ground is steep.
  */
-export const TERRAIN_MAX_SLOPE = 4.5;
+export const TERRAIN_MAX_SLOPE = 5;
 
 /** Terrain is exactly zero this far from the launch site, then rises over `SITE_BLEND_WIDTH`. */
 export const SITE_FLAT_RADIUS = 5_000;

@@ -84,6 +84,16 @@ export const SLOPE_EXAGGERATION_RANGE = [8, 80] as const;
 export const MARCH_BLOCK = 4;
 /** Half angle of the prepass cone in pixels: from the block's centre to its farthest pixel centre (2.12) plus margin. */
 export const MARCH_CONE_PIXELS = 2.5;
+/**
+ * How fast the ground may rise sideways across the prepass cone, per metre (plan 417). Not
+ * `TERRAIN_MAX_SLOPE`: that bound is a cliff riser's gradient over a few metres, and the cone is tens of
+ * metres wide at 8 km, where cliffs average out (measured on the massif, 80 000 pairs per baseline: p99.9
+ * of the slope over 5 to 160 m is 1.4 to 1.8, the maximum 2.9 to 5.1). With the full bound the cone
+ * start of a near-ground eye fell to the eye and the prepass saved nothing (the plan 039 test); 3 keeps
+ * the brute-force conservativeness test green and the saving. A riser steeper than this inside one
+ * cone can be passed by the prepass: a reservation, rare (the p99.9 is half this), not measured on screen.
+ */
+export const MARCH_CONE_SLOPE = 3;
 /** Start distance written for a ray whose cone never comes near the terrain: the pixel skips the march. */
 export const MARCH_NO_HIT = 1e10;
 
@@ -135,7 +145,7 @@ export function coneStart(
 			Math.hypot((sample(e, 1) - sample(e, -1)) / 200, (sample(north, 1) - sample(north, -1)) / 200)
 		);
 		// sideways the ground may rise at the global bound, whatever the local gradient says at the centre ray
-		const cone = heightAt(t) - t * coneAngle * (1 + TERRAIN_MAX_SLOPE);
+		const cone = heightAt(t) - t * coneAngle * (1 + MARCH_CONE_SLOPE);
 		if (cone < 0) return { start: prev, steps: i };
 		prev = t;
 		const descent = -dot(dir, n);

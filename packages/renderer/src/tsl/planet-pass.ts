@@ -46,7 +46,12 @@ import {
 	UPSAMPLE_TOLERANCE_OCTAVES,
 	budgetScale
 } from '../half-res.ts';
-import { MARCH_BLOCK, MARCH_CONE_PIXELS, MARCH_NO_HIT } from '../terrain-model.ts';
+import {
+	MARCH_BLOCK,
+	MARCH_CONE_PIXELS,
+	MARCH_CONE_SLOPE,
+	MARCH_NO_HIT
+} from '../terrain-model.ts';
 import {
 	BEACH_WIDTH,
 	HIGHLAND,
@@ -2296,7 +2301,7 @@ export class PlanetPassTSL {
 						h.mul(uR.mul(2.0).add(h)).div(r0.mul(d.negate()).add(sqrt(max(disc, 0.0)))),
 						float(1e9)
 					).toVar();
-					const widen = this.uConeAngle.mul(1.0 + TERRAIN_MAX_SLOPE);
+					const widen = this.uConeAngle.mul(1.0 + MARCH_CONE_SLOPE);
 					const shell = raySphere(r0, d, uR.add(TERRAIN_MAX_HEIGHT)).toVar();
 					const t = max(shell.x, 0.0).toVar();
 					const tEnd = min(shell.y, tLimit).toVar();

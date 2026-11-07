@@ -45,6 +45,8 @@ interface Cell {
 	view: string;
 	round: number;
 	meanMs: number;
+	/** Mean of the frames under twice the median: the machine's hitches (other workers) left out. */
+	steadyMs: number;
 	p50Ms: number;
 	p95Ms: number;
 	gpuMs: number | null;
@@ -84,12 +86,17 @@ async function run(build: 'before' | 'after', preset: string, round: number): Pr
 		const intervals = intervalsOf(r.stamps);
 		const rep = frameReport(intervals);
 		const mean = rep.meanMs;
+		const sorted = [...intervals].sort((a, b) => a - b);
+		const median = sorted[Math.floor(sorted.length / 2)]!;
+		const steady = intervals.filter((v) => v < 2 * median);
+		const steadyMs = steady.reduce((a, b) => a + b, 0) / steady.length;
 		const cell: Cell = {
 			build,
 			preset,
 			view,
 			round,
 			meanMs: mean,
+			steadyMs,
 			p50Ms: rep.p50Ms,
 			p95Ms: rep.p95Ms,
 			gpuMs: r.gpuMs,
@@ -97,7 +104,7 @@ async function run(build: 'before' | 'after', preset: string, round: number): Pr
 		};
 		cells.push(cell);
 		console.log(
-			`${build.padEnd(6)} ${preset.padEnd(4)} ${view.padEnd(6)} r${round} mean ${mean.toFixed(2)} ms  p50 ${rep.p50Ms.toFixed(2)}  p95 ${rep.p95Ms.toFixed(2)}  gpu ${r.gpuMs?.toFixed(2) ?? '-'}  load ${cell.load1.toFixed(2)}`
+			`${build.padEnd(6)} ${preset.padEnd(4)} ${view.padEnd(6)} r${round} mean ${mean.toFixed(2)} steady ${steadyMs.toFixed(2)} ms  p50 ${rep.p50Ms.toFixed(2)}  p95 ${rep.p95Ms.toFixed(2)}  gpu ${r.gpuMs?.toFixed(2) ?? '-'}  load ${cell.load1.toFixed(2)}`
 		);
 	}
 	await context.close();
@@ -112,12 +119,13 @@ await browser.close();
 console.log('\nmean of the rounds (ms), after minus before:');
 for (const preset of presets)
 	for (const view of views) {
-		const m = (b: string) => {
+		const m = (b: string, key: 'meanMs' | 'steadyMs' | 'p50Ms' | 'gpuMs') => {
 			const xs = cells.filter((c) => c.build === b && c.preset === preset && c.view === view);
-			return xs.reduce((a, c) => a + c.meanMs, 0) / xs.length;
+			return xs.reduce((a, c) => a + (c[key] ?? 0), 0) / xs.length;
 		};
-		console.log(
-			`${preset} ${view}: before ${m('before').toFixed(2)}  after ${m('after').toFixed(2)}  delta ${(m('after') - m('before')).toFixed(2)}`
-		);
+		for (const key of ['meanMs', 'steadyMs', 'p50Ms', 'gpuMs'] as const)
+			console.log(
+				`${preset} ${view} ${key}: before ${m('before', key).toFixed(2)}  after ${m('after', key).toFixed(2)}  delta ${(m('after', key) - m('before', key)).toFixed(2)}`
+			);
 	}
 if (process.argv[2]) writeFileSync(process.argv[2], JSON.stringify(cells, null, '\t'));
