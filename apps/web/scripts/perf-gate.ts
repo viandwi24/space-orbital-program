@@ -10,6 +10,10 @@
  *                                          off: for the owner on the M2 or Windows, prints a table to paste back
  *   bun run perf:gate --tier m2|windows    the tier whose budgets apply (default m5)
  *   bun run perf:gate --freeze             write what was measured as the tier's budgets
+ *   bun run perf:gate --soak               stability (plan 418, ADR 0375): about 3 minutes a scene at the pad,
+ *                                          in orbit, on an ascent and at the Space Center; reports the heap
+ *                                          floor's growth, the allocation rate, major GCs and long frames a
+ *                                          minute, held to the `soak` budgets (with --freeze, writes them)
  *
  * Options: --scenes pad,orbit  --backends webgpu,webgl  --governor off|on|both  --preset high|medium|low
  *   --seconds 12  --out file.json  --headless (a smoke run: the numbers mean nothing)  --no-build  --no-fail
@@ -20,20 +24,30 @@ import { chromium, type Page } from './lib/chromium';
 import { createTerrainField, latLonDirection, LEGACY_TERRAIN_SEED } from '@orbital/core';
 import { spawn, spawnSync, type ChildProcess } from 'node:child_process';
 import { existsSync, readFileSync, writeFileSync } from 'node:fs';
+import os from 'node:os';
 import { join } from 'node:path';
 import {
 	QUICK_SCENES,
 	SCENES,
+	SOAK_SCENES,
 	TIERS,
 	budgetFor,
 	failures,
+	formatSoakTable,
 	formatTable,
 	freeze,
+	freezeSoak,
+	soakBudgetFor,
+	soakFailures,
 	summarizeFrames,
+	summarizeSoak,
 	type Backend,
 	type Budgets,
+	type GcEvent,
 	type SceneId,
 	type SceneRun,
+	type SoakRun,
+	type SoakSceneId,
 	type TierId
 } from '../src/lib/perf/gate';
 
@@ -46,20 +60,27 @@ const option = (name: string): string | undefined => {
 };
 
 const quick = flag('quick');
+const soak = flag('soak');
 const tier = (option('tier') ?? 'm5') as TierId;
 if (!(tier in TIERS)) throw new Error(`unknown tier "${tier}" (m5, m2, windows)`);
-const scenes = (option('scenes')?.split(',') ??
-	(quick ? [...QUICK_SCENES] : [...SCENES])) as SceneId[];
+const soakScenes = (
+	soak ? (option('scenes')?.split(',') ?? [...SOAK_SCENES]) : []
+) as SoakSceneId[];
+for (const s of soakScenes)
+	if (!SOAK_SCENES.includes(s)) throw new Error(`unknown soak scene "${s}"`);
+const scenes = (
+	soak ? [] : (option('scenes')?.split(',') ?? (quick ? [...QUICK_SCENES] : [...SCENES]))
+) as SceneId[];
 for (const s of scenes) if (!SCENES.includes(s)) throw new Error(`unknown scene "${s}"`);
 const backends = (option('backends')?.split(',') ??
-	(quick ? ['webgpu'] : ['webgpu', 'webgl'])) as Backend[];
+	(quick || soak ? ['webgpu'] : ['webgpu', 'webgl'])) as Backend[];
 const governors = (
-	option('governor') === 'both' || (!option('governor') && !quick)
+	option('governor') === 'both' || (!option('governor') && !quick && !soak)
 		? ['off', 'on']
 		: [option('governor') ?? 'off']
 ) as Array<'off' | 'on'>;
 const preset = option('preset') ?? 'high';
-const seconds = Number(option('seconds') ?? (quick ? 5 : 12));
+const seconds = Number(option('seconds') ?? (soak ? 180 : quick ? 5 : 12));
 const angle =
 	process.env.MEASURE_ANGLE ??
 	(process.platform === 'win32' ? 'd3d11' : process.platform === 'darwin' ? 'metal' : 'vulkan');
@@ -164,6 +185,81 @@ async function sample(
 	}, secs);
 }
 
+/** Frame intervals and the heap every 100 ms over `secs` seconds (a soak), in the page. */
+async function soakSample(
+	page: Page,
+	secs: number
+): Promise<{ intervals: number[]; heapMb: number[] }> {
+	return page.evaluate(async (secs) => {
+		const mb = (): number =>
+			((performance as unknown as { memory?: { usedJSHeapSize: number } }).memory?.usedJSHeapSize ??
+				0) / 1e6;
+		const intervals: number[] = [];
+		const heapMb: number[] = [mb()];
+		await new Promise<void>((resolve) => {
+			let last = performance.now();
+			const t0 = last;
+			let nextHeap = t0 + 100;
+			const tick = (now: number): void => {
+				intervals.push(now - last);
+				last = now;
+				if (now >= nextHeap) {
+					heapMb.push(mb());
+					nextHeap = now + 100;
+				}
+				if (now - t0 < secs * 1000) requestAnimationFrame(tick);
+				else resolve();
+			};
+			requestAnimationFrame(tick);
+		});
+		return { intervals: intervals.slice(1), heapMb };
+	}, secs);
+}
+
+/** The garbage collections of a Chrome trace (`MajorGC` and `MinorGC` events of the timeline category). */
+function gcEventsOf(trace: Buffer): GcEvent[] {
+	const parsed = JSON.parse(trace.toString('utf8')) as {
+		traceEvents?: Array<{ name?: string; args?: Record<string, unknown> }>;
+	};
+	const out: GcEvent[] = [];
+	for (const e of parsed.traceEvents ?? []) {
+		if (e.name !== 'MajorGC' && e.name !== 'MinorGC') continue;
+		const before = e.args?.usedHeapSizeBefore;
+		const after = e.args?.usedHeapSizeAfter;
+		if (typeof before !== 'number' || typeof after !== 'number') continue;
+		out.push({ major: e.name === 'MajorGC', beforeMb: before / 1e6, afterMb: after / 1e6 });
+	}
+	return out;
+}
+
+/** One soak scene: the browser traced for its collections while the page is sampled. */
+async function soakRunOf(
+	page: Page,
+	scene: SoakSceneId,
+	backend: Backend,
+	governor: 'off' | 'on'
+): Promise<SoakRun> {
+	await browser.startTracing(page, { categories: ['devtools.timeline'] });
+	const s = await soakSample(page, seconds);
+	const gcs = gcEventsOf(await browser.stopTracing());
+	const run = summarizeSoak({
+		scene,
+		backend,
+		governor,
+		intervals: s.intervals,
+		heapMb: s.heapMb,
+		seconds,
+		targetHz,
+		gcs
+	});
+	console.log(
+		`  ${backend} governor ${governor} ${scene}: mean ${run.meanMs.toFixed(2)} ms, ` +
+			`${run.allocMbPerS.toFixed(1)} MB/s, ${run.majorGcs} major GCs, ${run.longPerMinute.toFixed(1)} long/min ` +
+			`(load ${os.loadavg()[0]!.toFixed(1)})`
+	);
+	return run;
+}
+
 async function waitForWorld(page: Page): Promise<void> {
 	await page
 		.getByTestId('world-loading')
@@ -215,6 +311,7 @@ async function place(page: Page, where: Place): Promise<void> {
 // ---- the runs
 const budgets = JSON.parse(readFileSync(join(root, 'perf-budgets.json'), 'utf8')) as Budgets;
 const runs: SceneRun[] = [];
+const soakRuns: SoakRun[] = [];
 const browser = await chromium.launch({
 	headless: flag('headless'),
 	args: [
@@ -222,6 +319,7 @@ const browser = await chromium.launch({
 		'--enable-gpu',
 		'--ignore-gpu-blocklist',
 		'--enable-unsafe-webgpu',
+		'--mute-audio',
 		'--enable-precise-memory-info'
 	]
 });
@@ -292,6 +390,45 @@ try {
 				record(scene, await sample(page, seconds));
 				await page.close();
 			}
+			// ---- the soaks (plan 418): a vessel to fly as above, each scene on a page of its own for the flights
+			if (soakScenes.length > 0) {
+				const setup = await context.newPage();
+				await setup.goto('/vab');
+				await setup.waitForFunction(
+					() => typeof (window as any).__orbitalVab?.loadBooster === 'function'
+				);
+				await setup.evaluate(() => (window as any).__orbitalVab.loadBooster());
+				await setup.waitForTimeout(1500);
+				await setup.close();
+			}
+			for (const scene of soakScenes) {
+				const path = scene === 'space-center' ? '/space-center' : '/flight';
+				const page = await context.newPage();
+				page.on('pageerror', (e) => console.log('  pageerror', e.message));
+				await page.goto(path);
+				await waitForWorld(page);
+				if (scene !== 'space-center') {
+					// the first load compiles and bakes: measure the second
+					await page.reload();
+					await waitForWorld(page);
+				}
+				if (scene === 'orbit') await place(page, FLIGHT.orbit!);
+				if (scene === 'ascent') {
+					// throttle up and fire the first stage: the climb from the pad
+					const fired = await page.evaluate(async () => {
+						const d = (window as any).__orbitalDebug;
+						const v = d?.vessel?.();
+						if (!v) return 'no vessel';
+						const t = await d.send({ type: 'throttle', vessel: v.id, value: 1 });
+						if (!t.ok) return t.reason ?? 'throttle refused';
+						const s = await d.send({ type: 'stage', vessel: v.id });
+						return s.ok ? '' : (s.reason ?? 'stage refused');
+					});
+					if (fired) throw new Error(`the ascent: ${fired}`);
+				}
+				soakRuns.push(await soakRunOf(page, scene, backend, governor));
+				await page.close();
+			}
 			await context.close();
 		}
 } finally {
@@ -302,32 +439,47 @@ try {
 // ---- the report
 const check = (r: SceneRun): string[] =>
 	failures(r, budgetFor(budgets, tier, r.scene), budgets.margin);
-const table = formatTable(runs, check);
-console.log(
-	`\nPerformance gate, ${TIERS[tier].label} (${targetHz} Hz), preset ${preset}, ${seconds} s a scene, budgets ${budgets.basis}${flag('headless') ? ' (HEADLESS: not a measurement)' : ''}\n`
-);
-console.log(table);
+const checkSoak = (r: SoakRun): string[] =>
+	soakFailures(r, soakBudgetFor(budgets, tier, r.scene), budgets.margin);
+const headline = `${TIERS[tier].label} (${targetHz} Hz), preset ${preset}, ${seconds} s a scene, budgets ${budgets.basis}${flag('headless') ? ' (HEADLESS: not a measurement)' : ''}, load ${os.loadavg()[0]!.toFixed(1)}`;
+if (runs.length > 0) {
+	console.log(`\nPerformance gate, ${headline}\n`);
+	console.log(formatTable(runs, check));
+}
+if (soakRuns.length > 0) {
+	console.log(`\nSoak, ${headline}\n`);
+	console.log(formatSoakTable(soakRuns, checkSoak));
+}
 const out = option('out');
 if (out)
 	writeFileSync(
 		out,
-		JSON.stringify({ tier, preset, seconds, headless: flag('headless'), runs }, null, '\t')
+		JSON.stringify(
+			{ tier, preset, seconds, headless: flag('headless'), load: os.loadavg(), runs, soakRuns },
+			null,
+			'\t'
+		)
 	);
 if (flag('freeze')) {
-	const frozen = freeze(runs, tier, budgets.margin);
+	const old = budgets.tiers[tier];
+	const next: NonNullable<Budgets['tiers'][TierId]> = {
+		default: old?.default ?? {},
+		scenes: old?.scenes,
+		soak: old?.soak
+	};
+	if (runs.length > 0) next.scenes = freeze(runs, tier, budgets.margin).tiers[tier]!.scenes;
+	if (soakRuns.length > 0)
+		next.soak = { default: old?.soak?.default ?? {}, scenes: freezeSoak(soakRuns) };
 	const merged: Budgets = {
 		...budgets,
 		basis: 'measured',
-		tiers: {
-			...budgets.tiers,
-			[tier]: { default: budgets.tiers[tier]?.default ?? {}, scenes: frozen.tiers[tier]!.scenes }
-		}
+		tiers: { ...budgets.tiers, [tier]: next }
 	};
 	writeFileSync(join(root, 'perf-budgets.json'), JSON.stringify(merged, null, '\t') + '\n');
 	console.log('\nfroze the measured numbers as the budgets of this tier');
 }
-const failed = runs.filter((r) => check(r).length > 0);
-if (failed.length > 0) {
-	console.log(`\n${failed.length} of ${runs.length} runs are over their budgets.`);
+const failed = runs.filter((r) => check(r).length > 0).length + soakRuns.filter((r) => checkSoak(r).length > 0).length;
+if (failed > 0) {
+	console.log(`\n${failed} of ${runs.length + soakRuns.length} runs are over their budgets.`);
 	if (!flag('no-fail') && !flag('freeze')) process.exitCode = 1;
 }
