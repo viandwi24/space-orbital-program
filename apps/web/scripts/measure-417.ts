@@ -9,7 +9,7 @@
  *
  * Options: SECONDS (15), WARM (6), ROUNDS (3), PRESETS (low,high), VIEWS (pad), BACKEND (webgpu), VW, VH, DSF.
  */
-import { chromium, type Page } from '@playwright/test';
+import { chromium, type Page } from './lib/chromium';
 import { writeFileSync } from 'node:fs';
 import { frameReport, intervalsOf } from '@orbital/renderer';
 import os from 'node:os';
@@ -29,7 +29,6 @@ const backend = process.env.BACKEND ?? 'webgpu';
 const browser = await chromium.launch({
 	headless: false,
 	args: [
-		'--mute-audio',
 		'--use-angle=metal',
 		'--enable-gpu',
 		'--ignore-gpu-blocklist',

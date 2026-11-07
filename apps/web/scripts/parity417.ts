@@ -7,7 +7,7 @@
  *
  *   SHOT_URL=http://localhost:5242 [PRESET=high] bun scripts/parity417.ts
  */
-import { chromium } from '@playwright/test';
+import { chromium } from './lib/chromium';
 import { setupVessel, waitForFlight } from './lib/frame-matrix';
 
 const base = process.env.SHOT_URL ?? 'http://localhost:5242';
@@ -16,7 +16,7 @@ const backend = process.env.BACKEND ?? 'webgpu';
 
 const browser = await chromium.launch({
 	headless: false,
-	args: ['--mute-audio', '--use-angle=metal', '--enable-gpu', '--ignore-gpu-blocklist', '--enable-unsafe-webgpu']
+	args: ['--use-angle=metal', '--enable-gpu', '--ignore-gpu-blocklist', '--enable-unsafe-webgpu']
 });
 const context = await browser.newContext({ viewport: { width: 1280, height: 800 }, baseURL: base });
 await context.addInitScript(() => {

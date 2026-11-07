@@ -186,13 +186,13 @@ describe('the GLSL of the hills bake', () => {
 		// (e2ab91ab… / e4848aa7…: the site's constants became the zone uniforms, noiseT gained
 		// uTerrainShift); plan 068 changed both on purpose again: the gradient is analytic (ADR 0116);
 		// plan 071 only wrapped the hash noise in an include guard (the same code, ADR 0121);
-		// plan 417 changed both on purpose: finer hill and ridge octaves with a band limit by texel size,
+		// plan 417 changed both on purpose: finer ridge octaves with a band limit by texel size,
 		// cliff terraces, ridge octaves as departures from their mean
 		expect(sha(terrainBakeFragment)).toBe(
-			'b67973cf2ef07bf89648c9d9ad95fbed28134efc26ad148c6feac2446b70aa5a'
+			'41afd68f7fc735c8a9732e77e1a1dff9950d0575d3e28a1425d042285df82783'
 		);
 		expect(sha(terrainPatchFragment)).toBe(
-			'1f845b506435e542f3bc180b4def057af03839c42de0e25e7208e39a9cb2ec3a'
+			'771c0dc4ba26823864846ffac9228841018982b1f09930075e209df57f25eb7c'
 		);
 		expect(sha(terrainBakeVertex)).toBe(
 			'227b9f2ac69e37c9d7c7131be39f4cf01eb80ff06ba0fc71f9ed3ab7605b0712'

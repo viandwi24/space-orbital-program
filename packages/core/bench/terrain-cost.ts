@@ -1,6 +1,6 @@
 /**
  * Cost of the terrain height function per sample (plan 417): `terrainHeight` and the field's
- * `heightAt`, on four fixed sets of directions, as the median of several timed rounds.
+ * `heightAt`, on four fixed sets of directions, as the median (and the minimum, the less noisy one on a shared machine) of nine timed rounds.
  *
  *   bun packages/core/bench/terrain-cost.ts [path to another checkout's packages/core, for the old function]
  *
@@ -52,7 +52,7 @@ for (let i = 0; i < 70; i++)
 		simGrid.push(core.latLonDirection(-0.0373 + (j * 300) / R, 0.0353 + (i * 300) / R));
 
 const sets = { land, massif, sim: simGrid, globe: globe.slice(0, 5000) };
-const out: Record<string, number> = {};
+const out: Record<string, { median: number; min: number }> = {};
 for (const [name, set] of Object.entries(sets)) {
 	let sink = 0;
 	for (const n of set) sink += core.terrainHeight(n, ctx); // warm up the JIT
@@ -63,7 +63,7 @@ for (const [name, set] of Object.entries(sets)) {
 		times.push(((performance.now() - t0) * 1000) / set.length);
 	}
 	times.sort((a, b) => a - b);
-	out[name] = times[4]!;
+	out[name] = { median: times[4]!, min: times[0]! };
 	console.log(
 		`${name.padEnd(7)} ${set.length} samples  median ${times[4]!.toFixed(3)} us/sample  (min ${times[0]!.toFixed(3)}, max ${times[8]!.toFixed(3)})  [${sink > 0 ? 'ok' : 'zero'}]`
 	);

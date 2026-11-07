@@ -10,7 +10,7 @@
  * 0.0127, longitude 0.059, 1.8 km high); the camera is at the vessel, which stands there, hangs 3 km
  * or 30 km above it. F2 hides the interface.
  */
-import { chromium } from '@playwright/test';
+import { chromium } from './lib/chromium';
 import { join } from 'node:path';
 import { setupVessel, waitForFlight } from './lib/frame-matrix';
 
@@ -27,17 +27,18 @@ const YAW = process.env.SHOT_YAW ? Number(process.env.SHOT_YAW) : undefined;
  * Where the vessel is for a view: the highland itself, or 3 km / 30 km above it hanging (the vessel falls a few
  * hundred metres while the shot is taken), the camera in free mode looking towards the massif (the flight camera only orbits a few tens of metres out). Altitudes are above the sphere.
  */
-const PLACES: Record<string, { altitude?: number; camera: { yaw: number; pitch: number; distance: number } }> =
-	{
-		hill300: { camera: { yaw: 0.9, pitch: 0.12, distance: 300 } },
-		hill3k: { altitude: GROUND + 3_000, camera: { yaw: 4.71, pitch: 0.08, distance: 40 } },
-		mtn30k: { altitude: GROUND + 30_000, camera: { yaw: 4.71, pitch: 0.2, distance: 40 } }
-	};
+const PLACES: Record<
+	string,
+	{ altitude?: number; camera: { yaw: number; pitch: number; distance: number } }
+> = {
+	hill300: { camera: { yaw: 2.4, pitch: 0.1, distance: 300 } },
+	hill3k: { altitude: GROUND + 3_000, camera: { yaw: 2.4, pitch: 0.12, distance: 40 } },
+	mtn30k: { altitude: GROUND + 30_000, camera: { yaw: 2.4, pitch: 0.25, distance: 40 } }
+};
 
 const browser = await chromium.launch({
 	headless: false,
 	args: [
-		'--mute-audio',
 		'--use-angle=metal',
 		'--enable-gpu',
 		'--ignore-gpu-blocklist',
@@ -64,7 +65,8 @@ for (const preset of presets) {
 	const page = await context.newPage();
 	page.on('pageerror', (e) => console.log('  pageerror', e.message));
 	page.on('console', (m) => {
-		if (m.type() === 'error' || m.type() === 'warning') console.log('  console', m.text().slice(0, 300));
+		if (m.type() === 'error' || m.type() === 'warning')
+			console.log('  console', m.text().slice(0, 300));
 	});
 	await page.addInitScript(
 		([b, p]) => {

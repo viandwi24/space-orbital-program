@@ -70,8 +70,7 @@ export const TERRAIN_SHAPE = {
 	landFull: SEA_LEVEL + 0.07,
 	hillAmplitude: 520,
 	hillWavelengthKm: 30,
-	/** Plan 417: 30 km down to about 1 km (it was 4 octaves, 3.75 km). */
-	hillOctaves: 6,
+	hillOctaves: 4,
 	hillLow: 0.35,
 	hillHigh: 0.8,
 	mountainAmplitude: 3_700,
