@@ -38,7 +38,13 @@ import {
 	SCALED_BLEND
 } from '../scaled-space-model.ts';
 import { LIGHTS_GAIN, LIGHTS_RADIANCE, nightFactorGLSL, nightLightsGLSL } from '../night-lights.ts';
-import { DETAIL_CONTRAST, DETAIL_LOD_FADE, DETAIL_SIZE, DETAIL_TILE } from '../detail-textures.ts';
+import {
+	DETAIL_CONTRAST,
+	DETAIL_LOD_FADE,
+	DETAIL_SIZE,
+	DETAIL_TILE,
+	ROCK_SHADING
+} from '../detail-textures.ts';
 import {
 	CLOUD_FILL,
 	CLOUD_GAIN_CAP,
@@ -1088,6 +1094,35 @@ ${MID_OCTAVES_KM.map(
 	wRock = max(wRock, smoothstep(0.06, 0.22, slope * 3.0));
 	wRock = max(wRock, smoothstep(0.28, 0.55, tanS));
 	wRock = max(wRock, smoothstep(1500.0, 2100.0, hT + 300.0 * colourNoise));
+	// rock shading (plan 417): strata along the height, macro tint at 45 to 400 m, strongest on cliffs
+	if (wRock > 0.02 && footprint < ${f(ROCK_SHADING.maxFootprint)}) {
+		float cliff = smoothstep(${f(ROCK_SHADING.cliffFrom)}, ${f(ROCK_SHADING.cliffFull)}, tanS);
+		float strata = 0.0;
+		float bent = hT + (noiseA(pl, 260.0, ${ROCK_SHADING.strataSalt}) - 0.5) * ${f(ROCK_SHADING.strataWarp)};
+${ROCK_SHADING.strata
+	.map(
+		({ period, amp }, k) => `		{
+			float fd = clamp((${f(period)} / (footprint * 3.0) - 1.0) * 1.5, 0.0, 1.0);
+			if (fd > 0.0) {
+				float ph = fract(bent / ${f(period)} + ${f(k * 0.37)});
+				strata += (smoothstep(0.2, 0.8, abs(ph - 0.5) * 2.0) - 0.5) * ${f(amp)} * fd;
+			}
+		}`
+	)
+	.join('\n')}
+		float tint = 0.0;
+${ROCK_SHADING.macro
+	.map(
+		({ wavelengthM, weight, salt }) => `		{
+			float fd = clamp((${f(wavelengthM)} / (footprint * 3.0) - 1.0) * 1.5, 0.0, 1.0);
+			if (fd > 0.0) tint += (noiseA(pl, ${f(wavelengthM)}, ${salt}) - 0.5) * ${f(weight)} * fd;
+		}`
+	)
+	.join('\n')}
+		float sc = strata * (cliff * 0.8 + 0.35) * (${f(ROCK_SHADING.strataVary[0])} + ${f(ROCK_SHADING.strataVary[1])} * noiseA(pl, ${f(ROCK_SHADING.strataVaryM)}, 95));
+		float warm = clamp(tint * 2.0 + 0.5, 0.0, 1.0);
+		rockc *= mix(vec3(0.86, 0.96, 1.08), vec3(1.16, 1.02, 0.8), warm) * vec3(1.0 + sc, 1.0 + sc * 0.9, 1.0 + sc * 0.75) * (1.0 + tint * 0.5);
+	}
 	float snowLine = 2800.0 + 420.0 * colourNoise;
 	float wSnow = max(smoothstep(0.22, 0.12, temp), smoothstep(0.9, 0.97, e2));
 	wSnow = max(wSnow, smoothstep(snowLine - 150.0, snowLine + 250.0, hT) * (1.0 - smoothstep(0.55, 0.95, tanS)));
@@ -1117,6 +1152,21 @@ ${MID_OCTAVES_KM.map(
 		mult = mix(mult, 1.0 + (d2.z - 0.5) * ${f(2 * DETAIL_CONTRAST.sand)}, wBeach);
 		mult = mix(mult, 1.0 + (d4.w - 0.5) * ${f(2 * DETAIL_CONTRAST.snow)}, wSnow * smoothstep(0.0, 1.0, 1.0 - slope * 2.0));
 		land *= mix(1.0, mult, detailFade);
+		// rock detail normals (plan 417): the rock channel is a height, its finite difference over one
+		// texel of the level read is the slope (the twin of the TSL block)
+		float bumpFade = (1.0 - smoothstep(${f(ROCK_SHADING.bumpFootprint[0])}, ${f(ROCK_SHADING.bumpFootprint[1])}, footprint)) * wRock * (0.3 + 0.7 * (1.0 - wSnow)) * uDetailOn;
+		if (bumpFade > 0.02) {
+			vec3 bT1 = normalize(cross(nBF, abs(nBF.y) > 0.99 ? vec3(1.0, 0.0, 0.0) : vec3(0.0, 1.0, 0.0)));
+			vec3 bT2 = cross(nBF, bT1);
+			float eps = max(footprint, ${f(DETAIL_TILE.rock / DETAIL_SIZE)});
+			vec3 qa = (pl + bT1 * eps) / ${f(DETAIL_TILE.rock)};
+			vec3 qb = (pl + bT2 * eps) / ${f(DETAIL_TILE.rock)};
+			float h1 = (textureLod(uDetail, qa.yz, lod4) * wT.x + textureLod(uDetail, qa.xz, lod4) * wT.y + textureLod(uDetail, qa.xy, lod4) * wT.z).x;
+			float h2 = (textureLod(uDetail, qb.yz, lod4) * wT.x + textureLod(uDetail, qb.xz, lod4) * wT.y + textureLod(uDetail, qb.xy, lod4) * wT.z).x;
+			h1 = mix(0.5, h1, 1.0 - smoothstep(${f(DETAIL_LOD_FADE[0])}, ${f(DETAIL_LOD_FADE[1])}, lod4));
+			h2 = mix(0.5, h2, 1.0 - smoothstep(${f(DETAIL_LOD_FADE[0])}, ${f(DETAIL_LOD_FADE[1])}, lod4));
+			Nb = normalize(Nb - (bT1 * (h1 - d4.x) + bT2 * (h2 - d4.x)) * ${f(ROCK_SHADING.bump)} / eps * bumpFade);
+		}
 	}
 	// wet sand strip along the shore
 	land *= 1.0 - 0.35 * (1.0 - smoothstep(0.0, 3.0, -(sdM + swash))) * (1.0 - wRock);
@@ -1346,7 +1396,14 @@ vec3 shadeRay(vec3 ro, vec3 rd, float r0, float d, float h, bool hitG, bool hitT
 		// The 8-sample shadow march cannot resolve ridge shadows once a pixel is hundreds of metres wide: it only
 		// blackens isolated pixels along crests (plan 039). Beyond a footprint of 40 m it fades out; past 160 m
 		// it is not run, which also saves its eight height reads for the far half of the screen.
-		if (hitT && geo > -0.05 && footprint < 160.0) {
+		// Low runs three steps (plan 417), and only where there is relief to shade: inside a site's flat zone
+		// every sample is level ground, so its march (about 440 m) is skipped there.
+#if TERRAIN_SHADOW_STEPS <= 3
+		bool shadowRelief = terrainZones(nBF, uR).x > 0.03;
+#else
+		bool shadowRelief = true;
+#endif
+		if (hitT && geo > -0.05 && footprint < 160.0 && shadowRelief) {
 			float vis = terrainShadow(posRel + nGeoI * 2.0, uSunDir);
 			sh *= mix(mix(vis, 1.0, smoothstep(40.0, 160.0, footprint)), 1.0, graze);
 		}

@@ -174,10 +174,12 @@ describe('the baked patches reproduce the height function where a vessel can tou
 		return worst;
 	}
 
-	test('the fine patch (4 m texels) is within 0.05 m over the massif, the mid patch (32 m) within 1 m', () => {
+	// Plan 417: octaves down to 125 m and cliff risers (slope 4) were 0.05 m and 1 m. The GPU bakes cut the
+	// octaves a texel cannot carry, so the mid patch's own figure is better than this CPU one.
+	test('the fine patch (4 m texels) is within 0.15 m over the massif, the mid patch (32 m) within 10 m', () => {
 		for (const km of [25_000, 30_000, 40_000]) {
-			expect(patchError(PATCH_SPANS.fine, 1024, km, 1500)).toBeLessThan(0.05);
-			expect(patchError(PATCH_SPANS.mid, 1024, km, 1500)).toBeLessThan(1);
+			expect(patchError(PATCH_SPANS.fine, 1024, km, 1500)).toBeLessThan(0.15);
+			expect(patchError(PATCH_SPANS.mid, 1024, km, 1500)).toBeLessThan(10);
 		}
 	}, 60_000);
 });

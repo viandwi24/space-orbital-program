@@ -424,6 +424,10 @@ export class TerrainTSL {
 			const r = valueNoiseCellD(c, p.sub(fl)).toVar();
 			return vec4(r.x, r.yzw.mul(freq));
 		};
+		// metres of one texel of this bake: the octaves finer than about four of them fade out (plan 417)
+		const texelM = this.uTexel.mul(R);
+		const bandOf = (wavelengthM: number): N =>
+			smoothstep(texelM.mul(2.0), texelM.mul(4.0), float(wavelengthM));
 		// the octave rotation's transpose, accumulated per octave on the CPU (rows)
 		const rot = OCTAVE_ROTATION;
 		const rotT = [0, 1, 2].map((r) => [0, 1, 2].map((c) => rot[c]![r]!));
@@ -438,11 +442,20 @@ export class TerrainTSL {
 			wavelengthKm: number,
 			octaves: number,
 			salt: number,
-			ridge: boolean
+			ridge: boolean,
+			fineFrom = octaves,
+			fineFade: N | null = null
 		): N => {
-			let sum: N = cD(0.0);
 			let amp = 1;
 			let norm = 0;
+			for (let i = 0; i < octaves; i++) {
+				norm += amp;
+				amp *= 0.5;
+			}
+			// an octave left out contributes its mean (see `ridged` in core's terrain.ts)
+			const mean = ridge ? S.ridgeMean : 0.5;
+			const sum = cD(mean * norm).toVar();
+			amp = 1;
 			let freq = 1 / wavelengthKm;
 			let q = q0;
 			let back = [
@@ -451,22 +464,59 @@ export class TerrainTSL {
 				[0, 0, 1]
 			];
 			for (let i = 0; i < octaves; i++) {
-				const r = noiseTD(q, freq, salt + i).toVar();
-				let term: N = vec4(r.x, apply(back, r.yzw).mul(kq));
-				if (ridge) {
-					const t = term.toVar();
-					const x = t.x.mul(2.0).sub(1.0);
-					const sq = sqrt(x.mul(x).add(S.ridgeSoftness ** 2));
-					term = chainD(float(1.0).sub(sq.sub(S.ridgeSoftness)), x.mul(-2.0).div(sq), t);
-				}
-				sum = sum.add(term.mul(amp));
-				norm += amp;
+				const fine = i >= fineFrom && fineFade !== null;
+				// octaves finer than about four texels of this bake fade out (plan 417)
+				const band = bandOf(1000 / freq);
+				// the body of an `If` runs when the stack is built, after the loop: it needs this octave's values
+				const [qi, ampi, freqi, backi] = [q, amp, freq, back];
+				const octave = (): void => {
+					const r = noiseTD(qi, freqi, salt + i).toVar();
+					let term: N = vec4(r.x, apply(backi, r.yzw).mul(kq));
+					if (ridge) {
+						const t = term.toVar();
+						const x = t.x.mul(2.0).sub(1.0);
+						const sq = sqrt(x.mul(x).add(S.ridgeSoftness ** 2));
+						term = chainD(float(1.0).sub(sq.sub(S.ridgeSoftness)), x.mul(-2.0).div(sq), t);
+					}
+					const dev = term.sub(cD(mean));
+					sum.addAssign((fine ? mulD(dev, fineFade) : dev).mul(band ? band.mul(ampi) : ampi));
+				};
+				// octaves the fade or the band limit zeroes are not evaluated (the GLSL breaks out of the loop)
+				const on =
+					fine && band
+						? fineFade!.x.greaterThan(0.0).and(band.greaterThan(0.0))
+						: fine
+							? fineFade!.x.greaterThan(0.0)
+							: band
+								? band.greaterThan(0.0)
+								: null;
+				if (on) If(on, octave);
+				else octave();
 				amp *= 0.5;
 				freq *= 2;
 				q = octaveRotate(q);
 				back = mul3(back, rotT);
 			}
 			return sum.div(norm);
+		};
+		/** `terraceD` of core: the ridge profile pulled toward the cliff staircase by `mask`. */
+		const terraceD = (p: N, mask: N): N => {
+			const fs = p.x.mul(S.cliffSteps);
+			const i = floor(fs);
+			const span = S.cliffTreadHigh - S.cliffTreadLow;
+			const raw = fs.sub(i).sub(S.cliffTreadLow).div(span).toVar();
+			const t = clamp(raw, 0.0, 1.0);
+			const dStep = select(
+				raw.greaterThan(0.0).and(raw.lessThan(1.0)),
+				t.mul(6.0).mul(t.oneMinus()).div(span),
+				float(0.0)
+			);
+			const stair = chainD(
+				i.add(t.mul(t).mul(float(3.0).sub(t.mul(2.0)))).div(S.cliffSteps),
+				dStep,
+				p
+			);
+			return p.add(mulD(mask.mul(S.cliffStrength), stair.sub(p)));
 		};
 		const arcD = (n: N, dir: N): N => {
 			const c = clamp(dot(n, dir), -1.0, 1.0);
@@ -590,12 +640,28 @@ export class TerrainTSL {
 							vec4(rangeH.mul(rangeH).div(4 * S.rangeBlend), dh.mul(rangeH).div(2 * S.rangeBlend))
 						);
 					});
-					const ridgeV = octavesD(q, S.ridgeWavelengthKm, S.ridgeOctaves, 31, true);
+					const ridgeV = octavesD(
+						q,
+						S.ridgeWavelengthKm,
+						S.ridgeOctaves,
+						31,
+						true,
+						S.ridgeFineFrom,
+						smoothstepD(S.ridgeFineLow, S.ridgeFineHigh, range).toVar()
+					);
 					const upland = smoothstepD(S.uplandLow, S.uplandHigh, eD);
-					const mountains = mulD(
-						mulD(range, smoothstepD(0.25, 0.8, ridgeV)),
-						cD(0.7).add(upland.mul(0.3))
-					).mul(S.mountainAmplitude);
+					const profile = smoothstepD(0.25, 0.8, ridgeV).toVar();
+					If(range.x.greaterThan(S.cliffRangeLow), () => {
+						const cn0 = noiseTD(q, 1 / S.cliffWavelengthKm, S.cliffSalt).toVar();
+						const mask = mulD(
+							smoothstepD(S.cliffLow, S.cliffHigh, vec4(cn0.x, cn0.yzw.mul(kq))),
+							smoothstepD(S.cliffRangeLow, S.cliffRangeHigh, range)
+						);
+						profile.assign(terraceD(profile, mask));
+					});
+					const mountains = mulD(mulD(range, profile), cD(0.7).add(upland.mul(0.3))).mul(
+						S.mountainAmplitude
+					);
 					const relief = mulD(mulD(land, site), hills.add(mountains));
 					const ln0 = noiseTD(q, 1 / LAKE.wavelengthKm, LAKE.salt).toVar();
 					const level = mulD(vec4(ln0.x, ln0.yzw.mul(kq)), gate);
@@ -619,7 +685,8 @@ export class TerrainTSL {
 			radius: this.radius,
 			shift: this.uShift,
 			zones: (n: N) => this.zones(n),
-			bilinear: false
+			bilinear: false,
+			texelM: this.uTexel.mul(this.radius)
 		});
 	}
 
@@ -781,25 +848,62 @@ export function heightAtFn(o: {
 	shift: N;
 	zones: (n: N) => N;
 	bilinear: boolean;
+	/** Metres of one texel of the bake that evaluates it (octaves finer than four of them fade out); absent: the exact function. */
+	texelM?: N;
 }): (n: N) => N {
 	const map = o.map;
 	const R = o.radius;
 	const shift = o.shift;
-	const fbmT = (q0: N, wavelengthKm: number, octaves: number, salt: number, ridged: boolean): N => {
-		let sum: N = float(0.0);
+	const fbmT = (
+		q0: N,
+		wavelengthKm: number,
+		octaves: number,
+		salt: number,
+		ridged: boolean,
+		fineFrom = octaves,
+		fineFade: N | null = null
+	): N => {
 		let q = q0;
 		let amp = 1;
 		let norm = 0;
+		for (let i = 0; i < octaves; i++) {
+			norm += amp;
+			amp *= 0.5;
+		}
+		// an octave left out contributes its mean (see `ridged` in core's terrain.ts)
+		const mean = ridged ? S.ridgeMean : 0.5;
+		const sum = float(mean * norm).toVar();
+		amp = 1;
 		let freq = 1 / wavelengthKm;
 		for (let i = 0; i < octaves; i++) {
-			const v = noiseT(q, freq, salt + i, shift);
-			// x * x, not pow(x, 2): pow of a negative base is NaN in WGSL
-			const rx = v.mul(2.0).sub(1.0);
-			const term = ridged
-				? float(1.0).sub(sqrt(rx.mul(rx).add(S.ridgeSoftness ** 2)).sub(S.ridgeSoftness))
-				: v;
-			sum = sum.add(term.mul(amp));
-			norm += amp;
+			const fine = i >= fineFrom && fineFade !== null;
+			// octaves finer than about four texels of the bake fade out; the exact function has no texel
+			const band = o.texelM
+				? smoothstep(o.texelM.mul(2.0), o.texelM.mul(4.0), float(1000 / freq))
+				: null;
+			// the body of an `If` runs when the stack is built, after the loop: it needs this octave's values
+			const [qi, ampi, freqi] = [q, amp, freq];
+			const octave = (): void => {
+				const v = noiseT(qi, freqi, salt + i, shift);
+				// x * x, not pow(x, 2): pow of a negative base is NaN in WGSL
+				const rx = v.mul(2.0).sub(1.0);
+				const term = ridged
+					? float(1.0).sub(sqrt(rx.mul(rx).add(S.ridgeSoftness ** 2)).sub(S.ridgeSoftness))
+					: v;
+				const dev = term.sub(mean);
+				sum.addAssign((fine ? dev.mul(fineFade) : dev).mul(band ? band.mul(ampi) : ampi));
+			};
+			// octaves the fade or the band limit zeroes are not evaluated (the GLSL breaks out of the loop)
+			const on =
+				fine && band
+					? fineFade!.greaterThan(0.0).and(band.greaterThan(0.0))
+					: fine
+						? fineFade!.greaterThan(0.0)
+						: band
+							? band.greaterThan(0.0)
+							: null;
+			if (on) If(on, octave);
+			else octave();
 			amp *= 0.5;
 			freq *= 2;
 			q = octaveRotate(q);
@@ -840,12 +944,31 @@ export function heightAtFn(o: {
 				const rangeA = smoothstep(S.rangeLow, S.rangeHigh, rangeN);
 				const rangeH = max(float(S.rangeBlend).sub(abs(rangeA.sub(backdrop))), 0.0);
 				const range = max(rangeA, backdrop).add(rangeH.mul(rangeH).div(4 * S.rangeBlend));
-				const ridge = fbmT(q, S.ridgeWavelengthKm, S.ridgeOctaves, 31, true);
+				const ridge = fbmT(
+					q,
+					S.ridgeWavelengthKm,
+					S.ridgeOctaves,
+					31,
+					true,
+					S.ridgeFineFrom,
+					smoothstep(S.ridgeFineLow, S.ridgeFineHigh, range)
+				);
 				const upland = smoothstep(S.uplandLow, S.uplandHigh, e);
-				const mountains = range
-					.mul(smoothstep(0.25, 0.8, ridge))
-					.mul(upland.mul(0.3).add(0.7))
-					.mul(S.mountainAmplitude);
+				const profile = smoothstep(0.25, 0.8, ridge).toVar();
+				If(range.greaterThan(S.cliffRangeLow), () => {
+					const fs = profile.mul(S.cliffSteps);
+					const fl = floor(fs);
+					const stair = fl
+						.add(smoothstep(S.cliffTreadLow, S.cliffTreadHigh, fs.sub(fl)))
+						.div(S.cliffSteps);
+					const mask = smoothstep(
+						S.cliffLow,
+						S.cliffHigh,
+						noiseT(q, 1 / S.cliffWavelengthKm, S.cliffSalt, shift)
+					).mul(smoothstep(S.cliffRangeLow, S.cliffRangeHigh, range));
+					profile.addAssign(mask.mul(S.cliffStrength).mul(stair.sub(profile)));
+				});
+				const mountains = range.mul(profile).mul(upland.mul(0.3).add(0.7)).mul(S.mountainAmplitude);
 				const lakeLevel = noiseT(q, 1 / LAKE.wavelengthKm, LAKE.salt, shift).mul(z.z);
 				const lakeCap = max(
 					float(LAKE.to)

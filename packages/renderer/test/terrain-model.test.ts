@@ -80,7 +80,7 @@ describe('local march slope', () => {
 			expect(s).toBeLessThanOrEqual(TERRAIN_MAX_SLOPE);
 			last = s;
 		}
-		expect(localMarchSlope(1)).toBe(TERRAIN_MAX_SLOPE);
+		expect(localMarchSlope(TERRAIN_MAX_SLOPE)).toBe(TERRAIN_MAX_SLOPE);
 	});
 });
 

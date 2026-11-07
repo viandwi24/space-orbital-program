@@ -18,6 +18,43 @@ export const DETAIL_CONTRAST = { rock: 0.9, grass: 0.45, sand: 0.5, snow: 0.3 } 
  */
 export const DETAIL_LOD_FADE = [3.5, 5.5] as const;
 
+/**
+ * Rock shading (plan 417), shared by the TSL planet pass and its GLSL twin. Rock is picked by weight
+ * (altitude, the map, the slope of the baked ground) and then given three things a flat two-tone
+ * mix did not have:
+ * - strata: layers along the height of the ground (`period` metres apart, `amp` of the brightness),
+ *   bent by a noise of `warp` metres, each fading out once a pixel is a third of its period wide;
+ * - macro tint: three noises of `wavelengthM`, 45 to 400 m, warming and cooling the rock;
+ * - detail normals: the rock channel of the detail texture is a height (strata, cracks, grain), so the
+ *   normal is its finite difference over one texel of the level read (no second texture, plan 417),
+ *   `bump` metres of relief per unit of the channel, fading out with the detail (`bumpFootprint`).
+ */
+export const ROCK_SHADING = {
+	strata: [
+		{ period: 9, amp: 0.2 },
+		{ period: 46, amp: 0.24 },
+		{ period: 230, amp: 0.2 }
+	],
+	strataWarp: 28,
+	strataSalt: 91,
+	/** The strata's strength varies from `strataVary[0]` to `[0] + [1]` of itself over a noise of this wavelength, m (salt 95), so layers are not regular stripes. */
+	strataVaryM: 120,
+	strataVary: [0.5, 1.0] as const,
+	macro: [
+		{ wavelengthM: 400, weight: 0.5, salt: 92 },
+		{ wavelengthM: 130, weight: 0.3, salt: 93 },
+		{ wavelengthM: 45, weight: 0.2, salt: 94 }
+	],
+	/** Rock is shaded (strata, tint) while a pixel is narrower than this, m. */
+	maxFootprint: 220,
+	bump: 0.25,
+	/** Rock detail normals fade out between these pixel footprints, m. */
+	bumpFootprint: [1.5, 8] as const,
+	/** A tangent slope from `tanS` steeper than `cliffFrom` is a cliff: strata at full strength by `cliffFull`. */
+	cliffFrom: 0.5,
+	cliffFull: 1.4
+} as const;
+
 const hash = (x: number, y: number, salt: number): number => {
 	let h = Math.imul(x, 374761393) + Math.imul(y, 668265263) + Math.imul(salt, 2147483647);
 	h = Math.imul(h ^ (h >>> 13), 1274126177);

@@ -110,7 +110,13 @@ import type { PlanetPass } from '../planet.ts';
 import { APRONS, PAD_RADIUS, ROADS, SCORCH_RADIUS } from '../site.ts';
 import { createLutSky, type LutSky } from './lut-sky.ts';
 import { SkyMapTSL, skyRadiance } from './starfield.ts';
-import { DETAIL_CONTRAST, DETAIL_LOD_FADE, DETAIL_SIZE, DETAIL_TILE } from '../detail-textures.ts';
+import {
+	DETAIL_CONTRAST,
+	DETAIL_LOD_FADE,
+	DETAIL_SIZE,
+	DETAIL_TILE,
+	ROCK_SHADING
+} from '../detail-textures.ts';
 import { ScaledSpaceTSL, faceDirection } from './scaled-space.ts';
 import {
 	MID_COAST_CAP,
@@ -1320,7 +1326,7 @@ export class PlanetPassTSL {
 					vec3(0.17, 0.15, 0.135),
 					vec3(0.34, 0.31, 0.27),
 					clamp(colourNoise.mul(1.3).add(fine.mul(0.3)).add(0.5), 0.0, 1.0)
-				);
+				).toVar();
 				const snow = vec3(0.78, 0.8, 0.84);
 				const sand = vec3(0.44, 0.38, 0.26).mul(clamp(fine.add(0.5), 0.0, 1.0).mul(0.16).add(0.92));
 				const wDesert = smoothstep(0.26, 0.4, moist)
@@ -1375,6 +1381,47 @@ export class PlanetPassTSL {
 						smoothstep(1500.0, 2100.0, hT.add(colourNoise.mul(300.0)))
 					)
 				);
+				// rock shading (plan 417): strata along the height, macro tint at 45 to 400 m, strongest on cliffs
+				If(wRock.greaterThan(0.02).and(footprint.lessThan(ROCK_SHADING.maxFootprint)), () => {
+					// a layer fades out once a pixel is a third of its period wide
+					const periodFade = (period: number): N =>
+						clamp(float(period).div(footprint.mul(3.0)).sub(1.0).mul(1.5), 0.0, 1.0);
+					const cliff = smoothstep(ROCK_SHADING.cliffFrom, ROCK_SHADING.cliffFull, tanS);
+					const strata = float(0.0).toVar();
+					const bent = hT.add(
+						nA(pl, 260.0, ROCK_SHADING.strataSalt).sub(0.5).mul(ROCK_SHADING.strataWarp)
+					);
+					ROCK_SHADING.strata.forEach(({ period, amp }, k) => {
+						const f = periodFade(period);
+						If(f.greaterThan(0.0), () => {
+							const ph = fract(bent.div(period).add(k * 0.37));
+							// a ledge: bright tread, dark riser, with soft edges
+							const band = smoothstep(0.2, 0.8, abs(ph.sub(0.5)).mul(2.0));
+							strata.addAssign(band.sub(0.5).mul(amp).mul(f));
+						});
+					});
+					const tint = float(0.0).toVar();
+					ROCK_SHADING.macro.forEach(({ wavelengthM, weight, salt }) => {
+						const f = periodFade(wavelengthM);
+						If(f.greaterThan(0.0), () => {
+							tint.addAssign(nA(pl, wavelengthM, salt).sub(0.5).mul(weight).mul(f));
+						});
+					});
+					const s = strata
+						.mul(cliff.mul(0.8).add(0.35))
+						.mul(
+							nA(pl, ROCK_SHADING.strataVaryM, 95)
+								.mul(ROCK_SHADING.strataVary[1])
+								.add(ROCK_SHADING.strataVary[0])
+						);
+					const warm = clamp(tint.mul(2.0).add(0.5), 0.0, 1.0);
+					rockc.assign(
+						rockc
+							.mul(mix(vec3(0.86, 0.96, 1.08), vec3(1.16, 1.02, 0.8), warm))
+							.mul(vec3(s.mul(1.0).add(1.0), s.mul(0.9).add(1.0), s.mul(0.75).add(1.0)))
+							.mul(tint.mul(0.5).add(1.0))
+					);
+				});
 				const snowLine = colourNoise.mul(420.0).add(2800.0);
 				const wSnow = max(
 					max(smoothstep(0.12, 0.22, temp).oneMinus(), smoothstep(0.9, 0.97, e2)),
@@ -1412,9 +1459,9 @@ export class PlanetPassTSL {
 				If(detailFade.greaterThan(0.01), () => {
 					const wT0 = pow(abs(Nb), vec3(4.0));
 					const wT = wT0.div(wT0.x.add(wT0.y).add(wT0.z)).toVar();
-					const tri = (tile: number): N => {
+					const tri = (tile: number, at: N = pl): N => {
 						const lod = max(log2(footprint.mul(DETAIL_SIZE / tile)), 0.0).toVar();
-						const q = pl.div(tile);
+						const q = at.div(tile);
 						const d = texture(detailTex, q.yz)
 							.level(lod)
 							.mul(wT.x)
@@ -1445,6 +1492,37 @@ export class PlanetPassTSL {
 						wSnow.mul(smoothstep(0.0, 1.0, float(1.0).sub(slope.mul(2.0))))
 					);
 					land.mulAssign(mix(float(1.0), mult, detailFade));
+					// rock detail normals (plan 417): the rock channel is a height, its finite difference over
+					// one texel of the level read is the slope; the ground tangents come from the geometric normal
+					const bumpFade = smoothstep(
+						ROCK_SHADING.bumpFootprint[0],
+						ROCK_SHADING.bumpFootprint[1],
+						footprint
+					)
+						.oneMinus()
+						.mul(wRock)
+						.mul(wSnow.oneMinus().mul(0.7).add(0.3))
+						.mul(this.link('uDetailOn'));
+					If(bumpFade.greaterThan(0.02), () => {
+						const bT1 = normalize(
+							cross(
+								nBF,
+								select(abs(nBF.y).greaterThan(0.99), vec3(1.0, 0.0, 0.0), vec3(0.0, 1.0, 0.0))
+							)
+						);
+						const bT2 = cross(nBF, bT1);
+						// one texel of the level read is about one footprint
+						const eps = max(footprint, DETAIL_TILE.rock / DETAIL_SIZE);
+						const h0 = d4.x;
+						const h1 = tri(DETAIL_TILE.rock, pl.add(bT1.mul(eps))).x;
+						const h2 = tri(DETAIL_TILE.rock, pl.add(bT2.mul(eps))).x;
+						const g = bT1
+							.mul(h1.sub(h0))
+							.add(bT2.mul(h2.sub(h0)))
+							.mul(float(ROCK_SHADING.bump).div(eps))
+							.mul(bumpFade);
+						Nb.assign(normalize(Nb.sub(g)));
+					});
 				});
 				// wet sand along the shore
 				land.mulAssign(
@@ -2487,7 +2565,10 @@ export class PlanetPassTSL {
 					const sh = float(shadowFactor(uCamPos.add(rd.mul(tG)))).toVar();
 					if (terrain && shadowSteps > 0) {
 						// the shadow march cannot resolve ridges once a pixel is hundreds of metres wide
-						If(hitT.and(geo.greaterThan(-0.05)).and(footprint.lessThan(160.0)), () => {
+						// Low runs three steps (plan 417), and only where there is relief to shade: inside a site's
+						// flat zone every sample is level ground, so its march (about 440 m) is skipped there
+						const relief = shadowSteps <= 3 ? zonesOf(nBF).x.greaterThan(0.03) : bool(true);
+						If(hitT.and(geo.greaterThan(-0.05)).and(footprint.lessThan(160.0)).and(relief), () => {
 							const vis = terrainShadow(posRel.add(nGeoI.mul(2.0)), uSunDir);
 							sh.mulAssign(mix(mix(vis, 1.0, smoothstep(40.0, 160.0, footprint)), 1.0, graze));
 						});
