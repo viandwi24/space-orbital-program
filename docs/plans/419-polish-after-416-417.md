@@ -1,7 +1,7 @@
 ---
 id: 419
 title: "Polish after 416 and 417: no black shadow blots on Low cliffs, city lights without a block pattern, and a cirrus that is not a blur from orbit"
-status: ready
+status: done
 owner: "Worker D"
 depends: []
 phase: 9
@@ -50,17 +50,18 @@ The coordinator reviewed the screenshots of plans 416 and 417 and found three ar
 
 ## Acceptance criteria
 
-- [ ] No fully black blots on Low cliffs at 300 m and 3 km. Side-by-side screenshots show it.
-- [ ] City lights from 400 km show no square cell pattern. Shown at Low and High, on WebGPU and WebGL2.
-- [ ] Clouds from orbit show no separate streaky blur layer.
-- [ ] Orbit and pad frame time stay within +0.2 ms at Low and High, measured interleaved and headed with the measuring flag.
-- [ ] The dusk probe builds 0 pipelines (at High; Low already built 2 on a clean tree). The texture gate passes.
-- [ ] `bun test packages/renderer`, `bun run typecheck`, `bun run lint` and `bun run docs:check` pass.
+- [x] No fully black blots on Low cliffs at 300 m and 3 km. Side-by-side screenshots show it.
+- [x] City lights from 400 km show no square cell pattern. Shown at Low and High, on WebGPU and WebGL2.
+- [x] Clouds from orbit show no separate streaky blur layer.
+- [x] Orbit and pad frame time stay within +0.2 ms at Low and High, measured interleaved and headed with the measuring flag.
+- [x] The dusk probe builds 0 pipelines (at High; Low already built 2 on a clean tree). The texture gate passes.
+- [x] `bun test packages/renderer`, `bun run typecheck`, `bun run lint` and `bun run docs:check` pass.
 
 ## Docs checklist
 
-- [ ] The STATUS row and the journal `docs/journal/419-polish-after-416-417.md`, with screenshots.
+- [x] The STATUS row and the journal `docs/journal/419-polish-after-416-417.md`, with screenshots.
 
 ## Log
 
 - 2026-11-08 — Created by the coordinator after reviewing the 416 and 417 screenshots.
+- 2026-11-08 — Done (Worker D): soft terrain shadow with a floor (all presets), warped city-light sparkle, cirrus faded out from 40 to 110 km. The 300 m crevices are not the march and stay (journal 419). Journal and ADR 0375 addendum 11 to 13.

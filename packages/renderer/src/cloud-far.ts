@@ -70,6 +70,13 @@ export const cloudMapLod = (footprintM: number, texelM: number): number =>
  */
 export const CLOUD_FAR_GATE = { from: 12_000, to: 30_000 } as const;
 
+/**
+ * The cirrus layer's fade-out (plan 419): from orbit the far shell is the clouds, and the old streak layer
+ * 10 km up read under it as a blur. It fades out with the camera's altitude over this range (m) and is not
+ * evaluated above `to`, so the orbit view also spends less. The ground and aircraft keep it.
+ */
+export const CIRRUS_FADE = { from: 40_000, to: 110_000 } as const;
+
 const smooth = (a: number, b: number, x: number): number => {
 	const t = Math.min(1, Math.max(0, (x - a) / (b - a)));
 	return t * t * (3 - 2 * t);
@@ -78,6 +85,10 @@ const smooth = (a: number, b: number, x: number): number => {
 /** The shell's weight at a camera `altitude`, m: 0 near the ground, 1 high up and in orbit. */
 export const farGate = (altitude: number): number =>
 	smooth(CLOUD_FAR_GATE.from, CLOUD_FAR_GATE.to, altitude);
+
+/** The cirrus layer's weight at a camera `altitude`, m: 1 on the ground and in the air, 0 from orbit (with the shell on). */
+export const cirrusGate = (altitude: number, shellOn = true): number =>
+	1 - (shellOn ? smooth(CIRRUS_FADE.from, CIRRUS_FADE.to, altitude) : 0);
 
 /** How far into the shell's range a slab at `distance` is: 0 inside the march, 1 beyond it. */
 export const farBlend = (distance: number): number =>

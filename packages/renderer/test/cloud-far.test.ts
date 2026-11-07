@@ -2,7 +2,9 @@
 import { describe, expect, test } from 'bun:test';
 import {
 	CLOUD_FAR,
+	CIRRUS_FADE,
 	CLOUD_FAR_GATE,
+	cirrusGate,
 	cloudFarAlpha,
 	cloudFarSun,
 	cloudWeights,
@@ -80,5 +82,24 @@ describe('the far cloud shell relevance gate (plan 403)', () => {
 	});
 	test('the gate sits above the slab, so the near march alone draws below it', () => {
 		expect(CLOUD_FAR_GATE.from).toBeGreaterThanOrEqual(10_000);
+	});
+});
+
+describe('the cirrus fade from orbit (plan 419)', () => {
+	test('the cirrus is whole on the ground and in the air, gone from orbit, and falls with altitude', () => {
+		expect(cirrusGate(0)).toBe(1);
+		expect(cirrusGate(CIRRUS_FADE.from)).toBe(1);
+		expect(cirrusGate(CIRRUS_FADE.to)).toBe(0);
+		expect(cirrusGate(400_000)).toBe(0);
+		const mid = cirrusGate((CIRRUS_FADE.from + CIRRUS_FADE.to) / 2);
+		expect(mid).toBeGreaterThan(0);
+		expect(mid).toBeLessThan(1);
+	});
+	test('it stays when the shell is off, and fades only after the shell is on', () => {
+		expect(cirrusGate(400_000, false)).toBe(1);
+		expect(CIRRUS_FADE.from).toBeGreaterThanOrEqual(CLOUD_FAR_GATE.to);
+	});
+	test('the GLSL pass carries the fade', () => {
+		expect(planetFragment).toContain('cirrusK');
 	});
 });

@@ -47,6 +47,7 @@ import {
 	budgetScale
 } from '../half-res.ts';
 import {
+	TERRAIN_SHADOW,
 	MARCH_BLOCK,
 	MARCH_CONE_PIXELS,
 	MARCH_CONE_SLOPE,
@@ -80,7 +81,13 @@ import {
 } from '../terrain-model.ts';
 import { TerrainTSL, type TerrainSampler } from './terrain.ts';
 import { TerrainMesh, meshTuning } from './terrain-mesh.ts';
-import { CLOUD_FAR, CLOUD_FAR_GATE, CLOUD_FAR_RELIEF, CLOUD_MAP_LOD_BIAS } from '../cloud-far.ts';
+import {
+	CIRRUS_FADE,
+	CLOUD_FAR,
+	CLOUD_FAR_GATE,
+	CLOUD_FAR_RELIEF,
+	CLOUD_MAP_LOD_BIAS
+} from '../cloud-far.ts';
 import {
 	CloudMapTSL,
 	cirrusDensity,
@@ -2012,13 +2019,14 @@ export class PlanetPassTSL {
 			const terrainShadow = (pI: N, sunI: N): N => {
 				let vis: N = float(1.0);
 				let s = 90.0;
+				// a wide penumbra and a floor (plan 419): few steps undersample the terraces, and must not blacken them
 				for (let i = 0; i < shadowSteps; i++) {
 					const q = pI.add(sunI.mul(s));
 					const c = length(q).sub(uR).sub(terrain!.heightAndSlope(q).x);
-					vis = min(vis, clamp(c.div(0.12 * s).add(0.05), 0.0, 1.0));
+					vis = min(vis, clamp(c.div(TERRAIN_SHADOW.width * s).add(TERRAIN_SHADOW.bias), 0.0, 1.0));
 					s *= 2.2;
 				}
-				return vis;
+				return vis.mul(1.0 - TERRAIN_SHADOW.floor).add(TERRAIN_SHADOW.floor);
 			};
 
 			const R0 = U.uR!.value as number;
@@ -2993,7 +3001,13 @@ export class PlanetPassTSL {
 				});
 				const csB = raySphere(r0, d, uCirrusAlt).toVar();
 				const cloudTB = select(r0.lessThan(uCirrusAlt), csB.y, csB.x).toVar();
+				// from orbit the far shell is the cloud: the cirrus fades out with altitude (plan 419)
+				const cirrusK = smoothstep(CIRRUS_FADE.from, CIRRUS_FADE.to, uAlt)
+					.mul(this.link('uFarShellOn'))
+					.oneMinus()
+					.toVar();
 				const hitB = inAtm
+					.and(cirrusK.greaterThan(0.002))
 					.and(csB.y.greaterThan(0.0))
 					.and(cloudTB.greaterThan(0.0))
 					.and(hitG.not().or(cloudTB.lessThan(tG)))
@@ -3001,7 +3015,9 @@ export class PlanetPassTSL {
 				const alphaB = float(0.0).toVar();
 				If(hitB, () => {
 					alphaB.assign(
-						cirrusDensity(uBodyInv.mul(normalize(ro.add(rd.mul(cloudTB)))), uCloudAngle, R0)
+						cirrusDensity(uBodyInv.mul(normalize(ro.add(rd.mul(cloudTB)))), uCloudAngle, R0).mul(
+							cirrusK
+						)
 					);
 					If(alphaB.lessThan(0.003), () => {
 						hitB.assign(false);

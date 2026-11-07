@@ -109,3 +109,26 @@ describe('night lights (plan 416)', () => {
 		expect(LIGHTS_GAIN * DAY_EXPOSURE).toBeGreaterThan(0.5);
 	});
 });
+
+describe('night lights without a block pattern (plan 419)', () => {
+	test('the density is soft: neighbouring samples 0.5 km apart differ little and its lit ground is graded', () => {
+		let pairs = 0;
+		let jump = 0;
+		const levels = new Set<number>();
+		for (let j = 0; j < 160; j++)
+			for (let i = 0; i < 160; i++) {
+				const lat = 0.1 + (j * 0.5) / (RADIUS / 1000);
+				const lon = 1.1 + (i * 0.5) / (RADIUS / 1000);
+				const a = at(lat, lon);
+				const b = at(lat, lon + 0.5 / (RADIUS / 1000));
+				// the coast is a hard edge by design: only the settled ground is compared
+				if (a < 0.02 || b < 0.02) continue;
+				pairs++;
+				jump += Math.abs(a - b);
+				levels.add(Math.round(a * 10));
+			}
+		expect(pairs).toBeGreaterThan(200);
+		expect(levels.size).toBeGreaterThanOrEqual(6);
+		expect(jump / pairs).toBeLessThan(0.06);
+	});
+});

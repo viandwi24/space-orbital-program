@@ -336,3 +336,12 @@ export function skylineAngle(
 	}
 	return best;
 }
+
+/**
+ * The terrain shadow march's softness (plan 419): its few steps (3 at Low, 5 and 8 above) undersample the
+ * terraced cliffs, so a step that lands in a terrace blackened a whole oval of the plateau, at High as at
+ * Low. A wide penumbra (`width` of the step distance, `bias` of lit) and a floor (the sun's share in a
+ * shadow is never under it; the sky's ambient was already there) make it a soft partial shade. The TSL pass
+ * and the GLSL twin read these numbers.
+ */
+export const TERRAIN_SHADOW = { width: 0.3, bias: 0.15, floor: 0.45 } as const;

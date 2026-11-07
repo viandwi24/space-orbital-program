@@ -347,7 +347,7 @@
 | 416 | [Earth at night and from orbit](plans/416-earth-at-night-and-from-orbit.md) | done | Worker A | city lights on every preset (gain, exposure compensation, near-ground formula); bake face by device; baked fine detail and tints; far cloud shell shown from orbit again, with mips, detail and relief; orbit stays 8.33 ms at Low and High (ADR 0375) |
 | 417 | [Ground relief, cliffs and rock](plans/417-ground-relief-cliffs-and-rock.md) | done | Worker B | ridge octaves to 125 m, 5-step cliff terraces (slope up to 4.2), bakes band-limited by texel, rock strata/tint/detail normals from the one detail texture, Low terrain shadow 3 steps; height cost 1.08 to 1.31 times, pad frame +0.00 / +0.12 ms (ADR 0375 addendum, journal 417) |
 | 418 | [Smooth and stable](plans/418-smooth-and-stable.md) | ready | Worker C | soak gate, allocation audit, background stalls, pad site; absorbs 414's open items (ADR 0375) |
-| 419 | [Polish after 416 and 417](plans/419-polish-after-416-417.md) | ready | Worker D | black shadow blots on Low cliffs, block-patterned city lights, cirrus blur from orbit |
+| 419 | [Polish after 416 and 417](plans/419-polish-after-416-417.md) | done | Worker D | black shadow blots on cliffs (soft march with a floor), block-patterned city lights (warped sparkle), cirrus blur from orbit (faded out with altitude) |
 
 Statuses: `draft` (needs refinement before an agent takes it) · `ready` · `in-progress` · `done` · `blocked`.
 
@@ -441,6 +441,7 @@ The owner takes the remaining performance work on the M5; the M2 handles the fix
 ## Recent journal entries
 
 - [416 — Earth at night and from orbit](journal/416-earth-at-night-and-from-orbit.md)
+- [419 — Polish after 416 and 417](journal/419-polish-after-416-417.md)
 - [417 — Ground relief, cliffs and rock](journal/417-ground-relief-cliffs-and-rock.md)
 - [388 — Space Center visual QA leftovers](journal/388-space-center-qa-leftovers.md)
 - [387 — Space Center camera and a visual QA pass](journal/387-space-center-camera-and-visual-qa.md)

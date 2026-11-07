@@ -1,6 +1,7 @@
 import { describe, expect, test } from 'bun:test';
 import { TERRAIN_SHAPE, TERRAIN_MAX_SLOPE } from '@orbital/core';
 import { ROCK_SHADING } from '../src/detail-textures.ts';
+import { TERRAIN_SHADOW } from '../src/terrain-model.ts';
 import { PRESETS } from '../src/presets.ts';
 import { planetFragment } from '../src/shaders/planet.glsl.ts';
 import { terrainBakeFragment, terrainHeightGLSL } from '../src/shaders/terrain.glsl.ts';
@@ -68,5 +69,21 @@ describe('ground relief in the shaders', () => {
 		expect(w).toBeCloseTo(1, 12);
 		expect(ROCK_SHADING.bumpFootprint[0]).toBeLessThan(ROCK_SHADING.bumpFootprint[1]);
 		expect(ROCK_SHADING.cliffFrom).toBeLessThan(ROCK_SHADING.cliffFull);
+	});
+});
+
+/** Plan 419: the terrain shadow is soft and partial, never a black hole, in both twins. */
+describe('terrain shadow softness', () => {
+	test('a floor keeps a share of the sun in a shadow, and the penumbra is wider than the plan 417 one', () => {
+		expect(TERRAIN_SHADOW.floor).toBeGreaterThanOrEqual(0.3);
+		expect(TERRAIN_SHADOW.floor).toBeLessThan(1);
+		expect(TERRAIN_SHADOW.width).toBeGreaterThan(0.12);
+	});
+	test('the GLSL march carries the numbers and the floor', () => {
+		const at = planetFragment.indexOf('float terrainShadow(');
+		expect(at).toBeGreaterThan(0);
+		const body = planetFragment.slice(at, at + 700);
+		expect(body).toContain(TERRAIN_SHADOW.width.toFixed(3));
+		expect(body).toContain(`mix(${TERRAIN_SHADOW.floor.toFixed(3)}, 1.0, vis)`);
 	});
 });

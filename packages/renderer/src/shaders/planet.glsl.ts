@@ -21,12 +21,18 @@ import {
 	TERRAIN_MAX_SLOPE
 } from '@orbital/core';
 import { atmosphereGLSL } from './atmosphere.glsl.ts';
-import { SLOPE_EXAGGERATION, SLOPE_EXAGGERATION_RANGE } from '../terrain-model.ts';
+import { SLOPE_EXAGGERATION, SLOPE_EXAGGERATION_RANGE, TERRAIN_SHADOW } from '../terrain-model.ts';
 import { TERRAIN_VEIL } from '../atmosphere-model.ts';
 import { terrainNoiseGLSL, terrainTangentGLSL, terrainZonesGLSL } from './terrain.glsl.ts';
 import { PATCH_BLEND } from '../terrain-patch.ts';
 import { CLOUD_MAP_W, SHAFT, SHAFT_TERRAIN } from '../light-shaft.ts';
-import { CLOUD_FAR, CLOUD_FAR_GATE, CLOUD_FAR_RELIEF, CLOUD_MAP_LOD_BIAS } from '../cloud-far.ts';
+import {
+	CIRRUS_FADE,
+	CLOUD_FAR,
+	CLOUD_FAR_GATE,
+	CLOUD_FAR_RELIEF,
+	CLOUD_MAP_LOD_BIAS
+} from '../cloud-far.ts';
 import { EDGE_CHROMA, EDGE_DEPTH_OCTAVES, SKY_DEPTH } from '../half-res.ts';
 import { cloudFieldGLSL } from './cloud-field.glsl.ts';
 import { auroraGLSL } from './aurora.glsl.ts';
@@ -424,13 +430,15 @@ bool marchTerrain(vec3 ro, vec3 rd, float r0, float d, float tLimit, float tFrom
 float terrainShadow(vec3 pI, vec3 sunI) {
 	float vis = 1.0;
 	float s = 90.0;
+	// a wide penumbra and a floor (plan 419): few steps undersample the terraces, and must not blacken them
 	for (int i = 0; i < TERRAIN_SHADOW_STEPS; i++) {
 		vec3 q = pI + sunI * s;
 		float gs;
 		float c = length(q) - uR - terrainH(q, gs);
-		vis = min(vis, clamp(c / (0.12 * s) + 0.05, 0.0, 1.0));
+		vis = min(vis, clamp(c / (${TERRAIN_SHADOW.width.toFixed(3)} * s) + ${TERRAIN_SHADOW.bias.toFixed(3)}, 0.0, 1.0));
 		s *= 2.2;
 	}
+	vis = mix(${TERRAIN_SHADOW.floor.toFixed(3)}, 1.0, vis);
 	return vis;
 }
 #endif
@@ -1634,13 +1642,15 @@ vec3 shadeRay(vec3 ro, vec3 rd, float r0, float d, float h, bool hitG, bool hitT
 	}
 	vec2 csB = raySphere(r0, d, uCirrusAlt);
 	float cloudTB = r0 < uCirrusAlt ? csB.y : csB.x;
-	bool hitB = inAtm && csB.y > 0.0 && cloudTB > 0.0 && (!hitG || cloudTB < tG);
+	// from orbit the far shell is the cloud: the cirrus fades out with altitude (plan 419)
+	float cirrusK = 1.0 - smoothstep(${f(CIRRUS_FADE.from)}, ${f(CIRRUS_FADE.to)}, uAlt) * uFarShellOn;
+	bool hitB = inAtm && cirrusK > 0.002 && csB.y > 0.0 && cloudTB > 0.0 && (!hitG || cloudTB < tG);
 	vec3 dirBFB = vec3(0.0);
 	float densB = 0.0;
 	if (hitB) {
 		dirBFB = uBodyInv * normalize(ro + rd * cloudTB);
 		densB = cirrusDensity(dirBFB);
-		alphaB = densB;
+		alphaB = densB * cirrusK;
 		if (alphaB < 0.003) {
 			hitB = false;
 			alphaB = 0.0;

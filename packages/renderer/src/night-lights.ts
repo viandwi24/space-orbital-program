@@ -13,8 +13,19 @@ export const LIGHTS_TOWN = { km: 70, salt: 313 } as const;
 export const LIGHTS_CITY = { km: 9, salt: 317 } as const;
 /** The fine sparkle (plan 416): lit blocks of a town, 2 km across, baked at the texel. */
 export const LIGHTS_SPARKLE = { km: 2, salt: 319 } as const;
+/**
+ * The warp of the sparkle's lattice (plan 419): the sparkle is read at the point moved by the town and city
+ * noises (already computed) times this many km, so its 2 km value-noise cells are bent into blobs
+ * instead of showing as squares. The sparkle's share of a cluster runs from `floor` (the settled ground)
+ * to 1 (a lit block), a gentle step.
+ */
+export const LIGHTS_WARP = 3;
+export const LIGHTS_SPARKLE_RANGE = [0.3, 0.8] as const;
+export const LIGHTS_SPARKLE_FLOOR = 0.4;
 /** The roads: the ridge where this noise crosses a half, faint lines between the towns. */
 export const LIGHTS_ROAD = { km: 28, salt: 331 } as const;
+/** Half-width (noise units) and strength of a road. */
+export const LIGHTS_ROAD_LINE = { width: 0.04, strength: 0.3 } as const;
 /** Height (m) below which the coast's lights are brightest (ports and shore towns), and fade out by the second. */
 export const LIGHTS_COAST = [20, 140] as const;
 
@@ -62,16 +73,32 @@ export function nightLights(
 	const lowland = 1 - smooth(LIGHTS_HEIGHT[0], LIGHTS_HEIGHT[1], height);
 	const climate = 1 - smooth(LIGHTS_LATITUDE[0], LIGHTS_LATITUDE[1], Math.abs(latitude));
 	const n = (w: { km: number; salt: number }) => terrainNoise(qKm, 1 / w.km, w.salt, shift);
+	const nTown = n(LIGHTS_TOWN);
+	const nCity = n(LIGHTS_CITY);
 	const region = smooth(0.5, 0.7, n(LIGHTS_REGION));
-	const town = smooth(0.5, 0.72, n(LIGHTS_TOWN));
-	const city = smooth(0.58, 0.8, n(LIGHTS_CITY));
-	const sparkle = smooth(0.5, 0.74, n(LIGHTS_SPARKLE));
+	const town = smooth(0.5, 0.72, nTown);
+	const city = smooth(0.55, 0.85, nCity);
+	// the sparkle's lattice is bent by the noises above, so its cells are blobs and not squares
+	const warped = {
+		x: qKm.x + (nCity - 0.5) * LIGHTS_WARP * 2,
+		y: qKm.y + (nTown - 0.5) * LIGHTS_WARP * 2,
+		z: qKm.z + (nCity + nTown - 1) * LIGHTS_WARP
+	};
+	const sparkle = smooth(
+		LIGHTS_SPARKLE_RANGE[0],
+		LIGHTS_SPARKLE_RANGE[1],
+		terrainNoise(warped, 1 / LIGHTS_SPARKLE.km, LIGHTS_SPARKLE.salt, shift)
+	);
 	// clusters along the coast and the lowlands: the shore is the brightest
 	const coast = 1 + 0.9 * (1 - smooth(LIGHTS_COAST[0], LIGHTS_COAST[1], height));
-	const cluster = (0.3 * town + 0.9 * town * city) * (0.2 + 0.8 * sparkle);
+	const cluster =
+		(0.3 * town + 1.0 * town * city) *
+		(LIGHTS_SPARKLE_FLOOR + (1 - LIGHTS_SPARKLE_FLOOR) * sparkle);
 	// faint roads between settled places: a thin ridge of a slow noise, in the wider settled land
 	const road =
-		(1 - smooth(0, 0.03, Math.abs(n(LIGHTS_ROAD) - 0.5))) * 0.22 * smooth(0.4, 0.6, n(LIGHTS_TOWN));
+		(1 - smooth(0, LIGHTS_ROAD_LINE.width, Math.abs(n(LIGHTS_ROAD) - 0.5))) *
+		LIGHTS_ROAD_LINE.strength *
+		smooth(0.4, 0.6, nTown);
 	return Math.min(1, land * lowland * climate * region * (coast * cluster + road));
 }
 
@@ -89,13 +116,15 @@ float nightLightsAt(vec3 n, float height, bool water) {
 	float lowland = 1.0 - smoothstep(${LIGHTS_HEIGHT[0].toFixed(1)}, ${LIGHTS_HEIGHT[1].toFixed(1)}, height);
 	float climate = 1.0 - smoothstep(${LIGHTS_LATITUDE[0].toFixed(6)}, ${LIGHTS_LATITUDE[1].toFixed(6)}, abs(lat));
 	float nTown = noiseT(q, ${(1 / LIGHTS_TOWN.km).toFixed(8)}, ${LIGHTS_TOWN.salt});
+	float nCity = noiseT(q, ${(1 / LIGHTS_CITY.km).toFixed(8)}, ${LIGHTS_CITY.salt});
 	float region = smoothstep(0.5, 0.7, noiseT(q, ${(1 / LIGHTS_REGION.km).toFixed(8)}, ${LIGHTS_REGION.salt}));
 	float town = smoothstep(0.5, 0.72, nTown);
-	float city = smoothstep(0.58, 0.8, noiseT(q, ${(1 / LIGHTS_CITY.km).toFixed(8)}, ${LIGHTS_CITY.salt}));
-	float sparkle = smoothstep(0.5, 0.74, noiseT(q, ${(1 / LIGHTS_SPARKLE.km).toFixed(8)}, ${LIGHTS_SPARKLE.salt}));
+	float city = smoothstep(0.55, 0.85, nCity);
+	vec3 qw = q + vec3((nCity - 0.5) * ${(LIGHTS_WARP * 2).toFixed(1)}, (nTown - 0.5) * ${(LIGHTS_WARP * 2).toFixed(1)}, (nCity + nTown - 1.0) * ${LIGHTS_WARP.toFixed(1)});
+	float sparkle = smoothstep(${LIGHTS_SPARKLE_RANGE[0].toFixed(2)}, ${LIGHTS_SPARKLE_RANGE[1].toFixed(2)}, noiseT(qw, ${(1 / LIGHTS_SPARKLE.km).toFixed(8)}, ${LIGHTS_SPARKLE.salt}));
 	float coast = 1.0 + 0.9 * (1.0 - smoothstep(${LIGHTS_COAST[0].toFixed(1)}, ${LIGHTS_COAST[1].toFixed(1)}, height));
-	float cluster = (0.3 * town + 0.9 * town * city) * (0.2 + 0.8 * sparkle);
-	float road = (1.0 - smoothstep(0.0, 0.03, abs(noiseT(q, ${(1 / LIGHTS_ROAD.km).toFixed(8)}, ${LIGHTS_ROAD.salt}) - 0.5))) * 0.22 * smoothstep(0.4, 0.6, nTown);
+	float cluster = (0.3 * town + 1.0 * town * city) * (${LIGHTS_SPARKLE_FLOOR.toFixed(2)} + ${(1 - LIGHTS_SPARKLE_FLOOR).toFixed(2)} * sparkle);
+	float road = (1.0 - smoothstep(0.0, ${LIGHTS_ROAD_LINE.width.toFixed(3)}, abs(noiseT(q, ${(1 / LIGHTS_ROAD.km).toFixed(8)}, ${LIGHTS_ROAD.salt}) - 0.5))) * ${LIGHTS_ROAD_LINE.strength.toFixed(2)} * smoothstep(0.4, 0.6, nTown);
 	return min(1.0, land * lowland * climate * region * (coast * cluster + road));
 }
 `;
@@ -115,22 +144,41 @@ export function nightLightsTSL(
 	water: any,
 	noise: (q: any, freq: number, salt: number) => any
 ): any {
-	const { asin, clamp, abs, float, min, smoothstep, select } = T;
+	const { asin, clamp, abs, float, min, smoothstep, select, vec3 } = T;
 	const q = n.mul(radius.div(1000.0));
 	const lat = asin(clamp(n.y, -1.0, 1.0));
 	const land = smoothstep(LIGHTS_SHORE, LIGHTS_SHORE * 6, height);
 	const lowland = smoothstep(LIGHTS_HEIGHT[0], LIGHTS_HEIGHT[1], height).oneMinus();
 	const climate = smoothstep(LIGHTS_LATITUDE[0], LIGHTS_LATITUDE[1], abs(lat)).oneMinus();
 	const nTown = noise(q, 1 / LIGHTS_TOWN.km, LIGHTS_TOWN.salt);
+	const nCity = noise(q, 1 / LIGHTS_CITY.km, LIGHTS_CITY.salt);
 	const region = smoothstep(0.5, 0.7, noise(q, 1 / LIGHTS_REGION.km, LIGHTS_REGION.salt));
 	const town = smoothstep(0.5, 0.72, nTown);
-	const city = smoothstep(0.58, 0.8, noise(q, 1 / LIGHTS_CITY.km, LIGHTS_CITY.salt));
-	const sparkle = smoothstep(0.5, 0.74, noise(q, 1 / LIGHTS_SPARKLE.km, LIGHTS_SPARKLE.salt));
+	const city = smoothstep(0.55, 0.85, nCity);
+	const qw = q.add(
+		vec3(
+			nCity.sub(0.5).mul(LIGHTS_WARP * 2),
+			nTown.sub(0.5).mul(LIGHTS_WARP * 2),
+			nCity.add(nTown).sub(1.0).mul(LIGHTS_WARP)
+		)
+	);
+	const sparkle = smoothstep(
+		LIGHTS_SPARKLE_RANGE[0],
+		LIGHTS_SPARKLE_RANGE[1],
+		noise(qw, 1 / LIGHTS_SPARKLE.km, LIGHTS_SPARKLE.salt)
+	);
 	const coast = smoothstep(LIGHTS_COAST[0], LIGHTS_COAST[1], height).oneMinus().mul(0.9).add(1.0);
-	const cluster = town.mul(0.3).add(town.mul(city).mul(0.9)).mul(sparkle.mul(0.8).add(0.2));
-	const road = smoothstep(0.0, 0.03, abs(noise(q, 1 / LIGHTS_ROAD.km, LIGHTS_ROAD.salt).sub(0.5)))
+	const cluster = town
+		.mul(0.3)
+		.add(town.mul(city))
+		.mul(sparkle.mul(1 - LIGHTS_SPARKLE_FLOOR).add(LIGHTS_SPARKLE_FLOOR));
+	const road = smoothstep(
+		0.0,
+		LIGHTS_ROAD_LINE.width,
+		abs(noise(q, 1 / LIGHTS_ROAD.km, LIGHTS_ROAD.salt).sub(0.5))
+	)
 		.oneMinus()
-		.mul(0.22)
+		.mul(LIGHTS_ROAD_LINE.strength)
 		.mul(smoothstep(0.4, 0.6, nTown));
 	const v = min(
 		float(1.0),
