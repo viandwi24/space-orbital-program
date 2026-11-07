@@ -74,7 +74,14 @@ const look = () =>
 		});
 		const heap = ((performance as any).memory?.usedJSHeapSize ?? 0) / 1e6;
 		const rep = (window as any).__orbitalLoadReport?.()?.data?.compile;
-		return { mats, geos, bytes, heap, pipelines: rep?.pipelines ?? -1, pending: rep?.pending ?? -1 };
+		return {
+			mats,
+			geos,
+			bytes,
+			heap,
+			pipelines: rep?.pipelines ?? -1,
+			pending: rep?.pending ?? -1
+		};
 	});
 
 let prev = await look();
@@ -101,5 +108,6 @@ for (let t = every; t <= seconds; t += every) {
 	prev = now;
 }
 console.log('\nmost often new:');
-for (const [w, n] of [...tally].sort((a, b) => b[1] - a[1]).slice(0, 20)) console.log(`  ${n}x ${w}`);
+for (const [w, n] of [...tally].sort((a, b) => b[1] - a[1]).slice(0, 20))
+	console.log(`  ${n}x ${w}`);
 await browser.close();

@@ -236,7 +236,8 @@ export function batchSignature(parts: ReadonlyMap<number, BatchPart>): number {
 			relPosition.sub(anchor.position).applyQuaternion(inverseAnchor);
 			relQuaternion.premultiply(inverseAnchor);
 			// q and -q are the same turn: keep w non-negative so the sign flip does not rebuild
-			if (relQuaternion.w < 0) relQuaternion.set(-relQuaternion.x, -relQuaternion.y, -relQuaternion.z, -relQuaternion.w);
+			if (relQuaternion.w < 0)
+				relQuaternion.set(-relQuaternion.x, -relQuaternion.y, -relQuaternion.z, -relQuaternion.w);
 		}
 		mix(id);
 		mix(relPosition.x);
