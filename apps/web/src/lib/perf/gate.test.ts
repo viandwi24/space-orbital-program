@@ -6,6 +6,7 @@ import {
 	formatTable,
 	freeze,
 	freezeSoak,
+	longTasksOf,
 	percentile,
 	soakBudgetFor,
 	soakFailures,
@@ -230,5 +231,48 @@ describe('the soak (plan 418)', () => {
 		expect(lines[0]).toContain('alloc MB/s');
 		expect(lines[2]).toContain('ok');
 		expect(lines[3]).toContain('FAIL: leaks');
+	});
+
+	it('finds the main-thread tasks over 8 ms and names what filled them', () => {
+		const meta = { name: 'thread_name', ph: 'M', pid: 1, tid: 7, args: { name: 'CrRendererMain' } };
+		const other = { name: 'thread_name', ph: 'M', pid: 1, tid: 9, args: { name: 'Compositor' } };
+		const task = (ts: number, dur: number, tid = 7) => ({
+			name: 'RunTask',
+			ph: 'X',
+			ts,
+			dur,
+			pid: 1,
+			tid
+		});
+		const events = [
+			meta,
+			other,
+			task(0, 20_000),
+			{ name: 'FireAnimationFrame', ph: 'X', ts: 10, dur: 19_000, pid: 1, tid: 7 },
+			{
+				name: 'FunctionCall',
+				ph: 'X',
+				ts: 20,
+				dur: 15_000,
+				pid: 1,
+				tid: 7,
+				args: {
+					data: { functionName: 'warmRounds', url: 'http://x/a/renderer.js', lineNumber: 41 }
+				}
+			},
+			{ name: 'MajorGC', ph: 'X', ts: 40_000, dur: 12_000, pid: 1, tid: 7 },
+			task(40_000, 12_000),
+			task(100_000, 4_000), // short
+			task(200_000, 30_000, 9) // another thread
+		];
+		const tasks = longTasksOf(events);
+		expect(tasks).toHaveLength(2);
+		expect(tasks[0]!.ms).toBe(20);
+		expect(tasks[0]!.cause).toBe('FunctionCall warmRounds renderer.js:41');
+		expect(tasks[1]!.cause).toBe('MajorGC');
+		const s = summarizeSoak({ ...soakBase, intervals, heapMb: sawtooth, seconds: 60, tasks });
+		expect(s.longTasksPerMinute).toBe(2);
+		expect(s.taskCauses.MajorGC).toBe(1);
+		expect(soakFailures(s, { longTasksPerMinute: 0 }, 0.1).join(' ')).toContain('tasks over 8 ms');
 	});
 });

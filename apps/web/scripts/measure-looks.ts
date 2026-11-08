@@ -195,7 +195,11 @@ for (const scene of scenes) {
 		for (let round = 1; round <= rounds; round++) {
 			for (const state of round % 2 ? (['on', 'off'] as const) : (['off', 'on'] as const)) {
 				await page.evaluate(
-					([l, off]) => (window as any).__orbital.renderer().debug.setLookOff(l, off),
+					// `a+b+c` switches several looks together (plan 418: all the site's parts against the site)
+					([l, off]) => {
+						for (const one of l.split('+'))
+							(window as any).__orbital.renderer().debug.setLookOff(one, off);
+					},
 					[look, state === 'off'] as [string, boolean]
 				);
 				await page.waitForTimeout(warm * 1000);

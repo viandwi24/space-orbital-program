@@ -16,7 +16,7 @@
  *                                          minute, held to the `soak` budgets (with --freeze, writes them)
  *
  * Options: --scenes pad,orbit  --backends webgpu,webgl  --governor off|on|both  --preset high|medium|low
- *   --seconds 12  --out file.json  --headless (a smoke run: the numbers mean nothing)  --no-build  --no-fail
+ *   --settle 180 (seconds to wait for the warming)  --seconds 12  --out file.json  --headless (a smoke run: the numbers mean nothing)  --no-build  --no-fail
  *   --url http://localhost:5173 (an already running server: no build)
  * Environment: MEASURE_ANGLE (metal on a Mac, d3d11 on Windows, vulkan or gl on Linux).
  */
@@ -37,6 +37,7 @@ import {
 	formatTable,
 	freeze,
 	freezeSoak,
+	longTasksOf,
 	soakBudgetFor,
 	soakFailures,
 	summarizeFrames,
@@ -80,6 +81,7 @@ const governors = (
 		: [option('governor') ?? 'off']
 ) as Array<'off' | 'on'>;
 const preset = option('preset') ?? 'high';
+const settleMs = Number(option('settle') ?? 180) * 1000;
 const seconds = Number(option('seconds') ?? (soak ? 180 : quick ? 5 : 12));
 const angle =
 	process.env.MEASURE_ANGLE ??
@@ -217,12 +219,9 @@ async function soakSample(
 }
 
 /** The garbage collections of a Chrome trace (`MajorGC` and `MinorGC` events of the timeline category). */
-function gcEventsOf(trace: Buffer): GcEvent[] {
-	const parsed = JSON.parse(trace.toString('utf8')) as {
-		traceEvents?: Array<{ name?: string; args?: Record<string, unknown> }>;
-	};
+function gcEventsOf(events: Parameters<typeof longTasksOf>[0]): GcEvent[] {
 	const out: GcEvent[] = [];
-	for (const e of parsed.traceEvents ?? []) {
+	for (const e of events) {
 		if (e.name !== 'MajorGC' && e.name !== 'MinorGC') continue;
 		const before = e.args?.usedHeapSizeBefore;
 		const after = e.args?.usedHeapSizeAfter;
@@ -239,9 +238,16 @@ async function soakRunOf(
 	backend: Backend,
 	governor: 'off' | 'on'
 ): Promise<SoakRun> {
-	await browser.startTracing(page, { categories: ['devtools.timeline'] });
+	await browser.startTracing(page, { categories: ['devtools.timeline', 'toplevel'] });
 	const s = await soakSample(page, seconds);
-	const gcs = gcEventsOf(await browser.stopTracing());
+	const trace =
+		(
+			JSON.parse((await browser.stopTracing()).toString('utf8')) as {
+				traceEvents?: Parameters<typeof longTasksOf>[0];
+			}
+		).traceEvents ?? [];
+	const gcs = gcEventsOf(trace);
+	const tasks = longTasksOf(trace);
 	const run = summarizeSoak({
 		scene,
 		backend,
@@ -250,8 +256,14 @@ async function soakRunOf(
 		heapMb: s.heapMb,
 		seconds,
 		targetHz,
-		gcs
+		gcs,
+		tasks
 	});
+	const causes = Object.entries(run.taskCauses)
+		.sort((a, b) => b[1] - a[1])
+		.slice(0, 5);
+	if (causes.length > 0)
+		console.log(`    tasks over 8 ms: ${causes.map(([c, n]) => `${n} x ${c}`).join('; ')}`);
 	console.log(
 		`  ${backend} governor ${governor} ${scene}: mean ${run.meanMs.toFixed(2)} ms, ` +
 			`${run.allocMbPerS.toFixed(1)} MB/s, ${run.majorGcs} major GCs, ${run.longPerMinute.toFixed(1)} long/min ` +
@@ -283,9 +295,9 @@ async function waitForWorld(page: Page): Promise<void> {
 				);
 			},
 			null,
-			{ timeout: 180_000 }
+			{ timeout: settleMs }
 		)
-		.catch(() => console.log('  (the warming did not settle in 3 minutes: measuring anyway)'));
+		.catch(() => console.log('  (the warming did not settle in the time given: measuring anyway)'));
 	await page.waitForTimeout(3000);
 }
 

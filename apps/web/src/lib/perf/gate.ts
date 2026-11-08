@@ -71,6 +71,17 @@ export interface SoakBudget {
 	majorGcPerMinute?: number;
 	/** Frames over twice the target interval, per minute. */
 	longPerMinute?: number;
+	/** Main-thread tasks over `LONG_TASK_MS`, per minute (plan 418: no single task over 8 ms in play). */
+	longTasksPerMinute?: number;
+}
+
+/** A main-thread task longer than this is a stall (plan 418). */
+export const LONG_TASK_MS = 8;
+
+/** A main-thread task over `LONG_TASK_MS` from the trace, with what filled it. */
+export interface LongTask {
+	ms: number;
+	cause: string;
 }
 
 export interface Budgets {
@@ -225,6 +236,9 @@ export interface SoakRun {
 	longPerMinute: number;
 	/** The longest frame interval, ms. */
 	maxMs: number;
+	/** Main-thread tasks over `LONG_TASK_MS`, per minute, and how many of each cause. */
+	longTasksPerMinute: number;
+	taskCauses: Record<string, number>;
 }
 
 /** The lowest value of `values`; 0 for none. */
@@ -249,9 +263,14 @@ export function summarizeSoak(input: {
 	seconds: number;
 	targetHz: number;
 	gcs?: readonly GcEvent[];
+	/** The main-thread tasks over `LONG_TASK_MS` of the trace. */
+	tasks?: readonly LongTask[];
 }): SoakRun {
 	const { intervals, heapMb, seconds, targetHz } = input;
 	const gcs = input.gcs ?? [];
+	const tasks = input.tasks ?? [];
+	const taskCauses: Record<string, number> = {};
+	for (const t of tasks) taskCauses[t.cause] = (taskCauses[t.cause] ?? 0) + 1;
 	const frame = 1000 / targetHz;
 	const quarter = Math.max(1, Math.floor(heapMb.length / 4));
 	const growth =
@@ -294,7 +313,9 @@ export function summarizeSoak(input: {
 		minorGcs: gcs.length - major,
 		majorGcPerMinute: minutes > 0 ? major / minutes : 0,
 		longPerMinute: minutes > 0 ? long / minutes : 0,
-		maxMs: max
+		maxMs: max,
+		longTasksPerMinute: minutes > 0 ? tasks.length / minutes : 0,
+		taskCauses
 	};
 }
 
@@ -324,6 +345,10 @@ export function soakFailures(run: SoakRun, budget: SoakBudget, margin: number): 
 		out.push(
 			`${run.longPerMinute.toFixed(1)} long frames a minute, budget ${budget.longPerMinute}`
 		);
+	if (budget.longTasksPerMinute !== undefined && run.longTasksPerMinute > budget.longTasksPerMinute)
+		out.push(
+			`${run.longTasksPerMinute.toFixed(1)} tasks over ${LONG_TASK_MS} ms a minute, budget ${budget.longTasksPerMinute}`
+		);
 	return out;
 }
 
@@ -336,10 +361,83 @@ export function freezeSoak(runs: readonly SoakRun[]): Partial<Record<SoakSceneId
 			heapGrowthMb: Math.max(old?.heapGrowthMb ?? 0, Math.ceil(Math.max(0, r.heapGrowthMb))),
 			allocMbPerS: Math.max(old?.allocMbPerS ?? 0, Math.ceil(r.allocMbPerS)),
 			majorGcPerMinute: Math.max(old?.majorGcPerMinute ?? 0, Math.ceil(r.majorGcPerMinute)),
-			longPerMinute: Math.max(old?.longPerMinute ?? 0, Math.ceil(r.longPerMinute))
+			longPerMinute: Math.max(old?.longPerMinute ?? 0, Math.ceil(r.longPerMinute)),
+			longTasksPerMinute: Math.max(old?.longTasksPerMinute ?? 0, Math.ceil(r.longTasksPerMinute))
 		};
 	}
 	return scenes;
+}
+
+/**
+ * The main-thread tasks over `LONG_TASK_MS` of a Chrome trace's events, each with its cause: the
+ * longest event inside it that is not a wrapper (a function call by name and place, a garbage
+ * collection, a layout, a script). `events` are the trace's `traceEvents`.
+ */
+export function longTasksOf(
+	events: ReadonlyArray<{
+		name?: string;
+		ph?: string;
+		ts?: number;
+		dur?: number;
+		pid?: number;
+		tid?: number;
+		args?: Record<string, unknown>;
+	}>
+): LongTask[] {
+	const main = new Set<string>();
+	for (const e of events)
+		if (
+			e.name === 'thread_name' &&
+			(e.args as { name?: string } | undefined)?.name === 'CrRendererMain'
+		)
+			main.add(`${e.pid}:${e.tid}`);
+	const wrappers = new Set([
+		'RunTask',
+		'ThreadControllerImpl::RunTask',
+		'ThreadControllerImpl::DoWork',
+		'FireAnimationFrame',
+		'RunMicrotasks',
+		'v8.callFunction'
+	]);
+	const mine: (typeof events)[number][] = [];
+	for (const e of events) {
+		if (e.ph !== 'X' || e.ts === undefined || e.dur === undefined) continue;
+		if (main.has(`${e.pid}:${e.tid}`)) mine.push(e);
+	}
+	// the task events: `RunTask` (the DevTools timeline) or `ThreadControllerImpl::RunTask` (the toplevel
+	// category); one inside a longer one of the same thread is the same task
+	const isTask = (n: string | undefined): boolean =>
+		n === 'RunTask' || n === 'ThreadControllerImpl::RunTask';
+	const candidates = mine.filter((e) => isTask(e.name) && e.dur! > LONG_TASK_MS * 1000);
+	const tasks = candidates.filter(
+		(e) =>
+			!candidates.some(
+				(o) =>
+					o !== e &&
+					o.tid === e.tid &&
+					o.pid === e.pid &&
+					o.ts! <= e.ts! &&
+					o.ts! + o.dur! >= e.ts! + e.dur! &&
+					(o.dur! > e.dur! || (o.dur! === e.dur! && o.name === 'RunTask' && e.name !== 'RunTask'))
+			)
+	);
+	const out: LongTask[] = [];
+	for (const task of tasks) {
+		const end = task.ts! + task.dur!;
+		let best: (typeof mine)[number] | null = null;
+		for (const e of mine) {
+			if (e === task || e.tid !== task.tid || e.pid !== task.pid) continue;
+			if (e.ts! < task.ts! || e.ts! + e.dur! > end || wrappers.has(e.name ?? '')) continue;
+			if (best === null || e.dur! > best.dur!) best = e;
+		}
+		let cause = best?.name ?? 'unattributed';
+		const data = best?.args?.data as
+			{ functionName?: string; url?: string; lineNumber?: number } | undefined;
+		if (data?.functionName || data?.url)
+			cause += ` ${data.functionName || '(anonymous)'} ${(data.url ?? '').split('/').pop()}:${data.lineNumber ?? 0}`;
+		out.push({ ms: task.dur! / 1000, cause });
+	}
+	return out;
 }
 
 /** The table the soak prints. */
@@ -360,6 +458,7 @@ export function formatSoakTable(
 		'major GC',
 		'minor GC',
 		'long/min',
+		`tasks>${LONG_TASK_MS}/min`,
 		'result'
 	];
 	const rows = runs.map((r) => {
@@ -377,6 +476,7 @@ export function formatSoakTable(
 			String(r.majorGcs),
 			String(r.minorGcs),
 			r.longPerMinute.toFixed(1),
+			r.longTasksPerMinute.toFixed(1),
 			bad.length === 0 ? 'ok' : `FAIL: ${bad.join('; ')}`
 		];
 	});
