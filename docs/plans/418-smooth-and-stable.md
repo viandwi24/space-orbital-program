@@ -64,7 +64,7 @@ On 2026-11-08 the owner said the game is still not smooth, often lags and is uns
 2. (DONE) Soak gate and budgets (budget values are placeholders until step 7).
 3. (DONE) Allocation audit and fixes.
 4. (DONE) Background stalls, and the rung-change bug.
-5. (DONE in part: the cost is located to one merged building-list mesh, about 2.7 ms of the 3.5; the cause and the fix are open) Pad site: trace, then fix.
+5. (DONE in part: the cost is one merged building-list mesh, 2.1 to 2.7 ms: its weather patch 1.8, lighting 1, shadow lookups 0.2 to 0.3; the exact fix gives -0.25 ms; the rest needs a look decision) Pad site: trace, then fix.
 6. (DONE) Low TAAU evaluation: not turned on.
 7. (DONE in part: plan 414 folded; budgets not frozen, the load average was above 3 and the soak does not yet meet the placeholders) Freeze the budgets. Mark plan 414 done or folded.
 
@@ -72,7 +72,7 @@ On 2026-11-08 the owner said the game is still not smooth, often lags and is uns
 
 - [x] `perf:gate --soak` exists and reports heap growth, allocation rate, major GCs and long frames per minute. A unit test covers the budget comparison.
 - [x] On the M5 at Low and High, in a 3-minute pad and orbit soak: no long frame from background work, and the allocation rate is lower than before (numbers in the journal). Met: allocation 97 to 62 MB/s (High pad), 85 to 68 (High orbit), 127 to 62 (Low pad), 114 to 61 (Low orbit); tasks over 8 ms are 0 to 1.3 a minute, only the frame function and one major GC, no warming, autosave, rebake or rock task.
-- [ ] NOT MET: pad at High is 16.4 ms mean (GPU-bound), Low and Medium hold 8.33 ms. The trace says why: the main thread is 80 % idle; one merged building-list mesh costs about 2.7 ms. Next step in the journal. Pad on the M5 at High has a mean of 8.3 ms or less with at most 5 % of frames over 8.4 ms. If that is not met, the trace says why and the next step is written.
+- [ ] NOT MET: pad at High is 16.4 ms mean (GPU-bound), Low and Medium hold 8.33 ms. The trace says why: the main thread is 80 % idle; one merged building-list mesh costs 2.1 to 2.7 ms (weather patch 1.8); an exact branch fix took 0.25 ms; the rest is a look decision for the owner (journal). Pad on the M5 at High has a mean of 8.3 ms or less with at most 5 % of frames over 8.4 ms. If that is not met, the trace says why and the next step is written.
 - [ ] NOT MET: not frozen (load average 2.4 to 4.4, above 3; soak about 60 MB/s against the 20 placeholder). Budgets frozen from a headed M5 run.
 - [x] Dusk probe: 0 pipelines. Texture gate passes.
 - [x] `bun test` for the affected packages, `bun run typecheck`, `bun run lint`, `bun run docs:check`.
@@ -86,3 +86,4 @@ On 2026-11-08 the owner said the game is still not smooth, often lags and is uns
 
 - 2026-11-08 — Created by the coordinator from the owner's M5 test ("not smooth, often lags, unstable"). Absorbs plan 414's open items.
 - 2026-11-08 — Worker C: steps 1 to 4 and 6 done, 5 and 7 in part (see the journal). Plan 414 folded into this plan. A follow-up plan is needed for the building-list mesh (try castShadow/receiveShadow on that one mesh, then a Metal capture) and for the budget freeze on a quiet machine.
+- 2026-11-08 — Worker C, second pass (owner approved step 5): list mesh [1] is the `painted` mesh; weather twin 1.8 ms, lighting 1, shadow flags 0 to 0.3. `tsl/twins.ts` weather: streak and grime noise evaluated only where they are non-zero (identical image, -0.25 ms at the pad, screenshots inside run-to-run noise). Further cuts change the look: owner's call.

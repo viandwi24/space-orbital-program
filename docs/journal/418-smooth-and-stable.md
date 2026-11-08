@@ -75,8 +75,23 @@ Reading:
 | the list's 8 children: the first four / the last four | 15.65 / 18.00 |
 | the list's children 0..1 / 2..3, then 0..0 / 1..1 | 15.17 / 17.49, then 17.75 / 15.46: **one merged mesh, list child [1]** |
 
-- **Located, not explained.** About 2.7 of the 3.5 ms is one merged building-list mesh (child [1] of `site-building-list`, a `MeshStandardMaterial` mesh). The list's meshes are small (the largest is 4 864 triangles, the others 1 260, 1 188, 820, from `scripts/inspect-site.ts`), and hiding its material does not give the same gain as hiding the mesh, so the cost is not its triangles or its material draw. Candidates, not tested: a shadow-map pass cost tied to that caster (its bounds enlarge the fitted shadow region), or a per-object bind group or uniform path the mesh alone takes. Separating them needs a Metal capture of one frame (Xcode, a person), or toggling `castShadow` / `receiveShadow` on that one mesh, which is the first thing to try.
-- **No fix was made to the site**: the evidence points at one mesh, not at a change I can make safely without knowing which of its passes costs. Plan 414's target is not met: the pad at High is 16.4 ms mean (GPU-bound; the main thread is idle). Low and Medium hold 8.33 ms at the pad. A raw WebGPU rewrite is not indicated by any trace here (the CPU cost of the site is nil), so no such plan is written.
+- **Explained (second pass, owner-approved).** The mesh is the list's `painted` mesh (4 864 triangles, 250 x 41 x 240 m, `weatherMaterial` with `amount` 0.8 and no rust). `scripts/bisect-site.ts` with `MODE=flags` (High, the pad, interleaved, headed, 3 rounds of 6 s, load 3.1 to 3.5) took the mesh apart; mean frame interval, ms:
+
+| State of list mesh [1] | Mean (run 2 / run 3) | Meaning |
+|---|---|---|
+| unchanged | 18.70 / 18.25 | |
+| `castShadow` off | 18.82 / 18.13 | the shadow pass is not the cost (0 to 0.1) |
+| `receiveShadow` off | 18.55 / 17.90 | shadow lookups 0.15 to 0.35 |
+| hidden | 16.61 / 15.53 | the whole mesh is 2.1 to 2.7 |
+| a plain `MeshStandardMaterial` (all scene lights, no weather) | 18.22 / 17.12 | |
+| plain standard material with the same `lightsNode` (sun and sky only) | n/a / 16.47 | weather twin = 18.25 - 16.47 = **1.8 ms** |
+| `MeshBasicMaterial` (no lighting) | 16.55 / 15.52 | sun, sky and IBL lighting of it = 0.95 ms |
+
+So the mesh's cost is fragment cost, not geometry or shadow casting: its weather patch (`tsl/twins.ts`, `weather`) is 1.8 ms, lighting about 1 ms, shadow lookups 0.2 to 0.3; the vertex and raster side is nil (basic material equals hidden). The `painted` mesh covers a large part of the screen at the pad, and the weather patch evaluates seven 3-D value noises (8 hashes each) per pixel. Material-level hiding hid every material at once, which is why that bisect showed no single material.
+- **Fix made (exact, no look change):** the streak mask noise is only evaluated where the streak is above 0.58, and the ground-grime noise only below 3.5 m; both masks are exactly zero elsewhere (`smoothstep` edges), so the image is the same. Interleaved on the pad at High (3 rounds, load 2.3 to 2.9, base build then new build): base 18.43, 18.25, 18.03 = 18.24 ms; new 18.27, 17.90, 17.81 = 17.99 ms: **-0.25 ms**. Screenshot check (`scripts/shot-pad.ts`, the pad at High, two base shots and one new): mean absolute difference 0.91 (base vs base, the world moves), 0.76 and 0.69 (base vs new): the new build is inside the base's own run-to-run difference. Branching gains less than the saved noise count suggests (GPU lanes diverge), so this is a small win.
+- **The rest is a look decision, not a defect:** the weather patch is 1.8 ms on the one mesh (the other weathered meshes were not measured). Cutting it further changes the look (drop the grain and the 0.9 m mottle octaves beyond a distance, evaluate the patch per vertex, or bake it into the vertex colours at build time), which this plan's rule ("fix only stutter and cost, do not change looks") does not allow. It is written as the owner's call: the upper bound is 1.8 ms of the pad's 16.4 to 18 ms at High. A z-prepass would remove overdraw of the expensive pixels, but the depth equality between the two shaders is not guaranteed and a mismatch shows as z-fighting, so it was not tried.
+- **Plan 414's target is not met:** the pad at High is about 16.4 to 18 ms mean (GPU-bound; the main thread is idle), against 8.3. The site's remaining cost is spread (the whole site off is -4.0 ms; the building list was 2.7 of it, now about 2.45). Low and Medium hold 8.33 ms at the pad. A raw WebGPU rewrite is not indicated by any trace here, so no such plan is written.
+
 
 ## Low on a Retina display (step 6)
 
@@ -91,7 +106,7 @@ The variant is Medium's other settings too (shadow map, octaves), so it is an up
 
 ## Budgets
 
-Not frozen: the load average was 2.4 to 4.4 in every run (two other workers measuring and building), above the 3 the rule allows, and the soak does not meet the placeholder budgets yet (62 MB/s against 20). `bun run perf:gate --soak --freeze` writes the soak budgets (and `--freeze` alone the frame budgets) when the machine is quiet.
+Second pass: a freeze was attempted once the 1-minute load fell to 2.97, and stopped by me when it rose to 5.1 during the orbit scene (pad: 20.35 ms mean, 51.9 MB/s, 35 major GCs, load 3.5): noisy numbers are not frozen, and the file was left as it was. First pass: not frozen: the load average was 2.4 to 4.4 in every run (two other workers measuring and building), above the 3 the rule allows, and the soak does not meet the placeholder budgets yet (62 MB/s against 20). `bun run perf:gate --soak --freeze` writes the soak budgets (and `--freeze` alone the frame budgets) when the machine is quiet.
 
 ## Checks
 
