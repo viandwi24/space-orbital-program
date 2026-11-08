@@ -230,7 +230,12 @@ try {
 							basic: new meshes[6].material.constructor({ vertexColors: true })
 						};
 					}
+					if (w.__pre) {
+						w.__pre.removeFromParent();
+						w.__pre = null;
+					}
 					meshes.forEach((m: any, i: number) => {
+						m.renderOrder = 0;
 						m.castShadow = w.__orig[i][0];
 						m.receiveShadow = w.__orig[i][1];
 						m.visible = w.__orig[i][2];
@@ -242,6 +247,21 @@ try {
 						if (what.startsWith('receive')) m.receiveShadow = false;
 						if (what.startsWith('both')) m.castShadow = m.receiveShadow = false;
 						if (what.startsWith('hide')) m.visible = false;
+						if (what === 'ro-last') m.renderOrder = 1000;
+						if (what === 'ro-first') m.renderOrder = -1000;
+						if (what === 'prepass') {
+							// a depth-only copy first, then the real mesh (depth test is less-equal)
+							const pre = new m.constructor(
+								m.geometry,
+								new meshes[6].material.constructor({ colorWrite: false })
+							);
+							pre.renderOrder = -1000;
+							pre.castShadow = false;
+							pre.receiveShadow = false;
+							pre.matrixAutoUpdate = true;
+							list.add(pre);
+							w.__pre = pre;
+						}
 						if (what === 'plainr') m.material = w.__alt.plainr;
 						else if (what.startsWith('plain')) m.material = w.__alt.plain;
 						if (what.startsWith('basic')) m.material = w.__alt.basic;
@@ -258,6 +278,9 @@ try {
 			'plain',
 			'plainr',
 			'basic',
+			'ro-last',
+			'ro-first',
+			'prepass',
 			'receive-all'
 		];
 		const states = process.env.STATES ? process.env.STATES.split(',') : all;
