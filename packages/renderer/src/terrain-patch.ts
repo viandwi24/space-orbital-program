@@ -105,3 +105,24 @@ export function liftAboveTerrain(
 	const ground = radius + terrain.heightAt(n) + clearance;
 	return r >= ground ? position : scale(n, ground);
 }
+
+/**
+ * The patch bakes to run this frame (plan 418). A cube bake and two patch bakes in one frame cost up
+ * to 8 ms on the M5 at high (journal 068): outside a load or a resize (`urgent`), at most one of the
+ * three runs a frame; the rest stay due and run on the next frames. The camera is clamped above the
+ * ground by the CPU, so a patch a frame or two late shows the coarser level for that long. When more
+ * than one is due, `skip` (the one baked last) waits, so a patch wanted again every frame in a fast
+ * pass low over the ground cannot keep the other from ever baking.
+ */
+export function patchBakesThisFrame<T>(
+	due: readonly T[],
+	cubeBaked: boolean,
+	urgent: boolean,
+	skip?: (t: T) => boolean
+): readonly T[] {
+	if (urgent) return due;
+	if (cubeBaked) return [];
+	if (due.length <= 1) return due;
+	const next = skip ? due.find((t) => !skip(t)) : undefined;
+	return [next ?? due[0]!];
+}

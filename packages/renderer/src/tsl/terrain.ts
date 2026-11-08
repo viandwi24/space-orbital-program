@@ -35,7 +35,7 @@ import {
 	TERRAIN_SHAPE as S
 } from '@orbital/core';
 import type { PlanetPass } from '../planet.ts';
-import { PATCH_BLEND, patchTexel, type PatchFrame } from '../terrain-patch.ts';
+import { PATCH_BLEND, patchBakesThisFrame, patchTexel, type PatchFrame } from '../terrain-patch.ts';
 import { hash13i, noiseT, octaveRotate, warpedLatLon } from './noise.ts';
 import { atlasBakeDirection, atlasCoord } from './cube-atlas.ts';
 
@@ -185,6 +185,9 @@ export class TerrainTSL {
 		private readonly floatLinear: boolean
 	) {}
 
+	/** The patch baked last, which waits a frame when both are due (plan 418). */
+	private lastPatchBaked: 'fine' | 'mid' | null = null;
+
 	/** Runs the bakes `PlanetPass.terrainJobs` asks for. Call once a frame before drawing. */
 	bake(renderer: WebGPURenderer): void {
 		const jobs = this.planet.terrainJobs();
@@ -202,13 +205,25 @@ export class TerrainTSL {
 		if (resized) this.rebuild(jobs.cubeSize, jobs.patchSize, jobs.map);
 		if (jobs.cubeSize <= 0) return;
 		const prev = renderer.getRenderTarget();
-		if (jobs.cube || resized || this.rebakeAll) {
+		const urgent = resized || this.rebakeAll;
+		const cubeBaked = jobs.cube || urgent;
+		if (cubeBaked) {
 			this.uTexel.value = (1.2 * PI) / 2 / jobs.cubeSize;
 			renderer.setRenderTarget(this.atlas);
 			this.cubePass!.q.render(renderer);
 			this.planet.markCubeBaked();
 		}
-		for (const { slot, frame } of jobs.patches) this.bakePatch(renderer, slot, frame);
+		// a cube and two patches in one frame was up to 8 ms: one a frame in play, all of them on a load (plan 418)
+		const run = patchBakesThisFrame(
+			jobs.patches,
+			cubeBaked,
+			urgent,
+			(j) => j.slot === this.lastPatchBaked
+		);
+		for (const { slot, frame } of run) {
+			this.bakePatch(renderer, slot, frame);
+			this.lastPatchBaked = slot;
+		}
 		renderer.setRenderTarget(prev);
 	}
 

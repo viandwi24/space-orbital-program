@@ -16,7 +16,7 @@
  */
 import { HALF_PLANET_SCALE } from './half-res.ts';
 import { postLook } from './post-profile.ts';
-import { ACESFilmicToneMapping, PCFShadowMap, type Camera, type Scene } from 'three';
+import { ACESFilmicToneMapping, PCFShadowMap, Vector2, type Camera, type Scene } from 'three';
 import type { RenderPipeline, WebGPURenderer } from 'three/webgpu';
 import { lights } from 'three/tsl';
 import { restrictLights } from './light-sets.ts';
@@ -43,6 +43,7 @@ import { Twins } from './tsl/twins.ts';
 import { MoonTSL } from './tsl/moon.ts';
 import type { MoonPass } from './moon.ts';
 import { CutDetector } from './taau-cuts.ts';
+import { taauInputSize } from './taau-input-size.ts';
 import { PassTag, labelCommandEncoders, passTimes, type PassTimes } from './pass-timing.ts';
 
 const deferred = (): { promise: Promise<void>; resolve: () => void } => {
@@ -167,6 +168,7 @@ export function createWebGPURenderer(
 	/** The scene pass of each kept TAAU pipeline: its scale changes with no new pipeline (plan 395, ADR 0359). */
 	const taauPasses = new Map<string, { setResolutionScale(scale: number): void }>();
 	const cuts = new CutDetector();
+	const drawingSize = new Vector2();
 	let last = performance.now();
 
 	let modules: Modules | null = null;
@@ -236,7 +238,20 @@ export function createWebGPURenderer(
 				setViewOffset(inputWidth: number, inputHeight: number): void;
 			};
 			const setViewOffset = taauNode.setViewOffset.bind(taauNode);
-			taauNode.setViewOffset = (inputWidth, inputHeight) => {
+			taauNode.setViewOffset = (staleWidth, staleHeight) => {
+				// the scene pass resizes its target after this hook (PassNode.updateBefore), so the sizes
+				// passed are last frame's on the frame of a rung or canvas change: use the size it is about
+				// to have, for the jitter and for the distance image alike (plan 418)
+				let inputWidth = staleWidth;
+				let inputHeight = staleHeight;
+				if (gpu) {
+					gpu.getDrawingBufferSize(drawingSize);
+					({ width: inputWidth, height: inputHeight } = taauInputSize(
+						drawingSize.x,
+						drawingSize.y,
+						currentTaau()
+					));
+				}
 				setViewOffset(inputWidth, inputHeight);
 				if (gpu) planet.drawMesh(gpu, model.camera, inputWidth, inputHeight);
 			};
