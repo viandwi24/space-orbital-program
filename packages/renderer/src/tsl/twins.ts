@@ -612,21 +612,27 @@ const weather = (m: Material, w: Required<WeatherOptions>): Twin => {
 		const streak = wxNoise(
 			vec3(sp.x.mul(2.6).add(sp.z.mul(2.2)), sp.y.mul(0.16), sp.z.mul(0.7).sub(sp.x.mul(0.5)))
 		).toVar();
-		const streakMask = smoothstep(0.58, 0.88, streak).mul(
-			wxNoise(sp.mul(0.3).add(11.0)).mul(0.65).add(0.35)
-		);
-		const low = smoothstep(0.0, 3.5, sp.y).oneMinus();
+		// the two masks are zero over most of a wall (no streak at or below 0.58, no grime from 3.5 m up),
+		// so their noise is only evaluated where it counts: the same result at a fraction of the cost (plan 418)
+		const streakMask = float(0).toVar();
+		If(streak.greaterThan(0.58), () => {
+			streakMask.assign(
+				smoothstep(0.58, 0.88, streak).mul(wxNoise(sp.mul(0.3).add(11.0)).mul(0.65).add(0.35))
+			);
+		});
+		const grime = float(0).toVar();
+		If(sp.y.lessThan(3.5), () => {
+			grime.assign(
+				smoothstep(0.0, 3.5, sp.y)
+					.oneMinus()
+					.mul(wxNoise(sp.mul(1.7)).mul(0.4).add(0.4))
+			);
+		});
 		const base = T.materialColor.xyz.toVar();
 		base.mulAssign(mottle.mul(0.22).add(0.88));
 		base.mulAssign(grain.mul(0.1).add(0.95));
 		base.assign(mix(base, base.mul(vec3(0.55, 0.52, 0.48)), streakMask.mul(0.55 * k)));
-		base.assign(
-			mix(
-				base,
-				base.mul(vec3(0.5, 0.45, 0.38)),
-				low.mul(wxNoise(sp.mul(1.7)).mul(0.4).add(0.4)).mul(k)
-			)
-		);
+		base.assign(mix(base, base.mul(vec3(0.5, 0.45, 0.38)), grime.mul(k)));
 		if (w.rust) {
 			const rust = smoothstep(0.66, 0.86, wxNoise(sp.mul(0.95).add(3.0))).mul(
 				streak.mul(0.6).add(0.4)
