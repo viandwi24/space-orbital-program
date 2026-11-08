@@ -199,6 +199,95 @@ try {
 		await browser.close();
 		process.exit(0);
 	}
+	if (process.env.MODE === 'flags') {
+		// MODE=flags: shadow flags and visibility of the building list's meshes (site-buildings > list),
+		// child [IDX] alone (default 1) or all of them, against nothing changed
+		const idx = Number(process.env.IDX ?? 1);
+		const set = (what: string): Promise<void> =>
+			page.evaluate(
+				([what, idx]) => {
+					const w = window as any;
+					const list = w.__site.children[0].children[0];
+					const meshes: any[] = list.children;
+					if (!w.__orig) {
+						w.__orig = meshes.map((m: any) => [
+							m.castShadow,
+							m.receiveShadow,
+							m.visible,
+							m.material
+						]);
+						w.__alt = {
+							plain: new meshes[0].material.constructor({ vertexColors: true, roughness: 0.5 }),
+							plainr: (() => {
+								const m = new meshes[0].material.constructor({
+									vertexColors: true,
+									roughness: 0.55,
+									metalness: 0.1
+								});
+								m.lightsNode = meshes[1].material.lightsNode;
+								return m;
+							})(),
+							basic: new meshes[6].material.constructor({ vertexColors: true })
+						};
+					}
+					meshes.forEach((m: any, i: number) => {
+						m.castShadow = w.__orig[i][0];
+						m.receiveShadow = w.__orig[i][1];
+						m.visible = w.__orig[i][2];
+						m.material = w.__orig[i][3];
+					});
+					const pick = what.endsWith('-all') ? meshes : [meshes[idx]];
+					for (const m of pick) {
+						if (what.startsWith('cast')) m.castShadow = false;
+						if (what.startsWith('receive')) m.receiveShadow = false;
+						if (what.startsWith('both')) m.castShadow = m.receiveShadow = false;
+						if (what.startsWith('hide')) m.visible = false;
+						if (what === 'plainr') m.material = w.__alt.plainr;
+						else if (what.startsWith('plain')) m.material = w.__alt.plain;
+						if (what.startsWith('basic')) m.material = w.__alt.basic;
+					}
+				},
+				[what, idx] as const
+			);
+		const all = [
+			'nothing',
+			'cast',
+			'receive',
+			'both',
+			'hide',
+			'plain',
+			'plainr',
+			'basic',
+			'receive-all'
+		];
+		const states = process.env.STATES ? process.env.STATES.split(',') : all;
+		const acc = new Map<string, number[]>(states.map((s) => [s, []]));
+		for (let r = 0; r < Math.max(rounds, 3); r++)
+			for (const s of states) {
+				await set(s);
+				await page.waitForTimeout(warm * 1000);
+				acc.get(s)!.push(await sample(page));
+			}
+		await set('nothing');
+		const info = await page.evaluate((idx) => {
+			const w = window as any;
+			return w.__site.children[0].children[0].children.map((m: any, i: number) => {
+				const g = m.geometry;
+				g.computeBoundingBox();
+				const b = g.boundingBox;
+				return `[${i}] ${m.material.type} ${m.material.name || ''} tris ${(g.index ? g.index.count : g.attributes.position.count) / 3} cast ${m.castShadow} recv ${m.receiveShadow} size ${(b.max.x - b.min.x).toFixed(0)}x${(b.max.y - b.min.y).toFixed(0)}x${(b.max.z - b.min.z).toFixed(0)} mat.transparent ${m.material.transparent} side ${m.material.side} weather ${JSON.stringify(m.material.userData.weather)}`;
+			});
+		}, idx);
+		for (const l of info) console.log(l);
+		const mean = (xs: number[]): number => xs.reduce((a, b) => a + b, 0) / xs.length;
+		console.log(`pad, ${preset}, mean frame interval ms, idx ${idx}`);
+		for (const [s, xs] of acc)
+			console.log(
+				`  ${s.padEnd(12)} ${mean(xs).toFixed(2)}  [${xs.map((x) => x.toFixed(1)).join(', ')}]`
+			);
+		await browser.close();
+		process.exit(0);
+	}
 	if (process.env.MODE === 'bundle') {
 		// MODE=bundle: what hiding the root, the static bundle alone, or every material alone takes
 		const set = (what: string): Promise<void> =>
