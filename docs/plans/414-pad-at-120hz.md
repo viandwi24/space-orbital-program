@@ -1,12 +1,12 @@
 ---
 id: 414
 title: "The pad at 120 Hz on the M5: vegetation and site drawn the AAA way"
-status: in-progress
+status: done
 owner: "Worker B"
 depends: [413]
 phase: 9
 created: 2026-10-24
-updated: 2026-10-24
+updated: 2026-11-08
 ---
 
 # 414 — The pad at 120 Hz
@@ -45,3 +45,4 @@ Pad mean frame at most 8.3 ms and frames over 8.4 ms at most 5 % on the M5 at Hi
 - 2026-10-25 — Lights by Worker B (ADR 0373): the pad's mean frame 19.7 to 16.8 ms, dusk builds 0 pipelines. Stays in progress for the owner's look at night and plan 415.
 - 2026-10-25 — Light sets per material by Worker B (ADR 0374): the pad's mean frame 21.2 to 19.5 ms in an interleaved A/B; dusk builds 0 pipelines.
 - 2026-10-25 — Paused: the worker sessions stopped (Claude Code access disabled for the organization). The remaining work and the measuring rules are in `docs/roadmap/handover-2026-10-25.md`.
+- 2026-11-08 — Folded into plan 418, which owns the open items. Its target (pad mean 8.3 ms at High on the M5) is not met: 16.4 ms, GPU-bound; 2.7 ms of the unexplained 3.5 ms is one merged building-list mesh (journal 418). Low and Medium hold 8.33 ms.

@@ -237,6 +237,15 @@ The owner reports that today's graphics work made the game less playable: stalls
 - **The owner's short run.** `bun run perf:gate --quick` (pad, orbit, Space Center, the default backend) prints a table to paste back; with `--tier m2` or `--tier windows` for those machines (`[manual]`).
 - `--headless` is a smoke run of the script: its numbers mean nothing.
 
+## The soak rule (plan 418, ADR 0375, 2026-11-08)
+
+Smoothness is stability, not only a frame interval: the owner's M5 lagged with a good p95 because of memory churn and background work. `bun run perf:gate --soak` runs the pad, orbit, an ascent and the Space Center for about 3 minutes each, headed, with a Chrome trace on, and reports per scene the heap floor's growth, the allocation rate (MB/s), major and minor GCs, long frames a minute, and main-thread tasks over 8 ms a minute with the function that filled each. Budgets are in the `soak` block of `apps/web/perf-budgets.json`.
+
+- **Rule.** A plan that touches the renderer, the page loops, the flight loop, sim-client decoding or anything that runs every frame runs `--soak` (at least `--scenes pad,orbit --seconds 60`) before it merges, interleaved against the build without the change, under the measuring flag, and puts the table in its journal. A change that adds to the allocation rate, adds a major GC or adds a task over 8 ms does not merge.
+- **No per-frame garbage in a hot path.** No `new` objects, array methods that copy (`slice`, `map`, `filter`, spread) or `JSON.stringify` per frame. A sliding window is a ring or a head index, not a copy. Find offenders with `bun scripts/profile-alloc.ts` (V8's sampling heap profiler, headed, `SCENE=pad|orbit|ascent|space-center`).
+- **Background work is sliced.** Warming, a rebake, an autosave or a rebuild never runs over 8 ms in one task in play: split it over frames or move it to a worker. At most one terrain bake (the cube or a patch) a frame in play.
+- `--freeze` with `--soak` writes the soak budgets; freeze only on a quiet machine (load 3 or less) and let later budgets only go down.
+
 ## Doing a plan
 
 **UI fixes come first (owner's rule, ADR 0222):** when the coordinator reports that a screen you built is off the design package (`refs/space-orbital-program-ui-v2/`), finish and merge your current plan, then fix that screen (plan 233 and the like) before taking any other plan. Always compare UI work with the matching `.dc.html` source and `docs/BASE_LAYOUT.md`.

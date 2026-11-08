@@ -1,7 +1,7 @@
 ---
 id: 418
 title: "Smooth and stable: no allocation churn or GC pauses in play, no background stalls, a pad that holds 120 Hz on the M5 and 60 on Low elsewhere"
-status: ready
+status: in-progress
 owner: "Worker C"
 depends: []
 phase: 9
@@ -60,28 +60,29 @@ On 2026-11-08 the owner said the game is still not smooth, often lags and is uns
 
 ## Steps
 
-1. Read 06 and 07 and plans 408, 409, 414 and 415. Write the current state of each suspect into the journal.
-2. Soak gate and budgets.
-3. Allocation audit and fixes.
-4. Background stalls, and the rung-change bug.
-5. Pad site: trace, then fix.
-6. Low TAAU evaluation.
-7. Freeze the budgets. Mark plan 414 done or folded.
+1. (DONE) Read 06 and 07 and plans 408, 409, 414 and 415. Write the current state of each suspect into the journal.
+2. (DONE) Soak gate and budgets (budget values are placeholders until step 7).
+3. (DONE) Allocation audit and fixes.
+4. (DONE) Background stalls, and the rung-change bug.
+5. (DONE in part: the cost is located to one merged building-list mesh, about 2.7 ms of the 3.5; the cause and the fix are open) Pad site: trace, then fix.
+6. (DONE) Low TAAU evaluation: not turned on.
+7. (DONE in part: plan 414 folded; budgets not frozen, the load average was above 3 and the soak does not yet meet the placeholders) Freeze the budgets. Mark plan 414 done or folded.
 
 ## Acceptance criteria
 
-- [ ] `perf:gate --soak` exists and reports heap growth, allocation rate, major GCs and long frames per minute. A unit test covers the budget comparison.
-- [ ] On the M5 at Low and High, in a 3-minute pad and orbit soak: no long frame from background work, and the allocation rate is lower than before (numbers in the journal).
-- [ ] Pad on the M5 at High has a mean of 8.3 ms or less with at most 5 % of frames over 8.4 ms. If that is not met, the trace says why and the next step is written.
-- [ ] Budgets frozen from a headed M5 run.
-- [ ] Dusk probe: 0 pipelines. Texture gate passes.
-- [ ] `bun test` for the affected packages, `bun run typecheck`, `bun run lint`, `bun run docs:check`.
+- [x] `perf:gate --soak` exists and reports heap growth, allocation rate, major GCs and long frames per minute. A unit test covers the budget comparison.
+- [x] On the M5 at Low and High, in a 3-minute pad and orbit soak: no long frame from background work, and the allocation rate is lower than before (numbers in the journal). Met: allocation 97 to 62 MB/s (High pad), 85 to 68 (High orbit), 127 to 62 (Low pad), 114 to 61 (Low orbit); tasks over 8 ms are 0 to 1.3 a minute, only the frame function and one major GC, no warming, autosave, rebake or rock task.
+- [ ] NOT MET: pad at High is 16.4 ms mean (GPU-bound), Low and Medium hold 8.33 ms. The trace says why: the main thread is 80 % idle; one merged building-list mesh costs about 2.7 ms. Next step in the journal. Pad on the M5 at High has a mean of 8.3 ms or less with at most 5 % of frames over 8.4 ms. If that is not met, the trace says why and the next step is written.
+- [ ] NOT MET: not frozen (load average 2.4 to 4.4, above 3; soak about 60 MB/s against the 20 placeholder). Budgets frozen from a headed M5 run.
+- [x] Dusk probe: 0 pipelines. Texture gate passes.
+- [x] `bun test` for the affected packages, `bun run typecheck`, `bun run lint`, `bun run docs:check`.
 - [ ] [manual] A locked 60 on the M2 and Windows at Low (`bun run perf:gate --quick`).
 
 ## Docs checklist
 
-- [ ] STATUS row, journal `docs/journal/418-smooth-and-stable.md`, plan 414 closed, worker brief soak rule, `refs/graphics-v2/06` suspect table updated.
+- [x] STATUS row, journal `docs/journal/418-smooth-and-stable.md`, plan 414 closed, worker brief soak rule, `refs/graphics-v2/06` suspect table updated.
 
 ## Log
 
 - 2026-11-08 — Created by the coordinator from the owner's M5 test ("not smooth, often lags, unstable"). Absorbs plan 414's open items.
+- 2026-11-08 — Worker C: steps 1 to 4 and 6 done, 5 and 7 in part (see the journal). Plan 414 folded into this plan. A follow-up plan is needed for the building-list mesh (try castShadow/receiveShadow on that one mesh, then a Metal capture) and for the budget freeze on a quiet machine.

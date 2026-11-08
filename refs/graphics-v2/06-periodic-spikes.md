@@ -1,5 +1,7 @@
 # 06 — Periodic frame spikes at 140–180 fps
 
+> **State on 2026-11-08 (plan 418).** The table below is the audit of 2026-10-24; the state of each suspect after plans 408, 409 and 418 is in the section "Suspect table, updated". The soak numbers are in `docs/journal/418-smooth-and-stable.md`.
+
 Owner report: Windows (Chrome/Edge) and an M2 MacBook Pro average 140–180 fps, with a freeze every few seconds. The Perf HUD screenshots (`reference/owner-spikes/`) show WebGPU · medium · 100 %, 180 fps / 5.6 ms, 63–64 draw calls, about 932k triangles, a regular dip in the frame graph, and **JS heap 403 → 248 → 380 MB**. In `space-center-blurred.jpg` the Space Center drops to 89 fps with a steady 11.2 ms frame (every second vsync at 180 Hz) and blurry ground, while the HUD still says medium 100 %.
 
 Read-only audit of `main` at 698ffe58. Nothing was measured; the confidence levels below are estimates.
@@ -129,6 +131,22 @@ The trigger runs on a 1 s timer (`routes/(world)/+layout.svelte:590-594`; `autos
   - Fix: bake it in tiles across frames.
 - **Rocks.** Rebuilt every 6 m (`ground-rocks.ts:28`); `cache.clear()` at 60k cells (`:132`) causes a burst of regeneration.
   - Fix: evict the cache by distance instead of clearing it; reuse the vector scratch objects.
+
+## Suspect table, updated (plan 418, 2026-11-08)
+
+State of each suspect on `main` after plans 408, 409 and 418. "Trace" is a headed Chrome trace of a 40 s soak on the M5 (`perf:gate --soak`, journal 418): in pad, orbit and the Space Center the only main-thread task over 8 ms was the flight page's own frame function, one to three times in 40 s, and no warming round, rebake, autosave or garbage collection.
+
+| # | Source | State | By | What is left |
+|---|---|---|---|---|
+| 1 | Background preset warming | Fixed: warming runs on the loading screen, not as forced idle tasks, and never reallocates the live targets (ADR 0367). Trace: no warming task over 8 ms in play. | 408 | Warming does not settle in 3 minutes on a loaded machine (load 3 to 5): it is slow, not stalling. |
+| 2 | Major GC of a churning JS heap | Reduced, not gone. 409 removed the `JSON.stringify` and governor copies. 418 found what remained with the allocation sampler (`scripts/profile-alloc.ts`) and removed it: the frame histogram copied its two-minute window every frame, the navball made about a thousand objects a frame, the scene walk made arrays for every object, the sky light was integrated every frame, the vegetation list was re-sorted every frame in orbit, the HUD parsed every module of every part every update. The allocation rate fell about 25 % (journal 418). | 409, 418 | About 55 MB/s remains in orbit at idle: three.js internals (cache keys, render lists, pass descriptors), the snapshot clone, and the atmosphere in the planet pass. 5 to 9 major GCs in 40 s still. |
+| 3 | Lost TAAU state, a boot preset behind a label | Fixed: `acquire` resets TAAU, scales and the governed preset; the HUD shows the drawn preset and TAAU (ADR 0367). | 408 | |
+| 4 | Pacing above 144 Hz | Fixed: the display rates reach 240 Hz. | 408 | |
+| 5 | Governor steps | Fixed: steps reuse the targets and every TAAU key is built at load (ADR 0359, 0367). 418 also fixed the one frame after a step: the mesh terrain's distance image and TAAU's jitter were sized from the old input size (`taau-input-size.ts`). | 408, 418 | |
+| 6 | Autosave | Fixed: an async thumbnail, no extra frame (408). Not seen in the 40 s traces; the 3-minute soaks cover one autosave. | 408 | |
+| 7 | Terrain patch rebake | Amortised: one bake (cube or a patch) a frame in play, all of them on a load or resize (`patchBakesThisFrame`); the cube and two patches were up to 8 ms in one frame. | 418 | The fine patch is still 4 km wide and re-centres every 717 m. |
+| 8 | Cloud map rebake | Gentler: at most one step per 8 s of wall time (408). One full-sphere noise bake, not sliced. | 408 | Slice it by strips only if a trace shows it over 8 ms. |
+| 9 | Ground rocks | Fixed: eviction by distance, no full clear (408). | 408 | |
 
 ## How the owner can catch the source in the game
 
