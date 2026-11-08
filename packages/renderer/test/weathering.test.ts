@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'bun:test';
 import { MeshStandardMaterial, ShaderChunk } from 'three';
-import { weatherMaterial, windMaterial } from '../src/weathering.ts';
+import { WEATHER_FADE, weatherFine, weatherMaterial, windMaterial } from '../src/weathering.ts';
 
 type Shader = Parameters<MeshStandardMaterial['onBeforeCompile']>[0];
 
@@ -55,5 +55,30 @@ describe('weathering and wind patches', () => {
 		const s2 = real();
 		m2.onBeforeCompile(s2, undefined as never);
 		expect(s2.vertexShader).not.toContain('smoothstep(40.0');
+	});
+	test('the fine octaves are full near, gone far, and fade monotonically with no pop', () => {
+		expect(weatherFine(0)).toBe(1);
+		expect(weatherFine(WEATHER_FADE.near)).toBe(1);
+		expect(weatherFine(WEATHER_FADE.far)).toBe(0);
+		expect(weatherFine(500)).toBe(0);
+		let last = 1;
+		let step = 0;
+		for (let d = WEATHER_FADE.near; d <= WEATHER_FADE.far; d += 0.5) {
+			const f = weatherFine(d);
+			expect(f).toBeLessThanOrEqual(last);
+			step = Math.max(step, last - f);
+			last = f;
+		}
+		// a half metre of walking never moves it by more than a tenth
+		expect(step).toBeLessThan(0.1);
+	});
+	test('the GLSL patch fades and skips the fine octaves by view depth', () => {
+		const m = new MeshStandardMaterial();
+		weatherMaterial(m);
+		const shader = real();
+		m.onBeforeCompile(shader, undefined as never);
+		expect(shader.fragmentShader).toContain('vViewPosition.z');
+		expect(shader.fragmentShader).toContain('if (fine > 0.0)');
+		expect(ShaderChunk.meshphysical_frag).toContain('vViewPosition');
 	});
 });

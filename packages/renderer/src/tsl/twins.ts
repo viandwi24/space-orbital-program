@@ -22,7 +22,13 @@ import {
 } from 'three';
 import * as TSL from 'three/tsl';
 import { MeshBasicNodeMaterial, MeshStandardNodeMaterial } from 'three/webgpu';
-import { siteTime, type WeatherOptions, type WindOptions } from '../weathering.ts';
+import {
+	WEATHER_FADE,
+	WEATHER_MEAN,
+	siteTime,
+	type WeatherOptions,
+	type WindOptions
+} from '../weathering.ts';
 import {
 	FIELD_VERT,
 	FIRE_FRAG,
@@ -605,10 +611,18 @@ const weather = (m: Material, w: Required<WeatherOptions>): Twin => {
 	const sp = positionGeometry;
 	const k = w.amount;
 	twin.colorNode = Fn(() => {
-		const mottle = wxNoise(sp.mul(0.18))
-			.mul(0.6)
-			.add(wxNoise(sp.mul(0.9)).mul(0.4));
-		const grain = wxNoise(sp.mul(7.0)).toVar();
+		// the fine octaves fade out with the view depth and are not evaluated beyond it, as in the GLSL
+		// patch of `weathering.ts` (plan 418)
+		const fine = smoothstep(WEATHER_FADE.near, WEATHER_FADE.far, positionView.z.negate())
+			.oneMinus()
+			.toVar();
+		const oct2 = float(WEATHER_MEAN.noise).toVar();
+		const grain = float(WEATHER_MEAN.noise).toVar();
+		If(fine.greaterThan(0.0), () => {
+			oct2.assign(mix(WEATHER_MEAN.noise, wxNoise(sp.mul(0.9)), fine));
+			grain.assign(mix(WEATHER_MEAN.noise, wxNoise(sp.mul(7.0)), fine));
+		});
+		const mottle = wxNoise(sp.mul(0.18)).mul(0.6).add(oct2.mul(0.4));
 		const streak = wxNoise(
 			vec3(sp.x.mul(2.6).add(sp.z.mul(2.2)), sp.y.mul(0.16), sp.z.mul(0.7).sub(sp.x.mul(0.5)))
 		).toVar();
@@ -616,9 +630,13 @@ const weather = (m: Material, w: Required<WeatherOptions>): Twin => {
 		// so their noise is only evaluated where it counts: the same result at a fraction of the cost (plan 418)
 		const streakMask = float(0).toVar();
 		If(streak.greaterThan(0.58), () => {
-			streakMask.assign(
-				smoothstep(0.58, 0.88, streak).mul(wxNoise(sp.mul(0.3).add(11.0)).mul(0.65).add(0.35))
-			);
+			const streakMod = float(WEATHER_MEAN.streakMod).toVar();
+			If(fine.greaterThan(0.0), () => {
+				streakMod.assign(
+					mix(WEATHER_MEAN.streakMod, wxNoise(sp.mul(0.3).add(11.0)).mul(0.65).add(0.35), fine)
+				);
+			});
+			streakMask.assign(smoothstep(0.58, 0.88, streak).mul(streakMod));
 		});
 		const grime = float(0).toVar();
 		If(sp.y.lessThan(3.5), () => {
@@ -643,13 +661,21 @@ const weather = (m: Material, w: Required<WeatherOptions>): Twin => {
 		}
 		return vec4(base, T.materialColor.w);
 	})();
-	twin.roughnessNode = clamp(
-		T.materialRoughness
-			.add(wxNoise(sp.mul(2.3)).sub(0.5).mul(0.2))
-			.add(smoothstep(0.0, 2.0, sp.y).oneMinus().mul(0.12)),
-		0.05,
-		1.0
-	);
+	// the roughness variation is a fine octave too: faded and skipped with the colour's (plan 418)
+	twin.roughnessNode = Fn(() => {
+		const fine = smoothstep(WEATHER_FADE.near, WEATHER_FADE.far, positionView.z.negate())
+			.oneMinus()
+			.toVar();
+		const vary = float(0).toVar();
+		If(fine.greaterThan(0.0), () => {
+			vary.assign(wxNoise(sp.mul(2.3)).sub(0.5).mul(0.2).mul(fine));
+		});
+		return clamp(
+			T.materialRoughness.add(vary).add(smoothstep(0.0, 2.0, sp.y).oneMinus().mul(0.12)),
+			0.05,
+			1.0
+		);
+	})();
 	return { material: twin, sync };
 };
 

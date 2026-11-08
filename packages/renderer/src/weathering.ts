@@ -31,6 +31,26 @@ float wxNoise(vec3 x) {
 }
 `;
 
+/**
+ * The fine octaves of the wear (grain, the 0.9 m mottle, the 0.3 m streak modulation) fade out with the
+ * view-space distance: fully in up to `near` m, gone from `far` m, where a texel of them is under a pixel
+ * and their noise only costs (plan 418: 1.8 ms on one wall mesh at the pad). Beyond `far` the shaders do
+ * not evaluate them. Shared by the GLSL patch and the TSL twin (`tsl/twins.ts`).
+ */
+export const WEATHER_FADE = { near: 30, far: 60 } as const;
+
+/** What a faded octave settles at: the mean of the value noise, and of the streak modulation 0.35 + 0.65 n. */
+export const WEATHER_MEAN = { noise: 0.5, streakMod: 0.675 } as const;
+
+/** 1 up to `WEATHER_FADE.near` m of view depth, 0 from `far` m, a smoothstep between (the shaders' `fine`). */
+export function weatherFine(depth: number): number {
+	const t = Math.min(
+		1,
+		Math.max(0, (depth - WEATHER_FADE.near) / (WEATHER_FADE.far - WEATHER_FADE.near))
+	);
+	return 1 - t * t * (3 - 2 * t);
+}
+
 export interface WeatherOptions {
 	/** Rust-brown stains (steel structure) in addition to grime. */
 	rust?: boolean;
@@ -58,11 +78,23 @@ export function weatherMaterial(
 				/* glsl */ `#include <color_fragment>
 {
 	vec3 sp = vSitePos;
-	float mottle = wxNoise(sp * 0.18) * 0.6 + wxNoise(sp * 0.9) * 0.4;
-	float grain = wxNoise(sp * 7.0);
+	// the fine octaves fade out with the view depth and are not evaluated beyond it (plan 418)
+	float fine = 1.0 - smoothstep(${WEATHER_FADE.near.toFixed(1)}, ${WEATHER_FADE.far.toFixed(1)}, vViewPosition.z);
+	float oct2 = 0.5;
+	float grain = 0.5;
+	if (fine > 0.0) {
+		oct2 = mix(0.5, wxNoise(sp * 0.9), fine);
+		grain = mix(0.5, wxNoise(sp * 7.0), fine);
+	}
+	float mottle = wxNoise(sp * 0.18) * 0.6 + oct2 * 0.4;
 	// rain runs down from edges: stretched in y, thin in x and z
 	float streak = wxNoise(vec3(sp.x * 2.6 + sp.z * 2.2, sp.y * 0.16, sp.z * 0.7 - sp.x * 0.5));
-	float streakMask = smoothstep(0.58, 0.88, streak) * (0.35 + 0.65 * wxNoise(sp * 0.3 + 11.0));
+	float streakMask = 0.0;
+	if (streak > 0.58) {
+		float streakMod = ${WEATHER_MEAN.streakMod};
+		if (fine > 0.0) streakMod = mix(${WEATHER_MEAN.streakMod}, 0.35 + 0.65 * wxNoise(sp * 0.3 + 11.0), fine);
+		streakMask = smoothstep(0.58, 0.88, streak) * streakMod;
+	}
 	float low = 1.0 - smoothstep(0.0, 3.5, sp.y);
 	float k = ${amount.toFixed(3)};
 	vec3 base = diffuseColor.rgb;
@@ -79,7 +111,7 @@ export function weatherMaterial(
 			)
 			.replace(
 				'#include <roughnessmap_fragment>',
-				'#include <roughnessmap_fragment>\nroughnessFactor = clamp(roughnessFactor + 0.2 * (wxNoise(vSitePos * 2.3) - 0.5) + 0.12 * (1.0 - smoothstep(0.0, 2.0, vSitePos.y)), 0.05, 1.0);'
+				`#include <roughnessmap_fragment>\nfloat rFine = 1.0 - smoothstep(${WEATHER_FADE.near.toFixed(1)}, ${WEATHER_FADE.far.toFixed(1)}, vViewPosition.z);\nfloat rVary = 0.0;\nif (rFine > 0.0) rVary = 0.2 * (wxNoise(vSitePos * 2.3) - 0.5) * rFine;\nroughnessFactor = clamp(roughnessFactor + rVary + 0.12 * (1.0 - smoothstep(0.0, 2.0, vSitePos.y)), 0.05, 1.0);`
 			);
 		if (options.rust) shader.fragmentShader = `#define WEATHER_RUST\n${shader.fragmentShader}`;
 	};
