@@ -54,6 +54,12 @@ export function percentile(sorted: readonly number[], p: number): number {
 export class FrameHistogram {
 	private times: number[] = [];
 	private intervals: number[] = [];
+	/**
+	 * The first live entry. Dropping the old frames moves this, instead of copying both arrays of a
+	 * two-minute window (14 000 frames at 120 Hz) on every frame, which was most of the pad's garbage
+	 * (plan 418); the arrays are compacted when half of them is dead.
+	 */
+	private head = 0;
 
 	constructor(private readonly windowMs = HISTOGRAM_WINDOW_MS) {}
 
@@ -67,24 +73,25 @@ export class FrameHistogram {
 
 	private prune(now: number): void {
 		const from = now - this.windowMs;
-		let drop = 0;
-		while (drop < this.times.length && this.times[drop]! < from) drop++;
-		if (drop > 0) {
-			this.times = this.times.slice(drop);
-			this.intervals = this.intervals.slice(drop);
+		while (this.head < this.times.length && this.times[this.head]! < from) this.head++;
+		if (this.head > 1024 && this.head * 2 > this.times.length) {
+			this.times.splice(0, this.head);
+			this.intervals.splice(0, this.head);
+			this.head = 0;
 		}
 	}
 
 	reset(): void {
 		this.times = [];
 		this.intervals = [];
+		this.head = 0;
 	}
 
 	summary(now: number): FrameSummary {
 		this.prune(now);
-		const n = this.intervals.length;
+		const n = this.intervals.length - this.head;
 		if (n === 0) return EMPTY_SUMMARY;
-		const sorted = [...this.intervals].sort((a, b) => a - b);
+		const sorted = this.intervals.slice(this.head).sort((a, b) => a - b);
 		let over60 = 0;
 		let over30 = 0;
 		for (const v of sorted) {
@@ -93,7 +100,7 @@ export class FrameHistogram {
 		}
 		return {
 			count: n,
-			seconds: Math.min(this.windowMs, now - this.times[0]!) / 1000,
+			seconds: Math.min(this.windowMs, now - this.times[this.head]!) / 1000,
 			p50: percentile(sorted, 0.5),
 			p95: percentile(sorted, 0.95),
 			p99: percentile(sorted, 0.99),

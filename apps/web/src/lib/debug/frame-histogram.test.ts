@@ -92,4 +92,25 @@ describe('the frame histogram', () => {
 		h.reset();
 		expect(h.summary(10).count).toBe(0);
 	});
+
+	it('keeps the window right over many frames, compacting its arrays (plan 418)', () => {
+		const h = new FrameHistogram(1000);
+		let t = 0;
+		// 10 000 frames of 5 ms: the window holds the last 1000 ms, 200 frames
+		for (let i = 0; i < 10_000; i++) {
+			t += 5;
+			h.add(t, 5);
+		}
+		let s = h.summary(t);
+		expect(s.count).toBeGreaterThanOrEqual(200);
+		expect(s.count).toBeLessThanOrEqual(201);
+		// a slow frame then shows in the p99 and leaves with the window
+		h.add(t + 5, 40);
+		t += 5;
+		expect(h.summary(t).p99).toBeGreaterThanOrEqual(5);
+		s = h.summary(t + 2000);
+		expect(s.count).toBe(0);
+		h.add(t + 2005, 7);
+		expect(h.summary(t + 2005).count).toBe(1);
+	});
 });

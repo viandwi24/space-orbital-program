@@ -1069,6 +1069,7 @@ export class LaunchSite {
 	}
 
 	private lastDistance = 0;
+	private readonly camScratch = new Vector3();
 	private siteRocksHidden = false;
 
 	/**
@@ -1097,8 +1098,18 @@ export class LaunchSite {
 	thinTufts(cameraRender: Vec3): void {
 		const set = this.active;
 		if (!set) return;
-		const cam = this.root.worldToLocal(new Vector3(cameraRender.x, cameraRender.y, cameraRender.z));
 		const d = siteDetail(this.lastDistance);
+		if (!d.tufts && !d.trees) {
+			// out of the detail range (orbit, the Space Center's far views): nothing to thin or sort, and
+			// re-sorting thirty thousand instances every frame of a fast camera was a quarter of the
+			// garbage in orbit (plan 418)
+			for (const t of set.tuftPairs) t.full.visible = t.lite.visible = false;
+			for (const lod of set.lods) lod.show(false);
+			return;
+		}
+		const cam = this.root.worldToLocal(
+			this.camScratch.set(cameraRender.x, cameraRender.y, cameraRender.z)
+		);
 		for (const t of set.tuftPairs) {
 			const dist = Math.hypot(cam.x - t.x, cam.y, cam.z - t.z);
 			const count = Math.ceil(t.total * tuftDensity(dist));

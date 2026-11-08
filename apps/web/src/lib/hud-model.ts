@@ -103,6 +103,7 @@ export interface ThrottleContent {
  * (`ModuleInfo.engine.throttle`, ADR 0033), not by module id, so a mod's engine counts too (plan 023).
  * Without such an engine the page's own setting is returned.
  */
+const notEngineModules = new WeakMap<object, Map<string, ModuleDefinition>>();
 export function vesselThrottle(
 	parts: readonly Pick<PartSnapshot, 'definition' | 'modules'>[],
 	fallback: number,
@@ -112,14 +113,21 @@ export function vesselThrottle(
 	let max = 0;
 	for (const p of parts) {
 		const def = content.parts.get(p.definition);
+		// whether a module is an engine depends on its config, not its state: ask once per part
+		// definition, not by a schema parse of every module of every part on every update (plan 418)
+		let notEngines = def ? notEngineModules.get(def) : undefined;
+		if (def && !notEngines) notEngineModules.set(def, (notEngines = new Map()));
 		for (const [moduleId, raw] of def?.modules ?? []) {
 			const view = p.modules[moduleId];
 			if (view === undefined) continue;
 			const mod = content.modules.get(moduleId);
 			if (!mod?.describe) continue;
+			if (notEngines?.get(moduleId) === mod) continue;
 			let throttle: number | undefined;
 			try {
-				throttle = describeModule(mod, raw, view)?.engine?.throttle;
+				const info = describeModule(mod, raw, view);
+				if (info?.engine === undefined) notEngines?.set(moduleId, mod);
+				throttle = info?.engine?.throttle;
 			} catch {
 				// A mod whose descriptor throws or returns bad data must not take the HUD down.
 				continue;

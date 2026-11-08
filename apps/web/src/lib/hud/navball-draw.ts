@@ -4,17 +4,79 @@
  */
 import type { Quat, Vec3 } from '@orbital/core';
 import {
-	elevationCircle,
+	fillElevationCircle,
+	fillMeridian,
 	groundRegion,
 	horizonDirection,
 	localHorizon,
-	meridian,
 	projectDirection,
-	visibleRuns,
+	setHorizonDirection,
+	vesselAxes,
 	type BallPoint,
 	type Marker,
 	type MarkerKind
 } from '../navball-math';
+
+/** The curve being drawn: the painter runs from one render loop, one curve at a time. */
+const SCRATCH: Vec3[] = [];
+
+/**
+ * Strokes the visible (z >= 0) pieces of the first `count` directions of `dirs` as seen with the
+ * vessel's `axes`, cutting each piece at the rim: what `visibleRuns` returns, drawn as it is found with
+ * no objects made. A piece of a single point draws nothing.
+ */
+export function strokeVisible(
+	ctx: Pick<CanvasRenderingContext2D, 'beginPath' | 'moveTo' | 'lineTo' | 'stroke'>,
+	dirs: readonly Vec3[],
+	count: number,
+	axes: { nose: Vec3; up: Vec3; right: Vec3 },
+	cx: number,
+	cy: number,
+	R: number
+): void {
+	const { right, up, nose } = axes;
+	let have = false;
+	let inRun = false;
+	let px = 0;
+	let py = 0;
+	let pz = 0;
+	for (let i = 0; i < count; i++) {
+		const d = dirs[i]!;
+		const x = d.x * right.x + d.y * right.y + d.z * right.z;
+		const y = d.x * up.x + d.y * up.y + d.z * up.z;
+		const z = d.x * nose.x + d.y * nose.y + d.z * nose.z;
+		if (have && pz >= 0 !== z >= 0) {
+			const t = pz / (pz - z);
+			let ux = px + (x - px) * t;
+			let uy = py + (y - py) * t;
+			const m = Math.hypot(ux, uy) || 1;
+			ux /= m;
+			uy /= m;
+			if (pz >= 0) {
+				ctx.lineTo(cx + ux * R, cy - uy * R);
+				ctx.stroke();
+				inRun = false;
+			} else {
+				ctx.beginPath();
+				ctx.moveTo(cx + ux * R, cy - uy * R);
+				inRun = true;
+			}
+		}
+		if (z >= 0) {
+			if (inRun) ctx.lineTo(cx + x * R, cy - y * R);
+			else {
+				ctx.beginPath();
+				ctx.moveTo(cx + x * R, cy - y * R);
+				inRun = true;
+			}
+		}
+		have = true;
+		px = x;
+		py = y;
+		pz = z;
+	}
+	if (inRun) ctx.stroke();
+}
 
 export interface NavballFrame {
 	orientation: Quat;
@@ -103,40 +165,36 @@ export function drawNavball(
 		ctx.fillRect(0, 0, size, size);
 	} else if (ground.kind === 'region') {
 		ctx.beginPath();
-		ground.horizon.forEach((p, i) => {
-			const [x, y] = px(p);
-			if (i === 0) ctx.moveTo(x, y);
-			else ctx.lineTo(x, y);
-		});
+		// plain loops, no tuple per point (plan 418)
+		for (let i = 0; i < ground.horizon.length; i++) {
+			const p = ground.horizon[i]!;
+			if (i === 0) ctx.moveTo(cx + p.x * R, cy - p.y * R);
+			else ctx.lineTo(cx + p.x * R, cy - p.y * R);
+		}
 		// Math angles (y up) to canvas angles (y down): negate; counter-clockwise stays "anticlockwise".
 		ctx.arc(cx, cy, R, -ground.rimFrom, -ground.rimTo, ground.ccw);
 		ctx.closePath();
 		ctx.fill();
 	}
 
-	const stroke = (dirs: Vec3[], width: number, color: string, alpha = 1): void => {
+	// the curves are built in one scratch list and stroked as they are projected: no objects per point
+	// (about a thousand a frame before, plan 418)
+	const axes = vesselAxes(q);
+	const stroke = (count: number, width: number, color: string, alpha = 1): void => {
 		ctx.lineWidth = width;
 		ctx.strokeStyle = color;
 		ctx.globalAlpha = alpha;
-		for (const run of visibleRuns(dirs, q)) {
-			ctx.beginPath();
-			run.forEach((p, i) => {
-				const [x, y] = px(p);
-				if (i === 0) ctx.moveTo(x, y);
-				else ctx.lineTo(x, y);
-			});
-			ctx.stroke();
-		}
+		strokeVisible(ctx, SCRATCH, count, axes, cx, cy, R);
 		ctx.globalAlpha = 1;
 	};
 
 	// Graticule: parallels every 15 degrees, meridians every 30.
 	for (let e = -75; e <= 75; e += 15) {
-		if (e !== 0) stroke(elevationCircle(h, e * DEG), 1, theme.line, 0.55);
+		if (e !== 0) stroke(fillElevationCircle(SCRATCH, h, e * DEG), 1, theme.line, 0.55);
 	}
 	for (let a = 0; a < 360; a += 30)
-		stroke(meridian(h, a * DEG, -75 * DEG, 75 * DEG), 1, theme.line, 0.35);
-	stroke(elevationCircle(h, 0), 2.5, theme.horizon, 1);
+		stroke(fillMeridian(SCRATCH, h, a * DEG, -75 * DEG, 75 * DEG), 1, theme.line, 0.35);
+	stroke(fillElevationCircle(SCRATCH, h, 0), 2.5, theme.horizon, 1);
 
 	// Heading ticks and labels on the horizon.
 	// labels follow the ball's size (and with it the UI scale), never under 10 px (plan 215)
@@ -146,12 +204,11 @@ export function drawNavball(
 	for (let a = 0; a < 360; a += 10) {
 		const long = a % 30 === 0;
 		const t = (long ? 3.2 : 1.8) * DEG;
-		stroke(
-			[horizonDirection(h, a * DEG, -t), horizonDirection(h, a * DEG, t)],
-			long ? 2 : 1,
-			theme.horizon,
-			0.9
-		);
+		SCRATCH[0] ??= { x: 0, y: 0, z: 0 };
+		SCRATCH[1] ??= { x: 0, y: 0, z: 0 };
+		setHorizonDirection(SCRATCH[0], h, a * DEG, -t);
+		setHorizonDirection(SCRATCH[1], h, a * DEG, t);
+		stroke(2, long ? 2 : 1, theme.horizon, 0.9);
 		if (long) {
 			const label =
 				a === 0 ? 'N' : a === 90 ? 'E' : a === 180 ? 'S' : a === 270 ? 'W' : `${a / 10}`;

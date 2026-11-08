@@ -122,8 +122,12 @@ export interface BallPoint {
 }
 
 /** Local (east, north, up) coordinates of a horizon-frame direction as a BCI vector. */
-export const fromHorizon = (h: Horizon, east: number, north: number, up: number): Vec3 =>
-	add3(scale(h.east, east), scale(h.north, north), scale(h.up, up));
+export const fromHorizon = (h: Horizon, east: number, north: number, up: number): Vec3 => ({
+	// one object, not four: the graticule is a few hundred of these a frame (plan 418)
+	x: h.east.x * east + h.north.x * north + h.up.x * up,
+	y: h.east.y * east + h.north.y * north + h.up.y * up,
+	z: h.east.z * east + h.north.z * north + h.up.z * up
+});
 
 /** Direction at elevation `elev` and azimuth `az` (rad, clockwise from north) in BCI. */
 export function horizonDirection(h: Horizon, az: number, elev: number): Vec3 {
@@ -194,6 +198,53 @@ export function meridian(h: Horizon, az: number, from: number, to: number, segme
 	const out: Vec3[] = [];
 	for (let i = 0; i <= segments; i++)
 		out.push(horizonDirection(h, az, from + ((to - from) * i) / segments));
+	return out;
+}
+
+/**
+ * `elevationCircle` written into `out`, reusing the objects already in it (it grows when short);
+ * returns the number of points. The painter draws a dozen curves a frame from one scratch list, where
+ * the allocating versions made about a thousand objects a frame (plan 418).
+ */
+export function fillElevationCircle(out: Vec3[], h: Horizon, elev: number, segments = 72): number {
+	const c = Math.cos(elev);
+	const s = Math.sin(elev);
+	for (let i = 0; i <= segments; i++) {
+		const az = (i / segments) * TWO_PI;
+		setFromHorizon((out[i] ??= { x: 0, y: 0, z: 0 }), h, c * Math.sin(az), c * Math.cos(az), s);
+	}
+	return segments + 1;
+}
+
+/** `meridian` written into `out` (see `fillElevationCircle`); returns the number of points. */
+export function fillMeridian(
+	out: Vec3[],
+	h: Horizon,
+	az: number,
+	from: number,
+	to: number,
+	segments = 24
+): number {
+	const sa = Math.sin(az);
+	const ca = Math.cos(az);
+	for (let i = 0; i <= segments; i++) {
+		const elev = from + ((to - from) * i) / segments;
+		const c = Math.cos(elev);
+		setFromHorizon((out[i] ??= { x: 0, y: 0, z: 0 }), h, c * sa, c * ca, Math.sin(elev));
+	}
+	return segments + 1;
+}
+
+/** `horizonDirection` written into `out`. */
+export function setHorizonDirection(out: Vec3, h: Horizon, az: number, elev: number): Vec3 {
+	const c = Math.cos(elev);
+	return setFromHorizon(out, h, c * Math.sin(az), c * Math.cos(az), Math.sin(elev));
+}
+
+function setFromHorizon(out: Vec3, h: Horizon, east: number, north: number, up: number): Vec3 {
+	out.x = h.east.x * east + h.north.x * north + h.up.x * up;
+	out.y = h.east.y * east + h.north.y * north + h.up.y * up;
+	out.z = h.east.z * east + h.north.z * north + h.up.z * up;
 	return out;
 }
 

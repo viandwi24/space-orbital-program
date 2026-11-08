@@ -25,16 +25,9 @@ import {
 	PerspectiveCamera,
 	type DepthTexture
 } from 'three';
-import {
-	applyAir,
-	atmosphereFor,
-	horizonColour,
-	skyAmbient,
-	sunTransmittance,
-	type Atmosphere,
-	type RGB
-} from './atmosphere-model.ts';
+import { applyAir, atmosphereFor, type Atmosphere, type RGB } from './atmosphere-model.ts';
 import { AIRLESS_EXPOSURE, airlessLight, type AirlessLight } from './airless-light.ts';
+import { SkyLightCache } from './sky-light-cache.ts';
 import {
 	NIGHT_SKY,
 	adaptExposure,
@@ -183,6 +176,8 @@ export class Environment {
 	private coverWait = 0;
 	private coverStarted = false;
 	private exposure = 1;
+	/** The sky light colours, kept while the sun and the camera barely move (plan 418). */
+	private readonly skyLight = new SkyLightCache();
 	/** The player's brightness factor (Settings), on top of the adapted exposure. */
 	private brightness = 1;
 	/** A mod's post profile's factor on the exposure (plan 405, ADR 0345). */
@@ -531,9 +526,11 @@ export class Environment {
 		// the later body the camera is at (ADR 0121 point 2).
 		const atm = input.air?.atmosphere ?? this.atmosphere;
 		const alt = input.air?.altitude ?? frame.altitude;
-		const sunT = sunTransmittance(atm, alt, elev);
-		const ambient = skyAmbient(atm, alt, elev);
-		const horizon = horizonColour(atm, alt, elev);
+		const light = this.skyLight.get(atm, alt, elev);
+		// a copy of the transmittance: the airless branch below overwrites it
+		const sunT: RGB = [light.sunT[0], light.sunT[1], light.sunT[2]];
+		const ambient = light.ambient;
+		const horizon = light.horizon;
 		const night: RGB = [...NIGHT_SKY];
 		const skyIrr: RGB = [
 			(ambient[0] + night[0]) * Math.PI,

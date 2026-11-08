@@ -20,12 +20,14 @@ export const LOD_RESORT_DISTANCE = 8;
 export function splitNear(
 	xz: ArrayLike<number>,
 	camera: { x: number; z: number },
-	radius: number
+	radius: number,
+	/** How many instances of `xz` to split (all by default). */
+	count = xz.length / 2
 ): { near: number[]; far: number[] } {
 	const near: number[] = [];
 	const far: number[] = [];
 	const r2 = radius * radius;
-	for (let i = 0; i < xz.length / 2; i++) {
+	for (let i = 0; i < count; i++) {
 		const dx = xz[i * 2]! - camera.x;
 		const dz = xz[i * 2 + 1]! - camera.z;
 		(dx * dx + dz * dz <= r2 ? near : far).push(i);
@@ -88,7 +90,7 @@ export class LodInstances {
 		const last = this.sortedAt;
 		if (last && Math.hypot(camera.x - last.x, camera.z - last.z) < LOD_RESORT_DISTANCE) return;
 		this.sortedAt = { x: camera.x, z: camera.z };
-		const { near, far } = splitNear(this.xz.subarray(0, this.filled * 2), camera, this.radius);
+		const { near, far } = splitNear(this.xz, camera, this.radius, this.filled);
 		this.fill(this.near, near);
 		this.fill(this.far, far);
 	}
@@ -96,12 +98,14 @@ export class LodInstances {
 	private fill(mesh: InstancedMesh, list: readonly number[]): void {
 		const m = mesh.instanceMatrix.array as Float32Array;
 		const c = mesh.instanceColor!.array as Float32Array;
-		list.forEach((src, k) => {
-			m.set(this.matrices.subarray(src * 16, src * 16 + 16), k * 16);
+		// a plain copy, not a `subarray` view per instance (thousands of objects a sort, plan 418)
+		for (let k = 0; k < list.length; k++) {
+			const src = list[k]!;
+			for (let j = 0; j < 16; j++) m[k * 16 + j] = this.matrices[src * 16 + j]!;
 			c[k * 3] = this.colours[src * 3]!;
 			c[k * 3 + 1] = this.colours[src * 3 + 1]!;
 			c[k * 3 + 2] = this.colours[src * 3 + 2]!;
-		});
+		}
 		mesh.count = list.length;
 		mesh.instanceMatrix.needsUpdate = true;
 		mesh.instanceColor!.needsUpdate = true;

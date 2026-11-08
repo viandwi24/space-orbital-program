@@ -44,6 +44,17 @@ export function hideUnported(root: Object3D, twinOf?: TwinOf): Unported {
 	const patched = new Set<string>();
 	const visit = (o: Object3D): void => {
 		if (!o.visible) return;
+		// the common mesh (one node material, no patch, or none) only walks on: no arrays, a frame's
+		// worth of garbage for a scene of thousands of objects (plan 418)
+		const own = (o as Object3D & { material?: Material | Material[] }).material;
+		if (
+			!Array.isArray(own) &&
+			(own === undefined ||
+				(!(own as { isShaderMaterial?: boolean }).isShaderMaterial && !isPatched(own)))
+		) {
+			for (let i = 0; i < o.children.length; i++) visit(o.children[i]!);
+			return;
+		}
 		const materials = materialsOf(o);
 		const shader = materials.filter((m) => (m as { isShaderMaterial?: boolean }).isShaderMaterial);
 		const twinnable = twinOf
@@ -59,7 +70,7 @@ export function hideUnported(root: Object3D, twinOf?: TwinOf): Unported {
 				const om = o as Object3D & { material: Material };
 				swapped.push({ o: om, was: om.material });
 				om.material = twin.material;
-				for (const child of o.children) visit(child);
+				for (let i = 0; i < o.children.length; i++) visit(o.children[i]!);
 				return;
 			}
 		}
@@ -71,7 +82,7 @@ export function hideUnported(root: Object3D, twinOf?: TwinOf): Unported {
 			return;
 		}
 		for (const m of materials) if (isPatched(m)) patched.add(nameOf(m));
-		for (const child of o.children) visit(child);
+		for (let i = 0; i < o.children.length; i++) visit(o.children[i]!);
 	};
 	visit(root);
 	return {

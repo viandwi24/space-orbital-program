@@ -3,7 +3,7 @@
  * their descriptors (plan 023, ADR 0033), not through the stock module ids. A test mod brings an
  * engine, a wing and a gadget of its own; the stock results are pinned by the existing suites.
  */
-import { loadPlugins, partId } from '@orbital/core';
+import { loadPlugins, partId, type ModuleDefinition } from '@orbital/core';
 import Stock from '@orbital/mod-stock';
 import { defineModule, definePart, definePlugin, z } from '@orbital/sdk';
 import { describe, expect, it } from 'vitest';
@@ -136,6 +136,42 @@ describe('vessel throttle through descriptors', () => {
 		expect(vesselThrottle([snap('stock.tank-small', {})], 0.4, content)).toBe(0.4);
 		expect(vesselThrottle([snap('nobody.part', { x: 1 })], 0.4, content)).toBe(0.4);
 		expect(vesselThrottle([snap('acme.faulty', { 'acme.broken': {} })], 0.4, content)).toBe(0.4);
+	});
+	it('describes a module that is no engine once per part definition, not on every update (plan 418)', () => {
+		const calls = new Map<string, number>();
+		const wrapped = new Map<string, ModuleDefinition>();
+		const counting = {
+			parts: registries.parts,
+			modules: {
+				get(id: string) {
+					const mod = registries.modules.get(id);
+					if (!mod?.describe) return mod;
+					let w = wrapped.get(id);
+					if (!w) {
+						const describeIt = mod.describe;
+						w = {
+							...mod,
+							describe: (...args: Parameters<typeof describeIt>) => {
+								calls.set(id, (calls.get(id) ?? 0) + 1);
+								return describeIt(...args);
+							}
+						};
+						wrapped.set(id, w);
+					}
+					return w;
+				}
+			}
+		};
+		const parts = [
+			snap('acme.thing', { 'acme.gadget': {} }),
+			snap('acme.thing', { 'acme.gadget': {} }),
+			snap('acme.motor', { 'acme.thruster': { throttle: 0.6 } })
+		];
+		for (let i = 0; i < 20; i++) expect(vesselThrottle(parts, 0, counting)).toBe(0.6);
+		// the gadget is no engine: described on the first update only (the second part reads the cache)
+		expect(calls.get('acme.gadget')).toBe(1);
+		// the engine is described every update, for its throttle
+		expect(calls.get('acme.thruster')).toBe(20);
 	});
 });
 
