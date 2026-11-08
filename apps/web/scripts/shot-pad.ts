@@ -42,6 +42,20 @@ try {
 	await page.goto('/flight');
 	await page.getByTestId('world-loading').waitFor({ state: 'detached', timeout: 300_000 });
 	await page.waitForTimeout(15000);
+	// PRESET: a camera preset by name (pad-close, pad-morning, ...); RIG: '{"yaw":2,"pitch":0.1,"distance":60}'
+	const preset = process.env.PRESET;
+	const rig = process.env.RIG;
+	if (preset || rig) {
+		await page.evaluate(
+			([preset, rig]) => {
+				const d = (window as any).__orbital.renderer().debug;
+				if (preset) d.applyPreset(preset);
+				if (rig) d.setCamera(JSON.parse(rig));
+			},
+			[preset ?? '', rig ?? ''] as const
+		);
+		await page.waitForTimeout(4000);
+	}
 	await page.screenshot({ path: out });
 } finally {
 	await browser.close();
